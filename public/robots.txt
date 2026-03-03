@@ -1,0 +1,6 @@
+# robots.txt — PocketCart
+User-agent: *
+Allow: /
+Disallow: /_expo/
+
+Sitemap: https://pocketcart.app/sitemap.xml

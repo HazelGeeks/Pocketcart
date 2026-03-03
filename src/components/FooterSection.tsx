@@ -1,0 +1,228 @@
+import React, { useState } from "react";
+import {
+  Image,
+  Linking,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { motion } from "framer-motion";
+import { isWeb } from "../constants/variants";
+import type { Route } from "../constants/palette";
+import useLayout from "../hooks/useLayout";
+import s from "../styles";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  XIcon,
+} from "./icons/SocialIcons";
+import { useSiteI18n } from "../i18n/siteI18n";
+import WebLink from "./WebLink";
+
+export default function FooterSection({
+  navigate,
+}: {
+  navigate: (r: Route) => void;
+}) {
+  const { isXl, pad } = useLayout();
+  const { copy } = useSiteI18n();
+  const [email, setEmail] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (!email.trim() || !email.includes("@")) return;
+    // TODO: hook up to real API / newsletter service
+    setSubmitted(true);
+  };
+
+  const LINK_ROUTES: Record<string, Route | null> = {
+    blog: "blog",
+    privacy: "privacy",
+    terms: "terms",
+    "delete-account": "delete-account",
+  };
+
+  const linkGroups = copy.footer.groups;
+  const socialLinks = [
+    {
+      key: "instagram",
+      label: "Instagram",
+      url: "https://instagram.com",
+      Icon: InstagramIcon,
+    },
+    {
+      key: "facebook",
+      label: "Facebook",
+      url: "https://facebook.com",
+      Icon: FacebookIcon,
+    },
+    {
+      key: "x",
+      label: "X",
+      url: "https://x.com",
+      Icon: XIcon,
+    },
+  ];
+
+  return (
+    <View
+      role="contentinfo"
+      style={[s.footer, { paddingHorizontal: pad }]}
+    >
+      <View
+        style={[
+          s.footerInner,
+          { maxWidth: 1200 },
+          isXl && s.footerInnerRow,
+        ]}
+      >
+        {/* Brand column */}
+        <View style={[s.footerBrand, isXl && s.footerCol]}>
+          <WebLink href="/" onPress={() => navigate("home")}>
+            <View style={s.footerBrandRow}>
+              <Image
+                source={require("../../assets/favicon.svg")}
+                style={s.footerMark}
+              />
+              <Text style={s.footerBrandName}>PocketCart</Text>
+            </View>
+          </WebLink>
+          <Text style={s.footerTagline}>{copy.footer.tagline}</Text>
+        </View>
+
+        {/* Email signup */}
+        <View
+          style={[
+            s.footerSignup,
+            isXl && s.footerCol,
+            isXl && s.footerSignupDesktop,
+          ]}
+        >
+          <Text style={s.footerSignupTitle}>{copy.footer.signupTitle}</Text>
+          <Text style={s.footerSignupSub}>
+            {copy.footer.signupSub}
+          </Text>
+          {submitted ? (
+            <View style={s.footerSignupDone}>
+              <Text style={s.footerSignupDoneText}>
+                {copy.footer.signupDone}
+              </Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                s.footerSignupRow,
+                !isXl && s.footerSignupRowStack,
+              ]}
+            >
+              <TextInput
+                style={s.footerSignupInput}
+                placeholder={copy.footer.emailPlaceholder}
+                placeholderTextColor="rgba(255,255,255,0.35)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={setEmail}
+                onSubmitEditing={handleSubmit}
+              />
+              {isWeb ? (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Pressable
+                    style={[
+                      s.footerSignupBtn,
+                      !isXl && s.footerSignupBtnBlock,
+                    ]}
+                    onPress={handleSubmit}
+                  >
+                    <Text style={s.footerSignupBtnText}>
+                      {copy.footer.notify}
+                    </Text>
+                  </Pressable>
+                </motion.div>
+              ) : (
+                <Pressable
+                  style={[
+                    s.footerSignupBtn,
+                    !isXl && s.footerSignupBtnBlock,
+                  ]}
+                  onPress={handleSubmit}
+                >
+                  <Text style={s.footerSignupBtnText}>
+                    {copy.footer.notify}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Link columns */}
+        <View
+          style={[
+            s.footerLinkCols,
+            isXl && s.footerCol,
+            !isXl && s.footerLinkColsMobile,
+          ]}
+        >
+          {linkGroups.map((g) => (
+            <View key={g.title} style={s.footerLinkCol}>
+              <Text style={s.footerLinkTitle}>{g.title}</Text>
+              {g.links.map((link) => (
+                LINK_ROUTES[link.id] ? (
+                  <WebLink
+                    key={link.id}
+                    href={`/${LINK_ROUTES[link.id]}`}
+                    onPress={() => navigate(LINK_ROUTES[link.id]!)}
+                  >
+                    <Text style={s.footerLink}>{link.label}</Text>
+                  </WebLink>
+                ) : (
+                  <Text key={link.id} style={s.footerLinkMuted}>
+                    {link.label}
+                  </Text>
+                )
+              ))}
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Bottom row */}
+      <View style={[s.footerBottom, { maxWidth: 1200 }]}>
+        <View style={s.footerDivider} />
+        <View style={s.footerMetaRow}>
+          <Text style={s.footerCopy}>{copy.footer.copyright}</Text>
+
+          <View style={s.footerSocialRow}>
+            {socialLinks.map((item, idx) => (
+              <React.Fragment key={item.key}>
+                {idx > 0 ? (
+                  <Text style={s.footerSocialSep}>|</Text>
+                ) : null}
+                <WebLink
+                  href={item.url}
+                  accessibilityLabel={item.label}
+                  onPress={() => Linking.openURL(item.url)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <View style={s.footerSocialLink}>
+                    <item.Icon
+                      size={16}
+                      color="rgba(255,255,255,0.75)"
+                    />
+                  </View>
+                </WebLink>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}

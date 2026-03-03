@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "PocketCart",
+    "slug": "pocketcart",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FAFCF2"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pocketcart.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FAFCF2"
+      },
+      "package": "com.pocketcart.app",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png",
+      "name": "PocketCart — Smart Price Comparison & Savings App",
+      "shortName": "PocketCart",
+      "description": "Compare prices, track alerts, and manage your budget in one app.",
+      "lang": "en",
+      "themeColor": "#ABC900",
+      "backgroundColor": "#FAFCF2"
+    },
+    "plugins": ["expo-font"]
+  }
+}
