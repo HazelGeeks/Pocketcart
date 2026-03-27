@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import P, { type Route } from "./src/constants/palette";
 import { isWeb } from "./src/constants/variants";
+import { appPalette } from "./src/shared/design/palette";
 import s from "./src/styles";
 import useSEO, { BASE_URL, getSEOConfig } from "./src/hooks/useSEO";
 import useAnalytics from "./src/hooks/useAnalytics";
@@ -165,6 +170,11 @@ function AppShell() {
   );
   useAnalytics(locale, buildPath(route, blogSlug));
 
+  const safeAreaBackground =
+    route === "app" || route === "delete-account"
+      ? appPalette.bg
+      : P.bg;
+
   let content: React.ReactNode = null;
 
   if (route === "blog") {
@@ -238,13 +248,25 @@ function AppShell() {
     );
   }
 
-  return <>{content}</>;
+  return (
+    <SafeAreaView
+      style={[
+        { flex: 1, backgroundColor: safeAreaBackground },
+        isWeb && ({ paddingTop: "env(safe-area-inset-top)" } as any),
+      ]}
+      edges={["top"]}
+    >
+      {content}
+    </SafeAreaView>
+  );
 }
 
 export default function App() {
   return (
-    <SiteI18nProvider>
-      <AppShell />
-    </SiteI18nProvider>
+    <SafeAreaProvider>
+      <SiteI18nProvider>
+        <AppShell />
+      </SiteI18nProvider>
+    </SafeAreaProvider>
   );
 }

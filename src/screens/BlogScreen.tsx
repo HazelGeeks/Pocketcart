@@ -13,19 +13,8 @@ import WebLink from "../components/WebLink";
 import Navbar, { type SectionId } from "../components/Navbar";
 import FooterSection from "../components/FooterSection";
 import EmailSignupForm from "../components/EmailSignupForm";
+import P from "../constants/palette";
 import type { Route } from "../constants/palette";
-
-const P = {
-  primary: "#ABC900",
-  primaryDeep: "#5C7A00",
-  bg: "#FAFCF2",
-  white: "#FFFFFF",
-  text: "#1E2E0C",
-  textSoft: "#4A5C38",
-  textMuted: "#7F9068",
-  line: "rgba(171,201,0,0.18)",
-  glass: "rgba(255,255,255,0.82)",
-};
 
 function useLayout() {
   const { width: w } = useWindowDimensions();
@@ -120,7 +109,10 @@ export default function BlogScreen({
               <View style={st.articleHeader}>
                 <Text style={st.eyebrow}>{copy.blog.eyebrow}</Text>
                 <Text style={st.articleMeta}>
-                  {formatMeta(selectedPost.publishedAt, selectedPost.readMinutes)}
+                  {formatMeta(
+                    selectedPost.publishedAt,
+                    selectedPost.readMinutes,
+                  )}
                 </Text>
                 <Text
                   accessibilityRole="header"
@@ -164,7 +156,10 @@ export default function BlogScreen({
                 <Text style={st.relatedTitle}>{copy.blog.relatedPosts}</Text>
                 <View style={[st.grid, isMd && st.gridDesktop]}>
                   {relatedPosts.map((post) => (
-                    <View key={post.slug} style={[st.card, isMd && st.cardDesktop]}>
+                    <View
+                      key={post.slug}
+                      style={[st.card, isMd && st.cardDesktop]}
+                    >
                       <Text style={st.cardDate}>
                         {formatMeta(post.publishedAt, post.readMinutes)}
                       </Text>
@@ -204,7 +199,10 @@ export default function BlogScreen({
                   <Text style={st.featureLabel}>{copy.blog.featuredLabel}</Text>
                   <Text style={st.featureTitle}>{featurePost.title}</Text>
                   <Text style={st.cardDate}>
-                    {formatMeta(featurePost.publishedAt, featurePost.readMinutes)}
+                    {formatMeta(
+                      featurePost.publishedAt,
+                      featurePost.readMinutes,
+                    )}
                   </Text>
                   <Text style={st.cardBody}>{featurePost.description}</Text>
                   <WebLink
@@ -212,7 +210,9 @@ export default function BlogScreen({
                     onPress={() => onOpenPost(featurePost.slug)}
                   >
                     <View style={st.readBtn}>
-                      <Text style={st.readBtnText}>{copy.blog.readArticle}</Text>
+                      <Text style={st.readBtnText}>
+                        {copy.blog.readArticle}
+                      </Text>
                     </View>
                   </WebLink>
                 </View>
@@ -222,7 +222,10 @@ export default function BlogScreen({
                 <Text style={st.relatedTitle}>{copy.blog.latestLabel}</Text>
                 <View style={[st.grid, isMd && st.gridDesktop]}>
                   {latestPosts.map((post) => (
-                    <View key={post.slug} style={[st.card, isMd && st.cardDesktop]}>
+                    <View
+                      key={post.slug}
+                      style={[st.card, isMd && st.cardDesktop]}
+                    >
                       <Text style={st.cardDate}>
                         {formatMeta(post.publishedAt, post.readMinutes)}
                       </Text>
@@ -266,9 +269,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: P.line,
     paddingVertical: 12,
-    ...(Platform.OS === "web"
-      ? ({ backdropFilter: "blur(16px)" } as any)
-      : {}),
+    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(16px)" } as any) : {}),
   },
   backBtn: {
     flexDirection: "row",

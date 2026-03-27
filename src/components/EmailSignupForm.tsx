@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb } from "../constants/variants";
+import { marketingPalette, semanticPalette } from "../shared/design/palette";
 
 type Tone = "dark" | "light";
 
@@ -44,28 +45,28 @@ const paletteByTone: Record<
   dark: {
     panel: "transparent",
     border: "transparent",
-    title: "#FFFFFF",
+    title: marketingPalette.white,
     subtitle: "rgba(255,255,255,0.55)",
     inputBg: "rgba(255,255,255,0.06)",
     inputBorder: "rgba(255,255,255,0.2)",
-    inputText: "#FFFFFF",
+    inputText: marketingPalette.white,
     placeholder: "rgba(255,255,255,0.35)",
     successBg: "rgba(171,201,0,0.12)",
-    successText: "#ABC900",
-    buttonBg: "#16a34a",
+    successText: marketingPalette.primary,
+    buttonBg: semanticPalette.success,
   },
   light: {
     panel: "rgba(255,255,255,0.86)",
     border: "rgba(171,201,0,0.18)",
-    title: "#1E2E0C",
-    subtitle: "#4A5C38",
+    title: marketingPalette.text,
+    subtitle: marketingPalette.textSoft,
     inputBg: "rgba(250,252,242,0.92)",
     inputBorder: "rgba(171,201,0,0.22)",
-    inputText: "#1E2E0C",
-    placeholder: "#7F9068",
+    inputText: marketingPalette.text,
+    placeholder: marketingPalette.textMuted,
     successBg: "rgba(171,201,0,0.12)",
-    successText: "#5C7A00",
-    buttonBg: "#16a34a",
+    successText: marketingPalette.primaryDeep,
+    buttonBg: semanticPalette.success,
   },
 };
 

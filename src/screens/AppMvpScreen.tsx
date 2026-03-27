@@ -14,26 +14,8 @@ import useLayout from "../hooks/useLayout";
 import type { Route } from "../constants/palette";
 import { useSiteI18n } from "../i18n/siteI18n";
 import type { Locale } from "../i18n/types";
-import useMvpStore, {
-  type MvpErrorCode,
-  type MvpResult,
-} from "../mvp/store";
-
-const C = {
-  brick: "#B3472F",
-  brickDark: "#8B3524",
-  brickFaint: "#F2E1DB",
-  bg: "#FFF8F5",
-  white: "#FFFFFF",
-  ink: "#2A1812",
-  text: "#41281F",
-  muted: "#6F4A40",
-  line: "#E5C9C0",
-  ok: "#1E7B4D",
-  okBg: "#E8F6EE",
-  err: "#A83939",
-  errBg: "#FBEAEA",
-};
+import { appPalette as C } from "../shared/design/palette";
+import useMvpStore, { type MvpErrorCode, type MvpResult } from "../mvp/store";
 
 type Banner = {
   tone: "ok" | "error";
@@ -74,14 +56,7 @@ export default function AppMvpScreen({
   onNavigate: (route: Route) => void;
 }) {
   const { locale, copy } = useSiteI18n();
-  const {
-    pad,
-    isSm,
-    isMd,
-    isLg,
-    isXl,
-    is2Xl,
-  } = useLayout();
+  const { pad, isSm, isMd, isLg, isXl, is2Xl } = useLayout();
   const {
     booting,
     busyAction,
@@ -117,11 +92,12 @@ export default function AppMvpScreen({
   const [itemLatest, setItemLatest] = React.useState("");
   const [itemSource, setItemSource] = React.useState("");
 
-  const [selectedItemId, setSelectedItemId] =
-    React.useState<string | null>(null);
-  const [priceDrafts, setPriceDrafts] = React.useState<
-    Record<string, string>
-  >({});
+  const [selectedItemId, setSelectedItemId] = React.useState<string | null>(
+    null,
+  );
+  const [priceDrafts, setPriceDrafts] = React.useState<Record<string, string>>(
+    {},
+  );
   const [sourceDrafts, setSourceDrafts] = React.useState<
     Record<string, string>
   >({});
@@ -191,25 +167,13 @@ export default function AppMvpScreen({
     const result = await signIn(authEmail, authPassword);
     const ok = showResult(result, mvp.states.signedIn);
     if (ok) setAuthPassword("");
-  }, [
-    authEmail,
-    authPassword,
-    mvp.states.signedIn,
-    showResult,
-    signIn,
-  ]);
+  }, [authEmail, authPassword, mvp.states.signedIn, showResult, signIn]);
 
   const handleSignUp = React.useCallback(async () => {
     const result = await signUp(authEmail, authPassword);
     const ok = showResult(result, mvp.states.signedUp);
     if (ok) setAuthPassword("");
-  }, [
-    authEmail,
-    authPassword,
-    mvp.states.signedUp,
-    showResult,
-    signUp,
-  ]);
+  }, [authEmail, authPassword, mvp.states.signedUp, showResult, signUp]);
 
   const handleSignOut = React.useCallback(async () => {
     const result = await signOut();
@@ -247,9 +211,7 @@ export default function AppMvpScreen({
       const result = await recordPrice({
         itemId,
         price: priceDrafts[itemId] ?? "",
-        source:
-          sourceDrafts[itemId] ??
-          mvp.history.sourceFallback,
+        source: sourceDrafts[itemId] ?? mvp.history.sourceFallback,
       });
       const ok = showResult(result, mvp.states.priceRecorded);
       if (!ok) return;
@@ -281,12 +243,7 @@ export default function AppMvpScreen({
   const handleToggleAlerts = React.useCallback(async () => {
     const result = await setAlertsEnabled(!alertsEnabled);
     showResult(result, mvp.states.alertsUpdated);
-  }, [
-    alertsEnabled,
-    mvp.states.alertsUpdated,
-    setAlertsEnabled,
-    showResult,
-  ]);
+  }, [alertsEnabled, mvp.states.alertsUpdated, setAlertsEnabled, showResult]);
 
   const handleOpenWebDeletion = React.useCallback(async () => {
     if (Platform.OS === "web") {
@@ -322,7 +279,7 @@ export default function AppMvpScreen({
   ]);
 
   const activeHistory = React.useMemo(
-    () => (selectedItemId ? historyByItem[selectedItemId] ?? [] : []),
+    () => (selectedItemId ? (historyByItem[selectedItemId] ?? []) : []),
     [historyByItem, selectedItemId],
   );
 
@@ -376,10 +333,7 @@ export default function AppMvpScreen({
                 <Pressable
                   onPress={handleSignOut}
                   disabled={busy}
-                  style={[
-                    st.ghostBtn,
-                    busy && st.disabled,
-                  ]}
+                  style={[st.ghostBtn, busy && st.disabled]}
                 >
                   <Text style={st.ghostBtnText}>{mvp.auth.signOut}</Text>
                 </Pressable>
@@ -388,12 +342,7 @@ export default function AppMvpScreen({
           </View>
         </View>
 
-        <View
-          style={[
-            st.container,
-            { paddingHorizontal: pad, maxWidth },
-          ]}
-        >
+        <View style={[st.container, { paddingHorizontal: pad, maxWidth }]}>
           <View style={st.headCard}>
             <Text style={st.eyebrow}>{mvp.eyebrow}</Text>
             <Text
@@ -417,9 +366,7 @@ export default function AppMvpScreen({
               <Text
                 style={[
                   st.bannerText,
-                  banner.tone === "ok"
-                    ? st.bannerTextOk
-                    : st.bannerTextErr,
+                  banner.tone === "ok" ? st.bannerTextOk : st.bannerTextErr,
                 ]}
               >
                 {banner.text}
@@ -473,12 +420,7 @@ export default function AppMvpScreen({
                         placeholderTextColor={C.muted}
                       />
                     </View>
-                    <View
-                      style={[
-                        st.buttonRow,
-                        !isSm && st.buttonRowStack,
-                      ]}
-                    >
+                    <View style={[st.buttonRow, !isSm && st.buttonRowStack]}>
                       <Pressable
                         onPress={handleSignIn}
                         disabled={busy}
@@ -551,10 +493,7 @@ export default function AppMvpScreen({
                     <Pressable
                       onPress={handleDeleteAccount}
                       disabled={busy}
-                      style={[
-                        st.dangerBtn,
-                        busy && st.disabled,
-                      ]}
+                      style={[st.dangerBtn, busy && st.disabled]}
                     >
                       <Text style={st.dangerBtnText}>
                         {deleteArmed
@@ -602,12 +541,7 @@ export default function AppMvpScreen({
                         placeholderTextColor={C.muted}
                       />
                     </View>
-                    <View
-                      style={[
-                        st.row,
-                        !isMd && st.rowStack,
-                      ]}
-                    >
+                    <View style={[st.row, !isMd && st.rowStack]}>
                       <View style={[st.formGroup, st.formHalf]}>
                         <Text style={st.label}>{mvp.items.targetLabel}</Text>
                         <TextInput
@@ -757,8 +691,7 @@ export default function AppMvpScreen({
                             <Text
                               style={[
                                 st.chipText,
-                                selectedItemId === item.id &&
-                                  st.chipTextActive,
+                                selectedItemId === item.id && st.chipTextActive,
                               ]}
                             >
                               {item.name}
@@ -897,9 +830,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.line,
     paddingVertical: 12,
-    ...(Platform.OS === "web"
-      ? ({ backdropFilter: "blur(14px)" } as any)
-      : {}),
+    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(14px)" } as any) : {}),
   },
   topInner: {
     alignSelf: "center",
@@ -1062,9 +993,7 @@ const st = StyleSheet.create({
     color: C.text,
     paddingHorizontal: 12,
     fontSize: 14,
-    ...(Platform.OS === "web"
-      ? ({ outlineStyle: "none" } as any)
-      : {}),
+    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
   },
   row: {
     flexDirection: "row",

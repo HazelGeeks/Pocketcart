@@ -8,20 +8,7 @@ import {
   View,
   useWindowDimensions,
 } from "react-native";
-
-const P = {
-  primary: "#ABC900",
-  primaryDeep: "#5C7A00",
-  primaryGhost: "#F4F8DE",
-  bg: "#FAFCF2",
-  white: "#FFFFFF",
-  dark: "#141D06",
-  text: "#1E2E0C",
-  textSoft: "#4A5C38",
-  textMuted: "#7F9068",
-  line: "rgba(171,201,0,0.18)",
-  glass: "rgba(255,255,255,0.82)",
-};
+import P from "../constants/palette";
 
 function useLayout() {
   const { width: w } = useWindowDimensions();

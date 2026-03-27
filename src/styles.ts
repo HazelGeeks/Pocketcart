@@ -1,5 +1,6 @@
 import { Platform, StyleSheet } from "react-native";
 import P from "./constants/palette";
+import { semanticPalette } from "./shared/design/palette";
 
 const s = StyleSheet.create({
   /* ── Root ── */
@@ -19,9 +20,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: P.line,
     paddingVertical: 14,
-    ...(Platform.OS === "web"
-      ? ({ backdropFilter: "blur(16px)" } as any)
-      : {}),
+    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(16px)" } as any) : {}),
   },
   navInner: {
     maxWidth: 1200,
@@ -638,7 +637,7 @@ const s = StyleSheet.create({
     height: 46,
     paddingHorizontal: 22,
     borderRadius: 10,
-    backgroundColor: "#16a34a",
+    backgroundColor: semanticPalette.success,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -649,9 +648,7 @@ const s = StyleSheet.create({
     color: P.white,
     fontSize: 14,
     fontWeight: "700",
-    ...(Platform.OS === "web"
-      ? ({ whiteSpace: "nowrap" } as any)
-      : {}),
+    ...(Platform.OS === "web" ? ({ whiteSpace: "nowrap" } as any) : {}),
   },
   footerSignupDone: {
     marginTop: 8,

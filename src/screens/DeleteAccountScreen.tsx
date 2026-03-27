@@ -9,17 +9,7 @@ import {
 } from "react-native";
 import { useSiteI18n } from "../i18n/siteI18n";
 import useLayout from "../hooks/useLayout";
-
-const P = {
-  brick: "#B3472F",
-  brickDark: "#8B3524",
-  bg: "#FFF8F5",
-  white: "#FFFFFF",
-  text: "#2A1812",
-  textSoft: "#6F4A40",
-  line: "#E5C9C0",
-  glass: "rgba(255,248,245,0.92)",
-};
+import { appPalette as P } from "../shared/design/palette";
 
 const DELETION_URL = "https://pocketcart.app/delete-account";
 
@@ -106,9 +96,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: P.line,
     paddingVertical: 14,
-    ...(Platform.OS === "web"
-      ? ({ backdropFilter: "blur(14px)" } as any)
-      : {}),
+    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(14px)" } as any) : {}),
   },
   backBtn: {
     flexDirection: "row",
@@ -141,7 +129,7 @@ const st = StyleSheet.create({
     letterSpacing: 1.8,
   },
   title: {
-    color: P.text,
+    color: P.ink,
     fontSize: 38,
     lineHeight: 44,
     fontWeight: "800",
@@ -161,7 +149,7 @@ const st = StyleSheet.create({
     gap: 7,
   },
   cardTitle: {
-    color: P.text,
+    color: P.ink,
     fontSize: 20,
     fontWeight: "800",
   },
