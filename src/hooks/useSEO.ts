@@ -11,9 +11,10 @@ interface SEOConfig {
   ogDescription?: string;
   ogImage?: string;
   noindex?: boolean;
+  structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
-const BASE_URL = "https://pocketcart.app";
+export const BASE_URL = "https://pocketcart.app";
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 export const ROUTE_PATHS: Record<Route, string> = {
   home: "/",
@@ -40,6 +41,7 @@ export default function useSEO(config: SEOConfig) {
       ogDescription,
       ogImage,
       noindex,
+      structuredData,
     } = config;
 
     // Title
@@ -96,6 +98,24 @@ export default function useSEO(config: SEOConfig) {
     setMeta("name", "twitter:title", ogTitle ?? title);
     setMeta("name", "twitter:description", ogDescription ?? description);
     setMeta("name", "twitter:image", ogImage ?? DEFAULT_OG_IMAGE);
+
+    document
+      .querySelectorAll('script[data-seo-structured="true"]')
+      .forEach((node) => node.remove());
+
+    const entries = Array.isArray(structuredData)
+      ? structuredData
+      : structuredData
+        ? [structuredData]
+        : [];
+
+    entries.forEach((entry) => {
+      const script = document.createElement("script");
+      script.type = "application/ld+json";
+      script.dataset.seoStructured = "true";
+      script.text = JSON.stringify(entry);
+      document.head.appendChild(script);
+    });
   }, [
     config.title,
     config.description,
@@ -104,6 +124,7 @@ export default function useSEO(config: SEOConfig) {
     config.ogDescription,
     config.ogImage,
     config.noindex,
+    JSON.stringify(config.structuredData ?? null),
   ]);
 }
 

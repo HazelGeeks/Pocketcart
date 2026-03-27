@@ -1,14 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Image,
   Linking,
-  Pressable,
   Text,
-  TextInput,
   View,
 } from "react-native";
-import { motion } from "framer-motion";
-import { isWeb } from "../constants/variants";
 import type { Route } from "../constants/palette";
 import useLayout from "../hooks/useLayout";
 import s from "../styles";
@@ -19,6 +15,7 @@ import {
 } from "./icons/SocialIcons";
 import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "./WebLink";
+import EmailSignupForm from "./EmailSignupForm";
 
 export default function FooterSection({
   navigate,
@@ -27,14 +24,6 @@ export default function FooterSection({
 }) {
   const { isXl, pad } = useLayout();
   const { copy } = useSiteI18n();
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = () => {
-    if (!email.trim() || !email.includes("@")) return;
-    // TODO: hook up to real API / newsletter service
-    setSubmitted(true);
-  };
 
   const LINK_ROUTES: Record<string, Route | null> = {
     blog: "blog",
@@ -99,66 +88,16 @@ export default function FooterSection({
             isXl && s.footerSignupDesktop,
           ]}
         >
-          <Text style={s.footerSignupTitle}>{copy.footer.signupTitle}</Text>
-          <Text style={s.footerSignupSub}>
-            {copy.footer.signupSub}
-          </Text>
-          {submitted ? (
-            <View style={s.footerSignupDone}>
-              <Text style={s.footerSignupDoneText}>
-                {copy.footer.signupDone}
-              </Text>
-            </View>
-          ) : (
-            <View
-              style={[
-                s.footerSignupRow,
-                !isXl && s.footerSignupRowStack,
-              ]}
-            >
-              <TextInput
-                style={s.footerSignupInput}
-                placeholder={copy.footer.emailPlaceholder}
-                placeholderTextColor="rgba(255,255,255,0.35)"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={email}
-                onChangeText={setEmail}
-                onSubmitEditing={handleSubmit}
-              />
-              {isWeb ? (
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Pressable
-                    style={[
-                      s.footerSignupBtn,
-                      !isXl && s.footerSignupBtnBlock,
-                    ]}
-                    onPress={handleSubmit}
-                  >
-                    <Text style={s.footerSignupBtnText}>
-                      {copy.footer.notify}
-                    </Text>
-                  </Pressable>
-                </motion.div>
-              ) : (
-                <Pressable
-                  style={[
-                    s.footerSignupBtn,
-                    !isXl && s.footerSignupBtnBlock,
-                  ]}
-                  onPress={handleSubmit}
-                >
-                  <Text style={s.footerSignupBtnText}>
-                    {copy.footer.notify}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          )}
+          <EmailSignupForm
+            title={copy.footer.signupTitle}
+            subtitle={copy.footer.signupSub}
+            emailPlaceholder={copy.footer.emailPlaceholder}
+            submitLabel={copy.footer.notify}
+            successLabel={copy.footer.signupDone}
+            tone="dark"
+            compact
+            stackOnDesktop={!isXl}
+          />
         </View>
 
         {/* Link columns */}

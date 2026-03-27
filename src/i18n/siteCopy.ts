@@ -96,10 +96,15 @@ export type SiteCopy = {
   };
   blog: {
     back: string;
+    backToBlog: string;
     eyebrow: string;
     title: string;
     sub: string;
     readArticle: string;
+    featuredLabel: string;
+    latestLabel: string;
+    relatedPosts: string;
+    minutesRead: string;
     posts: BlogPost[];
   };
   legal: {
@@ -381,12 +386,17 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
     },
     blog: {
       back: "Back to Home",
+      backToBlog: "Back to Blog",
       eyebrow: "BLOG",
       title: "PocketCart Journal",
       sub:
         "Tips, product updates, and shopping strategies to help " +
         "you save more each month.",
       readArticle: "Read article",
+      featuredLabel: "Featured post",
+      latestLabel: "Latest articles",
+      relatedPosts: "Related posts",
+      minutesRead: "min read",
       posts: [
         {
           title: "How to build a smarter grocery watchlist",
@@ -706,12 +716,17 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
     },
     blog: {
       back: "Retour accueil",
+      backToBlog: "Retour au blog",
       eyebrow: "BLOG",
       title: "Journal PocketCart",
       sub:
         "Conseils, mises a jour produit et strategies d achat " +
         "pour economiser plus chaque mois.",
       readArticle: "Lire l article",
+      featuredLabel: "Article a la une",
+      latestLabel: "Derniers articles",
+      relatedPosts: "Articles lies",
+      minutesRead: "min lecture",
       posts: [
         {
           title: "Creer une meilleure liste de suivi courses",

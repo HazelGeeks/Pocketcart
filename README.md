@@ -4,6 +4,7 @@ TypeScript-first scaffold for a shopping helper app where users can
 compare prices, track products, and estimate savings.
 
 Current language support:
+
 - English (`en`)
 - French (`fr`)
 
@@ -12,13 +13,22 @@ Current language support:
 ```bash
 nvm use
 npm install
-npm run start
+npm run dev
 npm run typecheck
 ```
 
-Then open on iOS, Android, or web via Expo options.
+Web-first development:
+
+- `npm run dev` or `npm run dev:web`: start web app on `http://localhost:8081`
+
+Native development:
+
+- `npm run dev:native`: start Expo for native targets
+- `npm run ios`
+- `npm run android`
 
 Recommended Node runtime:
+
 - Node 22 LTS (`.nvmrc` included)
 
 ## Structure

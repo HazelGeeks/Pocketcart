@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
-import type { Route } from "../constants/palette";
 import type { Locale } from "../i18n/types";
-import { ROUTE_PATHS } from "./useSEO";
 
 const GA_MEASUREMENT_ID =
   process.env.EXPO_PUBLIC_GA_MEASUREMENT_ID?.trim() ?? "";
@@ -15,7 +13,10 @@ declare global {
   }
 }
 
-export default function useAnalytics(route: Route, locale: Locale) {
+export default function useAnalytics(
+  locale: Locale,
+  pagePath: string,
+) {
   useEffect(() => {
     if (Platform.OS !== "web" || !GA_MEASUREMENT_ID) return;
 
@@ -53,7 +54,6 @@ export default function useAnalytics(route: Route, locale: Locale) {
   useEffect(() => {
     if (Platform.OS !== "web" || !GA_MEASUREMENT_ID || !window.gtag) return;
 
-    const pagePath = ROUTE_PATHS[route];
     const pageLocation = `${window.location.origin}${pagePath}`;
 
     window.gtag("event", "page_view", {
@@ -62,5 +62,5 @@ export default function useAnalytics(route: Route, locale: Locale) {
       page_path: pagePath,
       language: locale,
     });
-  }, [route, locale]);
+  }, [locale, pagePath]);
 }
