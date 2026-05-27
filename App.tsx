@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import P, { type Route } from "./src/constants/palette";
 import { isWeb } from "./src/constants/variants";
 import { appPalette } from "./src/shared/design/palette";
@@ -21,48 +18,14 @@ import CtaSection from "./src/sections/CtaSection";
 import PrivacyScreen from "./src/screens/PrivacyScreen";
 import TermsScreen from "./src/screens/TermsScreen";
 import BlogScreen from "./src/screens/BlogScreen";
-import AppMvpScreen from "./src/screens/AppMvpScreen";
 import DeleteAccountScreen from "./src/screens/DeleteAccountScreen";
 import { getBlogPost } from "./src/data/blogPosts";
-import {
-  SiteI18nProvider,
-  useSiteI18n,
-} from "./src/i18n/siteI18n";
-
-type RouteState = {
-  route: Route;
-  blogSlug: string | null;
-};
-
-function locationToRoute(pathname: string, hash: string): RouteState {
-  const path = pathname.replace(/\/+$/, "") || "/";
-  if (path.startsWith("/blog/")) {
-    const blogSlug = path.slice("/blog/".length).replace(/\/+$/, "");
-    if (blogSlug) {
-      return { route: "blog", blogSlug: decodeURIComponent(blogSlug) };
-    }
-  }
-  if (path === "/app" || hash === "#/app") return { route: "app", blogSlug: null };
-  if (path === "/delete-account" || hash === "#/delete-account") {
-    return { route: "delete-account", blogSlug: null };
-  }
-  if (path === "/blog" || hash === "#/blog") return { route: "blog", blogSlug: null };
-  if (path === "/privacy" || hash === "#/privacy") return { route: "privacy", blogSlug: null };
-  if (path === "/terms" || hash === "#/terms") return { route: "terms", blogSlug: null };
-  return { route: "home", blogSlug: null };
-}
-
-function buildPath(route: Route, blogSlug?: string | null): string {
-  if (route === "blog" && blogSlug) {
-    return `/blog/${encodeURIComponent(blogSlug)}`;
-  }
-  return route === "home" ? "/" : `/${route}`;
-}
+import { SiteI18nProvider, useSiteI18n } from "./src/i18n/siteI18n";
+import { buildPath, locationToRoute, type RouteState } from "./src/routing/routeState";
 
 function AppShell() {
   const { locale, copy } = useSiteI18n();
-  const [pendingSection, setPendingSection] =
-    useState<SectionId | null>(null);
+  const [pendingSection, setPendingSection] = useState<SectionId | null>(null);
   const [routeState, setRouteState] = useState<RouteState>(() =>
     isWeb
       ? locationToRoute(window.location.pathname, window.location.hash)
@@ -170,10 +133,7 @@ function AppShell() {
   );
   useAnalytics(locale, buildPath(route, blogSlug));
 
-  const safeAreaBackground =
-    route === "app" || route === "delete-account"
-      ? appPalette.bg
-      : P.bg;
+  const safeAreaBackground = route === "delete-account" ? appPalette.bg : P.bg;
 
   let content: React.ReactNode = null;
 
@@ -188,8 +148,6 @@ function AppShell() {
         onNavigateSection={navigateSection}
       />
     );
-  } else if (route === "app") {
-    content = <AppMvpScreen onBack={goHome} onNavigate={navigate} />;
   } else if (route === "delete-account") {
     content = <DeleteAccountScreen onBack={goHome} />;
   } else if (route === "privacy") {
@@ -200,9 +158,7 @@ function AppShell() {
         legalLabel="LEGAL"
         titleLabel={copy.legal.privacyTitle}
         lastUpdatedLabel={copy.legal.lastUpdated}
-        englishOnlyNote={
-          locale === "fr" ? copy.legal.englishOnly : undefined
-        }
+        englishOnlyNote={locale === "fr" ? copy.legal.englishOnly : undefined}
       />
     );
   } else if (route === "terms") {
@@ -213,9 +169,7 @@ function AppShell() {
         legalLabel="LEGAL"
         titleLabel={copy.legal.termsTitle}
         lastUpdatedLabel={copy.legal.lastUpdated}
-        englishOnlyNote={
-          locale === "fr" ? copy.legal.englishOnly : undefined
-        }
+        englishOnlyNote={locale === "fr" ? copy.legal.englishOnly : undefined}
       />
     );
   } else {
@@ -231,7 +185,6 @@ function AppShell() {
           <Navbar
             onNavigate={navigate}
             onNavigateSection={navigateSection}
-            onOpenApp={() => navigate("app")}
           />
           <HeroSection />
           <WaveDivider color={P.white} flip />

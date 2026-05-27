@@ -44,6 +44,8 @@ export type SiteCopy = {
     faq: string;
     blog: string;
     getApp: string;
+    downloadIos: string;
+    downloadAndroid: string;
     language: string;
     english: string;
     french: string;
@@ -225,6 +227,8 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
       faq: "FAQ",
       blog: "Blog",
       getApp: "Get the App",
+      downloadIos: "Download on iOS",
+      downloadAndroid: "Download on Android",
       language: "Language",
       english: "English",
       french: "French",
@@ -472,8 +476,8 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
           "for Google Play account-based apps.",
         inAppTitle: "Delete inside the app",
         inAppBody:
-          "Go to Get the App > Trust & Compliance > Delete My Account, " +
-          "then confirm deletion. This removes account data immediately.",
+          "In-app account controls are not exposed in this build. " +
+          "Use the web request method below for deletion.",
         webTitle: "Delete through web request",
         webBody:
           "If you cannot access the app, send a deletion request to " +
@@ -481,8 +485,8 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
         urlLabel: "Deletion URL",
         retainedTitle: "Data retained after deletion",
         retainedBody:
-          "For this MVP build, account-linked local records are removed " +
-          "immediately on delete. No cloud backup is kept.",
+          "No account-linked cloud profile is retained in this build. " +
+          "Deletion requests are processed through support.",
         supportTitle: "Support",
         supportBody:
           "If deletion fails, contact support@pocketcart.app with your " +
@@ -557,6 +561,8 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
       faq: "FAQ",
       blog: "Blog",
       getApp: "Obtenir l app",
+      downloadIos: "Telecharger sur iOS",
+      downloadAndroid: "Telecharger sur Android",
       language: "Langue",
       english: "Anglais",
       french: "Francais",
@@ -800,8 +806,8 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
           "requise pour Google Play.",
         inAppTitle: "Supprimer dans l application",
         inAppBody:
-          "Allez dans Get the App > Confiance et conformite > " +
-          "Supprimer mon compte, puis confirmez la suppression.",
+          "Les controles de compte dans l application ne sont pas " +
+          "exposes dans cette version. Utilisez la methode web ci-dessous.",
         webTitle: "Supprimer via demande web",
         webBody:
           "Si vous ne pouvez pas ouvrir l application, envoyez " +
@@ -809,8 +815,8 @@ export const SITE_COPY: Record<Locale, SiteCopy> = {
         urlLabel: "URL de suppression",
         retainedTitle: "Donnees conservees apres suppression",
         retainedBody:
-          "Dans ce MVP, les donnees locales liees au compte sont " +
-          "supprimees immediatement. Aucune sauvegarde cloud.",
+          "Aucun profil cloud lie au compte n est conserve dans " +
+          "cette version. Les demandes passent par le support.",
         supportTitle: "Assistance",
         supportBody:
           "Si la suppression echoue, contactez support@pocketcart.app " +

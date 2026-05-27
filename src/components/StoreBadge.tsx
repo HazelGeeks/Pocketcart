@@ -2,6 +2,7 @@ import React from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb, scaleIn } from "../constants/variants";
+import { ANDROID_DOWNLOAD_URL, IOS_DOWNLOAD_URL } from "../constants/storeLinks";
 import AppleIcon from "./icons/AppleIcon";
 import GooglePlayIcon from "./icons/GooglePlayIcon";
 import s from "../styles";
@@ -14,9 +15,7 @@ function StoreBadge({
   delay?: number;
 }) {
   const isApple = store === "apple";
-  const url = isApple
-    ? "https://apps.apple.com"
-    : "https://play.google.com/store";
+  const url = isApple ? IOS_DOWNLOAD_URL : ANDROID_DOWNLOAD_URL;
 
   const inner = (
     <Pressable

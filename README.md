@@ -14,7 +14,7 @@ Current language support:
 nvm use
 npm install
 npm run dev
-npm run typecheck
+npm run verify
 ```
 
 Web-first development:
@@ -31,13 +31,19 @@ Recommended Node runtime:
 
 - Node 22 LTS (`.nvmrc` included)
 
+## Quality Gates
+
+- `npm run typecheck`: TypeScript compile checks
+- `npm run lint`: strict no-emit TypeScript check (temporary lint gate)
+- `npm run test`: route smoke tests
+- `npm run build:web`: Expo static web export
+- `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)
+
 ## Structure
 
 - `App.tsx`: route shell + section composition
-- `src/screens/AppMvpScreen.tsx`: local-first MVP app surface (`/app`)
 - `src/screens/DeleteAccountScreen.tsx`: external account deletion page
   (`/delete-account`)
-- `src/mvp/store.ts`: account/session/items/history/alerts state engine
 - `src/sections/*`: landing page sections
 - `src/components/*`: shared UI blocks
 - `src/i18n/siteI18n.tsx`: locale provider + persistence
@@ -53,27 +59,24 @@ Recommended Node runtime:
     `EXPO_PUBLIC_GA_MEASUREMENT_ID` in your local env and deployment env.
   - Example: copy `.env.example` to `.env` and replace the placeholder value.
 - Web deploy:
-  - Export a production build with `npx expo export --platform web`
+  - Export a production build with `npm run build:web`
   - Upload the generated `dist/` directory to your hosting provider
-
-- MVP route:
-  - Web: `http://localhost:8081/app`
-  - Also reachable from navbar CTA `Get the App`
+- Get the App navigation:
+  - Hover `Get the App` in the top navbar (web) to open direct iOS/Android download links.
+  - Tap `Get the App` on native/mobile to toggle the same two links.
 - Deletion route:
   - Web: `http://localhost:8081/delete-account`
   - Use this URL for Google Play "account deletion URL" field
 - Android review hardening:
   - Blocked `SYSTEM_ALERT_WINDOW`
   - Blocked `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`
-- Implemented MVP scope:
-  - Account sign in / sign up / sign out
-  - Tracking item CRUD (add / update price / delete)
-  - Price history per tracked item
-  - Native persistence with AsyncStorage (iOS/Android)
-  - Notification center with unread state + mark all read
-  - In-app account deletion (two-step confirmation)
-  - Compliance links (Privacy, Terms, deletion portal) in MVP screen
-  - Basic UX states (loading, saving, validation, empty states)
+- Added release hardening:
+  - Route parser smoke tests for `/`, `/blog`, `/privacy`, `/terms`, `/delete-account`
+  - Scripted release gate via `npm run verify`
+- Web release checklist:
+  - Set `EXPO_PUBLIC_GA_MEASUREMENT_ID`
+  - Run `npm run verify`
+  - Inspect generated `dist/` and deploy
 - Breakpoints requested:
   - `xs: 480`
   - `sm: 640`

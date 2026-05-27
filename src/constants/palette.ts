@@ -1,6 +1,5 @@
 export type Route =
   | "home"
-  | "app"
   | "privacy"
   | "terms"
   | "blog"

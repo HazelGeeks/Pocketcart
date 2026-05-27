@@ -6,6 +6,7 @@ node_modules/
 .expo-shared/
 dist/
 web-build/
+.tmp-tests/
 
 # Native build outputs
 android/.gradle/

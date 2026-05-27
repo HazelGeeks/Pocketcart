@@ -18,7 +18,6 @@ export const BASE_URL = "https://pocketcart.app";
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 export const ROUTE_PATHS: Record<Route, string> = {
   home: "/",
-  app: "/app",
   blog: "/blog",
   privacy: "/privacy",
   terms: "/terms",
@@ -138,14 +137,6 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
         "sends price-drop alerts, and helps you manage your budget.",
       canonical: `${BASE_URL}/`,
     },
-    app: {
-      title: "PocketCart MVP App - Login, Tracking, History",
-      description:
-        "Use the PocketCart MVP app to sign in, manage tracking " +
-        "items, monitor price history, and receive alerts.",
-      canonical: `${BASE_URL}/app`,
-      noindex: true,
-    },
     blog: {
       title: "Blog - PocketCart",
       description:
@@ -173,7 +164,7 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
       title: "Delete Account - PocketCart",
       description:
         "Delete your PocketCart account and request data " +
-        "removal using in-app controls or the web deletion page.",
+        "removal from the web deletion page.",
       canonical: `${BASE_URL}/delete-account`,
       noindex: true,
     },
@@ -185,15 +176,6 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
         "PocketCart compare les prix en temps reel, envoie des " +
         "alertes de baisse et vous aide a gerer votre budget.",
       canonical: `${BASE_URL}/`,
-    },
-    app: {
-      title: "App MVP PocketCart - suivi, historique, alertes",
-      description:
-        "Utilisez l app MVP PocketCart pour vous connecter, " +
-        "gerer vos articles suivis, voir l historique des prix " +
-        "et recevoir des alertes.",
-      canonical: `${BASE_URL}/app`,
-      noindex: true,
     },
     blog: {
       title: "Blog - PocketCart",
@@ -222,7 +204,7 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
       title: "Suppression du compte - PocketCart",
       description:
         "Supprimez votre compte PocketCart et demandez la " +
-        "suppression des donnees depuis l application ou le web.",
+        "suppression des donnees depuis cette page web.",
       canonical: `${BASE_URL}/delete-account`,
       noindex: true,
     },

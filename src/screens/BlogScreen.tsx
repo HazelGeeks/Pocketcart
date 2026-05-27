@@ -69,7 +69,6 @@ export default function BlogScreen({
       <Navbar
         onNavigate={onNavigate}
         onNavigateSection={onNavigateSection}
-        onOpenApp={() => onNavigate("app")}
       />
       <ScrollView
         role="main"

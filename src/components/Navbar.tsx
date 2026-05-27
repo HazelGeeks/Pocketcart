@@ -1,9 +1,10 @@
 import React from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Image, Linking, Pressable, Text, View } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb } from "../constants/variants";
 import useLayout from "../hooks/useLayout";
 import type { Route } from "../constants/palette";
+import { ANDROID_DOWNLOAD_URL, IOS_DOWNLOAD_URL } from "../constants/storeLinks";
 import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "./WebLink";
 import s from "../styles";
@@ -13,18 +14,22 @@ export type SectionId = "features" | "how-it-works" | "faq";
 export default function Navbar({
   onNavigate,
   onNavigateSection,
-  onOpenApp,
 }: {
   onNavigate: (r: Route) => void;
   onNavigateSection: (s: SectionId) => void;
-  onOpenApp: () => void;
 }) {
   const { isMd, pad } = useLayout();
   const { locale, setLocale, copy } = useSiteI18n();
+  const [downloadOpen, setDownloadOpen] = React.useState(false);
+  const closeMenuTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   const langOptions = [
     { value: "en" as const, shortLabel: "EN", label: copy.nav.english },
     { value: "fr" as const, shortLabel: "FR", label: copy.nav.french },
   ];
+
   const navLinks: Array<
     | { label: string; kind: "section"; section: SectionId }
     | { label: string; kind: "route"; route: Route }
@@ -47,17 +52,49 @@ export default function Navbar({
     { label: copy.nav.blog, kind: "route", route: "blog" },
   ];
 
+  const downloadLinks = [
+    { label: copy.nav.downloadIos, href: IOS_DOWNLOAD_URL },
+    { label: copy.nav.downloadAndroid, href: ANDROID_DOWNLOAD_URL },
+  ];
+
+  const openExternal = React.useCallback((url: string) => {
+    void Linking.openURL(url);
+    setDownloadOpen(false);
+  }, []);
+
+  const clearCloseMenuTimer = React.useCallback(() => {
+    if (!closeMenuTimerRef.current) return;
+    clearTimeout(closeMenuTimerRef.current);
+    closeMenuTimerRef.current = null;
+  }, []);
+
+  const openDownloadMenu = React.useCallback(() => {
+    clearCloseMenuTimer();
+    setDownloadOpen(true);
+  }, [clearCloseMenuTimer]);
+
+  const scheduleCloseMenu = React.useCallback(() => {
+    clearCloseMenuTimer();
+    closeMenuTimerRef.current = setTimeout(() => {
+      setDownloadOpen(false);
+      closeMenuTimerRef.current = null;
+    }, 220);
+  }, [clearCloseMenuTimer]);
+
+  React.useEffect(
+    () => () => {
+      clearCloseMenuTimer();
+    },
+    [clearCloseMenuTimer],
+  );
+
   const navContent = (
     <View
       role="navigation"
       accessibilityLabel="Main navigation"
-      style={[
-        s.nav,
-        { paddingHorizontal: pad },
-      ]}
+      style={[s.nav, { paddingHorizontal: pad }]}
     >
-        <View style={s.navInner}>
-          {/* Brand */}
+      <View style={s.navInner}>
         <WebLink href="/" onPress={() => onNavigate("home")}>
           <View style={s.brand}>
             {isWeb ? (
@@ -84,7 +121,6 @@ export default function Navbar({
           </View>
         </WebLink>
 
-        {/* Links (desktop) */}
         {isMd && (
           <View style={s.navLinks}>
             {navLinks.map((item) => (
@@ -112,10 +148,7 @@ export default function Navbar({
         )}
 
         <View style={s.navActionRow}>
-          <View
-            accessibilityLabel={copy.nav.language}
-            style={s.navLangWrap}
-          >
+          <View accessibilityLabel={copy.nav.language} style={s.navLangWrap}>
             {langOptions.map((option) => {
               const active = locale === option.value;
               return (
@@ -144,22 +177,62 @@ export default function Navbar({
             })}
           </View>
 
-          {/* CTA */}
           {isWeb ? (
             <motion.div
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.95 }}
+              style={{ position: "relative" }}
+              onMouseEnter={openDownloadMenu}
+              onMouseLeave={scheduleCloseMenu}
             >
-              <WebLink href="/app" onPress={onOpenApp}>
+              <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}>
                 <View style={s.navCta}>
                   <Text style={s.navCtaText}>{copy.nav.getApp}</Text>
                 </View>
-              </WebLink>
+              </motion.div>
+
+              {downloadOpen ? (
+                <motion.div
+                  onMouseEnter={openDownloadMenu}
+                  onMouseLeave={scheduleCloseMenu}
+                >
+                  <View style={[s.navDownloadMenu, s.navDownloadMenuWeb]}>
+                    {downloadLinks.map((link) => (
+                      <WebLink
+                        key={link.label}
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <View style={s.navDownloadItem}>
+                          <Text style={s.navDownloadItemText}>{link.label}</Text>
+                        </View>
+                      </WebLink>
+                    ))}
+                  </View>
+                </motion.div>
+              ) : null}
             </motion.div>
           ) : (
-            <Pressable style={s.navCta} onPress={onOpenApp}>
-              <Text style={s.navCtaText}>{copy.nav.getApp}</Text>
-            </Pressable>
+            <View style={s.navDownloadWrap}>
+              <Pressable
+                style={s.navCta}
+                onPress={() => setDownloadOpen((prev) => !prev)}
+              >
+                <Text style={s.navCtaText}>{copy.nav.getApp}</Text>
+              </Pressable>
+              {downloadOpen ? (
+                <View style={s.navDownloadMenu}>
+                  {downloadLinks.map((link) => (
+                    <Pressable
+                      key={link.label}
+                      style={s.navDownloadItem}
+                      onPress={() => openExternal(link.href)}
+                    >
+                      <Text style={s.navDownloadItemText}>{link.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </View>
           )}
         </View>
       </View>

@@ -111,6 +111,42 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  navDownloadWrap: {
+    position: "relative",
+  },
+  navDownloadMenu: {
+    position: "absolute",
+    top: 48,
+    right: 0,
+    minWidth: 210,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: P.line,
+    backgroundColor: P.white,
+    padding: 6,
+    gap: 6,
+    zIndex: 180,
+    ...(Platform.OS === "web"
+      ? ({ boxShadow: "0 12px 32px rgba(30,46,12,0.16)" } as any)
+      : {}),
+  },
+  navDownloadMenuWeb: {
+    top: 44,
+  },
+  navDownloadItem: {
+    width: "100%",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: P.line,
+    backgroundColor: P.bg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  navDownloadItemText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: P.text,
+  },
 
   /* ── Store badges ── */
   badge: {

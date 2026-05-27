@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": ".tmp-tests",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "target": "es2022",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": [
+    "src/routing/routeState.ts",
+    "src/constants/palette.ts"
+  ]
+}
