@@ -26,6 +26,9 @@ export function locationToRoute(pathname: string, hash: string): RouteState {
   if (path === "/terms" || hash === "#/terms") {
     return { route: "terms", blogSlug: null };
   }
+  if (path === "/admin" || hash === "#/admin") {
+    return { route: "admin", blogSlug: null };
+  }
 
   return { route: "home", blogSlug: null };
 }

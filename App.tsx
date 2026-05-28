@@ -25,6 +25,7 @@ import TermsScreen from "./src/screens/TermsScreen";
 import BlogScreen from "./src/screens/BlogScreen";
 import DeleteAccountScreen from "./src/screens/DeleteAccountScreen";
 import NativeAppScreen from "./src/screens/NativeAppScreen";
+import AdminScreen from "./src/screens/AdminScreen";
 import { getBlogPost } from "./src/data/blogPosts";
 import { SiteI18nProvider, useSiteI18n } from "./src/i18n/siteI18n";
 import { buildPath, locationToRoute, type RouteState } from "./src/routing/routeState";
@@ -181,6 +182,8 @@ function AppShell() {
         englishOnlyNote={locale === "fr" ? copy.legal.englishOnly : undefined}
       />
     );
+  } else if (route === "admin") {
+    content = <AdminScreen onBack={goHome} />;
   } else {
     content = (
       <View style={s.root}>

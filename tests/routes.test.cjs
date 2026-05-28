@@ -27,6 +27,10 @@ test("locationToRoute resolves core routes", () => {
     route: "delete-account",
     blogSlug: null,
   });
+  assert.deepEqual(locationToRoute("/admin", ""), {
+    route: "admin",
+    blogSlug: null,
+  });
 });
 
 test("locationToRoute resolves blog slug and fallback hash routing", () => {
@@ -44,5 +48,6 @@ test("buildPath creates expected URLs", () => {
   assert.equal(buildPath("home"), "/");
   assert.equal(buildPath("privacy"), "/privacy");
   assert.equal(buildPath("delete-account"), "/delete-account");
+  assert.equal(buildPath("admin"), "/admin");
   assert.equal(buildPath("blog", "price drops"), "/blog/price%20drops");
 });

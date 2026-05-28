@@ -64,6 +64,7 @@ Recommended Node runtime:
   - Example: copy `.env.example` to `.env` and replace the placeholder value.
 - Supabase (for native `More` / `Watchlist` / `Home` / `Map` data):
   - Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`
+  - Optional admin UI guard: `EXPO_PUBLIC_ADMIN_EMAILS=email1@example.com,email2@example.com`
   - Schema source: `database/schema.sql`
   - Required tables and RLS policies:
     - `profiles`
@@ -84,6 +85,9 @@ Recommended Node runtime:
   - `Map` tab is wired to in-app map + store search and pulls from Supabase `stores` (fallback sample data if env is missing).
   - `More` tab is wired to Supabase sign-up/profile and includes manual admin data entry for products/stores/prices.
   - `Watchlist` tab shows only user-added items from Supabase and supports remove.
+- Backoffice:
+  - Web admin page is available at `/admin`.
+  - Sign in with Supabase auth, then manage `products`, `stores`, and `product_prices`.
 - Deletion route:
   - Web: `http://localhost:8081/delete-account`
   - Use this URL for Google Play "account deletion URL" field
