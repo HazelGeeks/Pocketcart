@@ -42,6 +42,10 @@ Recommended Node runtime:
 ## Structure
 
 - `App.tsx`: route shell + section composition
+- `src/screens/NativeAppScreen.tsx`: native app shell
+  (Home / Watchlist / Map / Alert / More)
+- `src/services/supabaseClient.ts`: Supabase client bootstrap
+- `src/services/userProfile.ts`: sign-up and profile read/write helpers
 - `src/screens/DeleteAccountScreen.tsx`: external account deletion page
   (`/delete-account`)
 - `src/sections/*`: landing page sections
@@ -58,12 +62,88 @@ Recommended Node runtime:
   - Create a web data stream in GA4 and set
     `EXPO_PUBLIC_GA_MEASUREMENT_ID` in your local env and deployment env.
   - Example: copy `.env.example` to `.env` and replace the placeholder value.
+- Supabase (for native `More` tab sign-up/profile):
+  - Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`
+  - Create `profiles` and `watchlist_items` tables and RLS policies in Supabase SQL Editor:
+
+```sql
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  full_name text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+create policy "profiles_select_own"
+on public.profiles
+for select
+to authenticated
+using (auth.uid() = id);
+
+create policy "profiles_insert_own"
+on public.profiles
+for insert
+to authenticated
+with check (auth.uid() = id);
+
+create policy "profiles_update_own"
+on public.profiles
+for update
+to authenticated
+using (auth.uid() = id)
+with check (auth.uid() = id);
+
+create table if not exists public.watchlist_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  store text not null,
+  target_price text,
+  latest_price text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.watchlist_items enable row level security;
+
+create policy "watchlist_select_own"
+on public.watchlist_items
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+create policy "watchlist_insert_own"
+on public.watchlist_items
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+create policy "watchlist_update_own"
+on public.watchlist_items
+for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+create policy "watchlist_delete_own"
+on public.watchlist_items
+for delete
+to authenticated
+using (auth.uid() = user_id);
+```
 - Web deploy:
   - Export a production build with `npm run build:web`
   - Upload the generated `dist/` directory to your hosting provider
 - Get the App navigation:
   - Hover `Get the App` in the top navbar (web) to open direct iOS/Android download links.
   - Tap `Get the App` on native/mobile to toggle the same two links.
+- Native app shell:
+  - iOS/Android renders a dedicated native app scaffold, separate from the web landing screen.
+  - `Home` tab supports product search, detail page transition, `Add to Watchlist`, and 7-day price trend with previous-price list.
+  - `Map` tab is wired to in-app map + local search (sample store data for now).
+  - `More` tab is wired to Supabase sign-up and user profile summary.
+  - `Watchlist` tab now shows only user-added items from Supabase.
 - Deletion route:
   - Web: `http://localhost:8081/delete-account`
   - Use this URL for Google Play "account deletion URL" field
