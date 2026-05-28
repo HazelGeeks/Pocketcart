@@ -15,6 +15,14 @@ type ServiceResult<T> = {
   error: string | null;
 };
 
+function isAuthSessionMissing(message?: string | null): boolean {
+  const normalized = message?.toLowerCase() ?? "";
+  return (
+    normalized.includes("auth session missing") ||
+    normalized.includes("session not found")
+  );
+}
+
 function missingEnvResult<T>(fallback: T): ServiceResult<T> {
   return {
     data: fallback,
@@ -33,6 +41,9 @@ async function getAuthedUserId(): Promise<ServiceResult<string | null>> {
   } = await supabase.auth.getUser();
 
   if (error) {
+    if (isAuthSessionMissing(error.message)) {
+      return { data: null, error: "Please sign in first." };
+    }
     return { data: null, error: error.message };
   }
 
@@ -94,6 +105,30 @@ export async function addWatchlistItem(params: {
 
   return {
     data: data ?? null,
+    error: error ? error.message : null,
+  };
+}
+
+export async function removeWatchlistItem(
+  itemId: string,
+): Promise<ServiceResult<null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const { data: userId, error: userError } = await getAuthedUserId();
+  if (userError || !userId) {
+    return { data: null, error: userError ?? "Please sign in first." };
+  }
+
+  const { error } = await supabase
+    .from("watchlist_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("user_id", userId);
+
+  return {
+    data: null,
     error: error ? error.message : null,
   };
 }

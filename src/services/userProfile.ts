@@ -13,6 +13,14 @@ type ServiceResult<T> = {
   error: string | null;
 };
 
+function isAuthSessionMissing(message?: string | null): boolean {
+  const normalized = message?.toLowerCase() ?? "";
+  return (
+    normalized.includes("auth session missing") ||
+    normalized.includes("session not found")
+  );
+}
+
 function missingEnvResult<T>(fallback: T): ServiceResult<T> {
   return {
     data: fallback,
@@ -102,6 +110,12 @@ export async function getCurrentUserProfile(): Promise<
   } = await supabase.auth.getUser();
 
   if (userError) {
+    if (isAuthSessionMissing(userError.message)) {
+      return {
+        data: null,
+        error: null,
+      };
+    }
     return {
       data: null,
       error: userError.message,

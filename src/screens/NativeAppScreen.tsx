@@ -15,6 +15,18 @@ import useLayout from "../hooks/useLayout";
 import { marketingPalette as C } from "../shared/design/palette";
 import { hasSupabaseEnv } from "../services/supabaseClient";
 import {
+  createProduct,
+  createProductPrice,
+  createStore,
+  listProductCategories,
+  listProductPriceHistory,
+  listProducts,
+  listStores,
+  type MarketPricePoint,
+  type MarketProduct,
+  type MarketStore,
+} from "../services/marketData";
+import {
   getCurrentUserProfile,
   signOutUser,
   signUpUser,
@@ -23,6 +35,7 @@ import {
 import {
   addWatchlistItem,
   listWatchlistItems,
+  removeWatchlistItem,
   type WatchlistItem,
 } from "../services/watchlist";
 
@@ -35,15 +48,6 @@ type SummaryCard = {
   value: string;
 };
 
-type HomeProduct = {
-  id: string;
-  name: string;
-  category: string;
-  currentPrice: number;
-  priceHistory: number[];
-  thumbnailUri?: string;
-};
-
 type AlertRow = {
   id: string;
   title: string;
@@ -51,67 +55,11 @@ type AlertRow = {
   when: string;
 };
 
-type MapStore = {
-  id: string;
-  name: string;
-  area: string;
-  priceNote: string;
-  latitude: number;
-  longitude: number;
-};
-
 const SUMMARY_CARDS: SummaryCard[] = [
   { id: "watch", label: "Watchlist", value: "0" },
   { id: "drop", label: "Price Drops Today", value: "2" },
   { id: "save", label: "Monthly Savings", value: "$94" },
 ];
-
-const HOME_PRODUCTS: HomeProduct[] = [
-  {
-    id: "rice-10kg",
-    name: "Premium Rice 10kg",
-    category: "Grains",
-    currentPrice: 36.9,
-    priceHistory: [39.8, 38.9, 38.1, 37.4, 37.1, 36.9, 36.9],
-  },
-  {
-    id: "olive-oil-1l",
-    name: "Olive Oil 1L",
-    category: "Cooking",
-    currentPrice: 12.4,
-    priceHistory: [13.5, 13.2, 12.9, 12.7, 12.5, 12.4, 12.4],
-  },
-  {
-    id: "whole-bean-coffee-1kg",
-    name: "Whole Bean Coffee 1kg",
-    category: "Beverage",
-    currentPrice: 18.6,
-    priceHistory: [20.5, 20.2, 19.7, 19.1, 18.9, 18.7, 18.6],
-  },
-  {
-    id: "baby-formula-900g",
-    name: "Baby Formula 900g",
-    category: "Baby",
-    currentPrice: 28.3,
-    priceHistory: [30.2, 29.8, 29.3, 28.9, 28.6, 28.4, 28.3],
-  },
-  {
-    id: "dish-soap-4l",
-    name: "Dish Soap 4L",
-    category: "Household",
-    currentPrice: 5.2,
-    priceHistory: [6.1, 5.9, 5.8, 5.7, 5.5, 5.4, 5.2],
-  },
-  {
-    id: "milk-2l",
-    name: "Milk 2L",
-    category: "Dairy",
-    currentPrice: 3.9,
-    priceHistory: [4.3, 4.2, 4.1, 4.0, 3.95, 3.92, 3.9],
-  },
-];
-
-const PRICE_WEEK_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const ALERT_ROWS: AlertRow[] = [
   {
@@ -125,41 +73,6 @@ const ALERT_ROWS: AlertRow[] = [
     title: "New lower price detected",
     body: "Baby Formula dropped by 8% at Market C.",
     when: "Yesterday 18:10",
-  },
-];
-
-const MAP_STORES: MapStore[] = [
-  {
-    id: "gangnam-mart",
-    name: "Gangnam Fresh Mart",
-    area: "Gangnam Station",
-    priceNote: "Eggs 30pk $7.40",
-    latitude: 37.498095,
-    longitude: 127.02761,
-  },
-  {
-    id: "hongdae-market",
-    name: "Hongdae Smart Market",
-    area: "Hongik Univ. Area",
-    priceNote: "Chicken breast 1kg $8.90",
-    latitude: 37.557192,
-    longitude: 126.925381,
-  },
-  {
-    id: "jamsil-store",
-    name: "Jamsil Family Store",
-    area: "Jamsil / Songpa",
-    priceNote: "Olive oil 1L $11.20",
-    latitude: 37.513319,
-    longitude: 127.100188,
-  },
-  {
-    id: "yeouido-hub",
-    name: "Yeouido Daily Hub",
-    area: "Yeouido Financial District",
-    priceNote: "Milk 2L $3.90",
-    latitude: 37.521939,
-    longitude: 126.924218,
   },
 ];
 
@@ -183,36 +96,75 @@ const money = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
 });
 
+function shortWeekday(dateLike: string): string {
+  const date = new Date(dateLike);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("en-US", { weekday: "short" });
+}
+
 export default function NativeAppScreen() {
   const { pad, w } = useLayout();
   const insets = useSafeAreaInsets();
   const mapRef = React.useRef<MapView | null>(null);
+
   const [activeTab, setActiveTab] = React.useState<NativeTabId>("home");
-  const [mapQuery, setMapQuery] = React.useState("");
-  const [focusedStoreId, setFocusedStoreId] =
-    React.useState<string>(MAP_STORES[0].id);
-  const [profile, setProfile] = React.useState<UserProfile | null>(null);
-  const [moreLoading, setMoreLoading] = React.useState(false);
-  const [moreMessage, setMoreMessage] = React.useState<string | null>(null);
-  const [signUpName, setSignUpName] = React.useState("");
-  const [signUpEmail, setSignUpEmail] = React.useState("");
-  const [signUpPassword, setSignUpPassword] = React.useState("");
+
+  const [homeRoute, setHomeRoute] = React.useState<HomeRoute>("catalog");
+  const [homeQuery, setHomeQuery] = React.useState("");
+  const [homeCategory, setHomeCategory] = React.useState("All");
+  const [homeProducts, setHomeProducts] = React.useState<MarketProduct[]>([]);
+  const [homeCategories, setHomeCategories] = React.useState<string[]>([]);
+  const [homeLoading, setHomeLoading] = React.useState(false);
+  const [homeMessage, setHomeMessage] = React.useState<string | null>(null);
+  const [selectedHomeProductId, setSelectedHomeProductId] = React.useState("");
+  const [homePriceHistory, setHomePriceHistory] = React.useState<MarketPricePoint[]>(
+    [],
+  );
+  const [homeHistoryLoading, setHomeHistoryLoading] = React.useState(false);
+  const [homeHistoryMessage, setHomeHistoryMessage] = React.useState<string | null>(
+    null,
+  );
+  const [homeActionMessage, setHomeActionMessage] = React.useState<string | null>(
+    null,
+  );
+  const [homeAddSubmitting, setHomeAddSubmitting] = React.useState(false);
+
   const [watchlistItems, setWatchlistItems] = React.useState<WatchlistItem[]>([]);
   const [watchName, setWatchName] = React.useState("");
   const [watchStore, setWatchStore] = React.useState("");
   const [watchTargetPrice, setWatchTargetPrice] = React.useState("");
   const [watchLoading, setWatchLoading] = React.useState(false);
   const [watchSubmitting, setWatchSubmitting] = React.useState(false);
+  const [watchRemovingId, setWatchRemovingId] = React.useState<string | null>(null);
   const [watchMessage, setWatchMessage] = React.useState<string | null>(null);
-  const [homeQuery, setHomeQuery] = React.useState("");
-  const [selectedHomeProductId, setSelectedHomeProductId] = React.useState(
-    HOME_PRODUCTS[0].id,
-  );
-  const [homeRoute, setHomeRoute] = React.useState<HomeRoute>("catalog");
-  const [homeActionMessage, setHomeActionMessage] = React.useState<string | null>(
-    null,
-  );
-  const [homeAddSubmitting, setHomeAddSubmitting] = React.useState(false);
+
+  const [mapQuery, setMapQuery] = React.useState("");
+  const [mapStores, setMapStores] = React.useState<MarketStore[]>([]);
+  const [focusedStoreId, setFocusedStoreId] = React.useState("");
+  const [mapLoading, setMapLoading] = React.useState(false);
+  const [mapMessage, setMapMessage] = React.useState<string | null>(null);
+
+  const [profile, setProfile] = React.useState<UserProfile | null>(null);
+  const [moreLoading, setMoreLoading] = React.useState(false);
+  const [moreMessage, setMoreMessage] = React.useState<string | null>(null);
+  const [signUpName, setSignUpName] = React.useState("");
+  const [signUpEmail, setSignUpEmail] = React.useState("");
+  const [signUpPassword, setSignUpPassword] = React.useState("");
+
+  const [adminProductName, setAdminProductName] = React.useState("");
+  const [adminProductCategory, setAdminProductCategory] = React.useState("");
+  const [adminProductThumb, setAdminProductThumb] = React.useState("");
+  const [adminStoreName, setAdminStoreName] = React.useState("");
+  const [adminStoreArea, setAdminStoreArea] = React.useState("");
+  const [adminStoreLat, setAdminStoreLat] = React.useState("");
+  const [adminStoreLng, setAdminStoreLng] = React.useState("");
+  const [adminStoreNote, setAdminStoreNote] = React.useState("");
+  const [adminPriceProductId, setAdminPriceProductId] = React.useState("");
+  const [adminPriceStoreId, setAdminPriceStoreId] = React.useState("");
+  const [adminPriceValue, setAdminPriceValue] = React.useState("");
+  const [adminPriceObservedAt, setAdminPriceObservedAt] = React.useState("");
+  const [adminSubmitting, setAdminSubmitting] = React.useState(false);
+  const [adminMessage, setAdminMessage] = React.useState<string | null>(null);
 
   const tabs = React.useMemo(
     () => [
@@ -225,36 +177,36 @@ export default function NativeAppScreen() {
     [],
   );
 
-  const filteredStores = React.useMemo(() => {
-    const q = mapQuery.trim().toLowerCase();
-    if (!q) return MAP_STORES;
-
-    return MAP_STORES.filter((store) =>
-      `${store.name} ${store.area} ${store.priceNote}`.toLowerCase().includes(q),
-    );
-  }, [mapQuery]);
-
-  const filteredHomeProducts = React.useMemo(() => {
-    const q = homeQuery.trim().toLowerCase();
-    if (!q) return HOME_PRODUCTS;
-
-    return HOME_PRODUCTS.filter((product) =>
-      `${product.name} ${product.category}`.toLowerCase().includes(q),
-    );
-  }, [homeQuery]);
-
-  const selectedHomeProduct = React.useMemo(
+  const summaryCards = React.useMemo(
     () =>
-      HOME_PRODUCTS.find((product) => product.id === selectedHomeProductId) ??
-      HOME_PRODUCTS[0] ??
-      null,
-    [selectedHomeProductId],
+      SUMMARY_CARDS.map((card) =>
+        card.id === "watch"
+          ? { ...card, value: String(watchlistItems.length) }
+          : card,
+      ),
+    [watchlistItems.length],
   );
 
-  const homeChart = React.useMemo(() => {
-    if (!selectedHomeProduct) return null;
+  const selectedHomeProduct = React.useMemo(
+    () => homeProducts.find((product) => product.id === selectedHomeProductId) ?? null,
+    [homeProducts, selectedHomeProductId],
+  );
 
-    const values = selectedHomeProduct.priceHistory;
+  const filteredStores = React.useMemo(() => {
+    const q = mapQuery.trim().toLowerCase();
+    if (!q) return mapStores;
+    return mapStores.filter((store) =>
+      `${store.name} ${store.area} ${store.price_note ?? ""}`
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [mapQuery, mapStores]);
+
+  const homeChart = React.useMemo(() => {
+    if (!selectedHomeProduct || homePriceHistory.length === 0) return null;
+
+    const source = homePriceHistory.slice(-7);
+    const values = source.map((point) => point.price);
     const width = Math.max(240, Math.min(360, w - pad * 2 - 28));
     const height = 160;
     const padding = 14;
@@ -264,13 +216,19 @@ export default function NativeAppScreen() {
     const usableW = width - padding * 2;
     const usableH = height - padding * 2;
 
-    const points = values.map((value, index) => {
+    const points = source.map((point, index) => {
       const x =
-        values.length === 1
+        source.length === 1
           ? width / 2
-          : padding + (index / (values.length - 1)) * usableW;
-      const y = padding + ((max - value) / range) * usableH;
-      return { x, y, value, label: PRICE_WEEK_LABELS[index] ?? `D${index + 1}` };
+          : padding + (index / (source.length - 1)) * usableW;
+      const y = padding + ((max - point.price) / range) * usableH;
+      return {
+        x,
+        y,
+        value: point.price,
+        label: shortWeekday(point.observed_at),
+        observed_at: point.observed_at,
+      };
     });
 
     return {
@@ -283,55 +241,82 @@ export default function NativeAppScreen() {
       start: values[0],
       end: values[values.length - 1],
     };
-  }, [pad, selectedHomeProduct, w]);
+  }, [homePriceHistory, pad, selectedHomeProduct, w]);
 
   const previousPriceRows = React.useMemo(() => {
-    if (!selectedHomeProduct) return [];
-    const values = selectedHomeProduct.priceHistory;
-    if (values.length <= 1) return [];
+    if (!homeChart || homeChart.points.length <= 1) return [];
 
-    return values
+    return homeChart.points
       .slice(0, -1)
-      .map((price, index) => {
-        const next = values[index + 1];
-        const diff = next - price;
+      .map((point, index) => {
+        const next = homeChart.points[index + 1];
+        const diff = next.value - point.value;
         return {
-          key: `${selectedHomeProduct.id}-${index}`,
-          label: PRICE_WEEK_LABELS[index] ?? `D${index + 1}`,
-          price,
+          key: `${point.observed_at}-${index}`,
+          label: point.label,
+          price: point.value,
           diff,
         };
       })
       .reverse();
-  }, [selectedHomeProduct]);
+  }, [homeChart]);
 
-  const summaryCards = React.useMemo(
-    () =>
-      SUMMARY_CARDS.map((card) =>
-        card.id === "watch"
-          ? { ...card, value: String(watchlistItems.length) }
-          : card,
-      ),
-    [watchlistItems.length],
+  const activeStore = React.useMemo(
+    () => filteredStores.find((store) => store.id === focusedStoreId) ?? filteredStores[0],
+    [filteredStores, focusedStoreId],
   );
 
-  const focusStore = React.useCallback((store: MapStore) => {
-    setFocusedStoreId(store.id);
-    mapRef.current?.animateToRegion(
-      {
-        latitude: store.latitude,
-        longitude: store.longitude,
-        latitudeDelta: 0.025,
-        longitudeDelta: 0.025,
-      },
-      240,
-    );
+  const mapRegion = React.useMemo<Region>(() => {
+    if (!activeStore) return DEFAULT_REGION;
+    return {
+      latitude: activeStore.latitude,
+      longitude: activeStore.longitude,
+      latitudeDelta: 0.045,
+      longitudeDelta: 0.045,
+    };
+  }, [activeStore]);
+
+  const loadHomeProducts = React.useCallback(async () => {
+    setHomeLoading(true);
+    const { data, error } = await listProducts({
+      search: homeQuery,
+      category: homeCategory === "All" ? undefined : homeCategory,
+    });
+    setHomeProducts(data);
+    setHomeLoading(false);
+
+    if (error) {
+      setHomeMessage(error);
+    } else {
+      setHomeMessage(null);
+    }
+  }, [homeCategory, homeQuery]);
+
+  const loadHomeCategories = React.useCallback(async () => {
+    const { data, error } = await listProductCategories();
+    setHomeCategories(data);
+    if (error) {
+      setHomeMessage(error);
+    }
   }, []);
 
-  const focusFirstSearchResult = React.useCallback(() => {
-    if (filteredStores.length === 0) return;
-    focusStore(filteredStores[0]);
-  }, [filteredStores, focusStore]);
+  const loadHomePriceHistory = React.useCallback(async (productId: string) => {
+    if (!productId) {
+      setHomePriceHistory([]);
+      return;
+    }
+
+    setHomeHistoryLoading(true);
+    const { data, error } = await listProductPriceHistory(productId);
+    setHomePriceHistory(data);
+    setHomeHistoryLoading(false);
+
+    if (error) {
+      setHomeHistoryMessage(error);
+    } else {
+      setHomeHistoryMessage(null);
+    }
+  }, []);
 
   const loadWatchlist = React.useCallback(async (keepMessage = false) => {
     if (!hasSupabaseEnv) {
@@ -342,14 +327,31 @@ export default function NativeAppScreen() {
     setWatchLoading(true);
     const { data, error } = await listWatchlistItems();
     setWatchlistItems(data);
+    setWatchLoading(false);
 
     if (error) {
       setWatchMessage(error);
     } else if (!keepMessage) {
       setWatchMessage(null);
     }
-    setWatchLoading(false);
   }, []);
+
+  const loadMapStores = React.useCallback(async () => {
+    setMapLoading(true);
+    const { data, error } = await listStores({ search: mapQuery });
+    setMapStores(data);
+    setMapLoading(false);
+
+    if (error) {
+      setMapMessage(error);
+    } else {
+      setMapMessage(null);
+    }
+
+    if (data.length > 0) {
+      setFocusedStoreId((prev) => prev || data[0].id);
+    }
+  }, [mapQuery]);
 
   const loadProfile = React.useCallback(async (keepMessage = false) => {
     if (!hasSupabaseEnv) {
@@ -360,13 +362,51 @@ export default function NativeAppScreen() {
     setMoreLoading(true);
     const { data, error } = await getCurrentUserProfile();
     setProfile(data);
+    setMoreLoading(false);
+
     if (error) {
       setMoreMessage(error);
     } else if (!keepMessage) {
       setMoreMessage(null);
     }
-    setMoreLoading(false);
   }, []);
+
+  React.useEffect(() => {
+    if (activeTab !== "home") return;
+    setHomeRoute("catalog");
+    void loadHomeCategories();
+  }, [activeTab, loadHomeCategories]);
+
+  React.useEffect(() => {
+    if (activeTab !== "home") return;
+    void loadHomeProducts();
+  }, [activeTab, loadHomeProducts]);
+
+  React.useEffect(() => {
+    if (homeProducts.length === 0) {
+      setSelectedHomeProductId("");
+      return;
+    }
+
+    const hasSelected = homeProducts.some(
+      (product) => product.id === selectedHomeProductId,
+    );
+
+    if (!hasSelected) {
+      setSelectedHomeProductId(homeProducts[0].id);
+    }
+  }, [homeProducts, selectedHomeProductId]);
+
+  React.useEffect(() => {
+    setHomeActionMessage(null);
+  }, [homeRoute, selectedHomeProductId]);
+
+  React.useEffect(() => {
+    if (activeTab !== "home") return;
+    if (homeRoute !== "detail") return;
+    if (!selectedHomeProductId) return;
+    void loadHomePriceHistory(selectedHomeProductId);
+  }, [activeTab, homeRoute, loadHomePriceHistory, selectedHomeProductId]);
 
   React.useEffect(() => {
     if (activeTab !== "watchlist") return;
@@ -374,23 +414,26 @@ export default function NativeAppScreen() {
   }, [activeTab, loadWatchlist]);
 
   React.useEffect(() => {
-    if (activeTab !== "home") return;
-    setHomeRoute("catalog");
-  }, [activeTab]);
+    if (activeTab !== "map") return;
+    void loadMapStores();
+  }, [activeTab, loadMapStores]);
 
   React.useEffect(() => {
-    setHomeActionMessage(null);
-  }, [homeRoute, selectedHomeProductId]);
-
-  React.useEffect(() => {
-    if (filteredHomeProducts.length === 0) return;
-    const hasSelected = filteredHomeProducts.some(
-      (product) => product.id === selectedHomeProductId,
-    );
-    if (!hasSelected) {
-      setSelectedHomeProductId(filteredHomeProducts[0].id);
+    if (filteredStores.length === 0) {
+      setFocusedStoreId("");
+      return;
     }
-  }, [filteredHomeProducts, selectedHomeProductId]);
+
+    const hasFocused = filteredStores.some((store) => store.id === focusedStoreId);
+    if (!hasFocused) {
+      setFocusedStoreId(filteredStores[0].id);
+    }
+  }, [filteredStores, focusedStoreId]);
+
+  React.useEffect(() => {
+    if (!activeStore) return;
+    mapRef.current?.animateToRegion(mapRegion, 220);
+  }, [activeStore, mapRegion]);
 
   React.useEffect(() => {
     if (activeTab !== "more") return;
@@ -430,6 +473,23 @@ export default function NativeAppScreen() {
     await loadWatchlist(true);
   }, [loadWatchlist, watchName, watchStore, watchTargetPrice]);
 
+  const handleRemoveWatchlistItem = React.useCallback(
+    async (itemId: string) => {
+      setWatchRemovingId(itemId);
+      const { error } = await removeWatchlistItem(itemId);
+      setWatchRemovingId(null);
+
+      if (error) {
+        setWatchMessage(error);
+        return;
+      }
+
+      setWatchMessage("Removed from your watchlist.");
+      await loadWatchlist(true);
+    },
+    [loadWatchlist],
+  );
+
   const handleSignUp = React.useCallback(async () => {
     const name = signUpName.trim();
     const email = signUpEmail.trim();
@@ -450,9 +510,10 @@ export default function NativeAppScreen() {
 
     setMoreLoading(true);
     const { data, error } = await signUpUser({ name, email, password });
+    setMoreLoading(false);
+
     if (error) {
       setMoreMessage(error);
-      setMoreLoading(false);
       return;
     }
 
@@ -462,7 +523,6 @@ export default function NativeAppScreen() {
         : "Account created successfully.",
     );
     setSignUpPassword("");
-    setMoreLoading(false);
     await loadProfile(true);
   }, [loadProfile, signUpEmail, signUpName, signUpPassword]);
 
@@ -473,7 +533,10 @@ export default function NativeAppScreen() {
     const { error } = await addWatchlistItem({
       name: selectedHomeProduct.name,
       store: "Home Catalog",
-      targetPrice: selectedHomeProduct.currentPrice.toFixed(2),
+      targetPrice:
+        selectedHomeProduct.current_price !== null
+          ? selectedHomeProduct.current_price.toFixed(2)
+          : undefined,
     });
     setHomeAddSubmitting(false);
 
@@ -501,12 +564,134 @@ export default function NativeAppScreen() {
     setMoreMessage("Signed out.");
   }, []);
 
+  const focusStore = React.useCallback(
+    (store: MarketStore) => {
+      setFocusedStoreId(store.id);
+      mapRef.current?.animateToRegion(
+        {
+          latitude: store.latitude,
+          longitude: store.longitude,
+          latitudeDelta: 0.025,
+          longitudeDelta: 0.025,
+        },
+        220,
+      );
+    },
+    [],
+  );
+
+  const handleCreateProduct = React.useCallback(async () => {
+    const name = adminProductName.trim();
+    const category = adminProductCategory.trim();
+
+    if (!name || !category) {
+      setAdminMessage("Product name and category are required.");
+      return;
+    }
+
+    setAdminSubmitting(true);
+    const { error } = await createProduct({
+      name,
+      category,
+      thumbnailUrl: adminProductThumb,
+    });
+    setAdminSubmitting(false);
+
+    if (error) {
+      setAdminMessage(error);
+      return;
+    }
+
+    setAdminMessage("Product created.");
+    setAdminProductName("");
+    setAdminProductCategory("");
+    setAdminProductThumb("");
+    await loadHomeCategories();
+    await loadHomeProducts();
+  }, [adminProductCategory, adminProductName, adminProductThumb, loadHomeCategories, loadHomeProducts]);
+
+  const handleCreateStore = React.useCallback(async () => {
+    const name = adminStoreName.trim();
+    const area = adminStoreArea.trim();
+
+    if (!name || !area || !adminStoreLat.trim() || !adminStoreLng.trim()) {
+      setAdminMessage("Store name, area, latitude, and longitude are required.");
+      return;
+    }
+
+    setAdminSubmitting(true);
+    const { error } = await createStore({
+      name,
+      area,
+      latitude: adminStoreLat,
+      longitude: adminStoreLng,
+      priceNote: adminStoreNote,
+    });
+    setAdminSubmitting(false);
+
+    if (error) {
+      setAdminMessage(error);
+      return;
+    }
+
+    setAdminMessage("Store created.");
+    setAdminStoreName("");
+    setAdminStoreArea("");
+    setAdminStoreLat("");
+    setAdminStoreLng("");
+    setAdminStoreNote("");
+    await loadMapStores();
+  }, [adminStoreArea, adminStoreLat, adminStoreLng, adminStoreName, adminStoreNote, loadMapStores]);
+
+  const handleCreatePrice = React.useCallback(async () => {
+    if (!adminPriceProductId.trim() || !adminPriceStoreId.trim()) {
+      setAdminMessage("Product ID and Store ID are required.");
+      return;
+    }
+    if (!adminPriceValue.trim()) {
+      setAdminMessage("Price is required.");
+      return;
+    }
+
+    setAdminSubmitting(true);
+    const { error } = await createProductPrice({
+      productId: adminPriceProductId,
+      storeId: adminPriceStoreId,
+      price: adminPriceValue,
+      observedAt: adminPriceObservedAt,
+    });
+    setAdminSubmitting(false);
+
+    if (error) {
+      setAdminMessage(error);
+      return;
+    }
+
+    setAdminMessage("Price entry created.");
+    setAdminPriceValue("");
+    setAdminPriceObservedAt("");
+    if (selectedHomeProductId === adminPriceProductId) {
+      await loadHomePriceHistory(selectedHomeProductId);
+      await loadHomeProducts();
+    }
+  }, [
+    adminPriceObservedAt,
+    adminPriceProductId,
+    adminPriceStoreId,
+    adminPriceValue,
+    loadHomePriceHistory,
+    loadHomeProducts,
+    selectedHomeProductId,
+  ]);
+
   return (
     <View style={st.root}>
       <View
         style={[
           st.topBar,
           {
+            paddingTop: Math.max(insets.top, 8) + 4,
+            paddingBottom: 10,
             paddingHorizontal: pad,
           },
         ]}
@@ -532,7 +717,7 @@ export default function NativeAppScreen() {
           <View style={st.sectionStack}>
             <Text style={st.sectionTitle}>Home</Text>
             <Text style={st.sectionSub}>
-              Search product list and tap an item to open detail page.
+              Search and browse products, then open detail page for trend data.
             </Text>
 
             <View style={st.searchCard}>
@@ -546,6 +731,24 @@ export default function NativeAppScreen() {
                 returnKeyType="search"
                 style={st.searchInput}
               />
+            </View>
+
+            <View style={st.categoryRow}>
+              {["All", ...homeCategories].map((category) => {
+                const active = homeCategory === category;
+                return (
+                  <Pressable
+                    key={category}
+                    accessibilityRole="button"
+                    onPress={() => setHomeCategory(category)}
+                    style={[st.categoryChip, active && st.categoryChipActive]}
+                  >
+                    <Text style={[st.categoryChipText, active && st.categoryChipTextActive]}>
+                      {category}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             <View style={st.summaryPanel}>
@@ -563,14 +766,22 @@ export default function NativeAppScreen() {
               ))}
             </View>
 
-            {filteredHomeProducts.length === 0 ? (
+            {homeMessage ? (
               <View style={st.rowCard}>
-                <Text style={st.itemMeta}>
-                  No products found. Try another search keyword.
-                </Text>
+                <Text style={st.itemMeta}>{homeMessage}</Text>
+              </View>
+            ) : null}
+
+            {homeLoading ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>Loading products...</Text>
+              </View>
+            ) : homeProducts.length === 0 ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>No products found for this filter.</Text>
               </View>
             ) : (
-              filteredHomeProducts.map((product) => {
+              homeProducts.map((product) => {
                 const active = selectedHomeProduct?.id === product.id;
                 return (
                   <Pressable
@@ -587,13 +798,13 @@ export default function NativeAppScreen() {
                         <Text style={st.itemName}>{product.name}</Text>
                         <Text style={st.itemMeta}>{product.category}</Text>
                         <Text style={st.storePrice}>
-                          Current {money.format(product.currentPrice)}
+                          Current {product.current_price !== null ? money.format(product.current_price) : "-"}
                         </Text>
                       </View>
                       <View style={st.productThumb}>
-                        {product.thumbnailUri ? (
+                        {product.thumbnail_url ? (
                           <Image
-                            source={{ uri: product.thumbnailUri }}
+                            source={{ uri: product.thumbnail_url }}
                             style={st.productThumbImage}
                             resizeMode="cover"
                           />
@@ -633,108 +844,113 @@ export default function NativeAppScreen() {
               </Pressable>
             </View>
 
-            {selectedHomeProduct && homeChart ? (
+            {selectedHomeProduct ? (
               <View style={st.rowCard}>
-                <Text style={st.itemName}>
-                  {selectedHomeProduct.name}
-                </Text>
+                <Text style={st.itemName}>{selectedHomeProduct.name}</Text>
                 <Text style={st.sectionSub}>Price trend detail</Text>
-                {homeActionMessage ? (
-                  <Text style={st.itemMeta}>{homeActionMessage}</Text>
-                ) : null}
-                <Text style={st.itemMeta}>
-                  Lowest {money.format(homeChart.min)} / Highest{" "}
-                  {money.format(homeChart.max)}
-                </Text>
+                {homeActionMessage ? <Text style={st.itemMeta}>{homeActionMessage}</Text> : null}
+                {homeHistoryMessage ? <Text style={st.itemMeta}>{homeHistoryMessage}</Text> : null}
 
-                <View style={st.chartWrap}>
-                  <Svg width={homeChart.width} height={homeChart.height}>
-                    <Line
-                      x1={14}
-                      y1={homeChart.height - 14}
-                      x2={homeChart.width - 14}
-                      y2={homeChart.height - 14}
-                      stroke={C.line}
-                      strokeWidth={1}
-                    />
-                    <Line
-                      x1={14}
-                      y1={14}
-                      x2={14}
-                      y2={homeChart.height - 14}
-                      stroke={C.line}
-                      strokeWidth={1}
-                    />
-                    <Polyline
-                      points={homeChart.polyline}
-                      fill="none"
-                      stroke={C.primary}
-                      strokeWidth={3}
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                    />
-                    {homeChart.points.map((point, idx) => (
-                      <Circle
-                        key={`${point.label}-${idx}`}
-                        cx={point.x}
-                        cy={point.y}
-                        r={3.8}
-                        fill={idx === homeChart.points.length - 1 ? C.primaryDeep : C.white}
-                        stroke={C.primary}
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </Svg>
-                </View>
-
-                <View style={st.chartMetaRow}>
-                  <Text style={st.chartMetaText}>
-                    {homeChart.points[0].label}: {money.format(homeChart.start)}
-                  </Text>
-                  <Text style={st.chartMetaText}>
-                    {homeChart.points[homeChart.points.length - 1].label}:{" "}
-                    {money.format(homeChart.end)}
-                  </Text>
-                </View>
-
-                <Text style={st.historyTitle}>Previous Prices</Text>
-                {previousPriceRows.length === 0 ? (
-                  <Text style={st.itemMeta}>No previous prices available.</Text>
+                {homeHistoryLoading ? (
+                  <Text style={st.itemMeta}>Loading price history...</Text>
+                ) : !homeChart ? (
+                  <Text style={st.itemMeta}>No price history yet for this product.</Text>
                 ) : (
-                  previousPriceRows.map((row) => (
-                    <View key={row.key} style={st.historyRow}>
-                      <Text style={st.historyLabel}>{row.label}</Text>
-                      <Text style={st.historyPrice}>{money.format(row.price)}</Text>
-                      <Text
-                        style={[
-                          st.historyDiff,
-                          row.diff > 0 ? st.historyDiffUp : st.historyDiffDown,
-                        ]}
-                      >
-                        {row.diff > 0 ? "+" : ""}
-                        {money.format(row.diff)}
+                  <>
+                    <Text style={st.itemMeta}>
+                      Lowest {money.format(homeChart.min)} / Highest {money.format(homeChart.max)}
+                    </Text>
+
+                    <View style={st.chartWrap}>
+                      <Svg width={homeChart.width} height={homeChart.height}>
+                        <Line
+                          x1={14}
+                          y1={homeChart.height - 14}
+                          x2={homeChart.width - 14}
+                          y2={homeChart.height - 14}
+                          stroke={C.line}
+                          strokeWidth={1}
+                        />
+                        <Line
+                          x1={14}
+                          y1={14}
+                          x2={14}
+                          y2={homeChart.height - 14}
+                          stroke={C.line}
+                          strokeWidth={1}
+                        />
+                        <Polyline
+                          points={homeChart.polyline}
+                          fill="none"
+                          stroke={C.primary}
+                          strokeWidth={3}
+                          strokeLinejoin="round"
+                          strokeLinecap="round"
+                        />
+                        {homeChart.points.map((point, idx) => (
+                          <Circle
+                            key={`${point.observed_at}-${idx}`}
+                            cx={point.x}
+                            cy={point.y}
+                            r={3.8}
+                            fill={idx === homeChart.points.length - 1 ? C.primaryDeep : C.white}
+                            stroke={C.primary}
+                            strokeWidth={2}
+                          />
+                        ))}
+                      </Svg>
+                    </View>
+
+                    <View style={st.chartMetaRow}>
+                      <Text style={st.chartMetaText}>
+                        {homeChart.points[0].label}: {money.format(homeChart.start)}
+                      </Text>
+                      <Text style={st.chartMetaText}>
+                        {homeChart.points[homeChart.points.length - 1].label}: {money.format(homeChart.end)}
                       </Text>
                     </View>
-                  ))
+
+                    <Text style={st.historyTitle}>Previous Prices</Text>
+                    {previousPriceRows.length === 0 ? (
+                      <Text style={st.itemMeta}>No previous prices available.</Text>
+                    ) : (
+                      previousPriceRows.map((row) => (
+                        <View key={row.key} style={st.historyRow}>
+                          <Text style={st.historyLabel}>{row.label}</Text>
+                          <Text style={st.historyPrice}>{money.format(row.price)}</Text>
+                          <Text
+                            style={[
+                              st.historyDiff,
+                              row.diff > 0 ? st.historyDiffUp : st.historyDiffDown,
+                            ]}
+                          >
+                            {row.diff > 0 ? "+" : ""}
+                            {money.format(row.diff)}
+                          </Text>
+                        </View>
+                      ))
+                    )}
+                  </>
                 )}
               </View>
-            ) : null}
+            ) : (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>Product not found. Go back and choose again.</Text>
+              </View>
+            )}
           </View>
         ) : null}
 
         {activeTab === "watchlist" ? (
           <View style={st.sectionStack}>
             <Text style={st.sectionTitle}>Watchlist</Text>
-            <Text style={st.sectionSub}>
-              Only items you add are shown here.
-            </Text>
+            <Text style={st.sectionSub}>Only items you add are shown here.</Text>
 
             {!hasSupabaseEnv ? (
               <View style={st.rowCard}>
                 <Text style={st.itemName}>Supabase configuration required</Text>
                 <Text style={st.itemMeta}>
-                  Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
-                  in your .env file.
+                  Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.
                 </Text>
               </View>
             ) : (
@@ -765,6 +981,7 @@ export default function NativeAppScreen() {
                   placeholderTextColor={C.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  keyboardType="decimal-pad"
                   style={st.formInput}
                 />
                 <Pressable
@@ -792,19 +1009,32 @@ export default function NativeAppScreen() {
               </View>
             ) : watchlistItems.length === 0 ? (
               <View style={st.rowCard}>
-                <Text style={st.itemMeta}>
-                  No watchlist items yet. Add your first item above.
-                </Text>
+                <Text style={st.itemMeta}>No watchlist items yet. Add your first item above.</Text>
               </View>
             ) : (
               watchlistItems.map((item) => (
                 <View key={item.id} style={st.rowCard}>
-                  <Text style={st.itemName}>{item.name}</Text>
-                  <Text style={st.itemMeta}>{item.store}</Text>
+                  <View style={st.watchRowTop}>
+                    <View style={st.watchRowMain}>
+                      <Text style={st.itemName}>{item.name}</Text>
+                      <Text style={st.itemMeta}>{item.store}</Text>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => {
+                        void handleRemoveWatchlistItem(item.id);
+                      }}
+                      style={[st.removeBtn, watchRemovingId === item.id && st.removeBtnDisabled]}
+                      disabled={watchRemovingId === item.id}
+                    >
+                      <Text style={st.removeBtnText}>
+                        {watchRemovingId === item.id ? "Removing..." : "Remove"}
+                      </Text>
+                    </Pressable>
+                  </View>
+
                   <View style={st.tagRow}>
-                    <Text style={st.tag}>
-                      Target {item.target_price?.trim() || "-"}
-                    </Text>
+                    <Text style={st.tag}>Target {item.target_price?.trim() || "-"}</Text>
                   </View>
                 </View>
               ))
@@ -815,15 +1045,12 @@ export default function NativeAppScreen() {
         {activeTab === "map" ? (
           <View style={st.sectionStack}>
             <Text style={st.sectionTitle}>Map</Text>
-            <Text style={st.sectionSub}>
-              Search stores and jump directly to their map location.
-            </Text>
+            <Text style={st.sectionSub}>Search stores and jump directly to their location.</Text>
 
             <View style={st.searchCard}>
               <TextInput
                 value={mapQuery}
                 onChangeText={setMapQuery}
-                onSubmitEditing={focusFirstSearchResult}
                 placeholder="Search store or area"
                 placeholderTextColor={C.textMuted}
                 autoCapitalize="none"
@@ -833,10 +1060,16 @@ export default function NativeAppScreen() {
               />
             </View>
 
+            {mapMessage ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>{mapMessage}</Text>
+              </View>
+            ) : null}
+
             <View style={st.mapCard}>
               <MapView
                 ref={mapRef}
-                initialRegion={DEFAULT_REGION}
+                initialRegion={mapRegion}
                 style={st.mapView}
               >
                 {filteredStores.map((store) => {
@@ -849,7 +1082,7 @@ export default function NativeAppScreen() {
                         longitude: store.longitude,
                       }}
                       title={store.name}
-                      description={`${store.area} • ${store.priceNote}`}
+                      description={`${store.area} • ${store.price_note ?? ""}`}
                       pinColor={active ? C.primaryDeep : C.primary}
                       onPress={() => setFocusedStoreId(store.id)}
                     />
@@ -859,11 +1092,13 @@ export default function NativeAppScreen() {
             </View>
 
             <Text style={st.resultMeta}>Search results: {filteredStores.length}</Text>
-            {filteredStores.length === 0 ? (
+            {mapLoading ? (
               <View style={st.rowCard}>
-                <Text style={st.itemMeta}>
-                  No matches found. Try another store name or area.
-                </Text>
+                <Text style={st.itemMeta}>Loading stores...</Text>
+              </View>
+            ) : filteredStores.length === 0 ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>No matches found. Try another store or area.</Text>
               </View>
             ) : (
               filteredStores.map((store) => {
@@ -877,7 +1112,7 @@ export default function NativeAppScreen() {
                   >
                     <Text style={st.itemName}>{store.name}</Text>
                     <Text style={st.itemMeta}>{store.area}</Text>
-                    <Text style={st.storePrice}>{store.priceNote}</Text>
+                    <Text style={st.storePrice}>{store.price_note ?? "Price note unavailable"}</Text>
                   </Pressable>
                 );
               })
@@ -902,16 +1137,13 @@ export default function NativeAppScreen() {
         {activeTab === "more" ? (
           <View style={st.sectionStack}>
             <Text style={st.sectionTitle}>More</Text>
-            <Text style={st.sectionSub}>
-              Create account and manage your basic profile.
-            </Text>
+            <Text style={st.sectionSub}>Create account and manage your profile/data.</Text>
 
             {!hasSupabaseEnv ? (
               <View style={st.rowCard}>
                 <Text style={st.itemName}>Supabase configuration required</Text>
                 <Text style={st.itemMeta}>
-                  Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
-                  in your .env file.
+                  Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.
                 </Text>
               </View>
             ) : profile ? (
@@ -946,9 +1178,7 @@ export default function NativeAppScreen() {
             ) : (
               <View style={st.rowCard}>
                 <Text style={st.itemName}>Sign Up</Text>
-                <Text style={st.itemMeta}>
-                  Create your account with email and password.
-                </Text>
+                <Text style={st.itemMeta}>Create your account with email and password.</Text>
 
                 <TextInput
                   value={signUpName}
@@ -992,9 +1222,147 @@ export default function NativeAppScreen() {
               </View>
             )}
 
+            {profile ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemName}>Admin Data Entry (MVP)</Text>
+                <Text style={st.itemMeta}>Add product, store, and price records manually.</Text>
+
+                <Text style={st.adminTitle}>Create Product</Text>
+                <TextInput
+                  value={adminProductName}
+                  onChangeText={setAdminProductName}
+                  placeholder="Product name"
+                  placeholderTextColor={C.textMuted}
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminProductCategory}
+                  onChangeText={setAdminProductCategory}
+                  placeholder="Category"
+                  placeholderTextColor={C.textMuted}
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminProductThumb}
+                  onChangeText={setAdminProductThumb}
+                  placeholder="Thumbnail URL (optional)"
+                  placeholderTextColor={C.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={st.formInput}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleCreateProduct}
+                  style={[st.authBtn, st.authBtnSecondary]}
+                  disabled={adminSubmitting}
+                >
+                  <Text style={st.authBtnSecondaryText}>Save Product</Text>
+                </Pressable>
+
+                <Text style={st.adminTitle}>Create Store</Text>
+                <TextInput
+                  value={adminStoreName}
+                  onChangeText={setAdminStoreName}
+                  placeholder="Store name"
+                  placeholderTextColor={C.textMuted}
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminStoreArea}
+                  onChangeText={setAdminStoreArea}
+                  placeholder="Area"
+                  placeholderTextColor={C.textMuted}
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminStoreLat}
+                  onChangeText={setAdminStoreLat}
+                  placeholder="Latitude"
+                  placeholderTextColor={C.textMuted}
+                  keyboardType="decimal-pad"
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminStoreLng}
+                  onChangeText={setAdminStoreLng}
+                  placeholder="Longitude"
+                  placeholderTextColor={C.textMuted}
+                  keyboardType="decimal-pad"
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminStoreNote}
+                  onChangeText={setAdminStoreNote}
+                  placeholder="Price note (optional)"
+                  placeholderTextColor={C.textMuted}
+                  style={st.formInput}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleCreateStore}
+                  style={[st.authBtn, st.authBtnSecondary]}
+                  disabled={adminSubmitting}
+                >
+                  <Text style={st.authBtnSecondaryText}>Save Store</Text>
+                </Pressable>
+
+                <Text style={st.adminTitle}>Create Price Entry</Text>
+                <TextInput
+                  value={adminPriceProductId}
+                  onChangeText={setAdminPriceProductId}
+                  placeholder="Product ID"
+                  placeholderTextColor={C.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminPriceStoreId}
+                  onChangeText={setAdminPriceStoreId}
+                  placeholder="Store ID"
+                  placeholderTextColor={C.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminPriceValue}
+                  onChangeText={setAdminPriceValue}
+                  placeholder="Price"
+                  placeholderTextColor={C.textMuted}
+                  keyboardType="decimal-pad"
+                  style={st.formInput}
+                />
+                <TextInput
+                  value={adminPriceObservedAt}
+                  onChangeText={setAdminPriceObservedAt}
+                  placeholder="Observed at (optional, ISO date)"
+                  placeholderTextColor={C.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={st.formInput}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={handleCreatePrice}
+                  style={[st.authBtn, st.authBtnSecondary]}
+                  disabled={adminSubmitting}
+                >
+                  <Text style={st.authBtnSecondaryText}>Save Price Entry</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
             {moreMessage ? (
               <View style={st.rowCard}>
                 <Text style={st.itemMeta}>{moreMessage}</Text>
+              </View>
+            ) : null}
+
+            {adminMessage ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>{adminMessage}</Text>
               </View>
             ) : null}
           </View>
@@ -1022,9 +1390,7 @@ export default function NativeAppScreen() {
                 onPress={() => setActiveTab(tab.id)}
                 style={[st.tabBtn, active && st.tabBtnActive]}
               >
-                <Text style={[st.tabText, active && st.tabTextActive]}>
-                  {tab.label}
-                </Text>
+                <Text style={[st.tabText, active && st.tabTextActive]}>{tab.label}</Text>
               </Pressable>
             );
           })}
@@ -1078,33 +1444,57 @@ const st = StyleSheet.create({
   sectionStack: {
     gap: 12,
   },
-  heroCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    padding: 18,
-    gap: 8,
-  },
-  heroEyebrow: {
-    color: C.primary,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    fontFamily: F.extraBold,
-  },
-  heroTitle: {
+  sectionTitle: {
     color: C.text,
     fontSize: 24,
-    lineHeight: 30,
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  heroSub: {
+  sectionSub: {
     color: C.textSoft,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: F.regular,
+  },
+  searchCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.white,
+    paddingHorizontal: 12,
+    paddingVertical: 2,
+  },
+  searchInput: {
+    height: 46,
+    color: C.text,
+    fontSize: 14,
+    fontFamily: F.semibold,
+  },
+  categoryRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categoryChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: C.white,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  categoryChipActive: {
+    backgroundColor: C.primaryGhost,
+    borderColor: C.primary,
+  },
+  categoryChipText: {
+    color: C.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: F.bold,
+  },
+  categoryChipTextActive: {
+    color: C.primaryDeep,
   },
   summaryPanel: {
     borderRadius: 14,
@@ -1137,53 +1527,60 @@ const st = StyleSheet.create({
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  sectionTitle: {
-    color: C.text,
-    fontSize: 24,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-  },
-  sectionSub: {
-    color: C.textSoft,
-    fontSize: 14,
-    lineHeight: 20,
-    fontFamily: F.regular,
-  },
-  searchCard: {
+  rowCard: {
     borderRadius: 14,
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.white,
-    paddingHorizontal: 12,
-    paddingVertical: 2,
+    padding: 14,
+    gap: 6,
   },
-  searchInput: {
-    height: 46,
-    color: C.text,
-    fontSize: 14,
-    fontFamily: F.semibold,
+  rowCardActive: {
+    borderColor: C.primary,
+    backgroundColor: C.primaryGhost,
   },
-  formInput: {
-    height: 44,
-    borderRadius: 10,
+  productRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  productMain: {
+    flex: 1,
+    gap: 4,
+  },
+  productThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 12,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.bg,
-    color: C.text,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontFamily: F.semibold,
   },
-  mapCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: C.line,
-    overflow: "hidden",
-    backgroundColor: C.white,
-  },
-  mapView: {
+  productThumbImage: {
     width: "100%",
-    height: 260,
+    height: "100%",
+  },
+  productThumbPlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.primaryGhost,
+  },
+  productThumbPlaceholderText: {
+    color: C.primaryDeep,
+    fontSize: 12,
+    fontWeight: "800",
+    fontFamily: F.extraBold,
+    letterSpacing: 0.6,
+  },
+  detailActionRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  detailActionBtn: {
+    flex: 1,
   },
   chartWrap: {
     borderRadius: 12,
@@ -1245,58 +1642,68 @@ const st = StyleSheet.create({
   historyDiffDown: {
     color: C.primaryDeep,
   },
+  watchRowTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  watchRowMain: {
+    flex: 1,
+    gap: 4,
+  },
+  removeBtn: {
+    minHeight: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D9A0A0",
+    backgroundColor: "#FFF0F0",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  removeBtnDisabled: {
+    opacity: 0.6,
+  },
+  removeBtnText: {
+    color: "#A83939",
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: F.bold,
+  },
+  mapCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.line,
+    overflow: "hidden",
+    backgroundColor: C.white,
+  },
+  mapView: {
+    width: "100%",
+    height: 260,
+  },
   resultMeta: {
     color: C.textMuted,
     fontSize: 12,
     fontFamily: F.bold,
   },
-  rowCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    padding: 14,
-    gap: 6,
+  adminTitle: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "800",
+    fontFamily: F.extraBold,
+    marginTop: 6,
   },
-  rowCardActive: {
-    borderColor: C.primary,
-    backgroundColor: C.primaryGhost,
-  },
-  productRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  productMain: {
-    flex: 1,
-    gap: 4,
-  },
-  productThumb: {
-    width: 72,
-    height: 72,
-    borderRadius: 12,
-    overflow: "hidden",
+  formInput: {
+    height: 44,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.bg,
-  },
-  productThumbImage: {
-    width: "100%",
-    height: "100%",
-  },
-  productThumbPlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.primaryGhost,
-  },
-  productThumbPlaceholderText: {
-    color: C.primaryDeep,
-    fontSize: 12,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-    letterSpacing: 0.6,
+    color: C.text,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontFamily: F.semibold,
   },
   itemName: {
     color: C.text,
@@ -1376,13 +1783,6 @@ const st = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     fontFamily: F.bold,
-  },
-  detailActionRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  detailActionBtn: {
-    flex: 1,
   },
   bottomBar: {
     position: "absolute",
