@@ -3,7 +3,8 @@ export type Route =
   | "privacy"
   | "terms"
   | "blog"
-  | "delete-account";
+  | "delete-account"
+  | "admin";
 
 import { marketingPalette } from "../shared/design/palette";
 

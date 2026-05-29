@@ -22,6 +22,7 @@ export const ROUTE_PATHS: Record<Route, string> = {
   privacy: "/privacy",
   terms: "/terms",
   "delete-account": "/delete-account",
+  admin: "/admin",
 };
 
 /**
@@ -168,6 +169,12 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
       canonical: `${BASE_URL}/delete-account`,
       noindex: true,
     },
+    admin: {
+      title: "Admin - PocketCart",
+      description: "PocketCart backoffice for catalog, store, and price data management.",
+      canonical: `${BASE_URL}/admin`,
+      noindex: true,
+    },
   },
   fr: {
     home: {
@@ -206,6 +213,13 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
         "Supprimez votre compte PocketCart et demandez la " +
         "suppression des donnees depuis cette page web.",
       canonical: `${BASE_URL}/delete-account`,
+      noindex: true,
+    },
+    admin: {
+      title: "Admin - PocketCart",
+      description:
+        "Backoffice PocketCart pour gerer le catalogue, les magasins et les prix.",
+      canonical: `${BASE_URL}/admin`,
       noindex: true,
     },
   },
