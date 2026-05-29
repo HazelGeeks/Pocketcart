@@ -165,9 +165,21 @@ create table if not exists public.product_prices (
   product_id uuid not null references public.products(id) on delete cascade,
   store_id uuid not null references public.stores(id) on delete cascade,
   price numeric(10, 2) not null check (price >= 0),
+  valid_from timestamptz,
+  valid_to timestamptz,
   observed_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
+
+alter table public.product_prices
+  add column if not exists valid_from timestamptz;
+
+alter table public.product_prices
+  add column if not exists valid_to timestamptz;
+
+update public.product_prices
+set valid_from = observed_at
+where valid_from is null;
 
 create index if not exists product_prices_product_observed_idx
   on public.product_prices(product_id, observed_at desc);
@@ -205,3 +217,47 @@ on public.product_prices
 for delete
 to authenticated
 using (true);
+
+-- storage: product-images bucket
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'product-images',
+  'product-images',
+  true,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists product_images_public_read on storage.objects;
+create policy product_images_public_read
+on storage.objects
+for select
+to public
+using (bucket_id = 'product-images');
+
+drop policy if exists product_images_auth_insert on storage.objects;
+create policy product_images_auth_insert
+on storage.objects
+for insert
+to authenticated
+with check (bucket_id = 'product-images');
+
+drop policy if exists product_images_auth_update on storage.objects;
+create policy product_images_auth_update
+on storage.objects
+for update
+to authenticated
+using (bucket_id = 'product-images')
+with check (bucket_id = 'product-images');
+
+drop policy if exists product_images_auth_delete on storage.objects;
+create policy product_images_auth_delete
+on storage.objects
+for delete
+to authenticated
+using (bucket_id = 'product-images');
