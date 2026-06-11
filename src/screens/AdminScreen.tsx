@@ -20,11 +20,13 @@ import {
   hasFlyerAiEndpoint,
 } from "../services/flyerAiImport";
 import {
+  type AdminAuditLog,
   type AdminPriceEntry,
   type AdminProduct,
   type AdminStore,
 } from "../services/adminBackoffice";
 import {
+  useAdminAuditLogsQuery,
   useAdminPricesQuery,
   useAdminProductsQuery,
   useAdminSignInMutation,
@@ -32,6 +34,7 @@ import {
   useAdminStoresQuery,
   useAdminUserQuery,
   useCreateAdminPriceEntryMutation,
+  useCreateAdminAuditLogMutation,
   useCreateAdminProductMutation,
   useCreateAdminStoreMutation,
   useDeleteAdminPriceEntryMutation,
@@ -70,6 +73,23 @@ type ProductPriceStats = {
   maxPrice: number | null;
   storeIds: Set<string>;
   storeNames: string[];
+};
+
+type StoreImportPreviewRow = {
+  rowNumber: number;
+  name: string;
+  area: string;
+  latitude: string;
+  longitude: string;
+  priceNote: string;
+  status: "ready" | "duplicate" | "invalid";
+  reason: string;
+};
+
+type StorePriceStats = {
+  priceCount: number;
+  productIds: Set<string>;
+  latestObservedAtMs: number;
 };
 
 const DEFAULT_PRODUCT_CATEGORIES = [
@@ -112,6 +132,14 @@ const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
   gap: 8,
   overflowX: "auto",
   padding: "5px 8px",
+};
+
+const WEB_STORE_MAP_IFRAME_STYLE: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  minHeight: 280,
+  border: 0,
+  display: "block",
 };
 
 const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
@@ -346,6 +374,83 @@ function flyerRowsToProductCsv(rows: FlyerRow[]): string {
   return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
 }
 
+function buildStoreImportPreview(
+  headerRow: string[],
+  dataRows: string[][],
+  stores: AdminStore[],
+): StoreImportPreviewRow[] {
+  const headers = headerRow.map(csvHeaderKey);
+  const existing = new Set(
+    stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
+  );
+
+  return dataRows.map((values, index) => {
+    const record: Record<string, string> = {};
+    headers.forEach((header, headerIndex) => {
+      record[header] = values[headerIndex] ?? "";
+    });
+
+    const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
+    const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
+    const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
+    const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
+    const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
+    const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+    const validCoordinates = !Number.isNaN(Number(latitude)) && !Number.isNaN(Number(longitude));
+
+    if (!name || !area || !latitude || !longitude) {
+      return {
+        rowNumber: index + 2,
+        name,
+        area,
+        latitude,
+        longitude,
+        priceNote,
+        status: "invalid",
+        reason: "Missing required fields",
+      };
+    }
+
+    if (!validCoordinates) {
+      return {
+        rowNumber: index + 2,
+        name,
+        area,
+        latitude,
+        longitude,
+        priceNote,
+        status: "invalid",
+        reason: "Invalid coordinates",
+      };
+    }
+
+    if (existing.has(duplicateKey)) {
+      return {
+        rowNumber: index + 2,
+        name,
+        area,
+        latitude,
+        longitude,
+        priceNote,
+        status: "duplicate",
+        reason: "Duplicate name and area",
+      };
+    }
+
+    existing.add(duplicateKey);
+    return {
+      rowNumber: index + 2,
+      name,
+      area,
+      latitude,
+      longitude,
+      priceNote,
+      status: "ready",
+      reason: "Ready",
+    };
+  });
+}
+
 function dateInputValue(value: string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
@@ -375,6 +480,94 @@ function downloadCsvFile(prefix: string, csv: string): string | null {
   link.remove();
   urlApi.revokeObjectURL(href);
   return null;
+}
+
+function storeMapUrl(store: Pick<AdminStore, "name" | "area" | "latitude" | "longitude">): string {
+  const query = `${store.latitude},${store.longitude}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function safeScriptJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function storeLeafletMapSrcDoc(
+  stores: AdminStore[],
+  selectedStore: AdminStore | null,
+): string {
+  const points = stores
+    .map((store) => ({
+      id: store.id,
+      name: store.name,
+      area: store.area,
+      latitude: Number(store.latitude),
+      longitude: Number(store.longitude),
+      selected: selectedStore?.id === store.id,
+    }))
+    .filter((store) => Number.isFinite(store.latitude) && Number.isFinite(store.longitude))
+    .slice(0, 200);
+
+  if (points.length === 0) return "";
+
+  const selectedPoint = points.find((store) => store.selected) ?? points[0];
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .leaflet-popup-content { margin: 8px 10px; color: #2f3748; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const points = ${safeScriptJson(points)};
+    const selectedPoint = ${safeScriptJson(selectedPoint)};
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+    const map = L.map("map", { scrollWheelZoom: false }).setView(
+      [selectedPoint.latitude, selectedPoint.longitude],
+      points.length > 1 ? 11 : 14
+    );
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    const bounds = [];
+    points.forEach((point) => {
+      const marker = L.circleMarker([point.latitude, point.longitude], {
+        radius: point.selected ? 9 : 6,
+        color: point.selected ? "#2f55d4" : "#50627d",
+        weight: point.selected ? 3 : 2,
+        fillColor: point.selected ? "#2f55d4" : "#ffffff",
+        fillOpacity: point.selected ? 0.85 : 0.95
+      }).addTo(map);
+      marker.bindPopup("<strong>" + escapeHtml(point.name) + "</strong><br />" + escapeHtml(point.area));
+      if (point.selected) marker.openPopup();
+      bounds.push([point.latitude, point.longitude]);
+    });
+    if (bounds.length > 1) {
+      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function storeAddressSearchUrl(name: string, area: string): string {
+  const query = [name, area].map((value) => value.trim()).filter(Boolean).join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function normalizeOcrText(value: string): string {
@@ -494,6 +687,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [storeLatitude, setStoreLatitude] = React.useState("");
   const [storeLongitude, setStoreLongitude] = React.useState("");
   const [storePriceNote, setStorePriceNote] = React.useState("");
+  const [storeSearchQuery, setStoreSearchQuery] = React.useState("");
+  const [storeAreaFilter, setStoreAreaFilter] = React.useState("all");
+  const [selectedStoreMapId, setSelectedStoreMapId] = React.useState<string | null>(null);
+  const [storeImportPreviewRows, setStoreImportPreviewRows] = React.useState<StoreImportPreviewRow[]>([]);
+  const [storeImportPreviewOpen, setStoreImportPreviewOpen] = React.useState(false);
+  const [storeDeleteCandidate, setStoreDeleteCandidate] = React.useState<AdminStore | null>(null);
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
@@ -538,11 +737,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const productsQuery = useAdminProductsQuery(dataQueriesEnabled);
   const storesQuery = useAdminStoresQuery(dataQueriesEnabled);
   const pricesQuery = useAdminPricesQuery(dataQueriesEnabled);
+  const auditLogsQuery = useAdminAuditLogsQuery(dataQueriesEnabled);
   const signInMutation = useAdminSignInMutation();
   const signOutMutation = useAdminSignOutMutation();
   const createProductMutation = useCreateAdminProductMutation();
   const updateProductMutation = useUpdateAdminProductMutation();
   const createPriceEntryMutation = useCreateAdminPriceEntryMutation();
+  const createAuditLogMutation = useCreateAdminAuditLogMutation();
   const updatePriceEntryMutation = useUpdateAdminPriceEntryMutation();
   const deletePriceEntryMutation = useDeleteAdminPriceEntryMutation();
   const createStoreMutation = useCreateAdminStoreMutation();
@@ -554,6 +755,10 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const products = React.useMemo<AdminProduct[]>(() => productsQuery.data ?? [], [productsQuery.data]);
   const stores = React.useMemo<AdminStore[]>(() => storesQuery.data ?? [], [storesQuery.data]);
   const prices = React.useMemo<AdminPriceEntry[]>(() => pricesQuery.data ?? [], [pricesQuery.data]);
+  const auditLogs = React.useMemo<AdminAuditLog[]>(
+    () => auditLogsQuery.data ?? [],
+    [auditLogsQuery.data],
+  );
   const productsLoading = productsQuery.isLoading || productsQuery.isFetching;
   const authLoading =
     adminUserQuery.isLoading || signInMutation.isPending || signOutMutation.isPending;
@@ -692,6 +897,81 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [storeNameById]);
+
+  const storePriceStats = React.useMemo(() => {
+    const stats = new Map<string, StorePriceStats>();
+    prices.forEach((row) => {
+      const storeId = row.store_id.trim();
+      if (!storeId) return;
+      const productId = row.product_id.trim();
+      const observedAtMs = new Date(row.observed_at).getTime();
+      const existing = stats.get(storeId);
+      if (!existing) {
+        stats.set(storeId, {
+          priceCount: 1,
+          productIds: new Set(productId ? [productId] : []),
+          latestObservedAtMs: Number.isFinite(observedAtMs) ? observedAtMs : -1,
+        });
+        return;
+      }
+      existing.priceCount += 1;
+      if (productId) {
+        existing.productIds.add(productId);
+      }
+      if (Number.isFinite(observedAtMs) && observedAtMs > existing.latestObservedAtMs) {
+        existing.latestObservedAtMs = observedAtMs;
+      }
+    });
+    return stats;
+  }, [prices]);
+
+  const storeAreaOptions = React.useMemo(
+    () => uniqueValues(stores.map((store) => store.area)).sort((a, b) => a.localeCompare(b)),
+    [stores],
+  );
+
+  const filteredStores = React.useMemo(() => {
+    const query = storeSearchQuery.trim().toLowerCase();
+    const areaFilter = storeAreaFilter.trim().toLowerCase();
+    return stores.filter((store) => {
+      if (areaFilter !== "all" && store.area.trim().toLowerCase() !== areaFilter) {
+        return false;
+      }
+      if (!query) return true;
+      const stats = storePriceStats.get(store.id);
+      const haystack = [
+        store.name,
+        store.area,
+        store.id,
+        store.price_note ?? "",
+        String(store.latitude),
+        String(store.longitude),
+        String(stats?.priceCount ?? 0),
+      ].join(" ").toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [storeAreaFilter, storePriceStats, storeSearchQuery, stores]);
+
+  const storeActiveFilterCount = React.useMemo(() => {
+    let count = 0;
+    if (storeSearchQuery.trim()) count += 1;
+    if (storeAreaFilter !== "all") count += 1;
+    return count;
+  }, [storeAreaFilter, storeSearchQuery]);
+
+  const selectedStoreForMap = React.useMemo(() => {
+    return filteredStores.find((store) => store.id === selectedStoreMapId) ?? filteredStores[0] ?? null;
+  }, [filteredStores, selectedStoreMapId]);
+
+  const selectedStoreMapSrcDoc = React.useMemo(
+    () => storeLeafletMapSrcDoc(filteredStores, selectedStoreForMap),
+    [filteredStores, selectedStoreForMap],
+  );
+
+  const storeAuditLogs = React.useMemo(
+    () => auditLogs.filter((log) => log.entity_type === "store").slice(0, 8),
+    [auditLogs],
+  );
   const productSortOptions = React.useMemo<Array<{ key: ProductSortKey; label: string }>>(
     () => [
       { key: "latest", label: "Latest" },
@@ -790,6 +1070,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         productsQuery.refetch(),
         storesQuery.refetch(),
         pricesQuery.refetch(),
+        auditLogsQuery.refetch(),
       ]);
       const errors = results
         .map((item) => (item.error instanceof Error ? item.error.message : null))
@@ -802,7 +1083,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         setNotice(null);
       }
     },
-    [pricesQuery, productsQuery, storesQuery],
+    [auditLogsQuery, pricesQuery, productsQuery, storesQuery],
   );
 
   React.useEffect(() => {
@@ -811,13 +1092,20 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       productsQuery.error,
       storesQuery.error,
       pricesQuery.error,
+      auditLogsQuery.error,
     ]
       .map((error) => (error instanceof Error ? error.message : null))
       .filter((item): item is string => Boolean(item));
     if (errors.length > 0) {
       setNotice(errors.join(" | "));
     }
-  }, [adminUserQuery.error, pricesQuery.error, productsQuery.error, storesQuery.error]);
+  }, [
+    adminUserQuery.error,
+    auditLogsQuery.error,
+    pricesQuery.error,
+    productsQuery.error,
+    storesQuery.error,
+  ]);
 
   const updateStorePriceSet = React.useCallback(
     (id: string, field: "storeId" | "price", value: string) => {
@@ -870,6 +1158,21 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStorePriceNote("");
   }, []);
 
+  const writeAuditLog = React.useCallback(
+    async (params: Parameters<typeof createAuditLogMutation.mutateAsync>[0]) => {
+      try {
+        await createAuditLogMutation.mutateAsync(params);
+      } catch (error) {
+        setNotice(
+          `Saved, but audit log failed. ${
+            error instanceof Error ? error.message : "Unknown audit log error."
+          }`,
+        );
+      }
+    },
+    [createAuditLogMutation],
+  );
+
   const handleOpenAddProduct = React.useCallback(() => {
     resetProductForm();
     setProductModalOpen(true);
@@ -903,6 +1206,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStoreLatitude(String(store.latitude));
     setStoreLongitude(String(store.longitude));
     setStorePriceNote(store.price_note ?? "");
+  }, []);
+
+  const handleOpenMapUrl = React.useCallback((url: string) => {
+    if (Platform.OS !== "web") {
+      setNotice("Map helper is currently available on web admin.");
+      return;
+    }
+    const opener = (globalThis as { open?: (url: string, target?: string, features?: string) => Window | null }).open;
+    if (typeof opener !== "function") {
+      setNotice("Map helper is not available in this browser.");
+      return;
+    }
+    opener(url, "_blank", "noopener,noreferrer");
   }, []);
 
   const handleSignIn = React.useCallback(async () => {
@@ -1262,7 +1578,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       const selected = input.files?.[0];
       if (!selected) return;
       void (async () => {
-        setSubmitting(true);
         try {
           const text = await selected.text();
           const parsed = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim()));
@@ -1272,67 +1587,76 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             return;
           }
 
-          const headers = headerRow.map(csvHeaderKey);
-          const existing = new Set(
-            stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
-          );
-          const created: string[] = [];
-          const skipped: string[] = [];
-
-          for (const [index, values] of dataRows.entries()) {
-            const record: Record<string, string> = {};
-            headers.forEach((header, headerIndex) => {
-              record[header] = values[headerIndex] ?? "";
-            });
-
-            const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
-            const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
-            const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
-            const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
-            const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
-            const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
-
-            if (!name || !area || !latitude || !longitude) {
-              skipped.push(`row ${index + 2}`);
-              continue;
-            }
-            if (existing.has(duplicateKey)) {
-              skipped.push(`row ${index + 2}: duplicate`);
-              continue;
-            }
-
-            try {
-              const store = await createStoreMutation.mutateAsync({
-                name,
-                area,
-                latitude,
-                longitude,
-                priceNote,
-              });
-              if (store) {
-                created.push(store.id);
-                existing.add(duplicateKey);
-              }
-            } catch (error) {
-              skipped.push(`row ${index + 2}: ${error instanceof Error ? error.message : "failed"}`);
-            }
-          }
-
-          await loadAll(true);
-          setNotice(
-            `Imported ${created.length} stores from CSV.${
-              skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
-            }`,
-          );
+          const previewRows = buildStoreImportPreview(headerRow, dataRows, stores);
+          setStoreImportPreviewRows(previewRows);
+          setStoreImportPreviewOpen(true);
+          const readyCount = previewRows.filter((row) => row.status === "ready").length;
+          const skippedCount = previewRows.length - readyCount;
+          setNotice(`Prepared Store CSV preview: ${readyCount} ready, ${skippedCount} skipped.`);
         } catch (error) {
           setNotice(error instanceof Error ? error.message : "Store CSV import failed.");
-        } finally {
-          setSubmitting(false);
         }
       })();
     };
     input.click();
-  }, [createStoreMutation, loadAll, stores]);
+  }, [stores]);
+
+  const handleConfirmStoreImport = React.useCallback(async () => {
+    const readyRows = storeImportPreviewRows.filter((row) => row.status === "ready");
+    if (readyRows.length === 0) {
+      setNotice("There are no ready store rows to import.");
+      return;
+    }
+
+    setSubmitting(true);
+    const created: string[] = [];
+    const skipped: string[] = [];
+    try {
+      for (const row of readyRows) {
+        try {
+          const store = await createStoreMutation.mutateAsync({
+            name: row.name,
+            area: row.area,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            priceNote: row.priceNote,
+          });
+          if (store) created.push(store.id);
+        } catch (error) {
+          skipped.push(`row ${row.rowNumber}: ${error instanceof Error ? error.message : "failed"}`);
+        }
+      }
+
+      if (created.length > 0) {
+        await writeAuditLog({
+          action: "import",
+          entityType: "store",
+          summary: `Imported ${created.length} stores from CSV`,
+          metadata: {
+            createdCount: created.length,
+            skippedCount: storeImportPreviewRows.length - created.length,
+          },
+        });
+      }
+      await loadAll(true);
+      setStoreImportPreviewOpen(false);
+      setStoreImportPreviewRows([]);
+      setNotice(
+        `Imported ${created.length} stores from CSV.${
+          skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
+        }`,
+      );
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Store CSV import failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    createStoreMutation,
+    loadAll,
+    storeImportPreviewRows,
+    writeAuditLog,
+  ]);
 
   const handleSaveStore = React.useCallback(async () => {
     const name = storeName.trim();
@@ -1364,8 +1688,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
     try {
       setSubmitting(true);
+      let savedStore: AdminStore | null = null;
       if (editingStoreId) {
-        await updateStoreMutation.mutateAsync({
+        savedStore = await updateStoreMutation.mutateAsync({
           id: editingStoreId,
           name,
           area,
@@ -1374,12 +1699,26 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           priceNote,
         });
       } else {
-        await createStoreMutation.mutateAsync({
+        savedStore = await createStoreMutation.mutateAsync({
           name,
           area,
           latitude,
           longitude,
           priceNote,
+        });
+      }
+      if (savedStore) {
+        await writeAuditLog({
+          action: editingStoreId ? "update" : "create",
+          entityType: "store",
+          entityId: savedStore.id,
+          summary: `${editingStoreId ? "Updated" : "Created"} store ${savedStore.name}`,
+          metadata: {
+            name,
+            area,
+            latitude,
+            longitude,
+          },
         });
       }
     } catch (error) {
@@ -1405,6 +1744,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     storePriceNote,
     stores,
     updateStoreMutation,
+    writeAuditLog,
   ]);
 
   const handleSavePriceEntry = React.useCallback(async () => {
@@ -1496,24 +1836,50 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     [deletePriceEntryMutation, editingPriceId, loadAll, resetPriceForm],
   );
 
-  const handleDeleteStore = React.useCallback(
-    async (id: string) => {
-      setDeletingKey(`store:${id}`);
+  const handleRequestDeleteStore = React.useCallback((store: AdminStore) => {
+    setStoreDeleteCandidate(store);
+  }, []);
+
+  const handleConfirmDeleteStore = React.useCallback(
+    async () => {
+      if (!storeDeleteCandidate) return;
+      const target = storeDeleteCandidate;
+      setDeletingKey(`store:${target.id}`);
       try {
-        await deleteStoreMutation.mutateAsync(id);
+        await deleteStoreMutation.mutateAsync(target.id);
+        await writeAuditLog({
+          action: "delete",
+          entityType: "store",
+          entityId: target.id,
+          summary: `Deleted store ${target.name}`,
+          metadata: {
+            name: target.name,
+            area: target.area,
+            linkedPriceRows: storePriceStats.get(target.id)?.priceCount ?? 0,
+          },
+        });
       } catch (error) {
         setNotice(error instanceof Error ? error.message : "Store delete failed.");
         return;
       } finally {
         setDeletingKey(null);
       }
-      if (editingStoreId === id) {
+      if (editingStoreId === target.id) {
         resetStoreForm();
       }
+      setStoreDeleteCandidate(null);
       setNotice("Store deleted.");
       await loadAll(true);
     },
-    [deleteStoreMutation, editingStoreId, loadAll, resetStoreForm],
+    [
+      deleteStoreMutation,
+      editingStoreId,
+      loadAll,
+      resetStoreForm,
+      storeDeleteCandidate,
+      storePriceStats,
+      writeAuditLog,
+    ],
   );
 
   const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
@@ -2096,8 +2462,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       </View>
                     </View>
 
-                    <View style={st.productFilterCard}>
-                      <ScrollView
+	                    <View style={st.productFilterCard}>
+	                      <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={st.productFilterInlineRow}
@@ -2421,7 +2787,87 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     </View>
 
                     <View style={st.productFilterCard}>
-                      <View style={st.formRow}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={st.productFilterInlineRow}
+                      >
+                        <TextInput
+                          value={storeSearchQuery}
+                          onChangeText={setStoreSearchQuery}
+                          placeholder="Search store, area, ID, note, or coordinates"
+                          placeholderTextColor={C.textMuted}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          style={[st.input, st.productSearchInputInline]}
+                        />
+                        {Platform.OS === "web" ? (
+                          <select
+                            value={storeAreaFilter}
+                            onChange={(event) => setStoreAreaFilter((event.target as HTMLSelectElement).value)}
+                            style={WEB_FILTER_SELECT_STYLE}
+                          >
+                            <option value="all">Area: All</option>
+                            {storeAreaOptions.map((area) => (
+                              <option key={`store-area-${area}`} value={area}>
+                                {area}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setStoreSearchQuery("");
+                            setStoreAreaFilter("all");
+                          }}
+                          style={[st.btn, st.btnGhost, storeActiveFilterCount === 0 && st.btnDisabled]}
+                          disabled={storeActiveFilterCount === 0}
+                        >
+                          <Text style={st.btnGhostText}>Reset</Text>
+                        </Pressable>
+                      </ScrollView>
+                      <Text style={st.dataMuted}>
+                        Showing {filteredStores.length} / {stores.length} stores
+                        {storeActiveFilterCount > 0 ? ` | Filters ${storeActiveFilterCount}` : ""}
+	                      </Text>
+	                    </View>
+
+	                    <View style={st.storeMapPanel}>
+	                      <View style={st.storeMapHeader}>
+	                        <View style={st.listMain}>
+	                          <Text style={st.fieldLabel}>Store Map</Text>
+	                          <Text style={st.dataMuted}>
+	                            {selectedStoreForMap
+	                              ? `${selectedStoreForMap.name} | ${selectedStoreForMap.area}`
+	                              : "No store selected"}
+	                          </Text>
+	                        </View>
+	                        <Pressable
+	                          accessibilityRole="button"
+	                          onPress={() => selectedStoreForMap && handleOpenMapUrl(storeMapUrl(selectedStoreForMap))}
+	                          style={[st.btn, st.btnGhost, !selectedStoreForMap && st.btnDisabled]}
+	                          disabled={!selectedStoreForMap}
+	                        >
+	                          <Text style={st.btnGhostText}>Open Map</Text>
+	                        </Pressable>
+	                      </View>
+	                      {selectedStoreMapSrcDoc && Platform.OS === "web" ? (
+	                        <iframe
+	                          title="Store map"
+	                          srcDoc={selectedStoreMapSrcDoc}
+	                          style={WEB_STORE_MAP_IFRAME_STYLE}
+	                          loading="lazy"
+	                        />
+	                      ) : (
+	                        <View style={st.storeMapEmpty}>
+	                          <Text style={st.dataMuted}>No valid coordinates to display.</Text>
+	                        </View>
+	                      )}
+	                    </View>
+
+	                    <View style={st.productFilterCard}>
+	                      <View style={st.formRow}>
                         <TextInput
                           value={storeName}
                           onChangeText={setStoreName}
@@ -2479,21 +2925,40 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         >
                           <Text style={st.btnGhostText}>Cancel Edit</Text>
                         </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => handleOpenMapUrl(storeAddressSearchUrl(storeName, storeArea))}
+                          style={[st.btn, st.btnGhost, (!storeName.trim() && !storeArea.trim()) && st.btnDisabled]}
+                          disabled={!storeName.trim() && !storeArea.trim()}
+                        >
+                          <Text style={st.btnGhostText}>Find on Map</Text>
+                        </Pressable>
                       </View>
                       <Text style={st.dataMuted}>
-                        CSV headers: name, area, latitude, longitude, price_note
+                        CSV headers: name, area, latitude, longitude, price_note. Use Find on Map to verify
+                        coordinates before saving.
                       </Text>
                     </View>
 
                     {stores.length === 0 ? (
                       <Text style={st.dataMuted}>No stores yet.</Text>
+                    ) : filteredStores.length === 0 ? (
+                      <Text style={st.dataMuted}>No stores match current filters.</Text>
                     ) : (
-                      stores.map((store) => {
+                      filteredStores.map((store) => {
                         const deleteKey = `store:${store.id}`;
                         const deleting = deletingKey === deleteKey;
+	                        const stats = storePriceStats.get(store.id);
+	                        const selectedOnMap = selectedStoreForMap?.id === store.id;
+	                        const priceCount = stats?.priceCount ?? 0;
+                        const productCount = stats?.productIds.size ?? 0;
+                        const latestObserved =
+                          stats && stats.latestObservedAtMs >= 0
+                            ? toDateOnlyLabel(new Date(stats.latestObservedAtMs).toISOString())
+                            : "No prices";
                         return (
-                          <View key={store.id} style={st.listRow}>
-                            <View style={st.listMain}>
+	                          <View key={store.id} style={[st.listRow, selectedOnMap && st.storeListRowActive]}>
+	                            <View style={st.listMain}>
                               <Text style={st.listTitle}>{store.name}</Text>
                               <Text style={st.dataMuted}>{store.area}</Text>
                               <Text style={st.dataMuted}>
@@ -2502,10 +2967,39 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                               {store.price_note ? (
                                 <Text style={st.dataMuted}>{store.price_note}</Text>
                               ) : null}
+                              <View style={st.productChipRow}>
+                                <View style={st.productMetaChip}>
+                                  <Text style={st.productMetaChipText}>Prices {priceCount}</Text>
+                                </View>
+                                <View style={st.productMetaChip}>
+                                  <Text style={st.productMetaChipText}>Products {productCount}</Text>
+                                </View>
+                                <View style={st.productMetaChip}>
+                                  <Text style={st.productMetaChipText}>Latest {latestObserved}</Text>
+                                </View>
+                              </View>
                               <Text style={st.dataMuted}>{store.id}</Text>
                             </View>
                             <View style={st.listRight}>
-                              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+	                              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+	                              <Pressable
+	                                accessibilityRole="button"
+	                                onPress={() => setSelectedStoreMapId(store.id)}
+	                                style={[st.btn, selectedOnMap ? st.btnPrimary : st.btnGhost]}
+	                                disabled={deleting || submitting}
+	                              >
+	                                <Text style={selectedOnMap ? st.btnPrimaryText : st.btnGhostText}>
+	                                  {selectedOnMap ? "Selected" : "View"}
+	                                </Text>
+	                              </Pressable>
+	                              <Pressable
+                                accessibilityRole="button"
+                                onPress={() => handleOpenMapUrl(storeMapUrl(store))}
+                                style={[st.btn, st.btnGhost]}
+                                disabled={deleting || submitting}
+                              >
+                                <Text style={st.btnGhostText}>Map</Text>
+                              </Pressable>
                               <Pressable
                                 accessibilityRole="button"
                                 onPress={() => handleOpenEditStore(store)}
@@ -2517,7 +3011,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                               <Pressable
                                 accessibilityRole="button"
                                 onPress={() => {
-                                  void handleDeleteStore(store.id);
+                                  handleRequestDeleteStore(store);
                                 }}
                                 style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
                                 disabled={deleting || submitting}
@@ -2529,6 +3023,25 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         );
                       })
                     )}
+
+                    <View style={st.auditCard}>
+                      <Text style={st.fieldLabel}>Recent Store Audit Log</Text>
+                      {storeAuditLogs.length === 0 ? (
+                        <Text style={st.dataMuted}>No store audit log entries yet.</Text>
+                      ) : (
+                        storeAuditLogs.map((log) => (
+                          <View key={log.id} style={st.auditRow}>
+                            <View style={st.listMain}>
+                              <Text style={st.listTitle}>{log.summary}</Text>
+                              <Text style={st.dataMuted}>
+                                {log.action} | {log.actor_email ?? log.actor_user_id ?? "unknown"}
+                              </Text>
+                            </View>
+                            <Text style={st.listDate}>{toDateOnlyLabel(log.created_at)}</Text>
+                          </View>
+                        ))
+                      )}
+                    </View>
                   </View>
                 ) : null}
 
@@ -2765,6 +3278,130 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           </ScrollView>
         </View>
       </View>
+
+      <Modal
+        visible={storeImportPreviewOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStoreImportPreviewOpen(false)}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            <View style={st.modalHeader}>
+              <View>
+                <Text style={st.modalTitle}>Import Stores CSV</Text>
+                <Text style={st.modalSub}>
+                  Review the CSV rows before importing. Only ready rows will be created.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setStoreImportPreviewOpen(false)}
+                style={[st.btn, st.btnGhost]}
+              >
+                <Text style={st.btnGhostText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={st.modalBody} contentContainerStyle={st.modalBodyContent}>
+              <View style={st.productChipRow}>
+                <View style={st.productMetaChip}>
+                  <Text style={st.productMetaChipText}>
+                    Ready {storeImportPreviewRows.filter((row) => row.status === "ready").length}
+                  </Text>
+                </View>
+                <View style={st.productMetaChip}>
+                  <Text style={st.productMetaChipText}>
+                    Duplicates {storeImportPreviewRows.filter((row) => row.status === "duplicate").length}
+                  </Text>
+                </View>
+                <View style={st.productMetaChip}>
+                  <Text style={st.productMetaChipText}>
+                    Invalid {storeImportPreviewRows.filter((row) => row.status === "invalid").length}
+                  </Text>
+                </View>
+              </View>
+              {storeImportPreviewRows.map((row) => (
+                <View key={`store-import-${row.rowNumber}`} style={st.dataRow}>
+                  <View style={st.dataRowMain}>
+                    <Text style={st.dataRowTitle}>
+                      Row {row.rowNumber}: {row.name || "Unnamed store"}
+                    </Text>
+                    <Text style={st.dataMuted}>
+                      {row.area || "No area"} | {row.latitude || "No lat"}, {row.longitude || "No lng"}
+                    </Text>
+                  </View>
+                  <Text style={row.status === "ready" ? st.importStatusReady : st.importStatusMuted}>
+                    {row.reason}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={st.modalActionRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setStoreImportPreviewOpen(false)}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  void handleConfirmStoreImport();
+                }}
+                style={[st.btn, st.btnPrimary]}
+                disabled={submitting || storeImportPreviewRows.every((row) => row.status !== "ready")}
+              >
+                <Text style={st.btnPrimaryText}>{submitting ? "Importing..." : "Import Ready Rows"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(storeDeleteCandidate)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStoreDeleteCandidate(null)}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={st.confirmCard}>
+            <Text style={st.modalTitle}>Delete Store</Text>
+            <Text style={st.modalSub}>
+              Delete {storeDeleteCandidate?.name ?? "this store"}? This can also remove linked price rows.
+            </Text>
+            {storeDeleteCandidate ? (
+              <Text style={st.infoBody}>
+                Linked price rows: {storePriceStats.get(storeDeleteCandidate.id)?.priceCount ?? 0}
+              </Text>
+            ) : null}
+            <View style={st.modalActionRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setStoreDeleteCandidate(null)}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  void handleConfirmDeleteStore();
+                }}
+                style={[st.btn, st.btnDanger]}
+                disabled={submitting}
+              >
+                <Text style={st.btnDangerText}>Delete Store</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={productModalOpen}
@@ -3499,6 +4136,26 @@ const st = StyleSheet.create({
     fontWeight: "700",
     textAlign: "right",
   },
+  auditCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f2",
+    backgroundColor: "#f8faff",
+    padding: 10,
+    gap: 8,
+  },
+  auditRow: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e7f0",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
   formRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -3540,6 +4197,31 @@ const st = StyleSheet.create({
   productSearchInputInline: {
     flexGrow: 1,
     minWidth: 280,
+  },
+  storeMapPanel: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d8e0ec",
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+  },
+  storeMapHeader: {
+    minHeight: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f2",
+    backgroundColor: "#f8faff",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  storeMapEmpty: {
+    minHeight: 280,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f6fb",
   },
   filterInputInline: {
     width: 96,
@@ -3591,6 +4273,10 @@ const st = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     gap: 8,
+  },
+  storeListRowActive: {
+    borderColor: "#9bb7ff",
+    backgroundColor: "#f2f6ff",
   },
   listMain: {
     flex: 1,
@@ -3665,6 +4351,16 @@ const st = StyleSheet.create({
     borderColor: "#d8dee8",
     backgroundColor: "#ffffff",
     overflow: "hidden",
+  },
+  confirmCard: {
+    width: "100%",
+    maxWidth: 480,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#d8dee8",
+    backgroundColor: "#ffffff",
+    padding: 16,
+    gap: 10,
   },
   modalHeader: {
     paddingHorizontal: 14,
@@ -3780,6 +4476,18 @@ const st = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 8,
+  },
+  importStatusReady: {
+    color: "#2c7a4b",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
+  },
+  importStatusMuted: {
+    color: "#a05a2c",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
   },
   modalImagePreview: {
     width: "100%",

@@ -48,6 +48,18 @@ export type AdminUploadedImage = {
   publicUrl: string;
 };
 
+export type AdminAuditLog = {
+  id: string;
+  actor_user_id: string | null;
+  actor_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  summary: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
 type ProductRow = {
   id: string;
   name: string;
@@ -79,6 +91,18 @@ type PriceRow = {
   created_at: string;
   products?: JoinedName;
   stores?: JoinedName;
+};
+
+type AuditLogRow = {
+  id: string;
+  actor_user_id: string | null;
+  actor_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  summary: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 };
 
 const PRODUCT_IMAGE_BUCKET =
@@ -395,6 +419,104 @@ export async function listAdminStores(): Promise<ServiceResult<AdminStore[]>> {
     .filter((row): row is AdminStore => row !== null);
 
   return { data: stores, error: null };
+}
+
+export async function listAdminAuditLogs(
+  limit = 50,
+): Promise<ServiceResult<AdminAuditLog[]>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult([]);
+  }
+
+  const queryLimit = Math.max(1, Math.min(limit, 200));
+  const { data, error } = await supabase
+    .from("admin_audit_logs")
+    .select("id, actor_user_id, actor_email, action, entity_type, entity_id, summary, metadata, created_at")
+    .order("created_at", { ascending: false })
+    .limit(queryLimit);
+
+  if (error) {
+    const text = error.message.toLowerCase();
+    if (text.includes("admin_audit_logs") || text.includes("does not exist")) {
+      return { data: [], error: null };
+    }
+    return { data: [], error: error.message };
+  }
+
+  return {
+    data: ((data ?? []) as AuditLogRow[]).map((row) => ({
+      id: row.id,
+      actor_user_id: row.actor_user_id,
+      actor_email: row.actor_email,
+      action: row.action,
+      entity_type: row.entity_type,
+      entity_id: row.entity_id,
+      summary: row.summary,
+      metadata: row.metadata ?? {},
+      created_at: row.created_at,
+    })),
+    error: null,
+  };
+}
+
+export async function createAdminAuditLog(params: {
+  action: string;
+  entityType: string;
+  entityId?: string;
+  summary: string;
+  metadata?: Record<string, unknown>;
+}): Promise<ServiceResult<AdminAuditLog | null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    return { data: null, error: userError.message };
+  }
+  if (!user) {
+    return { data: null, error: "Signed-in admin user is required." };
+  }
+
+  const payload = {
+    actor_user_id: user.id,
+    actor_email: user.email ?? null,
+    action: params.action.trim(),
+    entity_type: params.entityType.trim(),
+    entity_id: params.entityId?.trim() ? params.entityId.trim() : null,
+    summary: params.summary.trim(),
+    metadata: params.metadata ?? {},
+  };
+
+  const { data, error } = await supabase
+    .from("admin_audit_logs")
+    .insert(payload)
+    .select("id, actor_user_id, actor_email, action, entity_type, entity_id, summary, metadata, created_at")
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const row = data as AuditLogRow;
+  return {
+    data: {
+      id: row.id,
+      actor_user_id: row.actor_user_id,
+      actor_email: row.actor_email,
+      action: row.action,
+      entity_type: row.entity_type,
+      entity_id: row.entity_id,
+      summary: row.summary,
+      metadata: row.metadata ?? {},
+      created_at: row.created_at,
+    },
+    error: null,
+  };
 }
 
 export async function createAdminStore(params: {
