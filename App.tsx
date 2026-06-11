@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "@expo-google-fonts/nunito/useFonts";
 import { Nunito_400Regular } from "@expo-google-fonts/nunito/400Regular";
 import { Nunito_600SemiBold } from "@expo-google-fonts/nunito/600SemiBold";
@@ -29,6 +30,15 @@ import AdminScreen from "./src/screens/AdminScreen";
 import { getBlogPost } from "./src/data/blogPosts";
 import { SiteI18nProvider, useSiteI18n } from "./src/i18n/siteI18n";
 import { buildPath, locationToRoute, type RouteState } from "./src/routing/routeState";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function AppShell() {
   const { locale, copy } = useSiteI18n();
@@ -239,10 +249,12 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <SiteI18nProvider>
-        <AppShell />
-      </SiteI18nProvider>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <SiteI18nProvider>
+          <AppShell />
+        </SiteI18nProvider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
