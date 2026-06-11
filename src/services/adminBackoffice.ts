@@ -26,6 +26,12 @@ export type AdminStore = {
   latitude: number;
   longitude: number;
   price_note: string | null;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
+  hours: string | null;
+  store_type: string;
+  is_active: boolean;
   created_at: string;
 };
 
@@ -75,6 +81,12 @@ type StoreRow = {
   latitude: number | string;
   longitude: number | string;
   price_note: string | null;
+  address?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  hours?: string | null;
+  store_type?: string | null;
+  is_active?: boolean | null;
   created_at: string;
 };
 
@@ -124,6 +136,42 @@ function parseNumber(value: number | string | null | undefined): number | null {
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+function coordinateError(latitude: number, longitude: number): string | null {
+  if (latitude < -90 || latitude > 90) {
+    return "Latitude must be between -90 and 90.";
+  }
+  if (longitude < -180 || longitude > 180) {
+    return "Longitude must be between -180 and 180.";
+  }
+  return null;
+}
+
+function isMissingStoreDetailsColumn(error: { code?: string; message?: string } | null): boolean {
+  const text = `${error?.code ?? ""} ${error?.message ?? ""}`.toLowerCase();
+  return text.includes("pgrst204") || text.includes("could not find") || text.includes("column");
+}
+
+function normalizeStoreRow(row: StoreRow, fallback?: { latitude: number; longitude: number }): AdminStore | null {
+  const lat = parseNumber(row.latitude) ?? fallback?.latitude ?? null;
+  const lng = parseNumber(row.longitude) ?? fallback?.longitude ?? null;
+  if (lat === null || lng === null) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    area: row.area,
+    latitude: lat,
+    longitude: lng,
+    price_note: row.price_note,
+    address: row.address ?? null,
+    phone: row.phone ?? null,
+    website: row.website ?? null,
+    hours: row.hours ?? null,
+    store_type: row.store_type?.trim() || "grocery",
+    is_active: row.is_active ?? true,
+    created_at: row.created_at,
+  };
 }
 
 function extensionFromMeta(fileName?: string, contentType?: string): string {
@@ -392,30 +440,31 @@ export async function listAdminStores(): Promise<ServiceResult<AdminStore[]>> {
     return missingEnvResult([]);
   }
 
-  const { data, error } = await supabase
+  const extendedFields =
+    "id, name, area, latitude, longitude, price_note, address, phone, website, hours, store_type, is_active, created_at";
+  const baseFields = "id, name, area, latitude, longitude, price_note, created_at";
+  const initial = await supabase
     .from("stores")
-    .select("id, name, area, latitude, longitude, price_note, created_at")
+    .select(extendedFields)
     .order("created_at", { ascending: false });
+  let data = initial.data as StoreRow[] | null;
+  let error = initial.error;
+
+  if (error && isMissingStoreDetailsColumn(error)) {
+    const fallback = await supabase
+      .from("stores")
+      .select(baseFields)
+      .order("created_at", { ascending: false });
+    data = fallback.data as StoreRow[] | null;
+    error = fallback.error;
+  }
 
   if (error) {
     return { data: [], error: error.message };
   }
 
   const stores = ((data ?? []) as StoreRow[])
-    .map((row) => {
-      const lat = parseNumber(row.latitude);
-      const lng = parseNumber(row.longitude);
-      if (lat === null || lng === null) return null;
-      return {
-        id: row.id,
-        name: row.name,
-        area: row.area,
-        latitude: lat,
-        longitude: lng,
-        price_note: row.price_note,
-        created_at: row.created_at,
-      };
-    })
+    .map((row) => normalizeStoreRow(row))
     .filter((row): row is AdminStore => row !== null);
 
   return { data: stores, error: null };
@@ -525,6 +574,12 @@ export async function createAdminStore(params: {
   latitude: string;
   longitude: string;
   priceNote?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  hours?: string;
+  storeType?: string;
+  isActive?: boolean;
 }): Promise<ServiceResult<AdminStore | null>> {
   if (!hasSupabaseEnv || !supabase) {
     return missingEnvResult(null);
@@ -539,36 +594,56 @@ export async function createAdminStore(params: {
       error: "Latitude and longitude must be valid numbers.",
     };
   }
+  const coordError = coordinateError(lat, lng);
+  if (coordError) {
+    return { data: null, error: coordError };
+  }
 
-  const payload = {
+  const basePayload = {
     name: params.name.trim(),
     area: params.area.trim(),
     latitude: lat,
     longitude: lng,
     price_note: params.priceNote?.trim() ? params.priceNote.trim() : null,
   };
+  const extendedPayload = {
+    ...basePayload,
+    address: params.address?.trim() ? params.address.trim() : null,
+    phone: params.phone?.trim() ? params.phone.trim() : null,
+    website: params.website?.trim() ? params.website.trim() : null,
+    hours: params.hours?.trim() ? params.hours.trim() : null,
+    store_type: params.storeType?.trim() ? params.storeType.trim() : "grocery",
+    is_active: params.isActive ?? true,
+  };
+  const extendedFields =
+    "id, name, area, latitude, longitude, price_note, address, phone, website, hours, store_type, is_active, created_at";
+  const baseFields = "id, name, area, latitude, longitude, price_note, created_at";
 
-  const { data, error } = await supabase
+  const initial = await supabase
     .from("stores")
-    .insert(payload)
-    .select("id, name, area, latitude, longitude, price_note, created_at")
+    .insert(extendedPayload)
+    .select(extendedFields)
     .single();
+  let data = initial.data as StoreRow | null;
+  let error = initial.error;
+
+  if (error && isMissingStoreDetailsColumn(error)) {
+    const fallback = await supabase
+      .from("stores")
+      .insert(basePayload)
+      .select(baseFields)
+      .single();
+    data = fallback.data as StoreRow | null;
+    error = fallback.error;
+  }
 
   if (error) {
     return { data: null, error: error.message };
   }
 
-  const row = data as StoreRow;
+  const normalized = normalizeStoreRow(data as StoreRow, { latitude: lat, longitude: lng });
   return {
-    data: {
-      id: row.id,
-      name: row.name,
-      area: row.area,
-      latitude: parseNumber(row.latitude) ?? lat,
-      longitude: parseNumber(row.longitude) ?? lng,
-      price_note: row.price_note,
-      created_at: row.created_at,
-    },
+    data: normalized,
     error: null,
   };
 }
@@ -580,6 +655,12 @@ export async function updateAdminStore(params: {
   latitude: string;
   longitude: string;
   priceNote?: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  hours?: string;
+  storeType?: string;
+  isActive?: boolean;
 }): Promise<ServiceResult<AdminStore | null>> {
   if (!hasSupabaseEnv || !supabase) {
     return missingEnvResult(null);
@@ -599,37 +680,58 @@ export async function updateAdminStore(params: {
       error: "Latitude and longitude must be valid numbers.",
     };
   }
+  const coordError = coordinateError(lat, lng);
+  if (coordError) {
+    return { data: null, error: coordError };
+  }
 
-  const payload = {
+  const basePayload = {
     name: params.name.trim(),
     area: params.area.trim(),
     latitude: lat,
     longitude: lng,
     price_note: params.priceNote?.trim() ? params.priceNote.trim() : null,
   };
+  const extendedPayload = {
+    ...basePayload,
+    address: params.address?.trim() ? params.address.trim() : null,
+    phone: params.phone?.trim() ? params.phone.trim() : null,
+    website: params.website?.trim() ? params.website.trim() : null,
+    hours: params.hours?.trim() ? params.hours.trim() : null,
+    store_type: params.storeType?.trim() ? params.storeType.trim() : "grocery",
+    is_active: params.isActive ?? true,
+  };
+  const extendedFields =
+    "id, name, area, latitude, longitude, price_note, address, phone, website, hours, store_type, is_active, created_at";
+  const baseFields = "id, name, area, latitude, longitude, price_note, created_at";
 
-  const { data, error } = await supabase
+  const initial = await supabase
     .from("stores")
-    .update(payload)
+    .update(extendedPayload)
     .eq("id", id)
-    .select("id, name, area, latitude, longitude, price_note, created_at")
+    .select(extendedFields)
     .single();
+  let data = initial.data as StoreRow | null;
+  let error = initial.error;
+
+  if (error && isMissingStoreDetailsColumn(error)) {
+    const fallback = await supabase
+      .from("stores")
+      .update(basePayload)
+      .eq("id", id)
+      .select(baseFields)
+      .single();
+    data = fallback.data as StoreRow | null;
+    error = fallback.error;
+  }
 
   if (error) {
     return { data: null, error: error.message };
   }
 
-  const row = data as StoreRow;
+  const normalized = normalizeStoreRow(data as StoreRow, { latitude: lat, longitude: lng });
   return {
-    data: {
-      id: row.id,
-      name: row.name,
-      area: row.area,
-      latitude: parseNumber(row.latitude) ?? lat,
-      longitude: parseNumber(row.longitude) ?? lng,
-      price_note: row.price_note,
-      created_at: row.created_at,
-    },
+    data: normalized,
     error: null,
   };
 }

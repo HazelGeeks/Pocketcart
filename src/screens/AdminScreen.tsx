@@ -82,6 +82,12 @@ type StoreImportPreviewRow = {
   latitude: string;
   longitude: string;
   priceNote: string;
+  address: string;
+  phone: string;
+  website: string;
+  hours: string;
+  storeType: string;
+  isActive: boolean;
   status: "ready" | "duplicate" | "invalid";
   reason: string;
 };
@@ -168,7 +174,22 @@ const STORE_IMPORT_HEADERS = {
   latitude: ["latitude", "lat", "위도"],
   longitude: ["longitude", "lng", "lon", "경도"],
   priceNote: ["price_note", "note", "memo", "메모"],
+  address: ["address", "주소"],
+  phone: ["phone", "tel", "telephone", "전화", "전화번호"],
+  website: ["website", "url", "site", "웹사이트"],
+  hours: ["hours", "business_hours", "운영시간", "영업시간"],
+  storeType: ["store_type", "type", "타입", "매장타입"],
+  isActive: ["is_active", "active", "status", "활성", "상태"],
 };
+
+const STORE_TYPE_OPTIONS = [
+  { value: "grocery", label: "Grocery" },
+  { value: "mart", label: "Mart" },
+  { value: "wholesale", label: "Wholesale" },
+  { value: "specialty", label: "Specialty" },
+  { value: "online", label: "Online" },
+  { value: "other", label: "Other" },
+];
 
 function toDateOnlyLabel(value: string): string {
   const date = new Date(value);
@@ -331,7 +352,21 @@ function productsToCsv(products: AdminProduct[], priceStats: Map<string, Product
 }
 
 function storesToCsv(stores: AdminStore[]): string {
-  const header = ["id", "name", "area", "latitude", "longitude", "price_note", "created_at"];
+  const header = [
+    "id",
+    "name",
+    "area",
+    "latitude",
+    "longitude",
+    "price_note",
+    "address",
+    "phone",
+    "website",
+    "hours",
+    "store_type",
+    "is_active",
+    "created_at",
+  ];
   const rows = stores.map((store) =>
     [
       store.id,
@@ -340,10 +375,42 @@ function storesToCsv(stores: AdminStore[]): string {
       String(store.latitude),
       String(store.longitude),
       store.price_note ?? "",
+      store.address ?? "",
+      store.phone ?? "",
+      store.website ?? "",
+      store.hours ?? "",
+      store.store_type,
+      store.is_active ? "true" : "false",
       store.created_at,
     ].map(csvCell).join(","),
   );
   return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+}
+
+function parseStoreActive(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (["false", "0", "no", "inactive", "disabled", "비활성"].includes(normalized)) return false;
+  return true;
+}
+
+function looksLikeProductStoreRow(store: AdminStore): boolean {
+  const joined = `${store.name} ${store.area} ${store.price_note ?? ""}`.toLowerCase();
+  if (/\$\s*\d|\b\d+(?:\.\d{1,2})?\s*(?:ea|each|lb|kg|g|ml|l|pk|pack|ct)\b/i.test(joined)) {
+    return true;
+  }
+  if (/^(eggs?|milk|bread|apple|banana|chicken|beef|pork|rice|ramen)\b/i.test(store.name.trim())) {
+    return true;
+  }
+  return false;
+}
+
+function coordinateValidationMessage(latitude: string, longitude: string): string | null {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "Latitude and longitude must be valid numbers.";
+  if (lat < -90 || lat > 90) return "Latitude must be between -90 and 90.";
+  if (lng < -180 || lng > 180) return "Longitude must be between -180 and 180.";
+  return null;
 }
 
 function flyerRowsToProductCsv(rows: FlyerRow[]): string {
@@ -395,8 +462,14 @@ function buildStoreImportPreview(
     const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
     const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
     const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
+    const address = csvRowValue(record, STORE_IMPORT_HEADERS.address);
+    const phone = csvRowValue(record, STORE_IMPORT_HEADERS.phone);
+    const website = csvRowValue(record, STORE_IMPORT_HEADERS.website);
+    const hours = csvRowValue(record, STORE_IMPORT_HEADERS.hours);
+    const storeType = csvRowValue(record, STORE_IMPORT_HEADERS.storeType) || "grocery";
+    const isActive = parseStoreActive(csvRowValue(record, STORE_IMPORT_HEADERS.isActive));
     const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
-    const validCoordinates = !Number.isNaN(Number(latitude)) && !Number.isNaN(Number(longitude));
+    const coordinateError = latitude && longitude ? coordinateValidationMessage(latitude, longitude) : null;
 
     if (!name || !area || !latitude || !longitude) {
       return {
@@ -406,12 +479,18 @@ function buildStoreImportPreview(
         latitude,
         longitude,
         priceNote,
+        address,
+        phone,
+        website,
+        hours,
+        storeType,
+        isActive,
         status: "invalid",
         reason: "Missing required fields",
       };
     }
 
-    if (!validCoordinates) {
+    if (coordinateError) {
       return {
         rowNumber: index + 2,
         name,
@@ -419,8 +498,14 @@ function buildStoreImportPreview(
         latitude,
         longitude,
         priceNote,
+        address,
+        phone,
+        website,
+        hours,
+        storeType,
+        isActive,
         status: "invalid",
-        reason: "Invalid coordinates",
+        reason: coordinateError,
       };
     }
 
@@ -432,6 +517,12 @@ function buildStoreImportPreview(
         latitude,
         longitude,
         priceNote,
+        address,
+        phone,
+        website,
+        hours,
+        storeType,
+        isActive,
         status: "duplicate",
         reason: "Duplicate name and area",
       };
@@ -445,6 +536,12 @@ function buildStoreImportPreview(
       latitude,
       longitude,
       priceNote,
+      address,
+      phone,
+      website,
+      hours,
+      storeType,
+      isActive,
       status: "ready",
       reason: "Ready",
     };
@@ -500,6 +597,8 @@ function storeLeafletMapSrcDoc(
       id: store.id,
       name: store.name,
       area: store.area,
+      storeType: store.store_type,
+      isActive: store.is_active,
       latitude: Number(store.latitude),
       longitude: Number(store.longitude),
       selected: selectedStore?.id === store.id,
@@ -517,6 +616,8 @@ function storeLeafletMapSrcDoc(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <style>
     html, body, #map { height: 100%; margin: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -526,6 +627,7 @@ function storeLeafletMapSrcDoc(
 <body>
   <div id="map"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script>
     const points = ${safeScriptJson(points)};
     const selectedPoint = ${safeScriptJson(selectedPoint)};
@@ -545,18 +647,28 @@ function storeLeafletMapSrcDoc(
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
     const bounds = [];
+    const markerLayer = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 36
+    });
     points.forEach((point) => {
       const marker = L.circleMarker([point.latitude, point.longitude], {
         radius: point.selected ? 9 : 6,
-        color: point.selected ? "#2f55d4" : "#50627d",
+        color: point.selected ? "#8BA300" : point.isActive ? "#50627d" : "#a3adbd",
         weight: point.selected ? 3 : 2,
-        fillColor: point.selected ? "#2f55d4" : "#ffffff",
+        fillColor: point.selected ? "#ABC900" : point.isActive ? "#ffffff" : "#eef2f8",
         fillOpacity: point.selected ? 0.85 : 0.95
-      }).addTo(map);
-      marker.bindPopup("<strong>" + escapeHtml(point.name) + "</strong><br />" + escapeHtml(point.area));
+      });
+      marker.bindPopup(
+        "<strong>" + escapeHtml(point.name) + "</strong><br />" +
+        escapeHtml(point.area) + "<br />" +
+        escapeHtml(point.storeType) + " · " + (point.isActive ? "Active" : "Inactive")
+      );
       if (point.selected) marker.openPopup();
+      markerLayer.addLayer(marker);
       bounds.push([point.latitude, point.longitude]);
     });
+    map.addLayer(markerLayer);
     if (bounds.length > 1) {
       map.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
     }
@@ -682,13 +794,22 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [priceStartDate, setPriceStartDate] = React.useState("");
   const [priceEndDate, setPriceEndDate] = React.useState("");
   const [editingStoreId, setEditingStoreId] = React.useState<string | null>(null);
+  const [storeModalOpen, setStoreModalOpen] = React.useState(false);
   const [storeName, setStoreName] = React.useState("");
   const [storeArea, setStoreArea] = React.useState("");
   const [storeLatitude, setStoreLatitude] = React.useState("");
   const [storeLongitude, setStoreLongitude] = React.useState("");
   const [storePriceNote, setStorePriceNote] = React.useState("");
+  const [storeAddress, setStoreAddress] = React.useState("");
+  const [storePhone, setStorePhone] = React.useState("");
+  const [storeWebsite, setStoreWebsite] = React.useState("");
+  const [storeHours, setStoreHours] = React.useState("");
+  const [storeType, setStoreType] = React.useState("grocery");
+  const [storeIsActive, setStoreIsActive] = React.useState(true);
   const [storeSearchQuery, setStoreSearchQuery] = React.useState("");
   const [storeAreaFilter, setStoreAreaFilter] = React.useState("all");
+  const [storeStatusFilter, setStoreStatusFilter] = React.useState("all");
+  const [storeTypeFilter, setStoreTypeFilter] = React.useState("all");
   const [selectedStoreMapId, setSelectedStoreMapId] = React.useState<string | null>(null);
   const [storeImportPreviewRows, setStoreImportPreviewRows] = React.useState<StoreImportPreviewRow[]>([]);
   const [storeImportPreviewOpen, setStoreImportPreviewOpen] = React.useState(false);
@@ -768,6 +889,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     [prices],
   );
 
+  const displayStores = React.useMemo(
+    () => stores.filter((store) => !looksLikeProductStoreRow(store)),
+    [stores],
+  );
+
   const stalePriceRows = React.useMemo(() => {
     const now = Date.now();
     const THIRTY_DAYS = 1000 * 60 * 60 * 24 * 30;
@@ -789,7 +915,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       {
         id: "stores",
         label: "Stores",
-        value: String(stores.length),
+        value: String(displayStores.length),
         hint: "Store locations",
       },
       {
@@ -799,7 +925,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         hint: "Link freshness",
       },
     ],
-    [priceRowsMissingLink, stalePriceRows, products.length, stores.length],
+    [priceRowsMissingLink, stalePriceRows, products.length, displayStores.length],
   );
 
   const recentStoreOptions = React.useMemo(() => stores.slice(0, 16), [stores]);
@@ -926,15 +1052,29 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   }, [prices]);
 
   const storeAreaOptions = React.useMemo(
-    () => uniqueValues(stores.map((store) => store.area)).sort((a, b) => a.localeCompare(b)),
-    [stores],
+    () => uniqueValues(displayStores.map((store) => store.area)).sort((a, b) => a.localeCompare(b)),
+    [displayStores],
   );
-
+  const storeTypeOptions = React.useMemo(
+    () =>
+      uniqueValues([
+        ...STORE_TYPE_OPTIONS.map((option) => option.value),
+        ...displayStores.map((store) => store.store_type),
+      ]).sort((a, b) => a.localeCompare(b)),
+    [displayStores],
+  );
   const filteredStores = React.useMemo(() => {
     const query = storeSearchQuery.trim().toLowerCase();
     const areaFilter = storeAreaFilter.trim().toLowerCase();
-    return stores.filter((store) => {
+    const statusFilter = storeStatusFilter.trim().toLowerCase();
+    const typeFilter = storeTypeFilter.trim().toLowerCase();
+    return displayStores.filter((store) => {
       if (areaFilter !== "all" && store.area.trim().toLowerCase() !== areaFilter) {
+        return false;
+      }
+      if (statusFilter === "active" && !store.is_active) return false;
+      if (statusFilter === "inactive" && store.is_active) return false;
+      if (typeFilter !== "all" && store.store_type.trim().toLowerCase() !== typeFilter) {
         return false;
       }
       if (!query) return true;
@@ -944,23 +1084,32 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         store.area,
         store.id,
         store.price_note ?? "",
+        store.address ?? "",
+        store.phone ?? "",
+        store.website ?? "",
+        store.hours ?? "",
+        store.store_type,
+        store.is_active ? "active" : "inactive",
         String(store.latitude),
         String(store.longitude),
         String(stats?.priceCount ?? 0),
       ].join(" ").toLowerCase();
       return haystack.includes(query);
     });
-  }, [storeAreaFilter, storePriceStats, storeSearchQuery, stores]);
+  }, [displayStores, storeAreaFilter, storePriceStats, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
 
   const storeActiveFilterCount = React.useMemo(() => {
     let count = 0;
     if (storeSearchQuery.trim()) count += 1;
     if (storeAreaFilter !== "all") count += 1;
+    if (storeStatusFilter !== "all") count += 1;
+    if (storeTypeFilter !== "all") count += 1;
     return count;
-  }, [storeAreaFilter, storeSearchQuery]);
+  }, [storeAreaFilter, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
 
   const selectedStoreForMap = React.useMemo(() => {
-    return filteredStores.find((store) => store.id === selectedStoreMapId) ?? filteredStores[0] ?? null;
+    if (!selectedStoreMapId) return null;
+    return filteredStores.find((store) => store.id === selectedStoreMapId) ?? null;
   }, [filteredStores, selectedStoreMapId]);
 
   const selectedStoreMapSrcDoc = React.useMemo(
@@ -1156,6 +1305,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStoreLatitude("");
     setStoreLongitude("");
     setStorePriceNote("");
+    setStoreAddress("");
+    setStorePhone("");
+    setStoreWebsite("");
+    setStoreHours("");
+    setStoreType("grocery");
+    setStoreIsActive(true);
   }, []);
 
   const writeAuditLog = React.useCallback(
@@ -1206,7 +1361,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStoreLatitude(String(store.latitude));
     setStoreLongitude(String(store.longitude));
     setStorePriceNote(store.price_note ?? "");
+    setStoreAddress(store.address ?? "");
+    setStorePhone(store.phone ?? "");
+    setStoreWebsite(store.website ?? "");
+    setStoreHours(store.hours ?? "");
+    setStoreType(store.store_type || "grocery");
+    setStoreIsActive(store.is_active);
+    setStoreModalOpen(true);
   }, []);
+
+  const handleOpenAddStore = React.useCallback(() => {
+    resetStoreForm();
+    setStoreModalOpen(true);
+  }, [resetStoreForm]);
 
   const handleOpenMapUrl = React.useCallback((url: string) => {
     if (Platform.OS !== "web") {
@@ -1545,18 +1712,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   }, [createProductMutation, loadAll]);
 
   const handleExportStoresCsv = React.useCallback(() => {
-    if (stores.length === 0) {
+    if (displayStores.length === 0) {
       setNotice("There are no stores to export.");
       return;
     }
 
-    const error = downloadCsvFile("stores", storesToCsv(stores));
+    const error = downloadCsvFile("stores", storesToCsv(displayStores));
     if (error) {
       setNotice(error);
       return;
     }
-    setNotice(`Exported ${stores.length} stores to CSV.`);
-  }, [stores]);
+    setNotice(`Exported ${displayStores.length} stores to CSV.`);
+  }, [displayStores]);
 
   const handleImportStoresCsv = React.useCallback(() => {
     if (Platform.OS !== "web") {
@@ -1587,7 +1754,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             return;
           }
 
-          const previewRows = buildStoreImportPreview(headerRow, dataRows, stores);
+          const previewRows = buildStoreImportPreview(headerRow, dataRows, displayStores);
           setStoreImportPreviewRows(previewRows);
           setStoreImportPreviewOpen(true);
           const readyCount = previewRows.filter((row) => row.status === "ready").length;
@@ -1599,7 +1766,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       })();
     };
     input.click();
-  }, [stores]);
+  }, [displayStores]);
 
   const handleConfirmStoreImport = React.useCallback(async () => {
     const readyRows = storeImportPreviewRows.filter((row) => row.status === "ready");
@@ -1620,6 +1787,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             latitude: row.latitude,
             longitude: row.longitude,
             priceNote: row.priceNote,
+            address: row.address,
+            phone: row.phone,
+            website: row.website,
+            hours: row.hours,
+            storeType: row.storeType,
+            isActive: row.isActive,
           });
           if (store) created.push(store.id);
         } catch (error) {
@@ -1664,13 +1837,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     const latitude = storeLatitude.trim();
     const longitude = storeLongitude.trim();
     const priceNote = storePriceNote.trim();
+    const address = storeAddress.trim();
+    const phone = storePhone.trim();
+    const website = storeWebsite.trim();
+    const hours = storeHours.trim();
 
     if (!name || !area || !latitude || !longitude) {
       setNotice("Store name, area, latitude, and longitude are required.");
       return;
     }
-    if (Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) {
-      setNotice("Latitude and longitude must be valid numbers.");
+    const coordinateError = coordinateValidationMessage(latitude, longitude);
+    if (coordinateError) {
+      setNotice(coordinateError);
       return;
     }
 
@@ -1697,6 +1875,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           latitude,
           longitude,
           priceNote,
+          address,
+          phone,
+          website,
+          hours,
+          storeType,
+          isActive: storeIsActive,
         });
       } else {
         savedStore = await createStoreMutation.mutateAsync({
@@ -1705,6 +1889,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           latitude,
           longitude,
           priceNote,
+          address,
+          phone,
+          website,
+          hours,
+          storeType,
+          isActive: storeIsActive,
         });
       }
       if (savedStore) {
@@ -1718,6 +1908,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             area,
             latitude,
             longitude,
+            address,
+            phone,
+            website,
+            hours,
+            storeType,
+            isActive: storeIsActive,
           },
         });
       }
@@ -1730,6 +1926,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
     const wasEditing = Boolean(editingStoreId);
     resetStoreForm();
+    setStoreModalOpen(false);
     setNotice(wasEditing ? "Store updated." : "Store added.");
     await loadAll(true);
   }, [
@@ -1738,10 +1935,16 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     loadAll,
     resetStoreForm,
     storeArea,
+    storeAddress,
+    storeHours,
+    storeIsActive,
     storeLatitude,
     storeLongitude,
     storeName,
+    storePhone,
     storePriceNote,
+    storeType,
+    storeWebsite,
     stores,
     updateStoreMutation,
     writeAuditLog,
@@ -2151,7 +2354,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     {
       key: "stores" as const,
       label: "Stores",
-      badge: stores.length,
+      badge: displayStores.length,
     },
     {
       key: "flyer" as const,
@@ -2766,7 +2969,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     <View style={st.dataCardHeader}>
                       <Text style={st.dataCardTitle}>Store Management</Text>
                       <View style={st.inlineRow}>
-                        <Text style={st.dataMuted}>Create, update, import, and export store data.</Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleOpenAddStore}
+                          style={[st.btn, st.btnPrimary]}
+                          disabled={submitting}
+                        >
+                          <Text style={st.btnPrimaryText}>Add Store</Text>
+                        </Pressable>
                         <Pressable
                           accessibilityRole="button"
                           onPress={handleImportStoresCsv}
@@ -2778,8 +2988,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         <Pressable
                           accessibilityRole="button"
                           onPress={handleExportStoresCsv}
-                          style={[st.btn, st.btnGhost, stores.length === 0 && st.btnDisabled]}
-                          disabled={stores.length === 0 || submitting}
+                          style={[st.btn, st.btnGhost, displayStores.length === 0 && st.btnDisabled]}
+                          disabled={displayStores.length === 0 || submitting}
                         >
                           <Text style={st.btnGhostText}>Export Stores CSV</Text>
                         </Pressable>
@@ -2815,11 +3025,38 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                             ))}
                           </select>
                         ) : null}
+                        {Platform.OS === "web" ? (
+                          <select
+                            value={storeStatusFilter}
+                            onChange={(event) => setStoreStatusFilter((event.target as HTMLSelectElement).value)}
+                            style={WEB_FILTER_SELECT_STYLE}
+                          >
+                            <option value="all">Status: All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        ) : null}
+                        {Platform.OS === "web" ? (
+                          <select
+                            value={storeTypeFilter}
+                            onChange={(event) => setStoreTypeFilter((event.target as HTMLSelectElement).value)}
+                            style={WEB_FILTER_SELECT_STYLE}
+                          >
+                            <option value="all">Type: All</option>
+                            {storeTypeOptions.map((type) => (
+                              <option key={`store-type-${type}`} value={type}>
+                                {type}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
                         <Pressable
                           accessibilityRole="button"
                           onPress={() => {
                             setStoreSearchQuery("");
                             setStoreAreaFilter("all");
+                            setStoreStatusFilter("all");
+                            setStoreTypeFilter("all");
                           }}
                           style={[st.btn, st.btnGhost, storeActiveFilterCount === 0 && st.btnDisabled]}
                           disabled={storeActiveFilterCount === 0}
@@ -2828,7 +3065,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         </Pressable>
                       </ScrollView>
                       <Text style={st.dataMuted}>
-                        Showing {filteredStores.length} / {stores.length} stores
+                        Showing {filteredStores.length} / {displayStores.length} stores
                         {storeActiveFilterCount > 0 ? ` | Filters ${storeActiveFilterCount}` : ""}
 	                      </Text>
 	                    </View>
@@ -2866,81 +3103,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 	                      )}
 	                    </View>
 
-	                    <View style={st.productFilterCard}>
-	                      <View style={st.formRow}>
-                        <TextInput
-                          value={storeName}
-                          onChangeText={setStoreName}
-                          placeholder="Store name"
-                          placeholderTextColor={C.textMuted}
-                          style={[st.input, st.storeFormInputWide]}
-                        />
-                        <TextInput
-                          value={storeArea}
-                          onChangeText={setStoreArea}
-                          placeholder="Area / branch"
-                          placeholderTextColor={C.textMuted}
-                          style={[st.input, st.storeFormInputWide]}
-                        />
-                        <TextInput
-                          value={storeLatitude}
-                          onChangeText={setStoreLatitude}
-                          placeholder="Latitude"
-                          placeholderTextColor={C.textMuted}
-                          keyboardType="decimal-pad"
-                          style={[st.input, st.storeFormInputSmall]}
-                        />
-                        <TextInput
-                          value={storeLongitude}
-                          onChangeText={setStoreLongitude}
-                          placeholder="Longitude"
-                          placeholderTextColor={C.textMuted}
-                          keyboardType="decimal-pad"
-                          style={[st.input, st.storeFormInputSmall]}
-                        />
-                        <TextInput
-                          value={storePriceNote}
-                          onChangeText={setStorePriceNote}
-                          placeholder="Price note"
-                          placeholderTextColor={C.textMuted}
-                          style={[st.input, st.storeFormInputWide]}
-                        />
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={() => {
-                            void handleSaveStore();
-                          }}
-                          style={[st.btn, st.btnPrimary]}
-                          disabled={submitting}
-                        >
-                          <Text style={st.btnPrimaryText}>
-                            {submitting ? "Saving..." : editingStoreId ? "Update Store" : "Add Store"}
-                          </Text>
-                        </Pressable>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={resetStoreForm}
-                          style={[st.btn, st.btnGhost, !editingStoreId && st.btnDisabled]}
-                          disabled={!editingStoreId || submitting}
-                        >
-                          <Text style={st.btnGhostText}>Cancel Edit</Text>
-                        </Pressable>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={() => handleOpenMapUrl(storeAddressSearchUrl(storeName, storeArea))}
-                          style={[st.btn, st.btnGhost, (!storeName.trim() && !storeArea.trim()) && st.btnDisabled]}
-                          disabled={!storeName.trim() && !storeArea.trim()}
-                        >
-                          <Text style={st.btnGhostText}>Find on Map</Text>
-                        </Pressable>
-                      </View>
-                      <Text style={st.dataMuted}>
-                        CSV headers: name, area, latitude, longitude, price_note. Use Find on Map to verify
-                        coordinates before saving.
-                      </Text>
-                    </View>
-
-                    {stores.length === 0 ? (
+                    {displayStores.length === 0 ? (
                       <Text style={st.dataMuted}>No stores yet.</Text>
                     ) : filteredStores.length === 0 ? (
                       <Text style={st.dataMuted}>No stores match current filters.</Text>
@@ -2956,70 +3119,96 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                           stats && stats.latestObservedAtMs >= 0
                             ? toDateOnlyLabel(new Date(stats.latestObservedAtMs).toISOString())
                             : "No prices";
-                        return (
-	                          <View key={store.id} style={[st.listRow, selectedOnMap && st.storeListRowActive]}>
+	                        return (
+	                          <Pressable
+	                            key={store.id}
+	                            accessibilityRole="button"
+	                            accessibilityLabel={`Select ${store.name} on map`}
+	                            onPress={() =>
+	                              setSelectedStoreMapId((current) =>
+	                                current === store.id ? null : store.id,
+	                              )
+	                            }
+	                            style={[st.listRow, selectedOnMap && st.storeListRowActive]}
+	                            disabled={deleting || submitting}
+	                          >
 	                            <View style={st.listMain}>
                               <Text style={st.listTitle}>{store.name}</Text>
                               <Text style={st.dataMuted}>{store.area}</Text>
+	                              <View style={st.storeInlineChipRow}>
+	                                <View style={[st.storeMetaChip, !store.is_active && st.storeInactiveChip]}>
+	                                  <Text style={[st.storeMetaChipText, !store.is_active && st.storeInactiveChipText]}>
+	                                    {store.is_active ? "Active" : "Inactive"}
+	                                  </Text>
+	                                </View>
+	                                <View style={st.storeMetaChip}>
+	                                  <Text style={st.storeMetaChipText}>{store.store_type}</Text>
+	                                </View>
+                                  <View style={st.storeMetaChip}>
+                                    <Text style={st.storeMetaChipText}>Prices {priceCount}</Text>
+                                  </View>
+                                  <View style={st.storeMetaChip}>
+                                    <Text style={st.storeMetaChipText}>Products {productCount}</Text>
+                                  </View>
+                                  <View style={st.storeMetaChip}>
+                                    <Text style={st.storeMetaChipText}>Latest {latestObserved}</Text>
+                                  </View>
+	                              </View>
                               <Text style={st.dataMuted}>
                                 {store.latitude}, {store.longitude}
                               </Text>
+                              {store.address ? (
+                                <Text style={st.dataMuted}>{store.address}</Text>
+                              ) : null}
+                              {store.phone || store.website || store.hours ? (
+                                <Text style={st.dataMuted}>
+                                  {[store.phone, store.website, store.hours].filter(Boolean).join(" | ")}
+                                </Text>
+                              ) : null}
                               {store.price_note ? (
                                 <Text style={st.dataMuted}>{store.price_note}</Text>
                               ) : null}
-                              <View style={st.productChipRow}>
-                                <View style={st.productMetaChip}>
-                                  <Text style={st.productMetaChipText}>Prices {priceCount}</Text>
-                                </View>
-                                <View style={st.productMetaChip}>
-                                  <Text style={st.productMetaChipText}>Products {productCount}</Text>
-                                </View>
-                                <View style={st.productMetaChip}>
-                                  <Text style={st.productMetaChipText}>Latest {latestObserved}</Text>
-                                </View>
+	                              <Text style={st.dataMuted}>{store.id}</Text>
+                            </View>
+                            <View style={st.storeListRight}>
+                              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+                              <View style={st.storeActionRow}>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenMapUrl(storeMapUrl(store));
+                                  }}
+                                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnGhostText}>Map</Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenEditStore(store);
+                                  }}
+                                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnGhostText}>Edit</Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={(event) => {
+                                    event.stopPropagation();
+                                    handleRequestDeleteStore(store);
+                                  }}
+                                  style={[st.btn, st.btnDanger, st.storeActionBtn, deleting && st.btnDisabled]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                                </Pressable>
                               </View>
-                              <Text style={st.dataMuted}>{store.id}</Text>
                             </View>
-                            <View style={st.listRight}>
-	                              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
-	                              <Pressable
-	                                accessibilityRole="button"
-	                                onPress={() => setSelectedStoreMapId(store.id)}
-	                                style={[st.btn, selectedOnMap ? st.btnPrimary : st.btnGhost]}
-	                                disabled={deleting || submitting}
-	                              >
-	                                <Text style={selectedOnMap ? st.btnPrimaryText : st.btnGhostText}>
-	                                  {selectedOnMap ? "Selected" : "View"}
-	                                </Text>
-	                              </Pressable>
-	                              <Pressable
-                                accessibilityRole="button"
-                                onPress={() => handleOpenMapUrl(storeMapUrl(store))}
-                                style={[st.btn, st.btnGhost]}
-                                disabled={deleting || submitting}
-                              >
-                                <Text style={st.btnGhostText}>Map</Text>
-                              </Pressable>
-                              <Pressable
-                                accessibilityRole="button"
-                                onPress={() => handleOpenEditStore(store)}
-                                style={[st.btn, st.btnGhost]}
-                                disabled={deleting || submitting}
-                              >
-                                <Text style={st.btnGhostText}>Edit</Text>
-                              </Pressable>
-                              <Pressable
-                                accessibilityRole="button"
-                                onPress={() => {
-                                  handleRequestDeleteStore(store);
-                                }}
-                                style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
-                                disabled={deleting || submitting}
-                              >
-                                <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
-                              </Pressable>
-                            </View>
-                          </View>
+                          </Pressable>
                         );
                       })
                     )}
@@ -3404,6 +3593,225 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       </Modal>
 
       <Modal
+        visible={storeModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setStoreModalOpen(false);
+          resetStoreForm();
+        }}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            <View style={st.modalHeader}>
+              <View>
+                <Text style={st.modalTitle}>{editingStoreId ? "Edit Store" : "Add Store"}</Text>
+                <Text style={st.modalSub}>
+                  Enter store details and coordinates. Coordinates are checked before saving.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setStoreModalOpen(false);
+                  resetStoreForm();
+                }}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={st.modalBody} contentContainerStyle={st.modalBodyContent}>
+              <View style={st.modalTopGrid}>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Store Name</Text>
+                  <TextInput
+                    value={storeName}
+                    onChangeText={setStoreName}
+                    placeholder="Store name"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Area / Branch</Text>
+                  <TextInput
+                    value={storeArea}
+                    onChangeText={setStoreArea}
+                    placeholder="Area / branch"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+              </View>
+
+              <View style={st.modalTopGrid}>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Latitude</Text>
+                  <TextInput
+                    value={storeLatitude}
+                    onChangeText={setStoreLatitude}
+                    placeholder="Latitude"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="decimal-pad"
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Longitude</Text>
+                  <TextInput
+                    value={storeLongitude}
+                    onChangeText={setStoreLongitude}
+                    placeholder="Longitude"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="decimal-pad"
+                    style={st.input}
+                  />
+                </View>
+              </View>
+
+              <View style={st.modalTopGrid}>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Type</Text>
+                  {Platform.OS === "web" ? (
+                    <select
+                      value={storeType}
+                      onChange={(event) => setStoreType((event.target as HTMLSelectElement).value)}
+                      style={WEB_FILTER_SELECT_STYLE}
+                    >
+                      {STORE_TYPE_OPTIONS.map((option) => (
+                        <option key={`store-modal-type-${option.value}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <View style={st.choiceRow}>
+                      {STORE_TYPE_OPTIONS.map((option) => (
+                        <Pressable
+                          key={`store-modal-type-${option.value}`}
+                          accessibilityRole="button"
+                          onPress={() => setStoreType(option.value)}
+                          style={[st.choiceChip, storeType === option.value && st.choiceChipActive]}
+                        >
+                          <Text style={[st.choiceChipText, storeType === option.value && st.choiceChipTextActive]}>
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Status</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setStoreIsActive((value) => !value)}
+                    style={[st.btn, storeIsActive ? st.btnPrimary : st.btnGhost, st.storeStatusToggle]}
+                  >
+                    <Text style={storeIsActive ? st.btnPrimaryText : st.btnGhostText}>
+                      {storeIsActive ? "Active" : "Inactive"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <Text style={st.fieldLabel}>Details</Text>
+              <View style={st.modalTopGrid}>
+                <View style={st.modalTopCell}>
+                  <TextInput
+                    value={storeAddress}
+                    onChangeText={setStoreAddress}
+                    placeholder="Address"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storePhone}
+                    onChangeText={setStorePhone}
+                    placeholder="Phone"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storeWebsite}
+                    onChangeText={setStoreWebsite}
+                    placeholder="Website"
+                    placeholderTextColor={C.textMuted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storeHours}
+                    onChangeText={setStoreHours}
+                    placeholder="Hours"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storePriceNote}
+                    onChangeText={setStorePriceNote}
+                    placeholder="Price note"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+              </View>
+
+              <View style={st.modalActionRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => handleOpenMapUrl(storeAddressSearchUrl(storeName, storeArea))}
+                  style={[st.btn, st.btnGhost, (!storeName.trim() && !storeArea.trim()) && st.btnDisabled]}
+                  disabled={!storeName.trim() && !storeArea.trim()}
+                >
+                  <Text style={st.btnGhostText}>Find on Map</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setStoreModalOpen(false);
+                    resetStoreForm();
+                  }}
+                  style={[st.btn, st.btnGhost]}
+                  disabled={submitting}
+                >
+                  <Text style={st.btnGhostText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void handleSaveStore();
+                  }}
+                  style={[st.btn, st.btnPrimary]}
+                  disabled={submitting}
+                >
+                  <Text style={st.btnPrimaryText}>
+                    {submitting ? "Saving..." : editingStoreId ? "Update Store" : "Add Store"}
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={st.dataMuted}>
+                CSV headers: name, area, latitude, longitude, price_note, address, phone, website, hours,
+                store_type, is_active.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={productModalOpen}
         transparent
         animationType="fade"
@@ -3738,8 +4146,8 @@ const st = StyleSheet.create({
     gap: 8,
   },
   menuBtnActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   menuText: {
     color: "#2e3a4f",
@@ -3747,7 +4155,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
   },
   menuTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   menuBadge: {
     minWidth: 24,
@@ -3759,7 +4167,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 6,
   },
   menuBadgeActive: {
-    backgroundColor: "#d6e0ff",
+    backgroundColor: C.primaryPale,
   },
   menuBadgeText: {
     color: "#4e5c74",
@@ -3767,7 +4175,7 @@ const st = StyleSheet.create({
     fontWeight: "800",
   },
   menuBadgeTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   sidebarFooter: {
     marginTop: "auto",
@@ -3799,7 +4207,7 @@ const st = StyleSheet.create({
       : ({ position: "absolute", left: 12, bottom: 12 } as any)),
   },
   sidebarCollapsedToggleIcon: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
     fontSize: 28,
     fontWeight: "900",
     marginTop: -2,
@@ -3888,8 +4296,8 @@ const st = StyleSheet.create({
     paddingVertical: 7,
   },
   mobileMenuBtnActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   mobileMenuText: {
     color: "#3a465d",
@@ -3897,7 +4305,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
   },
   mobileMenuTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   statGrid: {
     flexDirection: "row",
@@ -4056,7 +4464,7 @@ const st = StyleSheet.create({
     fontWeight: "800",
   },
   flyerSelectTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   flyerCellSelect: {
     width: 68,
@@ -4275,8 +4683,33 @@ const st = StyleSheet.create({
     gap: 8,
   },
   storeListRowActive: {
-    borderColor: "#9bb7ff",
-    backgroundColor: "#f2f6ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+  },
+  storeMetaChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  storeMetaChipText: {
+    color: C.primaryDeep,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  storeInactiveChip: {
+    borderColor: "#d6dce7",
+    backgroundColor: "#eef1f6",
+  },
+  storeInactiveChipText: {
+    color: "#66748f",
+  },
+  storeStatusToggle: {
+    alignSelf: "flex-start",
+    minWidth: 112,
+    justifyContent: "center",
   },
   listMain: {
     flex: 1,
@@ -4287,6 +4720,14 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6,
     marginTop: 2,
+  },
+  storeInlineChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+    ...(Platform.OS === "web" ? ({ display: "inline-flex", maxWidth: "100%" } as any) : {}),
   },
   productMetaChip: {
     borderRadius: 999,
@@ -4304,6 +4745,23 @@ const st = StyleSheet.create({
   listRight: {
     alignItems: "flex-end",
     gap: 6,
+  },
+  storeListRight: {
+    alignItems: "flex-end",
+    gap: 6,
+    minWidth: 260,
+  },
+  storeActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 6,
+    ...(Platform.OS === "web" ? ({ display: "inline-flex" } as any) : {}),
+  },
+  storeActionBtn: {
+    minHeight: 32,
+    paddingHorizontal: 10,
   },
   listThumb: {
     width: 54,
@@ -4325,7 +4783,7 @@ const st = StyleSheet.create({
     textAlign: "right",
   },
   listPrice: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -4424,8 +4882,8 @@ const st = StyleSheet.create({
     paddingVertical: 7,
   },
   choiceChipActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   choiceChipText: {
     color: "#40506c",
@@ -4433,7 +4891,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
   },
   choiceChipTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   storePriceHeaderRow: {
     flexDirection: "row",
@@ -4542,8 +5000,8 @@ const st = StyleSheet.create({
     gap: 2,
   },
   storePillActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   storePillText: {
     color: "#2f3748",
@@ -4555,7 +5013,7 @@ const st = StyleSheet.create({
     fontSize: 11,
   },
   storePillTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   dateBtn: {
     minWidth: 190,
@@ -4580,8 +5038,8 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
   },
   btnPrimary: {
-    backgroundColor: "#3c6df0",
-    borderColor: "#3c6df0",
+    backgroundColor: C.primaryDark,
+    borderColor: C.primaryDark,
   },
   btnPrimaryText: {
     color: "#ffffff",
@@ -4613,7 +5071,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10,
   },
   btnLinkText: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
     fontSize: 12,
     fontWeight: "700",
   },
