@@ -77,6 +77,51 @@ for delete
 to authenticated
 using (auth.uid() = user_id);
 
+-- admin_users
+-- Add admins with service-role SQL, for example:
+-- insert into public.admin_users (user_id) values ('00000000-0000-0000-0000-000000000000');
+create table if not exists public.admin_users (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+alter table public.admin_users enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.admin_users
+    where user_id = auth.uid()
+  );
+$$;
+
+drop policy if exists admin_users_select_admin on public.admin_users;
+create policy admin_users_select_admin
+on public.admin_users
+for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists admin_users_insert_admin on public.admin_users;
+create policy admin_users_insert_admin
+on public.admin_users
+for insert
+to authenticated
+with check (public.is_admin());
+
+drop policy if exists admin_users_delete_admin on public.admin_users;
+create policy admin_users_delete_admin
+on public.admin_users
+for delete
+to authenticated
+using (public.is_admin());
+
 -- products
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
@@ -96,26 +141,29 @@ to anon, authenticated
 using (true);
 
 drop policy if exists products_insert_auth on public.products;
-create policy products_insert_auth
+drop policy if exists products_insert_admin on public.products;
+create policy products_insert_admin
 on public.products
 for insert
 to authenticated
-with check (true);
+with check (public.is_admin());
 
 drop policy if exists products_update_auth on public.products;
-create policy products_update_auth
+drop policy if exists products_update_admin on public.products;
+create policy products_update_admin
 on public.products
 for update
 to authenticated
-using (true)
-with check (true);
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists products_delete_auth on public.products;
-create policy products_delete_auth
+drop policy if exists products_delete_admin on public.products;
+create policy products_delete_admin
 on public.products
 for delete
 to authenticated
-using (true);
+using (public.is_admin());
 
 -- stores
 create table if not exists public.stores (
@@ -138,26 +186,29 @@ to anon, authenticated
 using (true);
 
 drop policy if exists stores_insert_auth on public.stores;
-create policy stores_insert_auth
+drop policy if exists stores_insert_admin on public.stores;
+create policy stores_insert_admin
 on public.stores
 for insert
 to authenticated
-with check (true);
+with check (public.is_admin());
 
 drop policy if exists stores_update_auth on public.stores;
-create policy stores_update_auth
+drop policy if exists stores_update_admin on public.stores;
+create policy stores_update_admin
 on public.stores
 for update
 to authenticated
-using (true)
-with check (true);
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists stores_delete_auth on public.stores;
-create policy stores_delete_auth
+drop policy if exists stores_delete_admin on public.stores;
+create policy stores_delete_admin
 on public.stores
 for delete
 to authenticated
-using (true);
+using (public.is_admin());
 
 -- product_prices
 create table if not exists public.product_prices (
@@ -197,26 +248,29 @@ to anon, authenticated
 using (true);
 
 drop policy if exists product_prices_insert_auth on public.product_prices;
-create policy product_prices_insert_auth
+drop policy if exists product_prices_insert_admin on public.product_prices;
+create policy product_prices_insert_admin
 on public.product_prices
 for insert
 to authenticated
-with check (true);
+with check (public.is_admin());
 
 drop policy if exists product_prices_update_auth on public.product_prices;
-create policy product_prices_update_auth
+drop policy if exists product_prices_update_admin on public.product_prices;
+create policy product_prices_update_admin
 on public.product_prices
 for update
 to authenticated
-using (true)
-with check (true);
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists product_prices_delete_auth on public.product_prices;
-create policy product_prices_delete_auth
+drop policy if exists product_prices_delete_admin on public.product_prices;
+create policy product_prices_delete_admin
 on public.product_prices
 for delete
 to authenticated
-using (true);
+using (public.is_admin());
 
 -- storage: product-images bucket
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -241,23 +295,26 @@ to public
 using (bucket_id = 'product-images');
 
 drop policy if exists product_images_auth_insert on storage.objects;
-create policy product_images_auth_insert
+drop policy if exists product_images_admin_insert on storage.objects;
+create policy product_images_admin_insert
 on storage.objects
 for insert
 to authenticated
-with check (bucket_id = 'product-images');
+with check (bucket_id = 'product-images' and public.is_admin());
 
 drop policy if exists product_images_auth_update on storage.objects;
-create policy product_images_auth_update
+drop policy if exists product_images_admin_update on storage.objects;
+create policy product_images_admin_update
 on storage.objects
 for update
 to authenticated
-using (bucket_id = 'product-images')
-with check (bucket_id = 'product-images');
+using (bucket_id = 'product-images' and public.is_admin())
+with check (bucket_id = 'product-images' and public.is_admin());
 
 drop policy if exists product_images_auth_delete on storage.objects;
-create policy product_images_auth_delete
+drop policy if exists product_images_admin_delete on storage.objects;
+create policy product_images_admin_delete
 on storage.objects
 for delete
 to authenticated
-using (bucket_id = 'product-images');
+using (bucket_id = 'product-images' and public.is_admin());

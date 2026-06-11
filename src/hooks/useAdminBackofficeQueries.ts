@@ -1,14 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createAdminStore,
   createAdminPriceEntry,
   createAdminProduct,
+  deleteAdminPriceEntry,
   deleteAdminProduct,
+  deleteAdminStore,
   getAdminUser,
   listAdminPriceEntries,
   listAdminProducts,
   listAdminStores,
   signInAdmin,
   signOutAdmin,
+  updateAdminPriceEntry,
   updateAdminProduct,
   uploadAdminProductImage,
   type AdminPriceEntry,
@@ -118,6 +122,47 @@ export function useCreateAdminPriceEntryMutation() {
   return useMutation<AdminPriceEntry | null, Error, Parameters<typeof createAdminPriceEntry>[0]>({
     mutationFn: async (params) => unwrap(await createAdminPriceEntry(params)),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
+export function useUpdateAdminPriceEntryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<AdminPriceEntry | null, Error, Parameters<typeof updateAdminPriceEntry>[0]>({
+    mutationFn: async (params) => unwrap(await updateAdminPriceEntry(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
+export function useDeleteAdminPriceEntryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<null, Error, string>({
+    mutationFn: async (priceEntryId) => unwrap(await deleteAdminPriceEntry(priceEntryId)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
+export function useCreateAdminStoreMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<AdminStore | null, Error, Parameters<typeof createAdminStore>[0]>({
+    mutationFn: async (params) => unwrap(await createAdminStore(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores });
+    },
+  });
+}
+
+export function useDeleteAdminStoreMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<null, Error, string>({
+    mutationFn: async (storeId) => unwrap(await deleteAdminStore(storeId)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
     },
   });

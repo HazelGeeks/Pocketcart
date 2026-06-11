@@ -33,8 +33,12 @@ import {
   useAdminUserQuery,
   useCreateAdminPriceEntryMutation,
   useCreateAdminProductMutation,
+  useCreateAdminStoreMutation,
+  useDeleteAdminPriceEntryMutation,
   useDeleteAdminProductMutation,
+  useDeleteAdminStoreMutation,
   useUpdateAdminProductMutation,
+  useUpdateAdminPriceEntryMutation,
   useUploadAdminProductImageMutation,
 } from "../hooks/useAdminBackofficeQueries";
 import {
@@ -127,6 +131,14 @@ const PRODUCT_IMPORT_HEADERS = {
   name: ["name", "product_name", "product", "이름", "상품명", "제품명"],
   category: ["category", "main_category", "대분류", "카테고리", "분류"],
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
+};
+
+const STORE_IMPORT_HEADERS = {
+  name: ["name", "store_name", "마트명", "매장명", "스토어"],
+  area: ["area", "region", "지역", "지역/지점", "지점"],
+  latitude: ["latitude", "lat", "위도"],
+  longitude: ["longitude", "lng", "lon", "경도"],
+  priceNote: ["price_note", "note", "memo", "메모"],
 };
 
 function toDateOnlyLabel(value: string): string {
@@ -289,6 +301,81 @@ function productsToCsv(products: AdminProduct[], priceStats: Map<string, Product
   return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
 }
 
+function storesToCsv(stores: AdminStore[]): string {
+  const header = ["id", "name", "area", "latitude", "longitude", "price_note", "created_at"];
+  const rows = stores.map((store) =>
+    [
+      store.id,
+      store.name,
+      store.area,
+      String(store.latitude),
+      String(store.longitude),
+      store.price_note ?? "",
+      store.created_at,
+    ].map(csvCell).join(","),
+  );
+  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+}
+
+function flyerRowsToProductCsv(rows: FlyerRow[]): string {
+  const header = [
+    "name",
+    "category",
+    "thumbnail_url",
+    "brand",
+    "source_price",
+    "unit",
+    "memo",
+  ];
+  const body = rows.map((row) => {
+    const name = [row.brand, row.name]
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(" ");
+    return [
+      name || row.name,
+      row.mainCategory || row.subCategory || "Uncategorized",
+      "",
+      row.brand,
+      row.price,
+      row.unit,
+      row.memo,
+    ].map(csvCell).join(",");
+  });
+  return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
+}
+
+function dateInputValue(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function downloadCsvFile(prefix: string, csv: string): string | null {
+  if (Platform.OS !== "web") {
+    return "CSV export is currently available on web admin.";
+  }
+
+  const doc = (globalThis as { document?: any }).document;
+  const urlApi = (globalThis as { URL?: typeof URL }).URL;
+  if (!doc || typeof doc.createElement !== "function" || !urlApi?.createObjectURL) {
+    return "CSV export is not available in this browser.";
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const href = urlApi.createObjectURL(blob);
+  const link = doc.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  link.href = href;
+  link.download = `${prefix}-${date}.csv`;
+  doc.body.appendChild(link);
+  link.click();
+  link.remove();
+  urlApi.revokeObjectURL(href);
+  return null;
+}
+
 function normalizeOcrText(value: string): string {
   return value
     .replace(/\r/g, "\n")
@@ -394,6 +481,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [productModalOpen, setProductModalOpen] = React.useState(false);
   const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
   const [productImageUploading, setProductImageUploading] = React.useState(false);
+  const [editingPriceId, setEditingPriceId] = React.useState<string | null>(null);
+  const [priceProductId, setPriceProductId] = React.useState("");
+  const [priceStoreId, setPriceStoreId] = React.useState("");
+  const [priceValue, setPriceValue] = React.useState("");
+  const [priceStartDate, setPriceStartDate] = React.useState("");
+  const [priceEndDate, setPriceEndDate] = React.useState("");
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
@@ -443,6 +536,10 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const createProductMutation = useCreateAdminProductMutation();
   const updateProductMutation = useUpdateAdminProductMutation();
   const createPriceEntryMutation = useCreateAdminPriceEntryMutation();
+  const updatePriceEntryMutation = useUpdateAdminPriceEntryMutation();
+  const deletePriceEntryMutation = useDeleteAdminPriceEntryMutation();
+  const createStoreMutation = useCreateAdminStoreMutation();
+  const deleteStoreMutation = useDeleteAdminStoreMutation();
   const deleteProductMutation = useDeleteAdminProductMutation();
   const uploadProductImageMutation = useUploadAdminProductImageMutation();
 
@@ -510,6 +607,21 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     });
     return map;
   }, [prices, stores]);
+
+  const productNameById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach((product) => {
+      const productId = product.id.trim();
+      if (!productId) return;
+      map.set(productId, product.name.trim() || productId);
+    });
+    prices.forEach((row) => {
+      const productId = row.product_id.trim();
+      if (!productId || map.has(productId)) return;
+      map.set(productId, row.product_name?.trim() || productId);
+    });
+    return map;
+  }, [prices, products]);
 
   const productPriceStats = React.useMemo(() => {
     const stats = new Map<string, ProductPriceStats>();
@@ -726,6 +838,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setProductPeriodEndDate("");
   }, []);
 
+  const resetPriceForm = React.useCallback(() => {
+    setEditingPriceId(null);
+    setPriceProductId("");
+    setPriceStoreId("");
+    setPriceValue("");
+    setPriceStartDate("");
+    setPriceEndDate("");
+  }, []);
+
   const handleOpenAddProduct = React.useCallback(() => {
     resetProductForm();
     setProductModalOpen(true);
@@ -741,6 +862,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setProductPeriodStartDate("");
     setProductPeriodEndDate("");
     setProductModalOpen(true);
+  }, []);
+
+  const handleOpenEditPrice = React.useCallback((price: AdminPriceEntry) => {
+    setEditingPriceId(price.id);
+    setPriceProductId(price.product_id);
+    setPriceStoreId(price.store_id);
+    setPriceValue(price.price.toFixed(2));
+    setPriceStartDate(dateInputValue(price.valid_from || price.observed_at));
+    setPriceEndDate(dateInputValue(price.valid_to));
   }, []);
 
   const handleSignIn = React.useCallback(async () => {
@@ -976,33 +1106,16 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   }, [uploadProductImageMutation]);
 
   const handleExportProductsCsv = React.useCallback(() => {
-    if (Platform.OS !== "web") {
-      setNotice("Product CSV export is currently available on web admin.");
-      return;
-    }
     if (filteredProducts.length === 0) {
       setNotice("There are no products to export.");
       return;
     }
 
-    const doc = (globalThis as { document?: any }).document;
-    const urlApi = (globalThis as { URL?: typeof URL }).URL;
-    if (!doc || typeof doc.createElement !== "function" || !urlApi?.createObjectURL) {
-      setNotice("Product CSV export is not available in this browser.");
+    const error = downloadCsvFile("products", productsToCsv(filteredProducts, productPriceStats));
+    if (error) {
+      setNotice(error);
       return;
     }
-
-    const csv = productsToCsv(filteredProducts, productPriceStats);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const href = urlApi.createObjectURL(blob);
-    const link = doc.createElement("a");
-    const date = new Date().toISOString().slice(0, 10);
-    link.href = href;
-    link.download = `products-${date}.csv`;
-    doc.body.appendChild(link);
-    link.click();
-    link.remove();
-    urlApi.revokeObjectURL(href);
     setNotice(`Exported ${filteredProducts.length} products to CSV.`);
   }, [filteredProducts, productPriceStats]);
 
@@ -1082,6 +1195,218 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     };
     input.click();
   }, [createProductMutation, loadAll]);
+
+  const handleExportStoresCsv = React.useCallback(() => {
+    if (stores.length === 0) {
+      setNotice("There are no stores to export.");
+      return;
+    }
+
+    const error = downloadCsvFile("stores", storesToCsv(stores));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${stores.length} stores to CSV.`);
+  }, [stores]);
+
+  const handleImportStoresCsv = React.useCallback(() => {
+    if (Platform.OS !== "web") {
+      setNotice("Store CSV import is currently available on web admin.");
+      return;
+    }
+
+    const doc = (globalThis as { document?: any }).document;
+    if (!doc || typeof doc.createElement !== "function") {
+      setNotice("Store CSV import is not available in this browser.");
+      return;
+    }
+
+    const input = doc.createElement("input");
+    input.type = "file";
+    input.accept = "text/csv,.csv";
+    input.multiple = false;
+    input.onchange = () => {
+      const selected = input.files?.[0];
+      if (!selected) return;
+      void (async () => {
+        setSubmitting(true);
+        try {
+          const text = await selected.text();
+          const parsed = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim()));
+          const [headerRow, ...dataRows] = parsed;
+          if (!headerRow || dataRows.length === 0) {
+            setNotice("CSV must include a header row and at least one store row.");
+            return;
+          }
+
+          const headers = headerRow.map(csvHeaderKey);
+          const existing = new Set(
+            stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
+          );
+          const created: string[] = [];
+          const skipped: string[] = [];
+
+          for (const [index, values] of dataRows.entries()) {
+            const record: Record<string, string> = {};
+            headers.forEach((header, headerIndex) => {
+              record[header] = values[headerIndex] ?? "";
+            });
+
+            const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
+            const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
+            const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
+            const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
+            const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
+            const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+
+            if (!name || !area || !latitude || !longitude) {
+              skipped.push(`row ${index + 2}`);
+              continue;
+            }
+            if (existing.has(duplicateKey)) {
+              skipped.push(`row ${index + 2}: duplicate`);
+              continue;
+            }
+
+            try {
+              const store = await createStoreMutation.mutateAsync({
+                name,
+                area,
+                latitude,
+                longitude,
+                priceNote,
+              });
+              if (store) {
+                created.push(store.id);
+                existing.add(duplicateKey);
+              }
+            } catch (error) {
+              skipped.push(`row ${index + 2}: ${error instanceof Error ? error.message : "failed"}`);
+            }
+          }
+
+          await loadAll(true);
+          setNotice(
+            `Imported ${created.length} stores from CSV.${
+              skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
+            }`,
+          );
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : "Store CSV import failed.");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
+    };
+    input.click();
+  }, [createStoreMutation, loadAll, stores]);
+
+  const handleSavePriceEntry = React.useCallback(async () => {
+    const productId = priceProductId.trim();
+    const storeId = priceStoreId.trim();
+    const price = priceValue.trim();
+    const periodStart = priceStartDate.trim();
+    const periodEnd = priceEndDate.trim();
+    const periodStartIso = dateOnlyToIso(periodStart, false);
+    const periodEndIso = dateOnlyToIso(periodEnd, true);
+
+    if (!productId || !storeId || !price) {
+      setNotice("Product ID, Store ID, and price are required.");
+      return;
+    }
+    if (Number.isNaN(Number(price))) {
+      setNotice("Price must be a valid number.");
+      return;
+    }
+    if (periodStart && !periodStartIso) {
+      setNotice("Invalid start date. Use YYYY-MM-DD.");
+      return;
+    }
+    if (periodEnd && !periodEndIso) {
+      setNotice("Invalid end date. Use YYYY-MM-DD.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      if (editingPriceId) {
+        await updatePriceEntryMutation.mutateAsync({
+          id: editingPriceId,
+          productId,
+          storeId,
+          price,
+          observedAt: periodStartIso ?? undefined,
+          periodEnd: periodEndIso ?? undefined,
+        });
+      } else {
+        await createPriceEntryMutation.mutateAsync({
+          productId,
+          storeId,
+          price,
+          observedAt: periodStartIso ?? undefined,
+          periodEnd: periodEndIso ?? undefined,
+        });
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Price entry was not saved.");
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+
+    resetPriceForm();
+    setNotice(editingPriceId ? "Price entry updated." : "Price entry added.");
+    await loadAll(true);
+  }, [
+    createPriceEntryMutation,
+    editingPriceId,
+    loadAll,
+    priceEndDate,
+    priceProductId,
+    priceStartDate,
+    priceStoreId,
+    priceValue,
+    resetPriceForm,
+    updatePriceEntryMutation,
+  ]);
+
+  const handleDeletePriceEntry = React.useCallback(
+    async (id: string) => {
+      setDeletingKey(`price:${id}`);
+      try {
+        await deletePriceEntryMutation.mutateAsync(id);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Price entry delete failed.");
+        return;
+      } finally {
+        setDeletingKey(null);
+      }
+      if (editingPriceId === id) {
+        resetPriceForm();
+      }
+      setNotice("Price entry deleted.");
+      await loadAll(true);
+    },
+    [deletePriceEntryMutation, editingPriceId, loadAll, resetPriceForm],
+  );
+
+  const handleDeleteStore = React.useCallback(
+    async (id: string) => {
+      setDeletingKey(`store:${id}`);
+      try {
+        await deleteStoreMutation.mutateAsync(id);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Store delete failed.");
+        return;
+      } finally {
+        setDeletingKey(null);
+      }
+      setNotice("Store deleted.");
+      await loadAll(true);
+    },
+    [deleteStoreMutation, loadAll],
+  );
 
   const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
     const tesseract = await import("tesseract.js");
@@ -1288,36 +1613,33 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   }, [clearFlyerImport]);
 
   const handleExportFlyerCsv = React.useCallback(() => {
-    if (Platform.OS !== "web") {
-      setNotice("CSV export is currently available on web admin.");
-      return;
-    }
-
     const selectedRows = flyerRows.filter((row) => row.selected);
     if (selectedRows.length === 0) {
       setNotice("Select at least one flyer row to export.");
       return;
     }
 
-    const doc = (globalThis as { document?: any }).document;
-    const urlApi = (globalThis as { URL?: typeof URL }).URL;
-    if (!doc || typeof doc.createElement !== "function" || !urlApi?.createObjectURL) {
-      setNotice("CSV export is not available in this browser.");
+    const error = downloadCsvFile("flyer", buildFlyerCsv(selectedRows));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${selectedRows.length} flyer rows to CSV.`);
+  }, [flyerRows]);
+
+  const handleExportFlyerProductCsv = React.useCallback(() => {
+    const selectedRows = flyerRows.filter((row) => row.selected);
+    if (selectedRows.length === 0) {
+      setNotice("Select at least one flyer row to export.");
       return;
     }
 
-    const csv = buildFlyerCsv(selectedRows);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const href = urlApi.createObjectURL(blob);
-    const link = doc.createElement("a");
-    const date = new Date().toISOString().slice(0, 10);
-    link.href = href;
-    link.download = `flyer-${date}.csv`;
-    doc.body.appendChild(link);
-    link.click();
-    link.remove();
-    urlApi.revokeObjectURL(href);
-    setNotice(`Exported ${selectedRows.length} flyer rows to CSV.`);
+    const error = downloadCsvFile("flyer-products", flyerRowsToProductCsv(selectedRows));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${selectedRows.length} flyer rows as product import CSV.`);
   }, [flyerRows]);
 
   const handleDeleteProduct = React.useCallback(
@@ -1622,6 +1944,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 ) : null}
 
                 {activeMenu === "products" ? (
+                  <View style={st.productAdminStack}>
                   <View style={st.dataCard}>
                     <View style={st.dataCardHeader}>
                       <Text style={st.dataCardTitle}>Product Management</Text>
@@ -1821,6 +2144,197 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       })
                     )}
                   </View>
+
+                    <View style={st.dataCard}>
+                      <View style={st.dataCardHeader}>
+                        <Text style={st.dataCardTitle}>Price Management</Text>
+                        <Text style={st.dataMuted}>Add, update, or delete product price rows.</Text>
+                      </View>
+
+                      <View style={st.productFilterCard}>
+                        <View style={st.formRow}>
+                          <TextInput
+                            value={priceProductId}
+                            onChangeText={setPriceProductId}
+                            placeholder="Product ID"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputWide]}
+                          />
+                          <TextInput
+                            value={priceStoreId}
+                            onChangeText={setPriceStoreId}
+                            placeholder="Store ID"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputWide]}
+                          />
+                          <TextInput
+                            value={priceValue}
+                            onChangeText={setPriceValue}
+                            placeholder="Price"
+                            placeholderTextColor={C.textMuted}
+                            keyboardType="decimal-pad"
+                            style={[st.input, st.priceFormInputSmall]}
+                          />
+                          <TextInput
+                            value={priceStartDate}
+                            onChangeText={setPriceStartDate}
+                            placeholder="Start YYYY-MM-DD"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputMedium]}
+                          />
+                          <TextInput
+                            value={priceEndDate}
+                            onChangeText={setPriceEndDate}
+                            placeholder="End YYYY-MM-DD"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputMedium]}
+                          />
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => {
+                              void handleSavePriceEntry();
+                            }}
+                            style={[st.btn, st.btnPrimary]}
+                            disabled={submitting}
+                          >
+                            <Text style={st.btnPrimaryText}>
+                              {submitting ? "Saving..." : editingPriceId ? "Update Price" : "Add Price"}
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={resetPriceForm}
+                            style={[st.btn, st.btnGhost, !editingPriceId && st.btnDisabled]}
+                            disabled={!editingPriceId || submitting}
+                          >
+                            <Text style={st.btnGhostText}>Cancel Edit</Text>
+                          </Pressable>
+                        </View>
+                        <Text style={st.dataMuted}>
+                          Select Edit on a row to load it here. Dates are optional.
+                        </Text>
+                      </View>
+
+                      {prices.length === 0 ? (
+                        <Text style={st.dataMuted}>No price rows yet.</Text>
+                      ) : (
+                        prices.map((item) => {
+                          const deleteKey = `price:${item.id}`;
+                          const deleting = deletingKey === deleteKey;
+                          const productLabel =
+                            productNameById.get(item.product_id) || item.product_name || item.product_id;
+                          const storeLabel =
+                            storeNameById.get(item.store_id) || item.store_name || item.store_id;
+                          return (
+                            <View key={item.id} style={st.listRow}>
+                              <View style={st.listMain}>
+                                <Text style={st.listTitle}>{productLabel}</Text>
+                                <Text style={st.dataMuted}>{storeLabel}</Text>
+                                <Text style={st.dataMuted}>
+                                  {item.product_id} | {item.store_id}
+                                </Text>
+                              </View>
+                              <View style={st.listRight}>
+                                <Text style={st.listPrice}>${item.price.toFixed(2)}</Text>
+                                <Text style={st.listDate}>
+                                  {dateInputValue(item.valid_from || item.observed_at) || "No date"}
+                                  {item.valid_to ? ` - ${dateInputValue(item.valid_to)}` : ""}
+                                </Text>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => handleOpenEditPrice(item)}
+                                  style={[st.btn, st.btnGhost]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnGhostText}>Edit</Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => {
+                                    void handleDeletePriceEntry(item.id);
+                                  }}
+                                  style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+
+                    <View style={st.dataCard}>
+                      <View style={st.dataCardHeader}>
+                        <Text style={st.dataCardTitle}>Store CSV</Text>
+                        <View style={st.inlineRow}>
+                          <Text style={st.dataMuted}>Import/export store master data.</Text>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={handleImportStoresCsv}
+                            style={[st.btn, st.btnGhost]}
+                            disabled={submitting}
+                          >
+                            <Text style={st.btnGhostText}>Import Stores CSV</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={handleExportStoresCsv}
+                            style={[st.btn, st.btnGhost, stores.length === 0 && st.btnDisabled]}
+                            disabled={stores.length === 0 || submitting}
+                          >
+                            <Text style={st.btnGhostText}>Export Stores CSV</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      <Text style={st.dataMuted}>
+                        CSV headers: name, area, latitude, longitude, price_note
+                      </Text>
+
+                      {stores.length === 0 ? (
+                        <Text style={st.dataMuted}>No stores yet.</Text>
+                      ) : (
+                        stores.slice(0, 40).map((store) => {
+                          const deleteKey = `store:${store.id}`;
+                          const deleting = deletingKey === deleteKey;
+                          return (
+                            <View key={store.id} style={st.listRow}>
+                              <View style={st.listMain}>
+                                <Text style={st.listTitle}>{store.name}</Text>
+                                <Text style={st.dataMuted}>{store.area}</Text>
+                                <Text style={st.dataMuted}>
+                                  {store.latitude}, {store.longitude}
+                                </Text>
+                              </View>
+                              <View style={st.listRight}>
+                                <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => {
+                                    void handleDeleteStore(store.id);
+                                  }}
+                                  style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+                  </View>
                 ) : null}
 
                 {activeMenu === "flyer" ? (
@@ -1859,6 +2373,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         disabled={flyerSelectedCount === 0 || flyerProcessing}
                       >
                         <Text style={st.flyerToolbarBtnText}>Export CSV</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleExportFlyerProductCsv}
+                        style={[st.btn, st.flyerToolbarBtn, flyerSelectedCount === 0 && st.btnDisabled]}
+                        disabled={flyerSelectedCount === 0 || flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>Export Product CSV</Text>
                       </Pressable>
                       <Pressable
                         accessibilityRole="button"
@@ -2589,6 +3111,9 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
   },
+  productAdminStack: {
+    gap: 12,
+  },
   dataCard: {
     borderRadius: 14,
     borderWidth: 1,
@@ -2823,6 +3348,18 @@ const st = StyleSheet.create({
   },
   filterInputInline: {
     width: 96,
+  },
+  priceFormInputWide: {
+    minWidth: 220,
+    flexGrow: 1,
+  },
+  priceFormInputMedium: {
+    minWidth: 150,
+    flexGrow: 1,
+  },
+  priceFormInputSmall: {
+    minWidth: 96,
+    flexGrow: 1,
   },
   productFilterInlineGroup: {
     flexDirection: "row",

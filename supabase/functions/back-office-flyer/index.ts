@@ -129,6 +129,34 @@ function outputText(payload: OpenAiResponse): string {
   return "";
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  const payload = token.split(".")[1] ?? "";
+  if (!payload) return {};
+  const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+  try {
+    return JSON.parse(atob(padded)) as Record<string, unknown>;
+  } catch (_error) {
+    return {};
+  }
+}
+
+function authorizedEmail(request: Request): boolean {
+  const allowed = (Deno.env.get("FLYER_ADMIN_EMAILS") ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (allowed.length === 0) return true;
+
+  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() ?? "";
+  const payload = decodeJwtPayload(token);
+  const email =
+    typeof payload.email === "string"
+      ? payload.email.trim().toLowerCase()
+      : "";
+  return Boolean(email && allowed.includes(email));
+}
+
 function normalizeRows(value: unknown): FlyerRow[] {
   if (!value || typeof value !== "object") return [];
   const rows = Array.isArray((value as { rows?: unknown }).rows)
@@ -367,6 +395,9 @@ Deno.serve(async (request: Request) => {
   }
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
+  }
+  if (!authorizedEmail(request)) {
+    return jsonResponse({ error: "Not authorized to extract flyer data." }, 403);
   }
 
   const googleVisionApiKey = Deno.env.get("GOOGLE_VISION_API_KEY")?.trim();
