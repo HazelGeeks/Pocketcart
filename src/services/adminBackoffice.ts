@@ -264,6 +264,40 @@ export async function createAdminProduct(params: {
   };
 }
 
+export async function updateAdminProduct(params: {
+  id: string;
+  name: string;
+  category: string;
+  thumbnailUrl?: string;
+}): Promise<ServiceResult<AdminProduct | null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const id = params.id.trim();
+  if (!id) {
+    return { data: null, error: "Product ID is required." };
+  }
+
+  const payload = {
+    name: params.name.trim(),
+    category: params.category.trim(),
+    thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
+  };
+
+  const { data, error } = await supabase
+    .from("products")
+    .update(payload)
+    .eq("id", id)
+    .select("id, name, category, thumbnail_url, created_at")
+    .single();
+
+  return {
+    data: (data as ProductRow | null) ?? null,
+    error: error ? error.message : null,
+  };
+}
+
 export async function uploadAdminProductImage(params: {
   file: Blob;
   fileName?: string;

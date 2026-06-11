@@ -9,6 +9,7 @@ import {
   listAdminStores,
   signInAdmin,
   signOutAdmin,
+  updateAdminProduct,
   uploadAdminProductImage,
   type AdminPriceEntry,
   type AdminProduct,
@@ -96,6 +97,16 @@ export function useCreateAdminProductMutation() {
   const queryClient = useQueryClient();
   return useMutation<AdminProduct | null, Error, Parameters<typeof createAdminProduct>[0]>({
     mutationFn: async (params) => unwrap(await createAdminProduct(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
+    },
+  });
+}
+
+export function useUpdateAdminProductMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<AdminProduct | null, Error, Parameters<typeof updateAdminProduct>[0]>({
+    mutationFn: async (params) => unwrap(await updateAdminProduct(params)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
     },
