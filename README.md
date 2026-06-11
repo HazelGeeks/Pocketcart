@@ -88,6 +88,12 @@ Recommended Node runtime:
 - Backoffice:
   - Web admin page is available at `/admin`.
   - Sign in with Supabase auth, then manage `products`, `stores`, and `product_prices`.
+  - Backoffice writes require the signed-in user UUID in `public.admin_users`.
+    Bootstrap the first admin from Supabase SQL Editor with:
+    `insert into public.admin_users (user_id) values ('YOUR_AUTH_USER_UUID');`
+  - Flyer AI extraction uses the `back-office-flyer` Supabase Edge Function with JWT
+    verification enabled. Set `FLYER_ADMIN_EMAILS` as a function secret to restrict
+    extraction to specific signed-in admin emails.
 - Deletion route:
   - Web: `http://localhost:8081/delete-account`
   - Use this URL for Google Play "account deletion URL" field

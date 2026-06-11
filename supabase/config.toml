@@ -1,0 +1,2 @@
+[functions.back-office-flyer]
+verify_jwt = true

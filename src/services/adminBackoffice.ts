@@ -264,6 +264,40 @@ export async function createAdminProduct(params: {
   };
 }
 
+export async function updateAdminProduct(params: {
+  id: string;
+  name: string;
+  category: string;
+  thumbnailUrl?: string;
+}): Promise<ServiceResult<AdminProduct | null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const id = params.id.trim();
+  if (!id) {
+    return { data: null, error: "Product ID is required." };
+  }
+
+  const payload = {
+    name: params.name.trim(),
+    category: params.category.trim(),
+    thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
+  };
+
+  const { data, error } = await supabase
+    .from("products")
+    .update(payload)
+    .eq("id", id)
+    .select("id, name, category, thumbnail_url, created_at")
+    .single();
+
+  return {
+    data: (data as ProductRow | null) ?? null,
+    error: error ? error.message : null,
+  };
+}
+
 export async function uploadAdminProductImage(params: {
   file: Blob;
   fileName?: string;
@@ -584,6 +618,133 @@ export async function createAdminPriceEntry(params: {
 
   if (!row) {
     return { data: null, error: "Failed to create price entry." };
+  }
+
+  const entry = priceEntryFromRow(row, price);
+  if (!entry) {
+    return { data: null, error: "Failed to read price entry result." };
+  }
+
+  return {
+    data: entry,
+    error: null,
+  };
+}
+
+export async function updateAdminPriceEntry(params: {
+  id: string;
+  productId: string;
+  storeId: string;
+  price: string;
+  observedAt?: string;
+  periodEnd?: string;
+}): Promise<ServiceResult<AdminPriceEntry | null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const id = params.id.trim();
+  const productId = params.productId.trim();
+  const storeId = params.storeId.trim();
+  if (!id || !productId || !storeId) {
+    return {
+      data: null,
+      error: "Price ID, Product ID, and Store ID are required.",
+    };
+  }
+
+  const price = parseNumber(params.price);
+  if (price === null) {
+    return {
+      data: null,
+      error: "Price must be a valid number.",
+    };
+  }
+
+  let observedAt = new Date().toISOString();
+  const observedRaw = params.observedAt?.trim() ?? "";
+  if (observedRaw.length > 0) {
+    const parsed = new Date(observedRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return {
+        data: null,
+        error: "Observed date must be a valid date string.",
+      };
+    }
+    observedAt = parsed.toISOString();
+  }
+
+  let validTo: string | null = null;
+  const periodEndRaw = params.periodEnd?.trim() ?? "";
+  if (periodEndRaw) {
+    const parsed = new Date(periodEndRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return {
+        data: null,
+        error: "Period end date must be a valid date string.",
+      };
+    }
+    validTo = parsed.toISOString();
+    if (new Date(validTo).getTime() < new Date(observedAt).getTime()) {
+      return {
+        data: null,
+        error: "Period end date must be after period start date.",
+      };
+    }
+  }
+
+  const payload = {
+    product_id: productId,
+    store_id: storeId,
+    price,
+    valid_from: observedAt,
+    valid_to: validTo,
+    observed_at: observedAt,
+  };
+
+  const withPeriod = await supabase
+    .from("product_prices")
+    .update(payload)
+    .eq("id", id)
+    .select(
+      "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(name), stores(name)",
+    )
+    .single();
+
+  let row: PriceRow | null = null;
+  if (withPeriod.error) {
+    if (!isMissingColumnError(withPeriod.error.message)) {
+      return { data: null, error: withPeriod.error.message };
+    }
+    const fallbackPayload = {
+      product_id: productId,
+      store_id: storeId,
+      price,
+      observed_at: observedAt,
+    };
+    const fallback = await supabase
+      .from("product_prices")
+      .update(fallbackPayload)
+      .eq("id", id)
+      .select(
+        "id, product_id, store_id, price, observed_at, created_at, products(name), stores(name)",
+      )
+      .single();
+
+    if (fallback.error) {
+      return { data: null, error: fallback.error.message };
+    }
+    row = (fallback.data as PriceRow) ?? null;
+    if (row) {
+      row.valid_from = observedAt;
+      row.valid_to = validTo;
+    }
+  } else {
+    row = (withPeriod.data as PriceRow) ?? null;
+  }
+
+  if (!row) {
+    return { data: null, error: "Failed to update price entry." };
   }
 
   const entry = priceEntryFromRow(row, price);

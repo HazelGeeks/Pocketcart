@@ -16,23 +16,38 @@ import useLayout from "../hooks/useLayout";
 import { marketingPalette as C } from "../shared/design/palette";
 import { hasSupabaseEnv } from "../services/supabaseClient";
 import {
-  createAdminPriceEntry,
-  createAdminProduct,
-  deleteAdminProduct,
-  getAdminUser,
-  listAdminPriceEntries,
-  listAdminProducts,
-  listAdminStores,
-  uploadAdminProductImage,
-  signInAdmin,
-  signOutAdmin,
+  extractFlyerRowsWithAi,
+  hasFlyerAiEndpoint,
+} from "../services/flyerAiImport";
+import {
   type AdminPriceEntry,
   type AdminProduct,
   type AdminStore,
-  type AdminUser,
 } from "../services/adminBackoffice";
-
-type AdminMenuKey = "overview" | "products";
+import {
+  useAdminPricesQuery,
+  useAdminProductsQuery,
+  useAdminSignInMutation,
+  useAdminSignOutMutation,
+  useAdminStoresQuery,
+  useAdminUserQuery,
+  useCreateAdminPriceEntryMutation,
+  useCreateAdminProductMutation,
+  useCreateAdminStoreMutation,
+  useDeleteAdminPriceEntryMutation,
+  useDeleteAdminProductMutation,
+  useDeleteAdminStoreMutation,
+  useUpdateAdminProductMutation,
+  useUpdateAdminPriceEntryMutation,
+  useUploadAdminProductImageMutation,
+} from "../hooks/useAdminBackofficeQueries";
+import {
+  createFlyerRow,
+  useAdminStore,
+  type AdminMenuKey,
+  type FlyerRow,
+  type ProductSortKey,
+} from "../state/adminStore";
 
 type OverviewCard = {
   id: string;
@@ -46,8 +61,6 @@ type StorePriceSetInput = {
   storeId: string;
   price: string;
 };
-
-type ProductSortKey = "latest" | "name" | "priceLow" | "priceHigh";
 
 type ProductPriceStats = {
   latestPrice: number | null;
@@ -87,6 +100,45 @@ const WEB_FILTER_SELECT_STYLE: React.CSSProperties = {
   paddingRight: 12,
   fontSize: 12,
   fontWeight: 700,
+};
+
+const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
+  minHeight: 38,
+  borderBottom: "1px solid #d9dee8",
+  backgroundColor: "#f4f6fa",
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  overflowX: "auto",
+  padding: "5px 8px",
+};
+
+const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
+  { label: "마트명", key: "martName" },
+  { label: "지역/지점", key: "regionBranch" },
+  { label: "세일 시작일", key: "saleStartDate" },
+  { label: "세일 종료일", key: "saleEndDate" },
+  { label: "이름", key: "name" },
+  { label: "대분류", key: "mainCategory" },
+  { label: "중분류", key: "subCategory" },
+  { label: "브랜드", key: "brand" },
+  { label: "가격", key: "price" },
+  { label: "단위", key: "unit" },
+  { label: "메모", key: "memo" },
+];
+
+const PRODUCT_IMPORT_HEADERS = {
+  name: ["name", "product_name", "product", "이름", "상품명", "제품명"],
+  category: ["category", "main_category", "대분류", "카테고리", "분류"],
+  thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
+};
+
+const STORE_IMPORT_HEADERS = {
+  name: ["name", "store_name", "마트명", "매장명", "스토어"],
+  area: ["area", "region", "지역", "지역/지점", "지점"],
+  latitude: ["latitude", "lat", "위도"],
+  longitude: ["longitude", "lng", "lon", "경도"],
+  priceNote: ["price_note", "note", "memo", "메모"],
 };
 
 function toDateOnlyLabel(value: string): string {
@@ -144,22 +196,276 @@ function createStorePriceSet(seed?: Partial<Pick<StorePriceSetInput, "storeId" |
   };
 }
 
+function csvCell(value: string): string {
+  const text = value.replace(/\r?\n/g, " ").trim();
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, "\"\"")}"`;
+  }
+  return text;
+}
+
+function buildFlyerCsv(rows: FlyerRow[]): string {
+  const header = FLYER_CSV_COLUMNS.map((column) => csvCell(column.label)).join(",");
+  const body = rows.map((row) =>
+    FLYER_CSV_COLUMNS.map((column) => csvCell(String(row[column.key] ?? ""))).join(","),
+  );
+  return ["\uFEFF" + header, ...body].join("\r\n") + "\r\n";
+}
+
+function parseCsvRows(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+
+    if (quoted) {
+      if (char === "\"" && next === "\"") {
+        cell += "\"";
+        index += 1;
+      } else if (char === "\"") {
+        quoted = false;
+      } else {
+        cell += char;
+      }
+      continue;
+    }
+
+    if (char === "\"") {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (char === "\n") {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+    } else if (char !== "\r") {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim())) {
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function csvHeaderKey(value: string): string {
+  return value.trim().replace(/^\uFEFF/, "").toLowerCase().replace(/\s+/g, "_");
+}
+
+function csvRowValue(
+  row: Record<string, string>,
+  aliases: string[],
+): string {
+  for (const alias of aliases) {
+    const value = row[csvHeaderKey(alias)]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function productsToCsv(products: AdminProduct[], priceStats: Map<string, ProductPriceStats>): string {
+  const header = [
+    "id",
+    "name",
+    "category",
+    "thumbnail_url",
+    "latest_price",
+    "min_price",
+    "max_price",
+    "stores",
+    "created_at",
+  ];
+  const rows = products.map((product) => {
+    const stats = priceStats.get(product.id);
+    return [
+      product.id,
+      product.name,
+      product.category,
+      product.thumbnail_url ?? "",
+      stats?.latestPrice !== null && stats?.latestPrice !== undefined ? stats.latestPrice.toFixed(2) : "",
+      stats?.minPrice !== null && stats?.minPrice !== undefined ? stats.minPrice.toFixed(2) : "",
+      stats?.maxPrice !== null && stats?.maxPrice !== undefined ? stats.maxPrice.toFixed(2) : "",
+      stats?.storeNames.join(" | ") ?? "",
+      product.created_at,
+    ].map(csvCell).join(",");
+  });
+  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+}
+
+function storesToCsv(stores: AdminStore[]): string {
+  const header = ["id", "name", "area", "latitude", "longitude", "price_note", "created_at"];
+  const rows = stores.map((store) =>
+    [
+      store.id,
+      store.name,
+      store.area,
+      String(store.latitude),
+      String(store.longitude),
+      store.price_note ?? "",
+      store.created_at,
+    ].map(csvCell).join(","),
+  );
+  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+}
+
+function flyerRowsToProductCsv(rows: FlyerRow[]): string {
+  const header = [
+    "name",
+    "category",
+    "thumbnail_url",
+    "brand",
+    "source_price",
+    "unit",
+    "memo",
+  ];
+  const body = rows.map((row) => {
+    const name = [row.brand, row.name]
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(" ");
+    return [
+      name || row.name,
+      row.mainCategory || row.subCategory || "Uncategorized",
+      "",
+      row.brand,
+      row.price,
+      row.unit,
+      row.memo,
+    ].map(csvCell).join(",");
+  });
+  return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
+}
+
+function dateInputValue(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function downloadCsvFile(prefix: string, csv: string): string | null {
+  if (Platform.OS !== "web") {
+    return "CSV export is currently available on web admin.";
+  }
+
+  const doc = (globalThis as { document?: any }).document;
+  const urlApi = (globalThis as { URL?: typeof URL }).URL;
+  if (!doc || typeof doc.createElement !== "function" || !urlApi?.createObjectURL) {
+    return "CSV export is not available in this browser.";
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const href = urlApi.createObjectURL(blob);
+  const link = doc.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  link.href = href;
+  link.download = `${prefix}-${date}.csv`;
+  doc.body.appendChild(link);
+  link.click();
+  link.remove();
+  urlApi.revokeObjectURL(href);
+  return null;
+}
+
+function normalizeOcrText(value: string): string {
+  return value
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function cleanFlyerProductName(value: string): string {
+  return value
+    .replace(/^[\s\d.)(-]+/, "")
+    .replace(/\b(save|sale|club|member|each|ea|lb|kg)\b/gi, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function parseFlyerPrice(value: string): string {
+  const normalized = value.replace(/,/g, ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : "";
+}
+
+function inferFlyerMainCategory(productName: string): string {
+  const text = productName.toLowerCase();
+  const direct = DEFAULT_PRODUCT_CATEGORIES.find((category) => text.includes(category.toLowerCase()));
+  if (direct) return direct;
+  if (/\b(milk|cheese|yogurt|cream|butter)\b/i.test(productName)) return "Dairy";
+  if (/\b(chicken|beef|pork|turkey|sausage)\b/i.test(productName)) return "Meat";
+  if (/\b(apple|banana|tomato|lettuce|onion|potato|berry|berries)\b/i.test(productName)) return "Produce";
+  if (/\b(bread|bagel|bun|cake|muffin)\b/i.test(productName)) return "Bakery";
+  if (/\b(juice|soda|water|coffee|tea)\b/i.test(productName)) return "Beverage";
+  if (/\b(chips|cracker|cookie|snack)\b/i.test(productName)) return "Snacks";
+  return "";
+}
+
+function inferFlyerUnit(value: string): string {
+  const match = value.match(/\b(each|ea|lb|lbs|kg|g|ml|l|oz|pack|pk|ct)\b/i);
+  return match?.[1] ?? "";
+}
+
+function parseFlyerTextToRows(text: string): FlyerRow[] {
+  const lines = normalizeOcrText(text)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const rows: FlyerRow[] = [];
+  let previousText = "";
+
+  lines.forEach((line) => {
+    const priceMatches = Array.from(
+      line.matchAll(/(?:cad|ca|\$)?\s*(\d{1,3}(?:[.,]\d{2}))(?!\d)/gi),
+    );
+    const priceMatch = priceMatches[priceMatches.length - 1];
+    if (!priceMatch || priceMatch.index === undefined) {
+      previousText = cleanFlyerProductName(line) || previousText;
+      return;
+    }
+
+    const price = parseFlyerPrice(priceMatch[1] ?? "");
+    if (!price) return;
+
+    const beforePrice = line.slice(0, priceMatch.index);
+    const afterPrice = line.slice(priceMatch.index + priceMatch[0].length);
+    const productName = cleanFlyerProductName(beforePrice) || cleanFlyerProductName(previousText);
+    if (!productName || productName.length < 2) {
+      previousText = cleanFlyerProductName(afterPrice) || previousText;
+      return;
+    }
+
+    rows.push(
+      createFlyerRow({
+        name: productName,
+        mainCategory: inferFlyerMainCategory(productName),
+        price,
+        unit: inferFlyerUnit(line),
+        memo: line,
+      }),
+    );
+    previousText = cleanFlyerProductName(afterPrice);
+  });
+
+  return rows;
+}
+
 export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const { isLg } = useLayout();
   const allowlistEnabled = ADMIN_EMAIL_ALLOWLIST.length > 0;
 
-  const [activeMenu, setActiveMenu] = React.useState<AdminMenuKey>("overview");
-
-  const [authUser, setAuthUser] = React.useState<AdminUser | null>(null);
   const [authEmail, setAuthEmail] = React.useState("");
   const [authPassword, setAuthPassword] = React.useState("");
-  const [authLoading, setAuthLoading] = React.useState(false);
-
-  const [products, setProducts] = React.useState<AdminProduct[]>([]);
-  const [stores, setStores] = React.useState<AdminStore[]>([]);
-  const [prices, setPrices] = React.useState<AdminPriceEntry[]>([]);
-
-  const [productsLoading, setProductsLoading] = React.useState(false);
 
   const [notice, setNotice] = React.useState<string | null>(null);
 
@@ -173,22 +479,76 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [productPeriodStartDate, setProductPeriodStartDate] = React.useState("");
   const [productPeriodEndDate, setProductPeriodEndDate] = React.useState("");
   const [productModalOpen, setProductModalOpen] = React.useState(false);
+  const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
   const [productImageUploading, setProductImageUploading] = React.useState(false);
+  const [editingPriceId, setEditingPriceId] = React.useState<string | null>(null);
+  const [priceProductId, setPriceProductId] = React.useState("");
+  const [priceStoreId, setPriceStoreId] = React.useState("");
+  const [priceValue, setPriceValue] = React.useState("");
+  const [priceStartDate, setPriceStartDate] = React.useState("");
+  const [priceEndDate, setPriceEndDate] = React.useState("");
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
-  const [productSearchQuery, setProductSearchQuery] = React.useState("");
-  const [productCategoryFilter, setProductCategoryFilter] = React.useState("all");
-  const [productStoreFilter, setProductStoreFilter] = React.useState("all");
-  const [productPriceMin, setProductPriceMin] = React.useState("");
-  const [productPriceMax, setProductPriceMax] = React.useState("");
-  const [productSort, setProductSort] = React.useState<ProductSortKey>("latest");
+
+  const activeMenu = useAdminStore((state) => state.activeMenu);
+  const setActiveMenu = useAdminStore((state) => state.setActiveMenu);
+  const sidebarCollapsed = useAdminStore((state) => state.sidebarCollapsed);
+  const setSidebarCollapsed = useAdminStore((state) => state.setSidebarCollapsed);
+  const productSearchQuery = useAdminStore((state) => state.productSearchQuery);
+  const setProductSearchQuery = useAdminStore((state) => state.setProductSearchQuery);
+  const productCategoryFilter = useAdminStore((state) => state.productCategoryFilter);
+  const setProductCategoryFilter = useAdminStore((state) => state.setProductCategoryFilter);
+  const productStoreFilter = useAdminStore((state) => state.productStoreFilter);
+  const setProductStoreFilter = useAdminStore((state) => state.setProductStoreFilter);
+  const productPriceMin = useAdminStore((state) => state.productPriceMin);
+  const setProductPriceMin = useAdminStore((state) => state.setProductPriceMin);
+  const productPriceMax = useAdminStore((state) => state.productPriceMax);
+  const setProductPriceMax = useAdminStore((state) => state.setProductPriceMax);
+  const productSort = useAdminStore((state) => state.productSort);
+  const setProductSort = useAdminStore((state) => state.setProductSort);
+  const resetProductFilters = useAdminStore((state) => state.resetProductFilters);
+  const flyerRows = useAdminStore((state) => state.flyerRows);
+  const setFlyerRows = useAdminStore((state) => state.setFlyerRows);
+  const flyerProcessing = useAdminStore((state) => state.flyerProcessing);
+  const setFlyerProcessing = useAdminStore((state) => state.setFlyerProcessing);
+  const flyerProgress = useAdminStore((state) => state.flyerProgress);
+  const setFlyerProgress = useAdminStore((state) => state.setFlyerProgress);
+  const updateFlyerRow = useAdminStore((state) => state.updateFlyerRow);
+  const addFlyerRow = useAdminStore((state) => state.addFlyerRow);
+  const removeSelectedFlyerRows = useAdminStore((state) => state.removeSelectedFlyerRows);
+  const clearFlyerImport = useAdminStore((state) => state.clearFlyerImport);
+  const resetAdminUi = useAdminStore((state) => state.resetAdminUi);
+
+  const adminUserQuery = useAdminUserQuery();
+  const authUser = adminUserQuery.data ?? null;
 
   const hasAdminAccess = authUser
     ? !allowlistEnabled ||
       ADMIN_EMAIL_ALLOWLIST.includes(authUser.email.trim().toLowerCase())
     : false;
+  const dataQueriesEnabled = Boolean(authUser && hasAdminAccess);
+  const productsQuery = useAdminProductsQuery(dataQueriesEnabled);
+  const storesQuery = useAdminStoresQuery(dataQueriesEnabled);
+  const pricesQuery = useAdminPricesQuery(dataQueriesEnabled);
+  const signInMutation = useAdminSignInMutation();
+  const signOutMutation = useAdminSignOutMutation();
+  const createProductMutation = useCreateAdminProductMutation();
+  const updateProductMutation = useUpdateAdminProductMutation();
+  const createPriceEntryMutation = useCreateAdminPriceEntryMutation();
+  const updatePriceEntryMutation = useUpdateAdminPriceEntryMutation();
+  const deletePriceEntryMutation = useDeleteAdminPriceEntryMutation();
+  const createStoreMutation = useCreateAdminStoreMutation();
+  const deleteStoreMutation = useDeleteAdminStoreMutation();
+  const deleteProductMutation = useDeleteAdminProductMutation();
+  const uploadProductImageMutation = useUploadAdminProductImageMutation();
+
+  const products = React.useMemo<AdminProduct[]>(() => productsQuery.data ?? [], [productsQuery.data]);
+  const stores = React.useMemo<AdminStore[]>(() => storesQuery.data ?? [], [storesQuery.data]);
+  const prices = React.useMemo<AdminPriceEntry[]>(() => pricesQuery.data ?? [], [pricesQuery.data]);
+  const productsLoading = productsQuery.isLoading || productsQuery.isFetching;
+  const authLoading =
+    adminUserQuery.isLoading || signInMutation.isPending || signOutMutation.isPending;
 
   const priceRowsMissingLink = React.useMemo(
     () => prices.filter((row) => !row.product_name || !row.store_name).length,
@@ -247,6 +607,21 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     });
     return map;
   }, [prices, stores]);
+
+  const productNameById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach((product) => {
+      const productId = product.id.trim();
+      if (!productId) return;
+      map.set(productId, product.name.trim() || productId);
+    });
+    prices.forEach((row) => {
+      const productId = row.product_id.trim();
+      if (!productId || map.has(productId)) return;
+      map.set(productId, row.product_name?.trim() || productId);
+    });
+    return map;
+  }, [prices, products]);
 
   const productPriceStats = React.useMemo(() => {
     const stats = new Map<string, ProductPriceStats>();
@@ -390,58 +765,45 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     productStoreFilter,
   ]);
 
-  const loadProducts = React.useCallback(async () => {
-    setProductsLoading(true);
-    const { data, error } = await listAdminProducts();
-    setProducts(data);
-    setProductsLoading(false);
-    return error;
-  }, []);
-
-  const loadStores = React.useCallback(async () => {
-    const { data, error } = await listAdminStores();
-    setStores(data);
-    return error;
-  }, []);
-
-  const loadPrices = React.useCallback(async () => {
-    const { data, error } = await listAdminPriceEntries();
-    setPrices(data);
-    return error;
-  }, []);
+  const flyerSelectedCount = React.useMemo(
+    () => flyerRows.filter((row) => row.selected).length,
+    [flyerRows],
+  );
 
   const loadAll = React.useCallback(
     async (keepNotice = false) => {
-      const errors = await Promise.all([loadProducts(), loadStores(), loadPrices()]);
-      const merged = errors.filter((item): item is string => Boolean(item)).join(" | ");
-      if (merged) {
-        setNotice(merged);
-      } else if (!keepNotice) {
+      const results = await Promise.all([
+        productsQuery.refetch(),
+        storesQuery.refetch(),
+        pricesQuery.refetch(),
+      ]);
+      const errors = results
+        .map((item) => (item.error instanceof Error ? item.error.message : null))
+        .filter((item): item is string => Boolean(item));
+      if (errors.length > 0) {
+        setNotice(errors.join(" | "));
+        return;
+      }
+      if (!keepNotice) {
         setNotice(null);
       }
     },
-    [loadPrices, loadProducts, loadStores],
+    [pricesQuery, productsQuery, storesQuery],
   );
 
-  const loadSessionUser = React.useCallback(async () => {
-    if (!hasSupabaseEnv) return;
-    setAuthLoading(true);
-    const { data, error } = await getAdminUser();
-    setAuthLoading(false);
-    setAuthUser(data);
-    if (error) {
-      setNotice(error);
+  React.useEffect(() => {
+    const errors = [
+      adminUserQuery.error,
+      productsQuery.error,
+      storesQuery.error,
+      pricesQuery.error,
+    ]
+      .map((error) => (error instanceof Error ? error.message : null))
+      .filter((item): item is string => Boolean(item));
+    if (errors.length > 0) {
+      setNotice(errors.join(" | "));
     }
-  }, []);
-
-  React.useEffect(() => {
-    void loadSessionUser();
-  }, [loadSessionUser]);
-
-  React.useEffect(() => {
-    if (!authUser || !hasAdminAccess) return;
-    void loadAll();
-  }, [authUser, hasAdminAccess, loadAll]);
+  }, [adminUserQuery.error, pricesQuery.error, productsQuery.error, storesQuery.error]);
 
   const updateStorePriceSet = React.useCallback(
     (id: string, field: "storeId" | "price", value: string) => {
@@ -465,6 +827,52 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     });
   }, []);
 
+  const resetProductForm = React.useCallback(() => {
+    setEditingProductId(null);
+    setProductName("");
+    setProductCategory("");
+    setProductCategoryCustom("");
+    setProductThumb("");
+    setProductStorePriceSets([createStorePriceSet()]);
+    setProductPeriodStartDate("");
+    setProductPeriodEndDate("");
+  }, []);
+
+  const resetPriceForm = React.useCallback(() => {
+    setEditingPriceId(null);
+    setPriceProductId("");
+    setPriceStoreId("");
+    setPriceValue("");
+    setPriceStartDate("");
+    setPriceEndDate("");
+  }, []);
+
+  const handleOpenAddProduct = React.useCallback(() => {
+    resetProductForm();
+    setProductModalOpen(true);
+  }, [resetProductForm]);
+
+  const handleOpenEditProduct = React.useCallback((product: AdminProduct) => {
+    setEditingProductId(product.id);
+    setProductName(product.name);
+    setProductCategory(product.category);
+    setProductCategoryCustom(product.category);
+    setProductThumb(product.thumbnail_url ?? "");
+    setProductStorePriceSets([createStorePriceSet()]);
+    setProductPeriodStartDate("");
+    setProductPeriodEndDate("");
+    setProductModalOpen(true);
+  }, []);
+
+  const handleOpenEditPrice = React.useCallback((price: AdminPriceEntry) => {
+    setEditingPriceId(price.id);
+    setPriceProductId(price.product_id);
+    setPriceStoreId(price.store_id);
+    setPriceValue(price.price.toFixed(2));
+    setPriceStartDate(dateInputValue(price.valid_from || price.observed_at));
+    setPriceEndDate(dateInputValue(price.valid_to));
+  }, []);
+
   const handleSignIn = React.useCallback(async () => {
     const email = authEmail.trim();
     const password = authPassword;
@@ -474,45 +882,29 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       return;
     }
 
-    setAuthLoading(true);
-    const { data, error } = await signInAdmin({ email, password });
-    setAuthLoading(false);
-
-    if (error) {
-      setNotice(error);
+    try {
+      await signInMutation.mutateAsync({ email, password });
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Sign in failed.");
       return;
     }
 
-    setAuthUser(data);
     setAuthPassword("");
     setActiveMenu("overview");
     setNotice("Signed in to admin.");
-  }, [authEmail, authPassword]);
+  }, [authEmail, authPassword, setActiveMenu, signInMutation]);
 
   const handleSignOut = React.useCallback(async () => {
-    setAuthLoading(true);
-    const { error } = await signOutAdmin();
-    setAuthLoading(false);
-
-    if (error) {
-      setNotice(error);
+    try {
+      await signOutMutation.mutateAsync();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Sign out failed.");
       return;
     }
 
-    setAuthUser(null);
-    setProducts([]);
-    setStores([]);
-    setPrices([]);
-    setActiveMenu("overview");
-    setSidebarCollapsed(false);
-    setProductSearchQuery("");
-    setProductCategoryFilter("all");
-    setProductStoreFilter("all");
-    setProductPriceMin("");
-    setProductPriceMax("");
-    setProductSort("latest");
+    resetAdminUi();
     setNotice("Signed out.");
-  }, []);
+  }, [resetAdminUi, signOutMutation]);
 
   const handleCreateProduct = React.useCallback(async () => {
     const name = productName.trim();
@@ -534,10 +926,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       setNotice("Product name and category are required.");
       return;
     }
-    if (!activeSets.length) {
-      setNotice("Add at least one Store | Price set.");
-      return;
-    }
     const partialSet = activeSets.find((item) => !item.storeId || !item.price);
     if (partialSet) {
       setNotice(`Set ${partialSet.row}: store and price are required together.`);
@@ -556,78 +944,89 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       setNotice("Each set price must be a valid number.");
       return;
     }
-    if (!periodStart || !periodEnd) {
+    if (activeSets.length > 0 && (!periodStart || !periodEnd)) {
       setNotice("Price period start/end are required. Select dates.");
       return;
     }
-    if (!periodStartIso || !periodEndIso) {
+    if (activeSets.length > 0 && (!periodStartIso || !periodEndIso)) {
       setNotice("Invalid date format. Use valid date picker values.");
       return;
     }
 
-    setSubmitting(true);
-    const { data: createdProduct, error } = await createAdminProduct({
-      name,
-      category,
-      thumbnailUrl: productThumb,
-    });
+    try {
+      setSubmitting(true);
+      const savedProduct = editingProductId
+        ? await updateProductMutation.mutateAsync({
+            id: editingProductId,
+            name,
+            category,
+            thumbnailUrl: productThumb,
+          })
+        : await createProductMutation.mutateAsync({
+            name,
+            category,
+            thumbnailUrl: productThumb,
+          });
 
-    if (error) {
-      setSubmitting(false);
-      setNotice(error);
-      return;
-    }
-    if (!createdProduct) {
-      setSubmitting(false);
-      setNotice("Product was not created.");
-      return;
-    }
-
-    const creationErrors: string[] = [];
-    for (const item of activeSets) {
-      const { error: rowError } = await createAdminPriceEntry({
-        productId: createdProduct.id,
-        storeId: item.storeId,
-        price: item.price,
-        observedAt: periodStartIso,
-        periodEnd: periodEndIso,
-      });
-      if (rowError) {
-        creationErrors.push(`Set ${item.row}: ${rowError}`);
+      if (!savedProduct) {
+        setNotice(editingProductId ? "Product was not updated." : "Product was not created.");
+        return;
       }
-    }
 
-    setSubmitting(false);
-    if (creationErrors.length > 0) {
-      setNotice(
-        `Product created, but ${creationErrors.length} Store | Price set failed. ${creationErrors[0]}`,
-      );
-      await loadProducts();
-      await loadPrices();
+      const creationErrors: string[] = [];
+      for (const item of activeSets) {
+        try {
+          await createPriceEntryMutation.mutateAsync({
+            productId: savedProduct.id,
+            storeId: item.storeId,
+            price: item.price,
+            observedAt: periodStartIso ?? undefined,
+            periodEnd: periodEndIso ?? undefined,
+          });
+        } catch (error) {
+          creationErrors.push(
+            `Set ${item.row}: ${error instanceof Error ? error.message : "Price entry failed."}`,
+          );
+        }
+      }
+
+      if (creationErrors.length > 0) {
+        setNotice(
+          `Product saved, but ${creationErrors.length} Store | Price set failed. ${creationErrors[0]}`,
+        );
+        await loadAll(true);
+        return;
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Product was not saved.");
       return;
+    } finally {
+      setSubmitting(false);
     }
 
-    setProductName("");
-    setProductCategory("");
-    setProductCategoryCustom("");
-    setProductThumb("");
-    setProductStorePriceSets([createStorePriceSet()]);
-    setProductPeriodStartDate("");
-    setProductPeriodEndDate("");
+    const savedPriceCount = activeSets.length;
+    const wasEditing = Boolean(editingProductId);
+    resetProductForm();
     setProductModalOpen(false);
-    setNotice(`Product and ${activeSets.length} Store | Price set created.`);
-    await loadProducts();
-    await loadPrices();
+    setNotice(
+      savedPriceCount > 0
+        ? `Product ${wasEditing ? "updated" : "created"} with ${savedPriceCount} Store | Price set.`
+        : `Product ${wasEditing ? "updated" : "created"} without image or price data.`,
+    );
+    await loadAll(true);
   }, [
-    loadPrices,
-    loadProducts,
+    createPriceEntryMutation,
+    createProductMutation,
+    editingProductId,
+    loadAll,
     productCategory,
-    productCategoryCustom,
     productName,
     productPeriodEndDate,
     productPeriodStartDate,
     productStorePriceSets,
     productThumb,
+    resetProductForm,
+    updateProductMutation,
   ]);
 
   const handlePickPeriodDate = React.useCallback(
@@ -684,47 +1083,585 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       if (!selected) return;
       void (async () => {
         setProductImageUploading(true);
-        const { data, error } = await uploadAdminProductImage({
-          file: selected,
-          fileName: selected.name,
-          contentType: selected.type,
-        });
-        setProductImageUploading(false);
-        if (error || !data) {
-          setNotice(error ?? "Image upload failed.");
-          return;
+        try {
+          const data = await uploadProductImageMutation.mutateAsync({
+            file: selected,
+            fileName: selected.name,
+            contentType: selected.type,
+          });
+          if (!data) {
+            setNotice("Image upload failed.");
+            return;
+          }
+          setProductThumb(data.publicUrl);
+          setNotice("Image uploaded to Supabase Storage.");
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : "Image upload failed.");
+        } finally {
+          setProductImageUploading(false);
         }
-        setProductThumb(data.publicUrl);
-        setNotice("Image uploaded to Supabase Storage.");
       })();
     };
     input.click();
+  }, [uploadProductImageMutation]);
+
+  const handleExportProductsCsv = React.useCallback(() => {
+    if (filteredProducts.length === 0) {
+      setNotice("There are no products to export.");
+      return;
+    }
+
+    const error = downloadCsvFile("products", productsToCsv(filteredProducts, productPriceStats));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${filteredProducts.length} products to CSV.`);
+  }, [filteredProducts, productPriceStats]);
+
+  const handleImportProductsCsv = React.useCallback(() => {
+    if (Platform.OS !== "web") {
+      setNotice("Product CSV import is currently available on web admin.");
+      return;
+    }
+
+    const doc = (globalThis as { document?: any }).document;
+    if (!doc || typeof doc.createElement !== "function") {
+      setNotice("Product CSV import is not available in this browser.");
+      return;
+    }
+
+    const input = doc.createElement("input");
+    input.type = "file";
+    input.accept = "text/csv,.csv";
+    input.multiple = false;
+    input.onchange = () => {
+      const selected = input.files?.[0];
+      if (!selected) return;
+      void (async () => {
+        setSubmitting(true);
+        try {
+          const text = await selected.text();
+          const parsed = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim()));
+          const [headerRow, ...dataRows] = parsed;
+          if (!headerRow || dataRows.length === 0) {
+            setNotice("CSV must include a header row and at least one product row.");
+            return;
+          }
+
+          const headers = headerRow.map(csvHeaderKey);
+          const created: string[] = [];
+          const skipped: string[] = [];
+
+          for (const [index, values] of dataRows.entries()) {
+            const record: Record<string, string> = {};
+            headers.forEach((header, headerIndex) => {
+              record[header] = values[headerIndex] ?? "";
+            });
+
+            const name = csvRowValue(record, PRODUCT_IMPORT_HEADERS.name);
+            const category = csvRowValue(record, PRODUCT_IMPORT_HEADERS.category);
+            const thumbnailUrl = csvRowValue(record, PRODUCT_IMPORT_HEADERS.thumbnailUrl);
+
+            if (!name || !category) {
+              skipped.push(`row ${index + 2}`);
+              continue;
+            }
+
+            try {
+              const product = await createProductMutation.mutateAsync({
+                name,
+                category,
+                thumbnailUrl,
+              });
+              if (product) created.push(product.id);
+            } catch (error) {
+              skipped.push(`row ${index + 2}: ${error instanceof Error ? error.message : "failed"}`);
+            }
+          }
+
+          await loadAll(true);
+          setNotice(
+            `Imported ${created.length} products from CSV.${
+              skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
+            }`,
+          );
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : "Product CSV import failed.");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
+    };
+    input.click();
+  }, [createProductMutation, loadAll]);
+
+  const handleExportStoresCsv = React.useCallback(() => {
+    if (stores.length === 0) {
+      setNotice("There are no stores to export.");
+      return;
+    }
+
+    const error = downloadCsvFile("stores", storesToCsv(stores));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${stores.length} stores to CSV.`);
+  }, [stores]);
+
+  const handleImportStoresCsv = React.useCallback(() => {
+    if (Platform.OS !== "web") {
+      setNotice("Store CSV import is currently available on web admin.");
+      return;
+    }
+
+    const doc = (globalThis as { document?: any }).document;
+    if (!doc || typeof doc.createElement !== "function") {
+      setNotice("Store CSV import is not available in this browser.");
+      return;
+    }
+
+    const input = doc.createElement("input");
+    input.type = "file";
+    input.accept = "text/csv,.csv";
+    input.multiple = false;
+    input.onchange = () => {
+      const selected = input.files?.[0];
+      if (!selected) return;
+      void (async () => {
+        setSubmitting(true);
+        try {
+          const text = await selected.text();
+          const parsed = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim()));
+          const [headerRow, ...dataRows] = parsed;
+          if (!headerRow || dataRows.length === 0) {
+            setNotice("CSV must include a header row and at least one store row.");
+            return;
+          }
+
+          const headers = headerRow.map(csvHeaderKey);
+          const existing = new Set(
+            stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
+          );
+          const created: string[] = [];
+          const skipped: string[] = [];
+
+          for (const [index, values] of dataRows.entries()) {
+            const record: Record<string, string> = {};
+            headers.forEach((header, headerIndex) => {
+              record[header] = values[headerIndex] ?? "";
+            });
+
+            const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
+            const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
+            const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
+            const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
+            const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
+            const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+
+            if (!name || !area || !latitude || !longitude) {
+              skipped.push(`row ${index + 2}`);
+              continue;
+            }
+            if (existing.has(duplicateKey)) {
+              skipped.push(`row ${index + 2}: duplicate`);
+              continue;
+            }
+
+            try {
+              const store = await createStoreMutation.mutateAsync({
+                name,
+                area,
+                latitude,
+                longitude,
+                priceNote,
+              });
+              if (store) {
+                created.push(store.id);
+                existing.add(duplicateKey);
+              }
+            } catch (error) {
+              skipped.push(`row ${index + 2}: ${error instanceof Error ? error.message : "failed"}`);
+            }
+          }
+
+          await loadAll(true);
+          setNotice(
+            `Imported ${created.length} stores from CSV.${
+              skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
+            }`,
+          );
+        } catch (error) {
+          setNotice(error instanceof Error ? error.message : "Store CSV import failed.");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
+    };
+    input.click();
+  }, [createStoreMutation, loadAll, stores]);
+
+  const handleSavePriceEntry = React.useCallback(async () => {
+    const productId = priceProductId.trim();
+    const storeId = priceStoreId.trim();
+    const price = priceValue.trim();
+    const periodStart = priceStartDate.trim();
+    const periodEnd = priceEndDate.trim();
+    const periodStartIso = dateOnlyToIso(periodStart, false);
+    const periodEndIso = dateOnlyToIso(periodEnd, true);
+
+    if (!productId || !storeId || !price) {
+      setNotice("Product ID, Store ID, and price are required.");
+      return;
+    }
+    if (Number.isNaN(Number(price))) {
+      setNotice("Price must be a valid number.");
+      return;
+    }
+    if (periodStart && !periodStartIso) {
+      setNotice("Invalid start date. Use YYYY-MM-DD.");
+      return;
+    }
+    if (periodEnd && !periodEndIso) {
+      setNotice("Invalid end date. Use YYYY-MM-DD.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      if (editingPriceId) {
+        await updatePriceEntryMutation.mutateAsync({
+          id: editingPriceId,
+          productId,
+          storeId,
+          price,
+          observedAt: periodStartIso ?? undefined,
+          periodEnd: periodEndIso ?? undefined,
+        });
+      } else {
+        await createPriceEntryMutation.mutateAsync({
+          productId,
+          storeId,
+          price,
+          observedAt: periodStartIso ?? undefined,
+          periodEnd: periodEndIso ?? undefined,
+        });
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Price entry was not saved.");
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+
+    resetPriceForm();
+    setNotice(editingPriceId ? "Price entry updated." : "Price entry added.");
+    await loadAll(true);
+  }, [
+    createPriceEntryMutation,
+    editingPriceId,
+    loadAll,
+    priceEndDate,
+    priceProductId,
+    priceStartDate,
+    priceStoreId,
+    priceValue,
+    resetPriceForm,
+    updatePriceEntryMutation,
+  ]);
+
+  const handleDeletePriceEntry = React.useCallback(
+    async (id: string) => {
+      setDeletingKey(`price:${id}`);
+      try {
+        await deletePriceEntryMutation.mutateAsync(id);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Price entry delete failed.");
+        return;
+      } finally {
+        setDeletingKey(null);
+      }
+      if (editingPriceId === id) {
+        resetPriceForm();
+      }
+      setNotice("Price entry deleted.");
+      await loadAll(true);
+    },
+    [deletePriceEntryMutation, editingPriceId, loadAll, resetPriceForm],
+  );
+
+  const handleDeleteStore = React.useCallback(
+    async (id: string) => {
+      setDeletingKey(`store:${id}`);
+      try {
+        await deleteStoreMutation.mutateAsync(id);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Store delete failed.");
+        return;
+      } finally {
+        setDeletingKey(null);
+      }
+      setNotice("Store deleted.");
+      await loadAll(true);
+    },
+    [deleteStoreMutation, loadAll],
+  );
+
+  const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
+    const tesseract = await import("tesseract.js");
+    const worker = await tesseract.createWorker("eng", 1, {
+      logger: (message: any) => {
+        if (!message?.status) return;
+        const progress =
+          typeof message.progress === "number" ? ` ${Math.round(message.progress * 100)}%` : "";
+        setFlyerProgress(`${message.status}${progress}`);
+      },
+    });
+
+    try {
+      const chunks: string[] = [];
+      for (let index = 0; index < sources.length; index += 1) {
+        setFlyerProgress(`OCR page ${index + 1} of ${sources.length}`);
+        const result = await worker.recognize(sources[index]);
+        chunks.push(result.data.text ?? "");
+      }
+      return normalizeOcrText(chunks.join("\n"));
+    } finally {
+      await worker.terminate();
+    }
   }, []);
+
+  const extractPdfText = React.useCallback(async (file: File) => {
+    const pdfjs = await import("pdfjs-dist");
+    const workerOptions = pdfjs.GlobalWorkerOptions as { workerSrc?: string };
+    if (!workerOptions.workerSrc) {
+      workerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+    }
+
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const loadingTask = pdfjs.getDocument({
+      data: bytes,
+      isEvalSupported: false,
+      useWorkerFetch: false,
+    } as any);
+    const pdf = await loadingTask.promise;
+
+    try {
+      const pageCount = Math.min(pdf.numPages, 5);
+      const pages: string[] = [];
+      for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+        setFlyerProgress(`Reading PDF text ${pageNumber} of ${pageCount}`);
+        const page = await pdf.getPage(pageNumber);
+        const textContent = await page.getTextContent();
+        const grouped = new Map<number, string[]>();
+        (textContent.items as any[]).forEach((item) => {
+          const value = String(item?.str ?? "").trim();
+          if (!value) return;
+          const y = Math.round(Number(item?.transform?.[5] ?? 0));
+          const existing = grouped.get(y) ?? [];
+          existing.push(value);
+          grouped.set(y, existing);
+        });
+        const pageText = Array.from(grouped.entries())
+          .sort((a, b) => b[0] - a[0])
+          .map(([, values]) => values.join(" "))
+          .join("\n");
+        pages.push(pageText);
+        page.cleanup();
+      }
+      return normalizeOcrText(pages.join("\n"));
+    } finally {
+      await pdf.cleanup();
+      await loadingTask.destroy();
+    }
+  }, []);
+
+  const renderPdfPagesForOcr = React.useCallback(async (file: File) => {
+    const pdfjs = await import("pdfjs-dist");
+    const workerOptions = pdfjs.GlobalWorkerOptions as { workerSrc?: string };
+    if (!workerOptions.workerSrc) {
+      workerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+    }
+
+    const doc = (globalThis as { document?: Document }).document;
+    if (!doc) {
+      throw new Error("PDF rendering requires a browser document.");
+    }
+
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const loadingTask = pdfjs.getDocument({
+      data: bytes,
+      isEvalSupported: false,
+      useWorkerFetch: false,
+    } as any);
+    const pdf = await loadingTask.promise;
+
+    try {
+      const pageCount = Math.min(pdf.numPages, 3);
+      const images: string[] = [];
+      for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+        setFlyerProgress(`Rendering PDF page ${pageNumber} of ${pageCount}`);
+        const page = await pdf.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: 2 });
+        const canvas = doc.createElement("canvas");
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Could not create a canvas for PDF rendering.");
+        }
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        await page.render({ canvasContext: context, viewport } as any).promise;
+        images.push(canvas.toDataURL("image/png"));
+        page.cleanup();
+      }
+      return images;
+    } finally {
+      await pdf.cleanup();
+      await loadingTask.destroy();
+    }
+  }, []);
+
+  const processFlyerFile = React.useCallback(
+    async (file: File) => {
+      setFlyerProcessing(true);
+      setFlyerProgress("Preparing file");
+      setNotice(null);
+
+      try {
+        if (hasFlyerAiEndpoint) {
+          setFlyerProgress("AI extracting table");
+          const aiResult = await extractFlyerRowsWithAi(file);
+          if (aiResult.rows.length > 0) {
+            setFlyerRows(aiResult.rows);
+            setFlyerProgress("");
+            setNotice(`AI extracted ${aiResult.rows.length} table rows. Review before saving.`);
+            return;
+          }
+          setFlyerProgress("AI found no rows. Running OCR fallback");
+        }
+
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+        let text = "";
+        if (isPdf) {
+          text = await extractPdfText(file);
+          if (parseFlyerTextToRows(text).length === 0) {
+            const images = await renderPdfPagesForOcr(file);
+            text = await recognizeFlyerSources(images);
+          }
+        } else {
+          text = await recognizeFlyerSources([file]);
+        }
+
+        const parsedRows = parseFlyerTextToRows(text);
+        setFlyerRows(parsedRows);
+        setFlyerProgress("");
+        setNotice(
+          parsedRows.length > 0
+            ? `Flyer parsed into ${parsedRows.length} table rows. Review before saving.`
+            : "No price rows were found. You can paste OCR text manually or add rows.",
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Flyer processing failed.";
+        setNotice(message);
+        setFlyerProgress("");
+      } finally {
+        setFlyerProcessing(false);
+      }
+    },
+    [
+      extractPdfText,
+      recognizeFlyerSources,
+      renderPdfPagesForOcr,
+    ],
+  );
+
+  const handlePickFlyerFile = React.useCallback(() => {
+    if (Platform.OS !== "web") {
+      setNotice("Flyer import is currently available on web admin.");
+      return;
+    }
+    const doc = (globalThis as { document?: any }).document;
+    if (!doc || typeof doc.createElement !== "function") {
+      setNotice("File picker is not available in this environment.");
+      return;
+    }
+
+    const input = doc.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf";
+    input.multiple = false;
+    input.onchange = () => {
+      const selected = input.files?.[0];
+      if (!selected) return;
+      void processFlyerFile(selected);
+    };
+    input.click();
+  }, [processFlyerFile]);
+
+  const handleAddFlyerRow = React.useCallback(() => {
+    addFlyerRow();
+  }, [addFlyerRow]);
+
+  const handleRemoveSelectedFlyerRows = React.useCallback(() => {
+    removeSelectedFlyerRows();
+  }, [removeSelectedFlyerRows]);
+
+  const handleClearFlyerImport = React.useCallback(() => {
+    clearFlyerImport();
+    setNotice("Flyer import cleared.");
+  }, [clearFlyerImport]);
+
+  const handleExportFlyerCsv = React.useCallback(() => {
+    const selectedRows = flyerRows.filter((row) => row.selected);
+    if (selectedRows.length === 0) {
+      setNotice("Select at least one flyer row to export.");
+      return;
+    }
+
+    const error = downloadCsvFile("flyer", buildFlyerCsv(selectedRows));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${selectedRows.length} flyer rows to CSV.`);
+  }, [flyerRows]);
+
+  const handleExportFlyerProductCsv = React.useCallback(() => {
+    const selectedRows = flyerRows.filter((row) => row.selected);
+    if (selectedRows.length === 0) {
+      setNotice("Select at least one flyer row to export.");
+      return;
+    }
+
+    const error = downloadCsvFile("flyer-products", flyerRowsToProductCsv(selectedRows));
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice(`Exported ${selectedRows.length} flyer rows as product import CSV.`);
+  }, [flyerRows]);
 
   const handleDeleteProduct = React.useCallback(
     async (id: string) => {
       setDeletingKey(`product:${id}`);
-      const { error } = await deleteAdminProduct(id);
-      setDeletingKey(null);
-      if (error) {
-        setNotice(error);
+      try {
+        await deleteProductMutation.mutateAsync(id);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Product delete failed.");
         return;
+      } finally {
+        setDeletingKey(null);
       }
       setNotice("Product deleted.");
-      await loadProducts();
-      await loadPrices();
+      await loadAll(true);
     },
-    [loadPrices, loadProducts],
+    [deleteProductMutation, loadAll],
   );
 
   const handleResetProductFilters = React.useCallback(() => {
-    setProductSearchQuery("");
-    setProductCategoryFilter("all");
-    setProductStoreFilter("all");
-    setProductPriceMin("");
-    setProductPriceMax("");
-    setProductSort("latest");
-  }, []);
+    resetProductFilters();
+  }, [resetProductFilters]);
 
   const sectionMenu = [
     {
@@ -737,9 +1674,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       label: "Products",
       badge: products.length,
     },
+    {
+      key: "flyer" as const,
+      label: "Flyer",
+      badge: 0,
+    },
   ];
 
-  const panelTitle = activeMenu === "overview" ? "Dashboard" : "Products";
+  const panelTitle =
+    activeMenu === "overview" ? "Dashboard" : activeMenu === "products" ? "Products" : "Flyer";
 
   return (
     <View style={st.root}>
@@ -952,15 +1895,17 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   </View>
                 ) : null}
 
-                <View style={st.statGrid}>
-                  {overviewCards.map((card) => (
-                    <View key={card.id} style={st.statCard}>
-                      <Text style={st.statLabel}>{card.label}</Text>
-                      <Text style={st.statValue}>{card.value}</Text>
-                      <Text style={st.statHint}>{card.hint}</Text>
-                    </View>
-                  ))}
-                </View>
+                {activeMenu === "overview" ? (
+                  <View style={st.statGrid}>
+                    {overviewCards.map((card) => (
+                      <View key={card.id} style={st.statCard}>
+                        <Text style={st.statLabel}>{card.label}</Text>
+                        <Text style={st.statValue}>{card.value}</Text>
+                        <Text style={st.statHint}>{card.hint}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
 
                 <Text style={st.panelTitle}>{panelTitle}</Text>
 
@@ -999,6 +1944,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 ) : null}
 
                 {activeMenu === "products" ? (
+                  <View style={st.productAdminStack}>
                   <View style={st.dataCard}>
                     <View style={st.dataCardHeader}>
                       <Text style={st.dataCardTitle}>Product Management</Text>
@@ -1006,7 +1952,23 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                         <Text style={st.dataMuted}>Create and remove catalog products.</Text>
                         <Pressable
                           accessibilityRole="button"
-                          onPress={() => setProductModalOpen(true)}
+                          onPress={handleImportProductsCsv}
+                          style={[st.btn, st.btnGhost]}
+                          disabled={submitting}
+                        >
+                          <Text style={st.btnGhostText}>Import CSV</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleExportProductsCsv}
+                          style={[st.btn, st.btnGhost, filteredProducts.length === 0 && st.btnDisabled]}
+                          disabled={filteredProducts.length === 0 || submitting}
+                        >
+                          <Text style={st.btnGhostText}>Export CSV</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleOpenAddProduct}
                           style={[st.btn, st.btnPrimary]}
                           disabled={submitting}
                         >
@@ -1160,6 +2122,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                               <Text style={st.listDate}>{latestObservedAt}</Text>
                               <Pressable
                                 accessibilityRole="button"
+                                onPress={() => handleOpenEditProduct(item)}
+                                style={[st.btn, st.btnGhost]}
+                                disabled={deleting || submitting}
+                              >
+                                <Text style={st.btnGhostText}>Edit</Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityRole="button"
                                 onPress={() => {
                                   void handleDeleteProduct(item.id);
                                 }}
@@ -1174,6 +2144,425 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       })
                     )}
                   </View>
+
+                    <View style={st.dataCard}>
+                      <View style={st.dataCardHeader}>
+                        <Text style={st.dataCardTitle}>Price Management</Text>
+                        <Text style={st.dataMuted}>Add, update, or delete product price rows.</Text>
+                      </View>
+
+                      <View style={st.productFilterCard}>
+                        <View style={st.formRow}>
+                          <TextInput
+                            value={priceProductId}
+                            onChangeText={setPriceProductId}
+                            placeholder="Product ID"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputWide]}
+                          />
+                          <TextInput
+                            value={priceStoreId}
+                            onChangeText={setPriceStoreId}
+                            placeholder="Store ID"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputWide]}
+                          />
+                          <TextInput
+                            value={priceValue}
+                            onChangeText={setPriceValue}
+                            placeholder="Price"
+                            placeholderTextColor={C.textMuted}
+                            keyboardType="decimal-pad"
+                            style={[st.input, st.priceFormInputSmall]}
+                          />
+                          <TextInput
+                            value={priceStartDate}
+                            onChangeText={setPriceStartDate}
+                            placeholder="Start YYYY-MM-DD"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputMedium]}
+                          />
+                          <TextInput
+                            value={priceEndDate}
+                            onChangeText={setPriceEndDate}
+                            placeholder="End YYYY-MM-DD"
+                            placeholderTextColor={C.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            style={[st.input, st.priceFormInputMedium]}
+                          />
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={() => {
+                              void handleSavePriceEntry();
+                            }}
+                            style={[st.btn, st.btnPrimary]}
+                            disabled={submitting}
+                          >
+                            <Text style={st.btnPrimaryText}>
+                              {submitting ? "Saving..." : editingPriceId ? "Update Price" : "Add Price"}
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={resetPriceForm}
+                            style={[st.btn, st.btnGhost, !editingPriceId && st.btnDisabled]}
+                            disabled={!editingPriceId || submitting}
+                          >
+                            <Text style={st.btnGhostText}>Cancel Edit</Text>
+                          </Pressable>
+                        </View>
+                        <Text style={st.dataMuted}>
+                          Select Edit on a row to load it here. Dates are optional.
+                        </Text>
+                      </View>
+
+                      {prices.length === 0 ? (
+                        <Text style={st.dataMuted}>No price rows yet.</Text>
+                      ) : (
+                        prices.map((item) => {
+                          const deleteKey = `price:${item.id}`;
+                          const deleting = deletingKey === deleteKey;
+                          const productLabel =
+                            productNameById.get(item.product_id) || item.product_name || item.product_id;
+                          const storeLabel =
+                            storeNameById.get(item.store_id) || item.store_name || item.store_id;
+                          return (
+                            <View key={item.id} style={st.listRow}>
+                              <View style={st.listMain}>
+                                <Text style={st.listTitle}>{productLabel}</Text>
+                                <Text style={st.dataMuted}>{storeLabel}</Text>
+                                <Text style={st.dataMuted}>
+                                  {item.product_id} | {item.store_id}
+                                </Text>
+                              </View>
+                              <View style={st.listRight}>
+                                <Text style={st.listPrice}>${item.price.toFixed(2)}</Text>
+                                <Text style={st.listDate}>
+                                  {dateInputValue(item.valid_from || item.observed_at) || "No date"}
+                                  {item.valid_to ? ` - ${dateInputValue(item.valid_to)}` : ""}
+                                </Text>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => handleOpenEditPrice(item)}
+                                  style={[st.btn, st.btnGhost]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnGhostText}>Edit</Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => {
+                                    void handleDeletePriceEntry(item.id);
+                                  }}
+                                  style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+
+                    <View style={st.dataCard}>
+                      <View style={st.dataCardHeader}>
+                        <Text style={st.dataCardTitle}>Store CSV</Text>
+                        <View style={st.inlineRow}>
+                          <Text style={st.dataMuted}>Import/export store master data.</Text>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={handleImportStoresCsv}
+                            style={[st.btn, st.btnGhost]}
+                            disabled={submitting}
+                          >
+                            <Text style={st.btnGhostText}>Import Stores CSV</Text>
+                          </Pressable>
+                          <Pressable
+                            accessibilityRole="button"
+                            onPress={handleExportStoresCsv}
+                            style={[st.btn, st.btnGhost, stores.length === 0 && st.btnDisabled]}
+                            disabled={stores.length === 0 || submitting}
+                          >
+                            <Text style={st.btnGhostText}>Export Stores CSV</Text>
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      <Text style={st.dataMuted}>
+                        CSV headers: name, area, latitude, longitude, price_note
+                      </Text>
+
+                      {stores.length === 0 ? (
+                        <Text style={st.dataMuted}>No stores yet.</Text>
+                      ) : (
+                        stores.slice(0, 40).map((store) => {
+                          const deleteKey = `store:${store.id}`;
+                          const deleting = deletingKey === deleteKey;
+                          return (
+                            <View key={store.id} style={st.listRow}>
+                              <View style={st.listMain}>
+                                <Text style={st.listTitle}>{store.name}</Text>
+                                <Text style={st.dataMuted}>{store.area}</Text>
+                                <Text style={st.dataMuted}>
+                                  {store.latitude}, {store.longitude}
+                                </Text>
+                              </View>
+                              <View style={st.listRight}>
+                                <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={() => {
+                                    void handleDeleteStore(store.id);
+                                  }}
+                                  style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                          );
+                        })
+                      )}
+                    </View>
+                  </View>
+                ) : null}
+
+                {activeMenu === "flyer" ? (
+                  <View style={st.flyerPanel}>
+                    <div style={WEB_FLYER_ACTION_BAR_STYLE}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handlePickFlyerFile}
+                        style={[st.btn, st.flyerToolbarBtn, flyerProcessing && st.btnDisabled]}
+                        disabled={flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>
+                          {flyerProcessing ? "Processing..." : "Upload Image/PDF"}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleAddFlyerRow}
+                        style={[st.btn, st.flyerToolbarBtn]}
+                        disabled={flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>Add Row</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleRemoveSelectedFlyerRows}
+                        style={[st.btn, st.flyerToolbarBtn, flyerSelectedCount === 0 && st.btnDisabled]}
+                        disabled={flyerSelectedCount === 0 || flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>Remove Selected</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleExportFlyerCsv}
+                        style={[st.btn, st.flyerToolbarBtn, flyerSelectedCount === 0 && st.btnDisabled]}
+                        disabled={flyerSelectedCount === 0 || flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>Export CSV</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleExportFlyerProductCsv}
+                        style={[st.btn, st.flyerToolbarBtn, flyerSelectedCount === 0 && st.btnDisabled]}
+                        disabled={flyerSelectedCount === 0 || flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>Export Product CSV</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={handleClearFlyerImport}
+                        style={[st.btn, st.flyerToolbarBtn]}
+                        disabled={flyerProcessing}
+                      >
+                        <Text style={st.flyerToolbarBtnText}>Clear</Text>
+                      </Pressable>
+                    </div>
+
+                    <ScrollView horizontal showsHorizontalScrollIndicator>
+                      <View style={st.flyerTable}>
+                        <View style={[st.flyerTableRow, st.flyerTableHeader]}>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellSelect]}>Use</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>마트명</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>지역/지점</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>세일 시작일</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>세일 종료일</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellName]}>이름</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>대분류</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>중분류</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>브랜드</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>가격</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellUnit]}>단위</Text>
+                          <Text style={[st.flyerHeaderCell, st.flyerCellMemo]}>메모</Text>
+                        </View>
+                        {flyerRows.length === 0 ? (
+                          <View style={st.flyerTableEmptyRow}>
+                            <Text style={st.dataMuted}>
+                              {flyerProcessing
+                                ? flyerProgress || "Processing file..."
+                                : "Upload an image/PDF or add a row."}
+                            </Text>
+                          </View>
+                        ) : (
+                          flyerRows.map((row) => (
+                            <View
+                              key={row.id}
+                              style={[st.flyerTableRow, row.selected && st.flyerTableRowSelected]}
+                            >
+                              <Pressable
+                                accessibilityRole="button"
+                                onPress={() => updateFlyerRow(row.id, "selected", !row.selected)}
+                                style={[st.flyerSelectCell, row.selected && st.flyerSelectCellActive]}
+                              >
+                                <Text style={[st.flyerSelectText, row.selected && st.flyerSelectTextActive]}>
+                                  {row.selected ? "Yes" : "No"}
+                                </Text>
+                              </Pressable>
+                              <TextInput
+                                value={row.martName}
+                                onChangeText={(value) => updateFlyerRow(row.id, "martName", value)}
+                                placeholder="마트명"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellMart,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.regionBranch}
+                                onChangeText={(value) => updateFlyerRow(row.id, "regionBranch", value)}
+                                placeholder="지역/지점"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellBranch,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.saleStartDate}
+                                onChangeText={(value) => updateFlyerRow(row.id, "saleStartDate", value)}
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor={C.textMuted}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellDate,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.saleEndDate}
+                                onChangeText={(value) => updateFlyerRow(row.id, "saleEndDate", value)}
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor={C.textMuted}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellDate,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.name}
+                                onChangeText={(value) => updateFlyerRow(row.id, "name", value)}
+                                placeholder="이름"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellName,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.mainCategory}
+                                onChangeText={(value) => updateFlyerRow(row.id, "mainCategory", value)}
+                                placeholder="대분류"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellCategory,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.subCategory}
+                                onChangeText={(value) => updateFlyerRow(row.id, "subCategory", value)}
+                                placeholder="중분류"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellCategory,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.brand}
+                                onChangeText={(value) => updateFlyerRow(row.id, "brand", value)}
+                                placeholder="브랜드"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellBrand,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.price}
+                                onChangeText={(value) => updateFlyerRow(row.id, "price", value)}
+                                placeholder="0.00"
+                                placeholderTextColor={C.textMuted}
+                                keyboardType="decimal-pad"
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellPrice,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.unit}
+                                onChangeText={(value) => updateFlyerRow(row.id, "unit", value)}
+                                placeholder="단위"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellUnit,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                              <TextInput
+                                value={row.memo}
+                                onChangeText={(value) => updateFlyerRow(row.id, "memo", value)}
+                                placeholder="메모"
+                                placeholderTextColor={C.textMuted}
+                                style={[
+                                  st.flyerInputCell,
+                                  st.flyerCellMemo,
+                                  row.selected && st.flyerInputCellSelected,
+                                ]}
+                              />
+                            </View>
+                          ))
+                        )}
+                      </View>
+                    </ScrollView>
+                  </View>
                 ) : null}
 
               </>
@@ -1186,20 +2575,28 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         visible={productModalOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setProductModalOpen(false)}
+        onRequestClose={() => {
+          setProductModalOpen(false);
+          resetProductForm();
+        }}
       >
         <View style={st.modalBackdrop}>
           <View style={st.modalCard}>
             <View style={st.modalHeader}>
               <View>
-                <Text style={st.modalTitle}>Add Product</Text>
+                <Text style={st.modalTitle}>{editingProductId ? "Edit Product" : "Add Product"}</Text>
                 <Text style={st.modalSub}>
-                  Register product image, initial price, store, and active period.
+                  {editingProductId
+                    ? "Update product details or add an image. Store price sets are optional."
+                    : "Register a catalog product. Image and Store | Price sets are optional."}
                 </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setProductModalOpen(false)}
+                onPress={() => {
+                  setProductModalOpen(false);
+                  resetProductForm();
+                }}
                 style={[st.btn, st.btnGhost]}
               >
                 <Text style={st.btnGhostText}>Close</Text>
@@ -1284,11 +2681,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       </Text>
                     </View>
                   </Pressable>
-                  <Text style={st.dataMuted}>Click image area to upload to Supabase Storage.</Text>
+                  <Text style={st.dataMuted}>Optional. Click image area to upload to Supabase Storage.</Text>
                 </View>
               </View>
               <View style={st.storePriceHeaderRow}>
-                <Text style={st.fieldLabel}>Store | Price Sets</Text>
+                <Text style={st.fieldLabel}>Optional Store | Price Sets</Text>
                 <Pressable
                   accessibilityRole="button"
                   onPress={addStorePriceSet}
@@ -1365,7 +2762,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 ))}
               </View>
               <Text style={st.dataMuted}>
-                Enter store and price as one set. Multiple sets are supported.
+                Leave blank to save the product without price data. Multiple sets are supported.
               </Text>
 
               <Text style={st.fieldLabel}>Price Period</Text>
@@ -1415,7 +2812,10 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             <View style={st.modalActionRow}>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setProductModalOpen(false)}
+                onPress={() => {
+                  setProductModalOpen(false);
+                  resetProductForm();
+                }}
                 style={[st.btn, st.btnGhost]}
               >
                 <Text style={st.btnGhostText}>Cancel</Text>
@@ -1426,7 +2826,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 style={[st.btn, st.btnPrimary]}
                 disabled={submitting}
               >
-                <Text style={st.btnPrimaryText}>{submitting ? "Saving..." : "Create Product"}</Text>
+                <Text style={st.btnPrimaryText}>
+                  {submitting ? "Saving..." : editingProductId ? "Save Product" : "Create Product"}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -1709,6 +3111,9 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     gap: 12,
   },
+  productAdminStack: {
+    gap: 12,
+  },
   dataCard: {
     borderRadius: 14,
     borderWidth: 1,
@@ -1718,6 +3123,138 @@ const st = StyleSheet.create({
     gap: 8,
     minWidth: 280,
     flexGrow: 1,
+  },
+  flyerPanel: {
+    borderWidth: 1,
+    borderColor: "#d3d9e4",
+    backgroundColor: "#ffffff",
+    minWidth: 280,
+  },
+  flyerToolbarBtn: {
+    minHeight: 27,
+    borderRadius: 3,
+    borderColor: "#cdd4df",
+    backgroundColor: "#e9edf3",
+    paddingHorizontal: 13,
+  },
+  flyerToolbarBtnText: {
+    color: "#455266",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  emptyStateCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e1e7f0",
+    backgroundColor: "#f8fafc",
+    padding: 16,
+    gap: 6,
+  },
+  flyerTable: {
+    borderWidth: 1,
+    borderColor: "#cfd7e3",
+    borderRadius: 0,
+    overflow: "hidden",
+    alignSelf: "flex-start",
+    margin: 8,
+  },
+  flyerTableRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    minHeight: 32,
+  },
+  flyerTableRowSelected: {
+    backgroundColor: "#cfe1ff",
+  },
+  flyerTableHeader: {
+    backgroundColor: "#eef1f5",
+  },
+  flyerTableEmptyRow: {
+    width: 1648,
+    minHeight: 36,
+    borderTopWidth: 1,
+    borderTopColor: "#d9dee8",
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  flyerHeaderCell: {
+    borderRightWidth: 1,
+    borderRightColor: "#d5dce7",
+    color: "#4c5869",
+    fontSize: 10,
+    fontWeight: "800",
+    paddingHorizontal: 7,
+    paddingVertical: 7,
+    textTransform: "uppercase",
+  },
+  flyerInputCell: {
+    minHeight: 32,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderRightWidth: 1,
+    borderRightColor: "#dbe1ea",
+    borderTopWidth: 1,
+    borderTopColor: "#e3e8f0",
+    backgroundColor: "#ffffff",
+    color: "#293346",
+    paddingHorizontal: 7,
+    fontSize: 11,
+  },
+  flyerInputCellSelected: {
+    backgroundColor: "#cfe1ff",
+  },
+  flyerSelectCell: {
+    width: 68,
+    minHeight: 32,
+    borderRightWidth: 1,
+    borderRightColor: "#dbe1ea",
+    borderTopWidth: 1,
+    borderTopColor: "#e3e8f0",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  flyerSelectCellActive: {
+    backgroundColor: "#cfe1ff",
+  },
+  flyerSelectText: {
+    color: "#6a768e",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  flyerSelectTextActive: {
+    color: "#2f55d4",
+  },
+  flyerCellSelect: {
+    width: 68,
+  },
+  flyerCellMart: {
+    width: 120,
+  },
+  flyerCellBranch: {
+    width: 140,
+  },
+  flyerCellDate: {
+    width: 116,
+  },
+  flyerCellName: {
+    width: 220,
+  },
+  flyerCellCategory: {
+    width: 120,
+  },
+  flyerCellBrand: {
+    width: 130,
+  },
+  flyerCellPrice: {
+    width: 100,
+  },
+  flyerCellUnit: {
+    width: 90,
+  },
+  flyerCellMemo: {
+    width: 320,
   },
   dataCardWide: {
     minWidth: 520,
@@ -1811,6 +3348,18 @@ const st = StyleSheet.create({
   },
   filterInputInline: {
     width: 96,
+  },
+  priceFormInputWide: {
+    minWidth: 220,
+    flexGrow: 1,
+  },
+  priceFormInputMedium: {
+    minWidth: 150,
+    flexGrow: 1,
+  },
+  priceFormInputSmall: {
+    minWidth: 96,
+    flexGrow: 1,
   },
   productFilterInlineGroup: {
     flexDirection: "row",
