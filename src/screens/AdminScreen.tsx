@@ -38,6 +38,7 @@ import {
   useDeleteAdminProductMutation,
   useDeleteAdminStoreMutation,
   useUpdateAdminProductMutation,
+  useUpdateAdminStoreMutation,
   useUpdateAdminPriceEntryMutation,
   useUploadAdminProductImageMutation,
 } from "../hooks/useAdminBackofficeQueries";
@@ -487,6 +488,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [priceValue, setPriceValue] = React.useState("");
   const [priceStartDate, setPriceStartDate] = React.useState("");
   const [priceEndDate, setPriceEndDate] = React.useState("");
+  const [editingStoreId, setEditingStoreId] = React.useState<string | null>(null);
+  const [storeName, setStoreName] = React.useState("");
+  const [storeArea, setStoreArea] = React.useState("");
+  const [storeLatitude, setStoreLatitude] = React.useState("");
+  const [storeLongitude, setStoreLongitude] = React.useState("");
+  const [storePriceNote, setStorePriceNote] = React.useState("");
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
@@ -540,6 +547,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const deletePriceEntryMutation = useDeleteAdminPriceEntryMutation();
   const createStoreMutation = useCreateAdminStoreMutation();
   const deleteStoreMutation = useDeleteAdminStoreMutation();
+  const updateStoreMutation = useUpdateAdminStoreMutation();
   const deleteProductMutation = useDeleteAdminProductMutation();
   const uploadProductImageMutation = useUploadAdminProductImageMutation();
 
@@ -574,13 +582,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         hint: "Catalog items",
       },
       {
+        id: "stores",
+        label: "Stores",
+        value: String(stores.length),
+        hint: "Store locations",
+      },
+      {
         id: "issues",
         label: "Data Health",
         value: String(toNonNegativeCount(priceRowsMissingLink + stalePriceRows)),
         hint: "Link freshness",
       },
     ],
-    [priceRowsMissingLink, stalePriceRows, products.length],
+    [priceRowsMissingLink, stalePriceRows, products.length, stores.length],
   );
 
   const recentStoreOptions = React.useMemo(() => stores.slice(0, 16), [stores]);
@@ -847,6 +861,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setPriceEndDate("");
   }, []);
 
+  const resetStoreForm = React.useCallback(() => {
+    setEditingStoreId(null);
+    setStoreName("");
+    setStoreArea("");
+    setStoreLatitude("");
+    setStoreLongitude("");
+    setStorePriceNote("");
+  }, []);
+
   const handleOpenAddProduct = React.useCallback(() => {
     resetProductForm();
     setProductModalOpen(true);
@@ -871,6 +894,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setPriceValue(price.price.toFixed(2));
     setPriceStartDate(dateInputValue(price.valid_from || price.observed_at));
     setPriceEndDate(dateInputValue(price.valid_to));
+  }, []);
+
+  const handleOpenEditStore = React.useCallback((store: AdminStore) => {
+    setEditingStoreId(store.id);
+    setStoreName(store.name);
+    setStoreArea(store.area);
+    setStoreLatitude(String(store.latitude));
+    setStoreLongitude(String(store.longitude));
+    setStorePriceNote(store.price_note ?? "");
   }, []);
 
   const handleSignIn = React.useCallback(async () => {
@@ -1302,6 +1334,79 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     input.click();
   }, [createStoreMutation, loadAll, stores]);
 
+  const handleSaveStore = React.useCallback(async () => {
+    const name = storeName.trim();
+    const area = storeArea.trim();
+    const latitude = storeLatitude.trim();
+    const longitude = storeLongitude.trim();
+    const priceNote = storePriceNote.trim();
+
+    if (!name || !area || !latitude || !longitude) {
+      setNotice("Store name, area, latitude, and longitude are required.");
+      return;
+    }
+    if (Number.isNaN(Number(latitude)) || Number.isNaN(Number(longitude))) {
+      setNotice("Latitude and longitude must be valid numbers.");
+      return;
+    }
+
+    const duplicate = stores.find((store) => {
+      if (editingStoreId && store.id === editingStoreId) return false;
+      return (
+        store.name.trim().toLowerCase() === name.toLowerCase() &&
+        store.area.trim().toLowerCase() === area.toLowerCase()
+      );
+    });
+    if (duplicate) {
+      setNotice("A store with the same name and area already exists.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      if (editingStoreId) {
+        await updateStoreMutation.mutateAsync({
+          id: editingStoreId,
+          name,
+          area,
+          latitude,
+          longitude,
+          priceNote,
+        });
+      } else {
+        await createStoreMutation.mutateAsync({
+          name,
+          area,
+          latitude,
+          longitude,
+          priceNote,
+        });
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Store was not saved.");
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+
+    const wasEditing = Boolean(editingStoreId);
+    resetStoreForm();
+    setNotice(wasEditing ? "Store updated." : "Store added.");
+    await loadAll(true);
+  }, [
+    createStoreMutation,
+    editingStoreId,
+    loadAll,
+    resetStoreForm,
+    storeArea,
+    storeLatitude,
+    storeLongitude,
+    storeName,
+    storePriceNote,
+    stores,
+    updateStoreMutation,
+  ]);
+
   const handleSavePriceEntry = React.useCallback(async () => {
     const productId = priceProductId.trim();
     const storeId = priceStoreId.trim();
@@ -1402,10 +1507,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       } finally {
         setDeletingKey(null);
       }
+      if (editingStoreId === id) {
+        resetStoreForm();
+      }
       setNotice("Store deleted.");
       await loadAll(true);
     },
-    [deleteStoreMutation, loadAll],
+    [deleteStoreMutation, editingStoreId, loadAll, resetStoreForm],
   );
 
   const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
@@ -1675,6 +1783,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       badge: products.length,
     },
     {
+      key: "stores" as const,
+      label: "Stores",
+      badge: stores.length,
+    },
+    {
       key: "flyer" as const,
       label: "Flyer",
       badge: 0,
@@ -1682,7 +1795,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   ];
 
   const panelTitle =
-    activeMenu === "overview" ? "Dashboard" : activeMenu === "products" ? "Products" : "Flyer";
+    activeMenu === "overview"
+      ? "Dashboard"
+      : activeMenu === "products"
+        ? "Products"
+        : activeMenu === "stores"
+          ? "Stores"
+          : "Flyer";
 
   return (
     <View style={st.root}>
@@ -2273,67 +2392,143 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       )}
                     </View>
 
-                    <View style={st.dataCard}>
-                      <View style={st.dataCardHeader}>
-                        <Text style={st.dataCardTitle}>Store CSV</Text>
-                        <View style={st.inlineRow}>
-                          <Text style={st.dataMuted}>Import/export store master data.</Text>
-                          <Pressable
-                            accessibilityRole="button"
-                            onPress={handleImportStoresCsv}
-                            style={[st.btn, st.btnGhost]}
-                            disabled={submitting}
-                          >
-                            <Text style={st.btnGhostText}>Import Stores CSV</Text>
-                          </Pressable>
-                          <Pressable
-                            accessibilityRole="button"
-                            onPress={handleExportStoresCsv}
-                            style={[st.btn, st.btnGhost, stores.length === 0 && st.btnDisabled]}
-                            disabled={stores.length === 0 || submitting}
-                          >
-                            <Text style={st.btnGhostText}>Export Stores CSV</Text>
-                          </Pressable>
-                        </View>
-                      </View>
+                  </View>
+                ) : null}
 
+                {activeMenu === "stores" ? (
+                  <View style={st.dataCard}>
+                    <View style={st.dataCardHeader}>
+                      <Text style={st.dataCardTitle}>Store Management</Text>
+                      <View style={st.inlineRow}>
+                        <Text style={st.dataMuted}>Create, update, import, and export store data.</Text>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleImportStoresCsv}
+                          style={[st.btn, st.btnGhost]}
+                          disabled={submitting}
+                        >
+                          <Text style={st.btnGhostText}>Import Stores CSV</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleExportStoresCsv}
+                          style={[st.btn, st.btnGhost, stores.length === 0 && st.btnDisabled]}
+                          disabled={stores.length === 0 || submitting}
+                        >
+                          <Text style={st.btnGhostText}>Export Stores CSV</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <View style={st.productFilterCard}>
+                      <View style={st.formRow}>
+                        <TextInput
+                          value={storeName}
+                          onChangeText={setStoreName}
+                          placeholder="Store name"
+                          placeholderTextColor={C.textMuted}
+                          style={[st.input, st.storeFormInputWide]}
+                        />
+                        <TextInput
+                          value={storeArea}
+                          onChangeText={setStoreArea}
+                          placeholder="Area / branch"
+                          placeholderTextColor={C.textMuted}
+                          style={[st.input, st.storeFormInputWide]}
+                        />
+                        <TextInput
+                          value={storeLatitude}
+                          onChangeText={setStoreLatitude}
+                          placeholder="Latitude"
+                          placeholderTextColor={C.textMuted}
+                          keyboardType="decimal-pad"
+                          style={[st.input, st.storeFormInputSmall]}
+                        />
+                        <TextInput
+                          value={storeLongitude}
+                          onChangeText={setStoreLongitude}
+                          placeholder="Longitude"
+                          placeholderTextColor={C.textMuted}
+                          keyboardType="decimal-pad"
+                          style={[st.input, st.storeFormInputSmall]}
+                        />
+                        <TextInput
+                          value={storePriceNote}
+                          onChangeText={setStorePriceNote}
+                          placeholder="Price note"
+                          placeholderTextColor={C.textMuted}
+                          style={[st.input, st.storeFormInputWide]}
+                        />
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            void handleSaveStore();
+                          }}
+                          style={[st.btn, st.btnPrimary]}
+                          disabled={submitting}
+                        >
+                          <Text style={st.btnPrimaryText}>
+                            {submitting ? "Saving..." : editingStoreId ? "Update Store" : "Add Store"}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={resetStoreForm}
+                          style={[st.btn, st.btnGhost, !editingStoreId && st.btnDisabled]}
+                          disabled={!editingStoreId || submitting}
+                        >
+                          <Text style={st.btnGhostText}>Cancel Edit</Text>
+                        </Pressable>
+                      </View>
                       <Text style={st.dataMuted}>
                         CSV headers: name, area, latitude, longitude, price_note
                       </Text>
-
-                      {stores.length === 0 ? (
-                        <Text style={st.dataMuted}>No stores yet.</Text>
-                      ) : (
-                        stores.slice(0, 40).map((store) => {
-                          const deleteKey = `store:${store.id}`;
-                          const deleting = deletingKey === deleteKey;
-                          return (
-                            <View key={store.id} style={st.listRow}>
-                              <View style={st.listMain}>
-                                <Text style={st.listTitle}>{store.name}</Text>
-                                <Text style={st.dataMuted}>{store.area}</Text>
-                                <Text style={st.dataMuted}>
-                                  {store.latitude}, {store.longitude}
-                                </Text>
-                              </View>
-                              <View style={st.listRight}>
-                                <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
-                                <Pressable
-                                  accessibilityRole="button"
-                                  onPress={() => {
-                                    void handleDeleteStore(store.id);
-                                  }}
-                                  style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
-                                  disabled={deleting || submitting}
-                                >
-                                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
-                                </Pressable>
-                              </View>
-                            </View>
-                          );
-                        })
-                      )}
                     </View>
+
+                    {stores.length === 0 ? (
+                      <Text style={st.dataMuted}>No stores yet.</Text>
+                    ) : (
+                      stores.map((store) => {
+                        const deleteKey = `store:${store.id}`;
+                        const deleting = deletingKey === deleteKey;
+                        return (
+                          <View key={store.id} style={st.listRow}>
+                            <View style={st.listMain}>
+                              <Text style={st.listTitle}>{store.name}</Text>
+                              <Text style={st.dataMuted}>{store.area}</Text>
+                              <Text style={st.dataMuted}>
+                                {store.latitude}, {store.longitude}
+                              </Text>
+                              {store.price_note ? (
+                                <Text style={st.dataMuted}>{store.price_note}</Text>
+                              ) : null}
+                              <Text style={st.dataMuted}>{store.id}</Text>
+                            </View>
+                            <View style={st.listRight}>
+                              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+                              <Pressable
+                                accessibilityRole="button"
+                                onPress={() => handleOpenEditStore(store)}
+                                style={[st.btn, st.btnGhost]}
+                                disabled={deleting || submitting}
+                              >
+                                <Text style={st.btnGhostText}>Edit</Text>
+                              </Pressable>
+                              <Pressable
+                                accessibilityRole="button"
+                                onPress={() => {
+                                  void handleDeleteStore(store.id);
+                                }}
+                                style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
+                                disabled={deleting || submitting}
+                              >
+                                <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        );
+                      })
+                    )}
                   </View>
                 ) : null}
 
@@ -3359,6 +3554,14 @@ const st = StyleSheet.create({
   },
   priceFormInputSmall: {
     minWidth: 96,
+    flexGrow: 1,
+  },
+  storeFormInputWide: {
+    minWidth: 220,
+    flexGrow: 1,
+  },
+  storeFormInputSmall: {
+    minWidth: 130,
     flexGrow: 1,
   },
   productFilterInlineGroup: {

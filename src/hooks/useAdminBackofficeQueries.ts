@@ -14,6 +14,7 @@ import {
   signOutAdmin,
   updateAdminPriceEntry,
   updateAdminProduct,
+  updateAdminStore,
   uploadAdminProductImage,
   type AdminPriceEntry,
   type AdminProduct,
@@ -161,6 +162,17 @@ export function useDeleteAdminStoreMutation() {
   const queryClient = useQueryClient();
   return useMutation<null, Error, string>({
     mutationFn: async (storeId) => unwrap(await deleteAdminStore(storeId)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
+export function useUpdateAdminStoreMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<AdminStore | null, Error, Parameters<typeof updateAdminStore>[0]>({
+    mutationFn: async (params) => unwrap(await updateAdminStore(params)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });

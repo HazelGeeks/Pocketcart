@@ -451,6 +451,67 @@ export async function createAdminStore(params: {
   };
 }
 
+export async function updateAdminStore(params: {
+  id: string;
+  name: string;
+  area: string;
+  latitude: string;
+  longitude: string;
+  priceNote?: string;
+}): Promise<ServiceResult<AdminStore | null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const id = params.id.trim();
+  if (!id) {
+    return { data: null, error: "Store ID is required." };
+  }
+
+  const lat = parseNumber(params.latitude);
+  const lng = parseNumber(params.longitude);
+
+  if (lat === null || lng === null) {
+    return {
+      data: null,
+      error: "Latitude and longitude must be valid numbers.",
+    };
+  }
+
+  const payload = {
+    name: params.name.trim(),
+    area: params.area.trim(),
+    latitude: lat,
+    longitude: lng,
+    price_note: params.priceNote?.trim() ? params.priceNote.trim() : null,
+  };
+
+  const { data, error } = await supabase
+    .from("stores")
+    .update(payload)
+    .eq("id", id)
+    .select("id, name, area, latitude, longitude, price_note, created_at")
+    .single();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const row = data as StoreRow;
+  return {
+    data: {
+      id: row.id,
+      name: row.name,
+      area: row.area,
+      latitude: parseNumber(row.latitude) ?? lat,
+      longitude: parseNumber(row.longitude) ?? lng,
+      price_note: row.price_note,
+      created_at: row.created_at,
+    },
+    error: null,
+  };
+}
+
 export async function deleteAdminStore(storeId: string): Promise<ServiceResult<null>> {
   if (!hasSupabaseEnv || !supabase) {
     return missingEnvResult(null);
