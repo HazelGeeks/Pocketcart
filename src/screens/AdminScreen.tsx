@@ -20,11 +20,13 @@ import {
   hasFlyerAiEndpoint,
 } from "../services/flyerAiImport";
 import {
+  type AdminAuditLog,
   type AdminPriceEntry,
   type AdminProduct,
   type AdminStore,
 } from "../services/adminBackoffice";
 import {
+  useAdminAuditLogsQuery,
   useAdminPricesQuery,
   useAdminProductsQuery,
   useAdminSignInMutation,
@@ -32,12 +34,14 @@ import {
   useAdminStoresQuery,
   useAdminUserQuery,
   useCreateAdminPriceEntryMutation,
+  useCreateAdminAuditLogMutation,
   useCreateAdminProductMutation,
   useCreateAdminStoreMutation,
   useDeleteAdminPriceEntryMutation,
   useDeleteAdminProductMutation,
   useDeleteAdminStoreMutation,
   useUpdateAdminProductMutation,
+  useUpdateAdminStoreMutation,
   useUpdateAdminPriceEntryMutation,
   useUploadAdminProductImageMutation,
 } from "../hooks/useAdminBackofficeQueries";
@@ -69,6 +73,29 @@ type ProductPriceStats = {
   maxPrice: number | null;
   storeIds: Set<string>;
   storeNames: string[];
+};
+
+type StoreImportPreviewRow = {
+  rowNumber: number;
+  name: string;
+  area: string;
+  latitude: string;
+  longitude: string;
+  priceNote: string;
+  address: string;
+  phone: string;
+  website: string;
+  hours: string;
+  storeType: string;
+  isActive: boolean;
+  status: "ready" | "duplicate" | "invalid";
+  reason: string;
+};
+
+type StorePriceStats = {
+  priceCount: number;
+  productIds: Set<string>;
+  latestObservedAtMs: number;
 };
 
 const DEFAULT_PRODUCT_CATEGORIES = [
@@ -113,6 +140,14 @@ const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
   padding: "5px 8px",
 };
 
+const WEB_STORE_MAP_IFRAME_STYLE: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  minHeight: 280,
+  border: 0,
+  display: "block",
+};
+
 const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
   { label: "마트명", key: "martName" },
   { label: "지역/지점", key: "regionBranch" },
@@ -139,7 +174,22 @@ const STORE_IMPORT_HEADERS = {
   latitude: ["latitude", "lat", "위도"],
   longitude: ["longitude", "lng", "lon", "경도"],
   priceNote: ["price_note", "note", "memo", "메모"],
+  address: ["address", "주소"],
+  phone: ["phone", "tel", "telephone", "전화", "전화번호"],
+  website: ["website", "url", "site", "웹사이트"],
+  hours: ["hours", "business_hours", "운영시간", "영업시간"],
+  storeType: ["store_type", "type", "타입", "매장타입"],
+  isActive: ["is_active", "active", "status", "활성", "상태"],
 };
+
+const STORE_TYPE_OPTIONS = [
+  { value: "grocery", label: "Grocery" },
+  { value: "mart", label: "Mart" },
+  { value: "wholesale", label: "Wholesale" },
+  { value: "specialty", label: "Specialty" },
+  { value: "online", label: "Online" },
+  { value: "other", label: "Other" },
+];
 
 function toDateOnlyLabel(value: string): string {
   const date = new Date(value);
@@ -302,7 +352,21 @@ function productsToCsv(products: AdminProduct[], priceStats: Map<string, Product
 }
 
 function storesToCsv(stores: AdminStore[]): string {
-  const header = ["id", "name", "area", "latitude", "longitude", "price_note", "created_at"];
+  const header = [
+    "id",
+    "name",
+    "area",
+    "latitude",
+    "longitude",
+    "price_note",
+    "address",
+    "phone",
+    "website",
+    "hours",
+    "store_type",
+    "is_active",
+    "created_at",
+  ];
   const rows = stores.map((store) =>
     [
       store.id,
@@ -311,10 +375,42 @@ function storesToCsv(stores: AdminStore[]): string {
       String(store.latitude),
       String(store.longitude),
       store.price_note ?? "",
+      store.address ?? "",
+      store.phone ?? "",
+      store.website ?? "",
+      store.hours ?? "",
+      store.store_type,
+      store.is_active ? "true" : "false",
       store.created_at,
     ].map(csvCell).join(","),
   );
   return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+}
+
+function parseStoreActive(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (["false", "0", "no", "inactive", "disabled", "비활성"].includes(normalized)) return false;
+  return true;
+}
+
+function looksLikeProductStoreRow(store: AdminStore): boolean {
+  const joined = `${store.name} ${store.area} ${store.price_note ?? ""}`.toLowerCase();
+  if (/\$\s*\d|\b\d+(?:\.\d{1,2})?\s*(?:ea|each|lb|kg|g|ml|l|pk|pack|ct)\b/i.test(joined)) {
+    return true;
+  }
+  if (/^(eggs?|milk|bread|apple|banana|chicken|beef|pork|rice|ramen)\b/i.test(store.name.trim())) {
+    return true;
+  }
+  return false;
+}
+
+function coordinateValidationMessage(latitude: string, longitude: string): string | null {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "Latitude and longitude must be valid numbers.";
+  if (lat < -90 || lat > 90) return "Latitude must be between -90 and 90.";
+  if (lng < -180 || lng > 180) return "Longitude must be between -180 and 180.";
+  return null;
 }
 
 function flyerRowsToProductCsv(rows: FlyerRow[]): string {
@@ -343,6 +439,113 @@ function flyerRowsToProductCsv(rows: FlyerRow[]): string {
     ].map(csvCell).join(",");
   });
   return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
+}
+
+function buildStoreImportPreview(
+  headerRow: string[],
+  dataRows: string[][],
+  stores: AdminStore[],
+): StoreImportPreviewRow[] {
+  const headers = headerRow.map(csvHeaderKey);
+  const existing = new Set(
+    stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
+  );
+
+  return dataRows.map((values, index) => {
+    const record: Record<string, string> = {};
+    headers.forEach((header, headerIndex) => {
+      record[header] = values[headerIndex] ?? "";
+    });
+
+    const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
+    const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
+    const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
+    const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
+    const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
+    const address = csvRowValue(record, STORE_IMPORT_HEADERS.address);
+    const phone = csvRowValue(record, STORE_IMPORT_HEADERS.phone);
+    const website = csvRowValue(record, STORE_IMPORT_HEADERS.website);
+    const hours = csvRowValue(record, STORE_IMPORT_HEADERS.hours);
+    const storeType = csvRowValue(record, STORE_IMPORT_HEADERS.storeType) || "grocery";
+    const isActive = parseStoreActive(csvRowValue(record, STORE_IMPORT_HEADERS.isActive));
+    const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+    const coordinateError = latitude && longitude ? coordinateValidationMessage(latitude, longitude) : null;
+
+    if (!name || !area || !latitude || !longitude) {
+      return {
+        rowNumber: index + 2,
+        name,
+        area,
+        latitude,
+        longitude,
+        priceNote,
+        address,
+        phone,
+        website,
+        hours,
+        storeType,
+        isActive,
+        status: "invalid",
+        reason: "Missing required fields",
+      };
+    }
+
+    if (coordinateError) {
+      return {
+        rowNumber: index + 2,
+        name,
+        area,
+        latitude,
+        longitude,
+        priceNote,
+        address,
+        phone,
+        website,
+        hours,
+        storeType,
+        isActive,
+        status: "invalid",
+        reason: coordinateError,
+      };
+    }
+
+    if (existing.has(duplicateKey)) {
+      return {
+        rowNumber: index + 2,
+        name,
+        area,
+        latitude,
+        longitude,
+        priceNote,
+        address,
+        phone,
+        website,
+        hours,
+        storeType,
+        isActive,
+        status: "duplicate",
+        reason: "Duplicate name and area",
+      };
+    }
+
+    existing.add(duplicateKey);
+    return {
+      rowNumber: index + 2,
+      name,
+      area,
+      latitude,
+      longitude,
+      priceNote,
+      address,
+      phone,
+      website,
+      hours,
+      storeType,
+      isActive,
+      status: "ready",
+      reason: "Ready",
+    };
+  });
 }
 
 function dateInputValue(value: string | null | undefined): string {
@@ -374,6 +577,109 @@ function downloadCsvFile(prefix: string, csv: string): string | null {
   link.remove();
   urlApi.revokeObjectURL(href);
   return null;
+}
+
+function storeMapUrl(store: Pick<AdminStore, "name" | "area" | "latitude" | "longitude">): string {
+  const query = `${store.latitude},${store.longitude}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function safeScriptJson(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function storeLeafletMapSrcDoc(
+  stores: AdminStore[],
+  selectedStore: AdminStore | null,
+): string {
+  const points = stores
+    .map((store) => ({
+      id: store.id,
+      name: store.name,
+      area: store.area,
+      storeType: store.store_type,
+      isActive: store.is_active,
+      latitude: Number(store.latitude),
+      longitude: Number(store.longitude),
+      selected: selectedStore?.id === store.id,
+    }))
+    .filter((store) => Number.isFinite(store.latitude) && Number.isFinite(store.longitude))
+    .slice(0, 200);
+
+  if (points.length === 0) return "";
+
+  const selectedPoint = points.find((store) => store.selected) ?? points[0];
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .leaflet-popup-content { margin: 8px 10px; color: #2f3748; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script>
+    const points = ${safeScriptJson(points)};
+    const selectedPoint = ${safeScriptJson(selectedPoint)};
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+    const map = L.map("map", { scrollWheelZoom: false }).setView(
+      [selectedPoint.latitude, selectedPoint.longitude],
+      points.length > 1 ? 11 : 14
+    );
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    const bounds = [];
+    const markerLayer = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 36
+    });
+    points.forEach((point) => {
+      const marker = L.circleMarker([point.latitude, point.longitude], {
+        radius: point.selected ? 9 : 6,
+        color: point.selected ? "#8BA300" : point.isActive ? "#50627d" : "#a3adbd",
+        weight: point.selected ? 3 : 2,
+        fillColor: point.selected ? "#ABC900" : point.isActive ? "#ffffff" : "#eef2f8",
+        fillOpacity: point.selected ? 0.85 : 0.95
+      });
+      marker.bindPopup(
+        "<strong>" + escapeHtml(point.name) + "</strong><br />" +
+        escapeHtml(point.area) + "<br />" +
+        escapeHtml(point.storeType) + " · " + (point.isActive ? "Active" : "Inactive")
+      );
+      if (point.selected) marker.openPopup();
+      markerLayer.addLayer(marker);
+      bounds.push([point.latitude, point.longitude]);
+    });
+    map.addLayer(markerLayer);
+    if (bounds.length > 1) {
+      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function storeAddressSearchUrl(name: string, area: string): string {
+  const query = [name, area].map((value) => value.trim()).filter(Boolean).join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function normalizeOcrText(value: string): string {
@@ -487,6 +793,27 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [priceValue, setPriceValue] = React.useState("");
   const [priceStartDate, setPriceStartDate] = React.useState("");
   const [priceEndDate, setPriceEndDate] = React.useState("");
+  const [editingStoreId, setEditingStoreId] = React.useState<string | null>(null);
+  const [storeModalOpen, setStoreModalOpen] = React.useState(false);
+  const [storeName, setStoreName] = React.useState("");
+  const [storeArea, setStoreArea] = React.useState("");
+  const [storeLatitude, setStoreLatitude] = React.useState("");
+  const [storeLongitude, setStoreLongitude] = React.useState("");
+  const [storePriceNote, setStorePriceNote] = React.useState("");
+  const [storeAddress, setStoreAddress] = React.useState("");
+  const [storePhone, setStorePhone] = React.useState("");
+  const [storeWebsite, setStoreWebsite] = React.useState("");
+  const [storeHours, setStoreHours] = React.useState("");
+  const [storeType, setStoreType] = React.useState("grocery");
+  const [storeIsActive, setStoreIsActive] = React.useState(true);
+  const [storeSearchQuery, setStoreSearchQuery] = React.useState("");
+  const [storeAreaFilter, setStoreAreaFilter] = React.useState("all");
+  const [storeStatusFilter, setStoreStatusFilter] = React.useState("all");
+  const [storeTypeFilter, setStoreTypeFilter] = React.useState("all");
+  const [selectedStoreMapId, setSelectedStoreMapId] = React.useState<string | null>(null);
+  const [storeImportPreviewRows, setStoreImportPreviewRows] = React.useState<StoreImportPreviewRow[]>([]);
+  const [storeImportPreviewOpen, setStoreImportPreviewOpen] = React.useState(false);
+  const [storeDeleteCandidate, setStoreDeleteCandidate] = React.useState<AdminStore | null>(null);
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
@@ -531,21 +858,28 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const productsQuery = useAdminProductsQuery(dataQueriesEnabled);
   const storesQuery = useAdminStoresQuery(dataQueriesEnabled);
   const pricesQuery = useAdminPricesQuery(dataQueriesEnabled);
+  const auditLogsQuery = useAdminAuditLogsQuery(dataQueriesEnabled);
   const signInMutation = useAdminSignInMutation();
   const signOutMutation = useAdminSignOutMutation();
   const createProductMutation = useCreateAdminProductMutation();
   const updateProductMutation = useUpdateAdminProductMutation();
   const createPriceEntryMutation = useCreateAdminPriceEntryMutation();
+  const createAuditLogMutation = useCreateAdminAuditLogMutation();
   const updatePriceEntryMutation = useUpdateAdminPriceEntryMutation();
   const deletePriceEntryMutation = useDeleteAdminPriceEntryMutation();
   const createStoreMutation = useCreateAdminStoreMutation();
   const deleteStoreMutation = useDeleteAdminStoreMutation();
+  const updateStoreMutation = useUpdateAdminStoreMutation();
   const deleteProductMutation = useDeleteAdminProductMutation();
   const uploadProductImageMutation = useUploadAdminProductImageMutation();
 
   const products = React.useMemo<AdminProduct[]>(() => productsQuery.data ?? [], [productsQuery.data]);
   const stores = React.useMemo<AdminStore[]>(() => storesQuery.data ?? [], [storesQuery.data]);
   const prices = React.useMemo<AdminPriceEntry[]>(() => pricesQuery.data ?? [], [pricesQuery.data]);
+  const auditLogs = React.useMemo<AdminAuditLog[]>(
+    () => auditLogsQuery.data ?? [],
+    [auditLogsQuery.data],
+  );
   const productsLoading = productsQuery.isLoading || productsQuery.isFetching;
   const authLoading =
     adminUserQuery.isLoading || signInMutation.isPending || signOutMutation.isPending;
@@ -553,6 +887,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const priceRowsMissingLink = React.useMemo(
     () => prices.filter((row) => !row.product_name || !row.store_name).length,
     [prices],
+  );
+
+  const displayStores = React.useMemo(
+    () => stores.filter((store) => !looksLikeProductStoreRow(store)),
+    [stores],
   );
 
   const stalePriceRows = React.useMemo(() => {
@@ -574,13 +913,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         hint: "Catalog items",
       },
       {
+        id: "stores",
+        label: "Stores",
+        value: String(displayStores.length),
+        hint: "Store locations",
+      },
+      {
         id: "issues",
         label: "Data Health",
         value: String(toNonNegativeCount(priceRowsMissingLink + stalePriceRows)),
         hint: "Link freshness",
       },
     ],
-    [priceRowsMissingLink, stalePriceRows, products.length],
+    [priceRowsMissingLink, stalePriceRows, products.length, displayStores.length],
   );
 
   const recentStoreOptions = React.useMemo(() => stores.slice(0, 16), [stores]);
@@ -678,6 +1023,104 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [storeNameById]);
+
+  const storePriceStats = React.useMemo(() => {
+    const stats = new Map<string, StorePriceStats>();
+    prices.forEach((row) => {
+      const storeId = row.store_id.trim();
+      if (!storeId) return;
+      const productId = row.product_id.trim();
+      const observedAtMs = new Date(row.observed_at).getTime();
+      const existing = stats.get(storeId);
+      if (!existing) {
+        stats.set(storeId, {
+          priceCount: 1,
+          productIds: new Set(productId ? [productId] : []),
+          latestObservedAtMs: Number.isFinite(observedAtMs) ? observedAtMs : -1,
+        });
+        return;
+      }
+      existing.priceCount += 1;
+      if (productId) {
+        existing.productIds.add(productId);
+      }
+      if (Number.isFinite(observedAtMs) && observedAtMs > existing.latestObservedAtMs) {
+        existing.latestObservedAtMs = observedAtMs;
+      }
+    });
+    return stats;
+  }, [prices]);
+
+  const storeAreaOptions = React.useMemo(
+    () => uniqueValues(displayStores.map((store) => store.area)).sort((a, b) => a.localeCompare(b)),
+    [displayStores],
+  );
+  const storeTypeOptions = React.useMemo(
+    () =>
+      uniqueValues([
+        ...STORE_TYPE_OPTIONS.map((option) => option.value),
+        ...displayStores.map((store) => store.store_type),
+      ]).sort((a, b) => a.localeCompare(b)),
+    [displayStores],
+  );
+  const filteredStores = React.useMemo(() => {
+    const query = storeSearchQuery.trim().toLowerCase();
+    const areaFilter = storeAreaFilter.trim().toLowerCase();
+    const statusFilter = storeStatusFilter.trim().toLowerCase();
+    const typeFilter = storeTypeFilter.trim().toLowerCase();
+    return displayStores.filter((store) => {
+      if (areaFilter !== "all" && store.area.trim().toLowerCase() !== areaFilter) {
+        return false;
+      }
+      if (statusFilter === "active" && !store.is_active) return false;
+      if (statusFilter === "inactive" && store.is_active) return false;
+      if (typeFilter !== "all" && store.store_type.trim().toLowerCase() !== typeFilter) {
+        return false;
+      }
+      if (!query) return true;
+      const stats = storePriceStats.get(store.id);
+      const haystack = [
+        store.name,
+        store.area,
+        store.id,
+        store.price_note ?? "",
+        store.address ?? "",
+        store.phone ?? "",
+        store.website ?? "",
+        store.hours ?? "",
+        store.store_type,
+        store.is_active ? "active" : "inactive",
+        String(store.latitude),
+        String(store.longitude),
+        String(stats?.priceCount ?? 0),
+      ].join(" ").toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [displayStores, storeAreaFilter, storePriceStats, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
+
+  const storeActiveFilterCount = React.useMemo(() => {
+    let count = 0;
+    if (storeSearchQuery.trim()) count += 1;
+    if (storeAreaFilter !== "all") count += 1;
+    if (storeStatusFilter !== "all") count += 1;
+    if (storeTypeFilter !== "all") count += 1;
+    return count;
+  }, [storeAreaFilter, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
+
+  const selectedStoreForMap = React.useMemo(() => {
+    if (!selectedStoreMapId) return null;
+    return filteredStores.find((store) => store.id === selectedStoreMapId) ?? null;
+  }, [filteredStores, selectedStoreMapId]);
+
+  const selectedStoreMapSrcDoc = React.useMemo(
+    () => storeLeafletMapSrcDoc(filteredStores, selectedStoreForMap),
+    [filteredStores, selectedStoreForMap],
+  );
+
+  const storeAuditLogs = React.useMemo(
+    () => auditLogs.filter((log) => log.entity_type === "store").slice(0, 8),
+    [auditLogs],
+  );
   const productSortOptions = React.useMemo<Array<{ key: ProductSortKey; label: string }>>(
     () => [
       { key: "latest", label: "Latest" },
@@ -776,6 +1219,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         productsQuery.refetch(),
         storesQuery.refetch(),
         pricesQuery.refetch(),
+        auditLogsQuery.refetch(),
       ]);
       const errors = results
         .map((item) => (item.error instanceof Error ? item.error.message : null))
@@ -788,7 +1232,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         setNotice(null);
       }
     },
-    [pricesQuery, productsQuery, storesQuery],
+    [auditLogsQuery, pricesQuery, productsQuery, storesQuery],
   );
 
   React.useEffect(() => {
@@ -797,13 +1241,20 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       productsQuery.error,
       storesQuery.error,
       pricesQuery.error,
+      auditLogsQuery.error,
     ]
       .map((error) => (error instanceof Error ? error.message : null))
       .filter((item): item is string => Boolean(item));
     if (errors.length > 0) {
       setNotice(errors.join(" | "));
     }
-  }, [adminUserQuery.error, pricesQuery.error, productsQuery.error, storesQuery.error]);
+  }, [
+    adminUserQuery.error,
+    auditLogsQuery.error,
+    pricesQuery.error,
+    productsQuery.error,
+    storesQuery.error,
+  ]);
 
   const updateStorePriceSet = React.useCallback(
     (id: string, field: "storeId" | "price", value: string) => {
@@ -847,6 +1298,36 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setPriceEndDate("");
   }, []);
 
+  const resetStoreForm = React.useCallback(() => {
+    setEditingStoreId(null);
+    setStoreName("");
+    setStoreArea("");
+    setStoreLatitude("");
+    setStoreLongitude("");
+    setStorePriceNote("");
+    setStoreAddress("");
+    setStorePhone("");
+    setStoreWebsite("");
+    setStoreHours("");
+    setStoreType("grocery");
+    setStoreIsActive(true);
+  }, []);
+
+  const writeAuditLog = React.useCallback(
+    async (params: Parameters<typeof createAuditLogMutation.mutateAsync>[0]) => {
+      try {
+        await createAuditLogMutation.mutateAsync(params);
+      } catch (error) {
+        setNotice(
+          `Saved, but audit log failed. ${
+            error instanceof Error ? error.message : "Unknown audit log error."
+          }`,
+        );
+      }
+    },
+    [createAuditLogMutation],
+  );
+
   const handleOpenAddProduct = React.useCallback(() => {
     resetProductForm();
     setProductModalOpen(true);
@@ -871,6 +1352,40 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setPriceValue(price.price.toFixed(2));
     setPriceStartDate(dateInputValue(price.valid_from || price.observed_at));
     setPriceEndDate(dateInputValue(price.valid_to));
+  }, []);
+
+  const handleOpenEditStore = React.useCallback((store: AdminStore) => {
+    setEditingStoreId(store.id);
+    setStoreName(store.name);
+    setStoreArea(store.area);
+    setStoreLatitude(String(store.latitude));
+    setStoreLongitude(String(store.longitude));
+    setStorePriceNote(store.price_note ?? "");
+    setStoreAddress(store.address ?? "");
+    setStorePhone(store.phone ?? "");
+    setStoreWebsite(store.website ?? "");
+    setStoreHours(store.hours ?? "");
+    setStoreType(store.store_type || "grocery");
+    setStoreIsActive(store.is_active);
+    setStoreModalOpen(true);
+  }, []);
+
+  const handleOpenAddStore = React.useCallback(() => {
+    resetStoreForm();
+    setStoreModalOpen(true);
+  }, [resetStoreForm]);
+
+  const handleOpenMapUrl = React.useCallback((url: string) => {
+    if (Platform.OS !== "web") {
+      setNotice("Map helper is currently available on web admin.");
+      return;
+    }
+    const opener = (globalThis as { open?: (url: string, target?: string, features?: string) => Window | null }).open;
+    if (typeof opener !== "function") {
+      setNotice("Map helper is not available in this browser.");
+      return;
+    }
+    opener(url, "_blank", "noopener,noreferrer");
   }, []);
 
   const handleSignIn = React.useCallback(async () => {
@@ -1197,18 +1712,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   }, [createProductMutation, loadAll]);
 
   const handleExportStoresCsv = React.useCallback(() => {
-    if (stores.length === 0) {
+    if (displayStores.length === 0) {
       setNotice("There are no stores to export.");
       return;
     }
 
-    const error = downloadCsvFile("stores", storesToCsv(stores));
+    const error = downloadCsvFile("stores", storesToCsv(displayStores));
     if (error) {
       setNotice(error);
       return;
     }
-    setNotice(`Exported ${stores.length} stores to CSV.`);
-  }, [stores]);
+    setNotice(`Exported ${displayStores.length} stores to CSV.`);
+  }, [displayStores]);
 
   const handleImportStoresCsv = React.useCallback(() => {
     if (Platform.OS !== "web") {
@@ -1230,7 +1745,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       const selected = input.files?.[0];
       if (!selected) return;
       void (async () => {
-        setSubmitting(true);
         try {
           const text = await selected.text();
           const parsed = parseCsvRows(text).filter((row) => row.some((cell) => cell.trim()));
@@ -1240,67 +1754,201 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             return;
           }
 
-          const headers = headerRow.map(csvHeaderKey);
-          const existing = new Set(
-            stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
-          );
-          const created: string[] = [];
-          const skipped: string[] = [];
-
-          for (const [index, values] of dataRows.entries()) {
-            const record: Record<string, string> = {};
-            headers.forEach((header, headerIndex) => {
-              record[header] = values[headerIndex] ?? "";
-            });
-
-            const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
-            const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
-            const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
-            const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
-            const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
-            const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
-
-            if (!name || !area || !latitude || !longitude) {
-              skipped.push(`row ${index + 2}`);
-              continue;
-            }
-            if (existing.has(duplicateKey)) {
-              skipped.push(`row ${index + 2}: duplicate`);
-              continue;
-            }
-
-            try {
-              const store = await createStoreMutation.mutateAsync({
-                name,
-                area,
-                latitude,
-                longitude,
-                priceNote,
-              });
-              if (store) {
-                created.push(store.id);
-                existing.add(duplicateKey);
-              }
-            } catch (error) {
-              skipped.push(`row ${index + 2}: ${error instanceof Error ? error.message : "failed"}`);
-            }
-          }
-
-          await loadAll(true);
-          setNotice(
-            `Imported ${created.length} stores from CSV.${
-              skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
-            }`,
-          );
+          const previewRows = buildStoreImportPreview(headerRow, dataRows, displayStores);
+          setStoreImportPreviewRows(previewRows);
+          setStoreImportPreviewOpen(true);
+          const readyCount = previewRows.filter((row) => row.status === "ready").length;
+          const skippedCount = previewRows.length - readyCount;
+          setNotice(`Prepared Store CSV preview: ${readyCount} ready, ${skippedCount} skipped.`);
         } catch (error) {
           setNotice(error instanceof Error ? error.message : "Store CSV import failed.");
-        } finally {
-          setSubmitting(false);
         }
       })();
     };
     input.click();
-  }, [createStoreMutation, loadAll, stores]);
+  }, [displayStores]);
+
+  const handleConfirmStoreImport = React.useCallback(async () => {
+    const readyRows = storeImportPreviewRows.filter((row) => row.status === "ready");
+    if (readyRows.length === 0) {
+      setNotice("There are no ready store rows to import.");
+      return;
+    }
+
+    setSubmitting(true);
+    const created: string[] = [];
+    const skipped: string[] = [];
+    try {
+      for (const row of readyRows) {
+        try {
+          const store = await createStoreMutation.mutateAsync({
+            name: row.name,
+            area: row.area,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            priceNote: row.priceNote,
+            address: row.address,
+            phone: row.phone,
+            website: row.website,
+            hours: row.hours,
+            storeType: row.storeType,
+            isActive: row.isActive,
+          });
+          if (store) created.push(store.id);
+        } catch (error) {
+          skipped.push(`row ${row.rowNumber}: ${error instanceof Error ? error.message : "failed"}`);
+        }
+      }
+
+      if (created.length > 0) {
+        await writeAuditLog({
+          action: "import",
+          entityType: "store",
+          summary: `Imported ${created.length} stores from CSV`,
+          metadata: {
+            createdCount: created.length,
+            skippedCount: storeImportPreviewRows.length - created.length,
+          },
+        });
+      }
+      await loadAll(true);
+      setStoreImportPreviewOpen(false);
+      setStoreImportPreviewRows([]);
+      setNotice(
+        `Imported ${created.length} stores from CSV.${
+          skipped.length > 0 ? ` Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}` : ""
+        }`,
+      );
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Store CSV import failed.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    createStoreMutation,
+    loadAll,
+    storeImportPreviewRows,
+    writeAuditLog,
+  ]);
+
+  const handleSaveStore = React.useCallback(async () => {
+    const name = storeName.trim();
+    const area = storeArea.trim();
+    const latitude = storeLatitude.trim();
+    const longitude = storeLongitude.trim();
+    const priceNote = storePriceNote.trim();
+    const address = storeAddress.trim();
+    const phone = storePhone.trim();
+    const website = storeWebsite.trim();
+    const hours = storeHours.trim();
+
+    if (!name || !area || !latitude || !longitude) {
+      setNotice("Store name, area, latitude, and longitude are required.");
+      return;
+    }
+    const coordinateError = coordinateValidationMessage(latitude, longitude);
+    if (coordinateError) {
+      setNotice(coordinateError);
+      return;
+    }
+
+    const duplicate = stores.find((store) => {
+      if (editingStoreId && store.id === editingStoreId) return false;
+      return (
+        store.name.trim().toLowerCase() === name.toLowerCase() &&
+        store.area.trim().toLowerCase() === area.toLowerCase()
+      );
+    });
+    if (duplicate) {
+      setNotice("A store with the same name and area already exists.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      let savedStore: AdminStore | null = null;
+      if (editingStoreId) {
+        savedStore = await updateStoreMutation.mutateAsync({
+          id: editingStoreId,
+          name,
+          area,
+          latitude,
+          longitude,
+          priceNote,
+          address,
+          phone,
+          website,
+          hours,
+          storeType,
+          isActive: storeIsActive,
+        });
+      } else {
+        savedStore = await createStoreMutation.mutateAsync({
+          name,
+          area,
+          latitude,
+          longitude,
+          priceNote,
+          address,
+          phone,
+          website,
+          hours,
+          storeType,
+          isActive: storeIsActive,
+        });
+      }
+      if (savedStore) {
+        await writeAuditLog({
+          action: editingStoreId ? "update" : "create",
+          entityType: "store",
+          entityId: savedStore.id,
+          summary: `${editingStoreId ? "Updated" : "Created"} store ${savedStore.name}`,
+          metadata: {
+            name,
+            area,
+            latitude,
+            longitude,
+            address,
+            phone,
+            website,
+            hours,
+            storeType,
+            isActive: storeIsActive,
+          },
+        });
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Store was not saved.");
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+
+    const wasEditing = Boolean(editingStoreId);
+    resetStoreForm();
+    setStoreModalOpen(false);
+    setNotice(wasEditing ? "Store updated." : "Store added.");
+    await loadAll(true);
+  }, [
+    createStoreMutation,
+    editingStoreId,
+    loadAll,
+    resetStoreForm,
+    storeArea,
+    storeAddress,
+    storeHours,
+    storeIsActive,
+    storeLatitude,
+    storeLongitude,
+    storeName,
+    storePhone,
+    storePriceNote,
+    storeType,
+    storeWebsite,
+    stores,
+    updateStoreMutation,
+    writeAuditLog,
+  ]);
 
   const handleSavePriceEntry = React.useCallback(async () => {
     const productId = priceProductId.trim();
@@ -1391,21 +2039,50 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     [deletePriceEntryMutation, editingPriceId, loadAll, resetPriceForm],
   );
 
-  const handleDeleteStore = React.useCallback(
-    async (id: string) => {
-      setDeletingKey(`store:${id}`);
+  const handleRequestDeleteStore = React.useCallback((store: AdminStore) => {
+    setStoreDeleteCandidate(store);
+  }, []);
+
+  const handleConfirmDeleteStore = React.useCallback(
+    async () => {
+      if (!storeDeleteCandidate) return;
+      const target = storeDeleteCandidate;
+      setDeletingKey(`store:${target.id}`);
       try {
-        await deleteStoreMutation.mutateAsync(id);
+        await deleteStoreMutation.mutateAsync(target.id);
+        await writeAuditLog({
+          action: "delete",
+          entityType: "store",
+          entityId: target.id,
+          summary: `Deleted store ${target.name}`,
+          metadata: {
+            name: target.name,
+            area: target.area,
+            linkedPriceRows: storePriceStats.get(target.id)?.priceCount ?? 0,
+          },
+        });
       } catch (error) {
         setNotice(error instanceof Error ? error.message : "Store delete failed.");
         return;
       } finally {
         setDeletingKey(null);
       }
+      if (editingStoreId === target.id) {
+        resetStoreForm();
+      }
+      setStoreDeleteCandidate(null);
       setNotice("Store deleted.");
       await loadAll(true);
     },
-    [deleteStoreMutation, loadAll],
+    [
+      deleteStoreMutation,
+      editingStoreId,
+      loadAll,
+      resetStoreForm,
+      storeDeleteCandidate,
+      storePriceStats,
+      writeAuditLog,
+    ],
   );
 
   const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
@@ -1675,6 +2352,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       badge: products.length,
     },
     {
+      key: "stores" as const,
+      label: "Stores",
+      badge: displayStores.length,
+    },
+    {
       key: "flyer" as const,
       label: "Flyer",
       badge: 0,
@@ -1682,7 +2364,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   ];
 
   const panelTitle =
-    activeMenu === "overview" ? "Dashboard" : activeMenu === "products" ? "Products" : "Flyer";
+    activeMenu === "overview"
+      ? "Dashboard"
+      : activeMenu === "products"
+        ? "Products"
+        : activeMenu === "stores"
+          ? "Stores"
+          : "Flyer";
 
   return (
     <View style={st.root}>
@@ -1977,8 +2665,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       </View>
                     </View>
 
-                    <View style={st.productFilterCard}>
-                      <ScrollView
+	                    <View style={st.productFilterCard}>
+	                      <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={st.productFilterInlineRow}
@@ -2273,65 +2961,274 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                       )}
                     </View>
 
-                    <View style={st.dataCard}>
-                      <View style={st.dataCardHeader}>
-                        <Text style={st.dataCardTitle}>Store CSV</Text>
-                        <View style={st.inlineRow}>
-                          <Text style={st.dataMuted}>Import/export store master data.</Text>
-                          <Pressable
-                            accessibilityRole="button"
-                            onPress={handleImportStoresCsv}
-                            style={[st.btn, st.btnGhost]}
-                            disabled={submitting}
-                          >
-                            <Text style={st.btnGhostText}>Import Stores CSV</Text>
-                          </Pressable>
-                          <Pressable
-                            accessibilityRole="button"
-                            onPress={handleExportStoresCsv}
-                            style={[st.btn, st.btnGhost, stores.length === 0 && st.btnDisabled]}
-                            disabled={stores.length === 0 || submitting}
-                          >
-                            <Text style={st.btnGhostText}>Export Stores CSV</Text>
-                          </Pressable>
-                        </View>
+                  </View>
+                ) : null}
+
+                {activeMenu === "stores" ? (
+                  <View style={st.dataCard}>
+                    <View style={st.dataCardHeader}>
+                      <Text style={st.dataCardTitle}>Store Management</Text>
+                      <View style={st.inlineRow}>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleOpenAddStore}
+                          style={[st.btn, st.btnPrimary]}
+                          disabled={submitting}
+                        >
+                          <Text style={st.btnPrimaryText}>Add Store</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleImportStoresCsv}
+                          style={[st.btn, st.btnGhost]}
+                          disabled={submitting}
+                        >
+                          <Text style={st.btnGhostText}>Import Stores CSV</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={handleExportStoresCsv}
+                          style={[st.btn, st.btnGhost, displayStores.length === 0 && st.btnDisabled]}
+                          disabled={displayStores.length === 0 || submitting}
+                        >
+                          <Text style={st.btnGhostText}>Export Stores CSV</Text>
+                        </Pressable>
                       </View>
+                    </View>
 
+                    <View style={st.productFilterCard}>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={st.productFilterInlineRow}
+                      >
+                        <TextInput
+                          value={storeSearchQuery}
+                          onChangeText={setStoreSearchQuery}
+                          placeholder="Search store, area, ID, note, or coordinates"
+                          placeholderTextColor={C.textMuted}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          style={[st.input, st.productSearchInputInline]}
+                        />
+                        {Platform.OS === "web" ? (
+                          <select
+                            value={storeAreaFilter}
+                            onChange={(event) => setStoreAreaFilter((event.target as HTMLSelectElement).value)}
+                            style={WEB_FILTER_SELECT_STYLE}
+                          >
+                            <option value="all">Area: All</option>
+                            {storeAreaOptions.map((area) => (
+                              <option key={`store-area-${area}`} value={area}>
+                                {area}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                        {Platform.OS === "web" ? (
+                          <select
+                            value={storeStatusFilter}
+                            onChange={(event) => setStoreStatusFilter((event.target as HTMLSelectElement).value)}
+                            style={WEB_FILTER_SELECT_STYLE}
+                          >
+                            <option value="all">Status: All</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        ) : null}
+                        {Platform.OS === "web" ? (
+                          <select
+                            value={storeTypeFilter}
+                            onChange={(event) => setStoreTypeFilter((event.target as HTMLSelectElement).value)}
+                            style={WEB_FILTER_SELECT_STYLE}
+                          >
+                            <option value="all">Type: All</option>
+                            {storeTypeOptions.map((type) => (
+                              <option key={`store-type-${type}`} value={type}>
+                                {type}
+                              </option>
+                            ))}
+                          </select>
+                        ) : null}
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => {
+                            setStoreSearchQuery("");
+                            setStoreAreaFilter("all");
+                            setStoreStatusFilter("all");
+                            setStoreTypeFilter("all");
+                          }}
+                          style={[st.btn, st.btnGhost, storeActiveFilterCount === 0 && st.btnDisabled]}
+                          disabled={storeActiveFilterCount === 0}
+                        >
+                          <Text style={st.btnGhostText}>Reset</Text>
+                        </Pressable>
+                      </ScrollView>
                       <Text style={st.dataMuted}>
-                        CSV headers: name, area, latitude, longitude, price_note
-                      </Text>
+                        Showing {filteredStores.length} / {displayStores.length} stores
+                        {storeActiveFilterCount > 0 ? ` | Filters ${storeActiveFilterCount}` : ""}
+	                      </Text>
+	                    </View>
 
-                      {stores.length === 0 ? (
-                        <Text style={st.dataMuted}>No stores yet.</Text>
-                      ) : (
-                        stores.slice(0, 40).map((store) => {
-                          const deleteKey = `store:${store.id}`;
-                          const deleting = deletingKey === deleteKey;
-                          return (
-                            <View key={store.id} style={st.listRow}>
-                              <View style={st.listMain}>
-                                <Text style={st.listTitle}>{store.name}</Text>
-                                <Text style={st.dataMuted}>{store.area}</Text>
+	                    <View style={st.storeMapPanel}>
+	                      <View style={st.storeMapHeader}>
+	                        <View style={st.listMain}>
+	                          <Text style={st.fieldLabel}>Store Map</Text>
+	                          <Text style={st.dataMuted}>
+	                            {selectedStoreForMap
+	                              ? `${selectedStoreForMap.name} | ${selectedStoreForMap.area}`
+	                              : "No store selected"}
+	                          </Text>
+	                        </View>
+	                        <Pressable
+	                          accessibilityRole="button"
+	                          onPress={() => selectedStoreForMap && handleOpenMapUrl(storeMapUrl(selectedStoreForMap))}
+	                          style={[st.btn, st.btnGhost, !selectedStoreForMap && st.btnDisabled]}
+	                          disabled={!selectedStoreForMap}
+	                        >
+	                          <Text style={st.btnGhostText}>Open Map</Text>
+	                        </Pressable>
+	                      </View>
+	                      {selectedStoreMapSrcDoc && Platform.OS === "web" ? (
+	                        <iframe
+	                          title="Store map"
+	                          srcDoc={selectedStoreMapSrcDoc}
+	                          style={WEB_STORE_MAP_IFRAME_STYLE}
+	                          loading="lazy"
+	                        />
+	                      ) : (
+	                        <View style={st.storeMapEmpty}>
+	                          <Text style={st.dataMuted}>No valid coordinates to display.</Text>
+	                        </View>
+	                      )}
+	                    </View>
+
+                    {displayStores.length === 0 ? (
+                      <Text style={st.dataMuted}>No stores yet.</Text>
+                    ) : filteredStores.length === 0 ? (
+                      <Text style={st.dataMuted}>No stores match current filters.</Text>
+                    ) : (
+                      filteredStores.map((store) => {
+                        const deleteKey = `store:${store.id}`;
+                        const deleting = deletingKey === deleteKey;
+	                        const stats = storePriceStats.get(store.id);
+	                        const selectedOnMap = selectedStoreForMap?.id === store.id;
+	                        const priceCount = stats?.priceCount ?? 0;
+                        const productCount = stats?.productIds.size ?? 0;
+                        const latestObserved =
+                          stats && stats.latestObservedAtMs >= 0
+                            ? toDateOnlyLabel(new Date(stats.latestObservedAtMs).toISOString())
+                            : "No prices";
+	                        return (
+	                          <Pressable
+	                            key={store.id}
+	                            accessibilityRole="button"
+	                            accessibilityLabel={`Select ${store.name} on map`}
+	                            onPress={() =>
+	                              setSelectedStoreMapId((current) =>
+	                                current === store.id ? null : store.id,
+	                              )
+	                            }
+	                            style={[st.listRow, selectedOnMap && st.storeListRowActive]}
+	                            disabled={deleting || submitting}
+	                          >
+	                            <View style={st.listMain}>
+                              <Text style={st.listTitle}>{store.name}</Text>
+                              <Text style={st.dataMuted}>{store.area}</Text>
+	                              <View style={st.storeInlineChipRow}>
+	                                <View style={[st.storeMetaChip, !store.is_active && st.storeInactiveChip]}>
+	                                  <Text style={[st.storeMetaChipText, !store.is_active && st.storeInactiveChipText]}>
+	                                    {store.is_active ? "Active" : "Inactive"}
+	                                  </Text>
+	                                </View>
+	                                <View style={st.storeMetaChip}>
+	                                  <Text style={st.storeMetaChipText}>{store.store_type}</Text>
+	                                </View>
+                                  <View style={st.storeMetaChip}>
+                                    <Text style={st.storeMetaChipText}>Prices {priceCount}</Text>
+                                  </View>
+                                  <View style={st.storeMetaChip}>
+                                    <Text style={st.storeMetaChipText}>Products {productCount}</Text>
+                                  </View>
+                                  <View style={st.storeMetaChip}>
+                                    <Text style={st.storeMetaChipText}>Latest {latestObserved}</Text>
+                                  </View>
+	                              </View>
+                              <Text style={st.dataMuted}>
+                                {store.latitude}, {store.longitude}
+                              </Text>
+                              {store.address ? (
+                                <Text style={st.dataMuted}>{store.address}</Text>
+                              ) : null}
+                              {store.phone || store.website || store.hours ? (
                                 <Text style={st.dataMuted}>
-                                  {store.latitude}, {store.longitude}
+                                  {[store.phone, store.website, store.hours].filter(Boolean).join(" | ")}
                                 </Text>
-                              </View>
-                              <View style={st.listRight}>
-                                <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+                              ) : null}
+                              {store.price_note ? (
+                                <Text style={st.dataMuted}>{store.price_note}</Text>
+                              ) : null}
+	                              <Text style={st.dataMuted}>{store.id}</Text>
+                            </View>
+                            <View style={st.storeListRight}>
+                              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
+                              <View style={st.storeActionRow}>
                                 <Pressable
                                   accessibilityRole="button"
-                                  onPress={() => {
-                                    void handleDeleteStore(store.id);
+                                  onPress={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenMapUrl(storeMapUrl(store));
                                   }}
-                                  style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
+                                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnGhostText}>Map</Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={(event) => {
+                                    event.stopPropagation();
+                                    handleOpenEditStore(store);
+                                  }}
+                                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                                  disabled={deleting || submitting}
+                                >
+                                  <Text style={st.btnGhostText}>Edit</Text>
+                                </Pressable>
+                                <Pressable
+                                  accessibilityRole="button"
+                                  onPress={(event) => {
+                                    event.stopPropagation();
+                                    handleRequestDeleteStore(store);
+                                  }}
+                                  style={[st.btn, st.btnDanger, st.storeActionBtn, deleting && st.btnDisabled]}
                                   disabled={deleting || submitting}
                                 >
                                   <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
                                 </Pressable>
                               </View>
                             </View>
-                          );
-                        })
+                          </Pressable>
+                        );
+                      })
+                    )}
+
+                    <View style={st.auditCard}>
+                      <Text style={st.fieldLabel}>Recent Store Audit Log</Text>
+                      {storeAuditLogs.length === 0 ? (
+                        <Text style={st.dataMuted}>No store audit log entries yet.</Text>
+                      ) : (
+                        storeAuditLogs.map((log) => (
+                          <View key={log.id} style={st.auditRow}>
+                            <View style={st.listMain}>
+                              <Text style={st.listTitle}>{log.summary}</Text>
+                              <Text style={st.dataMuted}>
+                                {log.action} | {log.actor_email ?? log.actor_user_id ?? "unknown"}
+                              </Text>
+                            </View>
+                            <Text style={st.listDate}>{toDateOnlyLabel(log.created_at)}</Text>
+                          </View>
+                        ))
                       )}
                     </View>
                   </View>
@@ -2570,6 +3467,349 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           </ScrollView>
         </View>
       </View>
+
+      <Modal
+        visible={storeImportPreviewOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStoreImportPreviewOpen(false)}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            <View style={st.modalHeader}>
+              <View>
+                <Text style={st.modalTitle}>Import Stores CSV</Text>
+                <Text style={st.modalSub}>
+                  Review the CSV rows before importing. Only ready rows will be created.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setStoreImportPreviewOpen(false)}
+                style={[st.btn, st.btnGhost]}
+              >
+                <Text style={st.btnGhostText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={st.modalBody} contentContainerStyle={st.modalBodyContent}>
+              <View style={st.productChipRow}>
+                <View style={st.productMetaChip}>
+                  <Text style={st.productMetaChipText}>
+                    Ready {storeImportPreviewRows.filter((row) => row.status === "ready").length}
+                  </Text>
+                </View>
+                <View style={st.productMetaChip}>
+                  <Text style={st.productMetaChipText}>
+                    Duplicates {storeImportPreviewRows.filter((row) => row.status === "duplicate").length}
+                  </Text>
+                </View>
+                <View style={st.productMetaChip}>
+                  <Text style={st.productMetaChipText}>
+                    Invalid {storeImportPreviewRows.filter((row) => row.status === "invalid").length}
+                  </Text>
+                </View>
+              </View>
+              {storeImportPreviewRows.map((row) => (
+                <View key={`store-import-${row.rowNumber}`} style={st.dataRow}>
+                  <View style={st.dataRowMain}>
+                    <Text style={st.dataRowTitle}>
+                      Row {row.rowNumber}: {row.name || "Unnamed store"}
+                    </Text>
+                    <Text style={st.dataMuted}>
+                      {row.area || "No area"} | {row.latitude || "No lat"}, {row.longitude || "No lng"}
+                    </Text>
+                  </View>
+                  <Text style={row.status === "ready" ? st.importStatusReady : st.importStatusMuted}>
+                    {row.reason}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={st.modalActionRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setStoreImportPreviewOpen(false)}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  void handleConfirmStoreImport();
+                }}
+                style={[st.btn, st.btnPrimary]}
+                disabled={submitting || storeImportPreviewRows.every((row) => row.status !== "ready")}
+              >
+                <Text style={st.btnPrimaryText}>{submitting ? "Importing..." : "Import Ready Rows"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(storeDeleteCandidate)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStoreDeleteCandidate(null)}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={st.confirmCard}>
+            <Text style={st.modalTitle}>Delete Store</Text>
+            <Text style={st.modalSub}>
+              Delete {storeDeleteCandidate?.name ?? "this store"}? This can also remove linked price rows.
+            </Text>
+            {storeDeleteCandidate ? (
+              <Text style={st.infoBody}>
+                Linked price rows: {storePriceStats.get(storeDeleteCandidate.id)?.priceCount ?? 0}
+              </Text>
+            ) : null}
+            <View style={st.modalActionRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setStoreDeleteCandidate(null)}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  void handleConfirmDeleteStore();
+                }}
+                style={[st.btn, st.btnDanger]}
+                disabled={submitting}
+              >
+                <Text style={st.btnDangerText}>Delete Store</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={storeModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setStoreModalOpen(false);
+          resetStoreForm();
+        }}
+      >
+        <View style={st.modalBackdrop}>
+          <View style={st.modalCard}>
+            <View style={st.modalHeader}>
+              <View>
+                <Text style={st.modalTitle}>{editingStoreId ? "Edit Store" : "Add Store"}</Text>
+                <Text style={st.modalSub}>
+                  Enter store details and coordinates. Coordinates are checked before saving.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setStoreModalOpen(false);
+                  resetStoreForm();
+                }}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>Close</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={st.modalBody} contentContainerStyle={st.modalBodyContent}>
+              <View style={st.modalTopGrid}>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Store Name</Text>
+                  <TextInput
+                    value={storeName}
+                    onChangeText={setStoreName}
+                    placeholder="Store name"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Area / Branch</Text>
+                  <TextInput
+                    value={storeArea}
+                    onChangeText={setStoreArea}
+                    placeholder="Area / branch"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+              </View>
+
+              <View style={st.modalTopGrid}>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Latitude</Text>
+                  <TextInput
+                    value={storeLatitude}
+                    onChangeText={setStoreLatitude}
+                    placeholder="Latitude"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="decimal-pad"
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Longitude</Text>
+                  <TextInput
+                    value={storeLongitude}
+                    onChangeText={setStoreLongitude}
+                    placeholder="Longitude"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="decimal-pad"
+                    style={st.input}
+                  />
+                </View>
+              </View>
+
+              <View style={st.modalTopGrid}>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Type</Text>
+                  {Platform.OS === "web" ? (
+                    <select
+                      value={storeType}
+                      onChange={(event) => setStoreType((event.target as HTMLSelectElement).value)}
+                      style={WEB_FILTER_SELECT_STYLE}
+                    >
+                      {STORE_TYPE_OPTIONS.map((option) => (
+                        <option key={`store-modal-type-${option.value}`} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <View style={st.choiceRow}>
+                      {STORE_TYPE_OPTIONS.map((option) => (
+                        <Pressable
+                          key={`store-modal-type-${option.value}`}
+                          accessibilityRole="button"
+                          onPress={() => setStoreType(option.value)}
+                          style={[st.choiceChip, storeType === option.value && st.choiceChipActive]}
+                        >
+                          <Text style={[st.choiceChipText, storeType === option.value && st.choiceChipTextActive]}>
+                            {option.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <Text style={st.fieldLabel}>Status</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setStoreIsActive((value) => !value)}
+                    style={[st.btn, storeIsActive ? st.btnPrimary : st.btnGhost, st.storeStatusToggle]}
+                  >
+                    <Text style={storeIsActive ? st.btnPrimaryText : st.btnGhostText}>
+                      {storeIsActive ? "Active" : "Inactive"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <Text style={st.fieldLabel}>Details</Text>
+              <View style={st.modalTopGrid}>
+                <View style={st.modalTopCell}>
+                  <TextInput
+                    value={storeAddress}
+                    onChangeText={setStoreAddress}
+                    placeholder="Address"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storePhone}
+                    onChangeText={setStorePhone}
+                    placeholder="Phone"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storeWebsite}
+                    onChangeText={setStoreWebsite}
+                    placeholder="Website"
+                    placeholderTextColor={C.textMuted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storeHours}
+                    onChangeText={setStoreHours}
+                    placeholder="Hours"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
+                    value={storePriceNote}
+                    onChangeText={setStorePriceNote}
+                    placeholder="Price note"
+                    placeholderTextColor={C.textMuted}
+                    style={st.input}
+                  />
+                </View>
+              </View>
+
+              <View style={st.modalActionRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => handleOpenMapUrl(storeAddressSearchUrl(storeName, storeArea))}
+                  style={[st.btn, st.btnGhost, (!storeName.trim() && !storeArea.trim()) && st.btnDisabled]}
+                  disabled={!storeName.trim() && !storeArea.trim()}
+                >
+                  <Text style={st.btnGhostText}>Find on Map</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    setStoreModalOpen(false);
+                    resetStoreForm();
+                  }}
+                  style={[st.btn, st.btnGhost]}
+                  disabled={submitting}
+                >
+                  <Text style={st.btnGhostText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void handleSaveStore();
+                  }}
+                  style={[st.btn, st.btnPrimary]}
+                  disabled={submitting}
+                >
+                  <Text style={st.btnPrimaryText}>
+                    {submitting ? "Saving..." : editingStoreId ? "Update Store" : "Add Store"}
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={st.dataMuted}>
+                CSV headers: name, area, latitude, longitude, price_note, address, phone, website, hours,
+                store_type, is_active.
+              </Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={productModalOpen}
@@ -2906,8 +4146,8 @@ const st = StyleSheet.create({
     gap: 8,
   },
   menuBtnActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   menuText: {
     color: "#2e3a4f",
@@ -2915,7 +4155,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
   },
   menuTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   menuBadge: {
     minWidth: 24,
@@ -2927,7 +4167,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 6,
   },
   menuBadgeActive: {
-    backgroundColor: "#d6e0ff",
+    backgroundColor: C.primaryPale,
   },
   menuBadgeText: {
     color: "#4e5c74",
@@ -2935,7 +4175,7 @@ const st = StyleSheet.create({
     fontWeight: "800",
   },
   menuBadgeTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   sidebarFooter: {
     marginTop: "auto",
@@ -2967,7 +4207,7 @@ const st = StyleSheet.create({
       : ({ position: "absolute", left: 12, bottom: 12 } as any)),
   },
   sidebarCollapsedToggleIcon: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
     fontSize: 28,
     fontWeight: "900",
     marginTop: -2,
@@ -3056,8 +4296,8 @@ const st = StyleSheet.create({
     paddingVertical: 7,
   },
   mobileMenuBtnActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   mobileMenuText: {
     color: "#3a465d",
@@ -3065,7 +4305,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
   },
   mobileMenuTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   statGrid: {
     flexDirection: "row",
@@ -3224,7 +4464,7 @@ const st = StyleSheet.create({
     fontWeight: "800",
   },
   flyerSelectTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   flyerCellSelect: {
     width: 68,
@@ -3304,6 +4544,26 @@ const st = StyleSheet.create({
     fontWeight: "700",
     textAlign: "right",
   },
+  auditCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f2",
+    backgroundColor: "#f8faff",
+    padding: 10,
+    gap: 8,
+  },
+  auditRow: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e7f0",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
   formRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -3346,6 +4606,31 @@ const st = StyleSheet.create({
     flexGrow: 1,
     minWidth: 280,
   },
+  storeMapPanel: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d8e0ec",
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+  },
+  storeMapHeader: {
+    minHeight: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f2",
+    backgroundColor: "#f8faff",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  storeMapEmpty: {
+    minHeight: 280,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f6fb",
+  },
   filterInputInline: {
     width: 96,
   },
@@ -3359,6 +4644,14 @@ const st = StyleSheet.create({
   },
   priceFormInputSmall: {
     minWidth: 96,
+    flexGrow: 1,
+  },
+  storeFormInputWide: {
+    minWidth: 220,
+    flexGrow: 1,
+  },
+  storeFormInputSmall: {
+    minWidth: 130,
     flexGrow: 1,
   },
   productFilterInlineGroup: {
@@ -3389,6 +4682,35 @@ const st = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  storeListRowActive: {
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+  },
+  storeMetaChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  storeMetaChipText: {
+    color: C.primaryDeep,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  storeInactiveChip: {
+    borderColor: "#d6dce7",
+    backgroundColor: "#eef1f6",
+  },
+  storeInactiveChipText: {
+    color: "#66748f",
+  },
+  storeStatusToggle: {
+    alignSelf: "flex-start",
+    minWidth: 112,
+    justifyContent: "center",
+  },
   listMain: {
     flex: 1,
     gap: 2,
@@ -3398,6 +4720,14 @@ const st = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6,
     marginTop: 2,
+  },
+  storeInlineChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+    ...(Platform.OS === "web" ? ({ display: "inline-flex", maxWidth: "100%" } as any) : {}),
   },
   productMetaChip: {
     borderRadius: 999,
@@ -3415,6 +4745,23 @@ const st = StyleSheet.create({
   listRight: {
     alignItems: "flex-end",
     gap: 6,
+  },
+  storeListRight: {
+    alignItems: "flex-end",
+    gap: 6,
+    minWidth: 260,
+  },
+  storeActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 6,
+    ...(Platform.OS === "web" ? ({ display: "inline-flex" } as any) : {}),
+  },
+  storeActionBtn: {
+    minHeight: 32,
+    paddingHorizontal: 10,
   },
   listThumb: {
     width: 54,
@@ -3436,7 +4783,7 @@ const st = StyleSheet.create({
     textAlign: "right",
   },
   listPrice: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
     fontSize: 13,
     fontWeight: "800",
   },
@@ -3462,6 +4809,16 @@ const st = StyleSheet.create({
     borderColor: "#d8dee8",
     backgroundColor: "#ffffff",
     overflow: "hidden",
+  },
+  confirmCard: {
+    width: "100%",
+    maxWidth: 480,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#d8dee8",
+    backgroundColor: "#ffffff",
+    padding: 16,
+    gap: 10,
   },
   modalHeader: {
     paddingHorizontal: 14,
@@ -3525,8 +4882,8 @@ const st = StyleSheet.create({
     paddingVertical: 7,
   },
   choiceChipActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   choiceChipText: {
     color: "#40506c",
@@ -3534,7 +4891,7 @@ const st = StyleSheet.create({
     fontWeight: "700",
   },
   choiceChipTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   storePriceHeaderRow: {
     flexDirection: "row",
@@ -3577,6 +4934,18 @@ const st = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 8,
+  },
+  importStatusReady: {
+    color: "#2c7a4b",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
+  },
+  importStatusMuted: {
+    color: "#a05a2c",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "right",
   },
   modalImagePreview: {
     width: "100%",
@@ -3631,8 +5000,8 @@ const st = StyleSheet.create({
     gap: 2,
   },
   storePillActive: {
-    borderColor: "#8fa6f8",
-    backgroundColor: "#edf2ff",
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
   },
   storePillText: {
     color: "#2f3748",
@@ -3644,7 +5013,7 @@ const st = StyleSheet.create({
     fontSize: 11,
   },
   storePillTextActive: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
   },
   dateBtn: {
     minWidth: 190,
@@ -3669,8 +5038,8 @@ const st = StyleSheet.create({
     paddingHorizontal: 12,
   },
   btnPrimary: {
-    backgroundColor: "#3c6df0",
-    borderColor: "#3c6df0",
+    backgroundColor: C.primaryDark,
+    borderColor: C.primaryDark,
   },
   btnPrimaryText: {
     color: "#ffffff",
@@ -3702,7 +5071,7 @@ const st = StyleSheet.create({
     paddingHorizontal: 10,
   },
   btnLinkText: {
-    color: "#2f55d4",
+    color: C.primaryDeep,
     fontSize: 12,
     fontWeight: "700",
   },

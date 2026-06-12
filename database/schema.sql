@@ -173,8 +173,32 @@ create table if not exists public.stores (
   latitude numeric not null,
   longitude numeric not null,
   price_note text,
+  address text,
+  phone text,
+  website text,
+  hours text,
+  store_type text not null default 'grocery',
+  is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+alter table public.stores
+  add column if not exists address text,
+  add column if not exists phone text,
+  add column if not exists website text,
+  add column if not exists hours text,
+  add column if not exists store_type text not null default 'grocery',
+  add column if not exists is_active boolean not null default true;
+
+alter table public.stores drop constraint if exists stores_latitude_range;
+alter table public.stores
+  add constraint stores_latitude_range
+  check (latitude >= -90 and latitude <= 90) not valid;
+
+alter table public.stores drop constraint if exists stores_longitude_range;
+alter table public.stores
+  add constraint stores_longitude_range
+  check (longitude >= -180 and longitude <= 180) not valid;
 
 alter table public.stores enable row level security;
 
@@ -209,6 +233,38 @@ on public.stores
 for delete
 to authenticated
 using (public.is_admin());
+
+-- admin_audit_logs
+create table if not exists public.admin_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  actor_user_id uuid references auth.users(id) on delete set null,
+  actor_email text,
+  action text not null,
+  entity_type text not null,
+  entity_id text,
+  summary text not null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists admin_audit_logs_created_idx
+  on public.admin_audit_logs(created_at desc);
+
+alter table public.admin_audit_logs enable row level security;
+
+drop policy if exists admin_audit_logs_select_admin on public.admin_audit_logs;
+create policy admin_audit_logs_select_admin
+on public.admin_audit_logs
+for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists admin_audit_logs_insert_admin on public.admin_audit_logs;
+create policy admin_audit_logs_insert_admin
+on public.admin_audit_logs
+for insert
+to authenticated
+with check (public.is_admin() and actor_user_id = auth.uid());
 
 -- product_prices
 create table if not exists public.product_prices (

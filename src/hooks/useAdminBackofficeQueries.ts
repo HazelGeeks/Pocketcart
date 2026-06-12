@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  createAdminAuditLog,
   createAdminStore,
   createAdminPriceEntry,
   createAdminProduct,
@@ -8,13 +9,16 @@ import {
   deleteAdminStore,
   getAdminUser,
   listAdminPriceEntries,
+  listAdminAuditLogs,
   listAdminProducts,
   listAdminStores,
   signInAdmin,
   signOutAdmin,
   updateAdminPriceEntry,
   updateAdminProduct,
+  updateAdminStore,
   uploadAdminProductImage,
+  type AdminAuditLog,
   type AdminPriceEntry,
   type AdminProduct,
   type AdminStore,
@@ -33,6 +37,7 @@ export const adminQueryKeys = {
   products: ["admin", "products"] as const,
   stores: ["admin", "stores"] as const,
   prices: ["admin", "prices"] as const,
+  auditLogs: ["admin", "auditLogs"] as const,
 };
 
 function unwrap<T>(result: ServiceResult<T>): T {
@@ -71,6 +76,14 @@ export function useAdminPricesQuery(enabled: boolean) {
   return useQuery<AdminPriceEntry[]>({
     queryKey: adminQueryKeys.prices,
     queryFn: async () => unwrap(await listAdminPriceEntries()),
+    enabled,
+  });
+}
+
+export function useAdminAuditLogsQuery(enabled: boolean) {
+  return useQuery<AdminAuditLog[]>({
+    queryKey: adminQueryKeys.auditLogs,
+    queryFn: async () => unwrap(await listAdminAuditLogs()),
     enabled,
   });
 }
@@ -168,6 +181,17 @@ export function useDeleteAdminStoreMutation() {
   });
 }
 
+export function useUpdateAdminStoreMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<AdminStore | null, Error, Parameters<typeof updateAdminStore>[0]>({
+    mutationFn: async (params) => unwrap(await updateAdminStore(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.stores });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
 export function useDeleteAdminProductMutation() {
   const queryClient = useQueryClient();
   return useMutation<null, Error, string>({
@@ -175,6 +199,16 @@ export function useDeleteAdminProductMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
+export function useCreateAdminAuditLogMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<AdminAuditLog | null, Error, Parameters<typeof createAdminAuditLog>[0]>({
+    mutationFn: async (params) => unwrap(await createAdminAuditLog(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs });
     },
   });
 }
