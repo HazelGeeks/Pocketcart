@@ -1,0 +1,152 @@
+import React from "react";
+import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { marketingPalette as C } from "../../shared/design/palette";
+import type { ProductSortKey } from "../../state/adminStore";
+import { WEB_FILTER_SELECT_STYLE } from "../../utils/adminScreenHelpers";
+
+type ProductStoreFilterOption = {
+  id: string;
+  name: string;
+};
+
+type ProductSortOption = {
+  key: ProductSortKey;
+  label: string;
+};
+
+type AdminProductFiltersProps = {
+  searchQuery: string;
+  priceMin: string;
+  priceMax: string;
+  categoryFilter: string;
+  storeFilter: string;
+  sort: ProductSortKey;
+  categoryOptions: string[];
+  storeOptions: ProductStoreFilterOption[];
+  sortOptions: ProductSortOption[];
+  filteredCount: number;
+  totalCount: number;
+  activeFilterCount: number;
+  styles: Record<string, any>;
+  onSearchChange: (value: string) => void;
+  onPriceMinChange: (value: string) => void;
+  onPriceMaxChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+  onStoreChange: (value: string) => void;
+  onSortChange: (value: ProductSortKey) => void;
+  onReset: () => void;
+};
+
+export default function AdminProductFilters({
+  searchQuery,
+  priceMin,
+  priceMax,
+  categoryFilter,
+  storeFilter,
+  sort,
+  categoryOptions,
+  storeOptions,
+  sortOptions,
+  filteredCount,
+  totalCount,
+  activeFilterCount,
+  styles: st,
+  onSearchChange,
+  onPriceMinChange,
+  onPriceMaxChange,
+  onCategoryChange,
+  onStoreChange,
+  onSortChange,
+  onReset,
+}: AdminProductFiltersProps) {
+  return (
+    <View style={st.productFilterCard}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={st.productFilterInlineRow}
+      >
+        <TextInput
+          value={searchQuery}
+          onChangeText={onSearchChange}
+          placeholder="Search product, category, store, or ID"
+          placeholderTextColor={C.textMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[st.input, st.productSearchInputInline]}
+        />
+        <TextInput
+          value={priceMin}
+          onChangeText={onPriceMinChange}
+          placeholder="Min"
+          placeholderTextColor={C.textMuted}
+          keyboardType="decimal-pad"
+          style={[st.input, st.filterInputInline]}
+        />
+        <TextInput
+          value={priceMax}
+          onChangeText={onPriceMaxChange}
+          placeholder="Max"
+          placeholderTextColor={C.textMuted}
+          keyboardType="decimal-pad"
+          style={[st.input, st.filterInputInline]}
+        />
+        {Platform.OS === "web" ? (
+          <>
+            <select
+              value={categoryFilter}
+              onChange={(event) => onCategoryChange((event.target as HTMLSelectElement).value)}
+              style={WEB_FILTER_SELECT_STYLE}
+            >
+              <option value="all">Category: All</option>
+              {categoryOptions.map((category) => (
+                <option key={`filter-category-${category}`} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={storeFilter}
+              onChange={(event) => onStoreChange((event.target as HTMLSelectElement).value)}
+              style={WEB_FILTER_SELECT_STYLE}
+            >
+              <option value="all">Store: All</option>
+              {storeOptions.map((store) => (
+                <option key={`filter-store-${store.id}`} value={store.id}>
+                  {store.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={sort}
+              onChange={(event) => onSortChange((event.target as HTMLSelectElement).value as ProductSortKey)}
+              style={WEB_FILTER_SELECT_STYLE}
+            >
+              {sortOptions.map((option) => (
+                <option key={`product-sort-${option.key}`} value={option.key}>
+                  Sort: {option.label}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : null}
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={onReset}
+          style={[st.btn, st.btnGhost, activeFilterCount === 0 && st.btnDisabled]}
+          disabled={activeFilterCount === 0}
+        >
+          <Text style={st.btnGhostText}>Reset</Text>
+        </Pressable>
+      </ScrollView>
+
+      <Text style={st.dataMuted}>
+        Showing {filteredCount} / {totalCount} products
+        {activeFilterCount > 0 ? ` | Filters ${activeFilterCount}` : ""}
+      </Text>
+    </View>
+  );
+}
