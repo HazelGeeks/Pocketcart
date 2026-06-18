@@ -22,6 +22,8 @@ export type MarketStore = {
   latitude: number;
   longitude: number;
   price_note: string | null;
+  address: string | null;
+  place_id: string | null;
 };
 
 type ServiceResult<T> = {
@@ -50,6 +52,8 @@ type StoreRow = {
   latitude: number | string;
   longitude: number | string;
   price_note: string | null;
+  address?: string | null;
+  place_id?: string | null;
 };
 
 const FALLBACK_PRODUCTS: MarketProduct[] = [
@@ -112,6 +116,8 @@ const FALLBACK_STORES: MarketStore[] = [
     name: "Gangnam Fresh Mart",
     area: "Gangnam Station",
     price_note: "Eggs 30pk $7.40",
+    address: null,
+    place_id: null,
     latitude: 37.498095,
     longitude: 127.02761,
   },
@@ -120,6 +126,8 @@ const FALLBACK_STORES: MarketStore[] = [
     name: "Hongdae Smart Market",
     area: "Hongik Univ. Area",
     price_note: "Chicken breast 1kg $8.90",
+    address: null,
+    place_id: null,
     latitude: 37.557192,
     longitude: 126.925381,
   },
@@ -128,6 +136,8 @@ const FALLBACK_STORES: MarketStore[] = [
     name: "Jamsil Family Store",
     area: "Jamsil / Songpa",
     price_note: "Olive oil 1L $11.20",
+    address: null,
+    place_id: null,
     latitude: 37.513319,
     longitude: 127.100188,
   },
@@ -136,6 +146,8 @@ const FALLBACK_STORES: MarketStore[] = [
     name: "Yeouido Daily Hub",
     area: "Yeouido Financial District",
     price_note: "Milk 2L $3.90",
+    address: null,
+    place_id: null,
     latitude: 37.521939,
     longitude: 126.924218,
   },
@@ -325,7 +337,7 @@ export async function listStores(params?: {
 
   const { data, error } = await supabase
     .from("stores")
-    .select("id, name, area, latitude, longitude, price_note")
+    .select("id, name, area, latitude, longitude, price_note, address, place_id")
     .order("name", { ascending: true });
 
   if (error) {
@@ -344,6 +356,8 @@ export async function listStores(params?: {
         latitude,
         longitude,
         price_note: row.price_note,
+        address: row.address ?? null,
+        place_id: row.place_id ?? null,
       };
     })
     .filter((row): row is MarketStore => row !== null)
@@ -418,7 +432,7 @@ export async function createStore(params: {
   const { data, error } = await supabase
     .from("stores")
     .insert(payload)
-    .select("id, name, area, latitude, longitude, price_note")
+    .select("id, name, area, latitude, longitude, price_note, address, place_id")
     .single();
 
   if (error) {
@@ -434,6 +448,8 @@ export async function createStore(params: {
       latitude: parseNumber(row.latitude) ?? latitude,
       longitude: parseNumber(row.longitude) ?? longitude,
       price_note: row.price_note,
+      address: row.address ?? null,
+      place_id: row.place_id ?? null,
     },
     error: null,
   };

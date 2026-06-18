@@ -174,6 +174,7 @@ create table if not exists public.stores (
   longitude numeric not null,
   price_note text,
   address text,
+  place_id text,
   phone text,
   website text,
   hours text,
@@ -184,6 +185,7 @@ create table if not exists public.stores (
 
 alter table public.stores
   add column if not exists address text,
+  add column if not exists place_id text,
   add column if not exists phone text,
   add column if not exists website text,
   add column if not exists hours text,
