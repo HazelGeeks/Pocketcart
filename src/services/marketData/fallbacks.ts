@@ -1,0 +1,98 @@
+import type { MarketProduct, MarketStore } from "./types";
+
+export const FALLBACK_PRODUCTS: MarketProduct[] = [
+  {
+    id: "rice-10kg",
+    name: "Premium Rice 10kg",
+    category: "Grains",
+    thumbnail_url: null,
+    current_price: 36.9,
+  },
+  {
+    id: "olive-oil-1l",
+    name: "Olive Oil 1L",
+    category: "Cooking",
+    thumbnail_url: null,
+    current_price: 12.4,
+  },
+  {
+    id: "whole-bean-coffee-1kg",
+    name: "Whole Bean Coffee 1kg",
+    category: "Beverage",
+    thumbnail_url: null,
+    current_price: 18.6,
+  },
+  {
+    id: "baby-formula-900g",
+    name: "Baby Formula 900g",
+    category: "Baby",
+    thumbnail_url: null,
+    current_price: 28.3,
+  },
+  {
+    id: "dish-soap-4l",
+    name: "Dish Soap 4L",
+    category: "Household",
+    thumbnail_url: null,
+    current_price: 5.2,
+  },
+  {
+    id: "milk-2l",
+    name: "Milk 2L",
+    category: "Dairy",
+    thumbnail_url: null,
+    current_price: 3.9,
+  },
+];
+
+export const FALLBACK_PRICE_HISTORY: Record<string, number[]> = {
+  "rice-10kg": [39.8, 38.9, 38.1, 37.4, 37.1, 36.9, 36.9],
+  "olive-oil-1l": [13.5, 13.2, 12.9, 12.7, 12.5, 12.4, 12.4],
+  "whole-bean-coffee-1kg": [20.5, 20.2, 19.7, 19.1, 18.9, 18.7, 18.6],
+  "baby-formula-900g": [30.2, 29.8, 29.3, 28.9, 28.6, 28.4, 28.3],
+  "dish-soap-4l": [6.1, 5.9, 5.8, 5.7, 5.5, 5.4, 5.2],
+  "milk-2l": [4.3, 4.2, 4.1, 4.0, 3.95, 3.92, 3.9],
+};
+
+export const FALLBACK_STORES: MarketStore[] = [
+  {
+    id: "gangnam-mart",
+    name: "Gangnam Fresh Mart",
+    area: "Gangnam Station",
+    price_note: "Eggs 30pk $7.40",
+    address: null,
+    place_id: null,
+    latitude: 37.498095,
+    longitude: 127.02761,
+  },
+  {
+    id: "hongdae-market",
+    name: "Hongdae Smart Market",
+    area: "Hongik Univ. Area",
+    price_note: "Chicken breast 1kg $8.90",
+    address: null,
+    place_id: null,
+    latitude: 37.557192,
+    longitude: 126.925381,
+  },
+  {
+    id: "jamsil-store",
+    name: "Jamsil Family Store",
+    area: "Jamsil / Songpa",
+    price_note: "Olive oil 1L $11.20",
+    address: null,
+    place_id: null,
+    latitude: 37.513319,
+    longitude: 127.100188,
+  },
+  {
+    id: "yeouido-hub",
+    name: "Yeouido Daily Hub",
+    area: "Yeouido Financial District",
+    price_note: "Milk 2L $3.90",
+    address: null,
+    place_id: null,
+    latitude: 37.521939,
+    longitude: 126.924218,
+  },
+];
