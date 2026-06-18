@@ -1,0 +1,210 @@
+import { Platform } from "react-native";
+import { marketingPalette as C } from "../../shared/design/palette";
+
+export const adminFormListStyles = {
+  productFilterCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f2",
+    backgroundColor: "#f8faff",
+    padding: 10,
+    gap: 6,
+  },
+  productFilterInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 8,
+  },
+  productSearchInputInline: {
+    flexGrow: 1,
+    minWidth: 280,
+  },
+  storeMapPanel: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d8e0ec",
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+  },
+  storeMapHeader: {
+    minHeight: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f2",
+    backgroundColor: "#f8faff",
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  storeMapEmpty: {
+    minHeight: 280,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f6fb",
+  },
+  filterInputInline: {
+    width: 96,
+  },
+  priceFormInputWide: {
+    minWidth: 220,
+    flexGrow: 1,
+  },
+  priceFormInputMedium: {
+    minWidth: 150,
+    flexGrow: 1,
+  },
+  priceFormInputSmall: {
+    minWidth: 96,
+    flexGrow: 1,
+  },
+  storeFormInputWide: {
+    minWidth: 220,
+    flexGrow: 1,
+  },
+  storeFormInputSmall: {
+    minWidth: 130,
+    flexGrow: 1,
+  },
+  productFilterInlineGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  productFilterInlineLabel: {
+    color: "#42526f",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  choiceRowNoWrap: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "center",
+    gap: 6,
+  },
+  listRow: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e7f0",
+    backgroundColor: "#fafbfd",
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  storeListRowActive: {
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+  },
+  storeMetaChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  storeMetaChipText: {
+    color: C.primaryDeep,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  storeInactiveChip: {
+    borderColor: "#d6dce7",
+    backgroundColor: "#eef1f6",
+  },
+  storeInactiveChipText: {
+    color: "#66748f",
+  },
+  storeStatusToggle: {
+    alignSelf: "flex-start",
+    minWidth: 112,
+    justifyContent: "center",
+  },
+  listMain: {
+    flex: 1,
+    gap: 2,
+  },
+  productChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 2,
+  },
+  storeInlineChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 4,
+    ...(Platform.OS === "web" ? ({ display: "inline-flex", maxWidth: "100%" } as any) : {}),
+  },
+  productMetaChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#dce4f1",
+    backgroundColor: "#f2f6fd",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  productMetaChipText: {
+    color: "#3f4e6d",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  listRight: {
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  storeListRight: {
+    alignItems: "flex-end",
+    gap: 6,
+    minWidth: 260,
+  },
+  storeActionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 6,
+    ...(Platform.OS === "web" ? ({ display: "inline-flex" } as any) : {}),
+  },
+  storeActionBtn: {
+    minHeight: 32,
+    paddingHorizontal: 10,
+  },
+  listThumb: {
+    width: 54,
+    height: 54,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#dce4ef",
+    backgroundColor: "#eef2f8",
+  },
+  listTitle: {
+    color: "#2f3748",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  listDate: {
+    color: "#5b677f",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  listPrice: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  inlineRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+} as const;
