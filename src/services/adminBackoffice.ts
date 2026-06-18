@@ -27,6 +27,7 @@ export type AdminStore = {
   longitude: number;
   price_note: string | null;
   address: string | null;
+  place_id: string | null;
   phone: string | null;
   website: string | null;
   hours: string | null;
@@ -82,6 +83,7 @@ type StoreRow = {
   longitude: number | string;
   price_note: string | null;
   address?: string | null;
+  place_id?: string | null;
   phone?: string | null;
   website?: string | null;
   hours?: string | null;
@@ -165,6 +167,7 @@ function normalizeStoreRow(row: StoreRow, fallback?: { latitude: number; longitu
     longitude: lng,
     price_note: row.price_note,
     address: row.address ?? null,
+    place_id: row.place_id ?? null,
     phone: row.phone ?? null,
     website: row.website ?? null,
     hours: row.hours ?? null,
@@ -441,7 +444,7 @@ export async function listAdminStores(): Promise<ServiceResult<AdminStore[]>> {
   }
 
   const extendedFields =
-    "id, name, area, latitude, longitude, price_note, address, phone, website, hours, store_type, is_active, created_at";
+    "id, name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active, created_at";
   const baseFields = "id, name, area, latitude, longitude, price_note, created_at";
   const initial = await supabase
     .from("stores")
@@ -575,6 +578,7 @@ export async function createAdminStore(params: {
   longitude: string;
   priceNote?: string;
   address?: string;
+  placeId?: string;
   phone?: string;
   website?: string;
   hours?: string;
@@ -609,6 +613,7 @@ export async function createAdminStore(params: {
   const extendedPayload = {
     ...basePayload,
     address: params.address?.trim() ? params.address.trim() : null,
+    place_id: params.placeId?.trim() ? params.placeId.trim() : null,
     phone: params.phone?.trim() ? params.phone.trim() : null,
     website: params.website?.trim() ? params.website.trim() : null,
     hours: params.hours?.trim() ? params.hours.trim() : null,
@@ -616,7 +621,7 @@ export async function createAdminStore(params: {
     is_active: params.isActive ?? true,
   };
   const extendedFields =
-    "id, name, area, latitude, longitude, price_note, address, phone, website, hours, store_type, is_active, created_at";
+    "id, name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active, created_at";
   const baseFields = "id, name, area, latitude, longitude, price_note, created_at";
 
   const initial = await supabase
@@ -656,6 +661,7 @@ export async function updateAdminStore(params: {
   longitude: string;
   priceNote?: string;
   address?: string;
+  placeId?: string;
   phone?: string;
   website?: string;
   hours?: string;
@@ -695,6 +701,7 @@ export async function updateAdminStore(params: {
   const extendedPayload = {
     ...basePayload,
     address: params.address?.trim() ? params.address.trim() : null,
+    place_id: params.placeId?.trim() ? params.placeId.trim() : null,
     phone: params.phone?.trim() ? params.phone.trim() : null,
     website: params.website?.trim() ? params.website.trim() : null,
     hours: params.hours?.trim() ? params.hours.trim() : null,
@@ -702,7 +709,7 @@ export async function updateAdminStore(params: {
     is_active: params.isActive ?? true,
   };
   const extendedFields =
-    "id, name, area, latitude, longitude, price_note, address, phone, website, hours, store_type, is_active, created_at";
+    "id, name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active, created_at";
   const baseFields = "id, name, area, latitude, longitude, price_note, created_at";
 
   const initial = await supabase

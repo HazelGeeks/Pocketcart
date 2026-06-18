@@ -11,6 +11,8 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AdminSidebar from "../components/admin/AdminSidebar";
+import StoreMapPanel from "../components/admin/StoreMapPanel";
 import WebLink from "../components/WebLink";
 import useLayout from "../hooks/useLayout";
 import { marketingPalette as C } from "../shared/design/palette";
@@ -52,6 +54,15 @@ import {
   type FlyerRow,
   type ProductSortKey,
 } from "../state/adminStore";
+import {
+  buildStoreImportPreview,
+  coordinateValidationMessage,
+  csvHeaderKey,
+  csvRowValue,
+  dateOnlyToIso,
+  parseCsvRows,
+  type StoreImportPreviewRow,
+} from "../utils/adminValidation";
 
 type OverviewCard = {
   id: string;
@@ -73,23 +84,6 @@ type ProductPriceStats = {
   maxPrice: number | null;
   storeIds: Set<string>;
   storeNames: string[];
-};
-
-type StoreImportPreviewRow = {
-  rowNumber: number;
-  name: string;
-  area: string;
-  latitude: string;
-  longitude: string;
-  priceNote: string;
-  address: string;
-  phone: string;
-  website: string;
-  hours: string;
-  storeType: string;
-  isActive: boolean;
-  status: "ready" | "duplicate" | "invalid";
-  reason: string;
 };
 
 type StorePriceStats = {
@@ -140,14 +134,6 @@ const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
   padding: "5px 8px",
 };
 
-const WEB_STORE_MAP_IFRAME_STYLE: React.CSSProperties = {
-  width: "100%",
-  height: "100%",
-  minHeight: 280,
-  border: 0,
-  display: "block",
-};
-
 const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
   { label: "마트명", key: "martName" },
   { label: "지역/지점", key: "regionBranch" },
@@ -166,20 +152,6 @@ const PRODUCT_IMPORT_HEADERS = {
   name: ["name", "product_name", "product", "이름", "상품명", "제품명"],
   category: ["category", "main_category", "대분류", "카테고리", "분류"],
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
-};
-
-const STORE_IMPORT_HEADERS = {
-  name: ["name", "store_name", "마트명", "매장명", "스토어"],
-  area: ["area", "region", "지역", "지역/지점", "지점"],
-  latitude: ["latitude", "lat", "위도"],
-  longitude: ["longitude", "lng", "lon", "경도"],
-  priceNote: ["price_note", "note", "memo", "메모"],
-  address: ["address", "주소"],
-  phone: ["phone", "tel", "telephone", "전화", "전화번호"],
-  website: ["website", "url", "site", "웹사이트"],
-  hours: ["hours", "business_hours", "운영시간", "영업시간"],
-  storeType: ["store_type", "type", "타입", "매장타입"],
-  isActive: ["is_active", "active", "status", "활성", "상태"],
 };
 
 const STORE_TYPE_OPTIONS = [
@@ -226,18 +198,6 @@ function uniqueValues(values: string[]): string[] {
   return out;
 }
 
-function isDateOnly(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
-}
-
-function dateOnlyToIso(value: string, endOfDay: boolean): string | null {
-  if (!isDateOnly(value)) return null;
-  const clock = endOfDay ? "T23:59:59" : "T00:00:00";
-  const date = new Date(`${value}${clock}`);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toISOString();
-}
-
 function createStorePriceSet(seed?: Partial<Pick<StorePriceSetInput, "storeId" | "price">>): StorePriceSetInput {
   return {
     id: `sp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -260,66 +220,6 @@ function buildFlyerCsv(rows: FlyerRow[]): string {
     FLYER_CSV_COLUMNS.map((column) => csvCell(String(row[column.key] ?? ""))).join(","),
   );
   return ["\uFEFF" + header, ...body].join("\r\n") + "\r\n";
-}
-
-function parseCsvRows(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = "";
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const next = text[index + 1];
-
-    if (quoted) {
-      if (char === "\"" && next === "\"") {
-        cell += "\"";
-        index += 1;
-      } else if (char === "\"") {
-        quoted = false;
-      } else {
-        cell += char;
-      }
-      continue;
-    }
-
-    if (char === "\"") {
-      quoted = true;
-    } else if (char === ",") {
-      row.push(cell);
-      cell = "";
-    } else if (char === "\n") {
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = "";
-    } else if (char !== "\r") {
-      cell += char;
-    }
-  }
-
-  row.push(cell);
-  if (row.some((value) => value.trim())) {
-    rows.push(row);
-  }
-
-  return rows;
-}
-
-function csvHeaderKey(value: string): string {
-  return value.trim().replace(/^\uFEFF/, "").toLowerCase().replace(/\s+/g, "_");
-}
-
-function csvRowValue(
-  row: Record<string, string>,
-  aliases: string[],
-): string {
-  for (const alias of aliases) {
-    const value = row[csvHeaderKey(alias)]?.trim();
-    if (value) return value;
-  }
-  return "";
 }
 
 function productsToCsv(products: AdminProduct[], priceStats: Map<string, ProductPriceStats>): string {
@@ -360,6 +260,7 @@ function storesToCsv(stores: AdminStore[]): string {
     "longitude",
     "price_note",
     "address",
+    "place_id",
     "phone",
     "website",
     "hours",
@@ -376,6 +277,7 @@ function storesToCsv(stores: AdminStore[]): string {
       String(store.longitude),
       store.price_note ?? "",
       store.address ?? "",
+      store.place_id ?? "",
       store.phone ?? "",
       store.website ?? "",
       store.hours ?? "",
@@ -387,12 +289,6 @@ function storesToCsv(stores: AdminStore[]): string {
   return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
 }
 
-function parseStoreActive(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-  if (["false", "0", "no", "inactive", "disabled", "비활성"].includes(normalized)) return false;
-  return true;
-}
-
 function looksLikeProductStoreRow(store: AdminStore): boolean {
   const joined = `${store.name} ${store.area} ${store.price_note ?? ""}`.toLowerCase();
   if (/\$\s*\d|\b\d+(?:\.\d{1,2})?\s*(?:ea|each|lb|kg|g|ml|l|pk|pack|ct)\b/i.test(joined)) {
@@ -402,15 +298,6 @@ function looksLikeProductStoreRow(store: AdminStore): boolean {
     return true;
   }
   return false;
-}
-
-function coordinateValidationMessage(latitude: string, longitude: string): string | null {
-  const lat = Number(latitude);
-  const lng = Number(longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "Latitude and longitude must be valid numbers.";
-  if (lat < -90 || lat > 90) return "Latitude must be between -90 and 90.";
-  if (lng < -180 || lng > 180) return "Longitude must be between -180 and 180.";
-  return null;
 }
 
 function flyerRowsToProductCsv(rows: FlyerRow[]): string {
@@ -439,113 +326,6 @@ function flyerRowsToProductCsv(rows: FlyerRow[]): string {
     ].map(csvCell).join(",");
   });
   return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
-}
-
-function buildStoreImportPreview(
-  headerRow: string[],
-  dataRows: string[][],
-  stores: AdminStore[],
-): StoreImportPreviewRow[] {
-  const headers = headerRow.map(csvHeaderKey);
-  const existing = new Set(
-    stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
-  );
-
-  return dataRows.map((values, index) => {
-    const record: Record<string, string> = {};
-    headers.forEach((header, headerIndex) => {
-      record[header] = values[headerIndex] ?? "";
-    });
-
-    const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
-    const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
-    const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
-    const longitude = csvRowValue(record, STORE_IMPORT_HEADERS.longitude);
-    const priceNote = csvRowValue(record, STORE_IMPORT_HEADERS.priceNote);
-    const address = csvRowValue(record, STORE_IMPORT_HEADERS.address);
-    const phone = csvRowValue(record, STORE_IMPORT_HEADERS.phone);
-    const website = csvRowValue(record, STORE_IMPORT_HEADERS.website);
-    const hours = csvRowValue(record, STORE_IMPORT_HEADERS.hours);
-    const storeType = csvRowValue(record, STORE_IMPORT_HEADERS.storeType) || "grocery";
-    const isActive = parseStoreActive(csvRowValue(record, STORE_IMPORT_HEADERS.isActive));
-    const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
-    const coordinateError = latitude && longitude ? coordinateValidationMessage(latitude, longitude) : null;
-
-    if (!name || !area || !latitude || !longitude) {
-      return {
-        rowNumber: index + 2,
-        name,
-        area,
-        latitude,
-        longitude,
-        priceNote,
-        address,
-        phone,
-        website,
-        hours,
-        storeType,
-        isActive,
-        status: "invalid",
-        reason: "Missing required fields",
-      };
-    }
-
-    if (coordinateError) {
-      return {
-        rowNumber: index + 2,
-        name,
-        area,
-        latitude,
-        longitude,
-        priceNote,
-        address,
-        phone,
-        website,
-        hours,
-        storeType,
-        isActive,
-        status: "invalid",
-        reason: coordinateError,
-      };
-    }
-
-    if (existing.has(duplicateKey)) {
-      return {
-        rowNumber: index + 2,
-        name,
-        area,
-        latitude,
-        longitude,
-        priceNote,
-        address,
-        phone,
-        website,
-        hours,
-        storeType,
-        isActive,
-        status: "duplicate",
-        reason: "Duplicate name and area",
-      };
-    }
-
-    existing.add(duplicateKey);
-    return {
-      rowNumber: index + 2,
-      name,
-      area,
-      latitude,
-      longitude,
-      priceNote,
-      address,
-      phone,
-      website,
-      hours,
-      storeType,
-      isActive,
-      status: "ready",
-      reason: "Ready",
-    };
-  });
 }
 
 function dateInputValue(value: string | null | undefined): string {
@@ -579,107 +359,30 @@ function downloadCsvFile(prefix: string, csv: string): string | null {
   return null;
 }
 
-function storeMapUrl(store: Pick<AdminStore, "name" | "area" | "latitude" | "longitude">): string {
-  const query = `${store.latitude},${store.longitude}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
-
-function safeScriptJson(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
-}
-
-function storeLeafletMapSrcDoc(
-  stores: AdminStore[],
-  selectedStore: AdminStore | null,
+function storeMapUrl(
+  store: Pick<AdminStore, "name" | "area" | "latitude" | "longitude" | "address" | "place_id">,
 ): string {
-  const points = stores
-    .map((store) => ({
-      id: store.id,
-      name: store.name,
-      area: store.area,
-      storeType: store.store_type,
-      isActive: store.is_active,
-      latitude: Number(store.latitude),
-      longitude: Number(store.longitude),
-      selected: selectedStore?.id === store.id,
-    }))
-    .filter((store) => Number.isFinite(store.latitude) && Number.isFinite(store.longitude))
-    .slice(0, 200);
-
-  if (points.length === 0) return "";
-
-  const selectedPoint = points.find((store) => store.selected) ?? points[0];
-
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <style>
-    html, body, #map { height: 100%; margin: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .leaflet-popup-content { margin: 8px 10px; color: #2f3748; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-  <script>
-    const points = ${safeScriptJson(points)};
-    const selectedPoint = ${safeScriptJson(selectedPoint)};
-    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    })[char]);
-    const map = L.map("map", { scrollWheelZoom: false }).setView(
-      [selectedPoint.latitude, selectedPoint.longitude],
-      points.length > 1 ? 11 : 14
-    );
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-    }).addTo(map);
-    const bounds = [];
-    const markerLayer = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      maxClusterRadius: 36
-    });
-    points.forEach((point) => {
-      const marker = L.circleMarker([point.latitude, point.longitude], {
-        radius: point.selected ? 9 : 6,
-        color: point.selected ? "#8BA300" : point.isActive ? "#50627d" : "#a3adbd",
-        weight: point.selected ? 3 : 2,
-        fillColor: point.selected ? "#ABC900" : point.isActive ? "#ffffff" : "#eef2f8",
-        fillOpacity: point.selected ? 0.85 : 0.95
-      });
-      marker.bindPopup(
-        "<strong>" + escapeHtml(point.name) + "</strong><br />" +
-        escapeHtml(point.area) + "<br />" +
-        escapeHtml(point.storeType) + " · " + (point.isActive ? "Active" : "Inactive")
-      );
-      if (point.selected) marker.openPopup();
-      markerLayer.addLayer(marker);
-      bounds.push([point.latitude, point.longitude]);
-    });
-    map.addLayer(markerLayer);
-    if (bounds.length > 1) {
-      map.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
-    }
-  </script>
-</body>
-</html>`;
+  const query = [store.name, store.area, store.address ?? ""].filter(Boolean).join(" ");
+  const params = new URLSearchParams({
+    api: "1",
+    query: query || `${store.latitude},${store.longitude}`,
+  });
+  if (store.place_id) {
+    params.set("query_place_id", store.place_id);
+  }
+  return `https://www.google.com/maps/search/?${params.toString()}`;
 }
 
-function storeAddressSearchUrl(name: string, area: string): string {
-  const query = [name, area].map((value) => value.trim()).filter(Boolean).join(" ");
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+function storeAddressSearchUrl(name: string, area: string, address: string, placeId: string): string {
+  const query = [name, area, address].map((value) => value.trim()).filter(Boolean).join(" ");
+  const params = new URLSearchParams({
+    api: "1",
+    query,
+  });
+  if (placeId.trim()) {
+    params.set("query_place_id", placeId.trim());
+  }
+  return `https://www.google.com/maps/search/?${params.toString()}`;
 }
 
 function normalizeOcrText(value: string): string {
@@ -801,6 +504,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [storeLongitude, setStoreLongitude] = React.useState("");
   const [storePriceNote, setStorePriceNote] = React.useState("");
   const [storeAddress, setStoreAddress] = React.useState("");
+  const [storePlaceId, setStorePlaceId] = React.useState("");
   const [storePhone, setStorePhone] = React.useState("");
   const [storeWebsite, setStoreWebsite] = React.useState("");
   const [storeHours, setStoreHours] = React.useState("");
@@ -1085,6 +789,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         store.id,
         store.price_note ?? "",
         store.address ?? "",
+        store.place_id ?? "",
         store.phone ?? "",
         store.website ?? "",
         store.hours ?? "",
@@ -1111,11 +816,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     if (!selectedStoreMapId) return null;
     return filteredStores.find((store) => store.id === selectedStoreMapId) ?? null;
   }, [filteredStores, selectedStoreMapId]);
-
-  const selectedStoreMapSrcDoc = React.useMemo(
-    () => storeLeafletMapSrcDoc(filteredStores, selectedStoreForMap),
-    [filteredStores, selectedStoreForMap],
-  );
 
   const storeAuditLogs = React.useMemo(
     () => auditLogs.filter((log) => log.entity_type === "store").slice(0, 8),
@@ -1306,6 +1006,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStoreLongitude("");
     setStorePriceNote("");
     setStoreAddress("");
+    setStorePlaceId("");
     setStorePhone("");
     setStoreWebsite("");
     setStoreHours("");
@@ -1362,6 +1063,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStoreLongitude(String(store.longitude));
     setStorePriceNote(store.price_note ?? "");
     setStoreAddress(store.address ?? "");
+    setStorePlaceId(store.place_id ?? "");
     setStorePhone(store.phone ?? "");
     setStoreWebsite(store.website ?? "");
     setStoreHours(store.hours ?? "");
@@ -1788,6 +1490,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             longitude: row.longitude,
             priceNote: row.priceNote,
             address: row.address,
+            placeId: row.placeId,
             phone: row.phone,
             website: row.website,
             hours: row.hours,
@@ -1838,6 +1541,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     const longitude = storeLongitude.trim();
     const priceNote = storePriceNote.trim();
     const address = storeAddress.trim();
+    const placeId = storePlaceId.trim();
     const phone = storePhone.trim();
     const website = storeWebsite.trim();
     const hours = storeHours.trim();
@@ -1876,6 +1580,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           longitude,
           priceNote,
           address,
+          placeId,
           phone,
           website,
           hours,
@@ -1890,6 +1595,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           longitude,
           priceNote,
           address,
+          placeId,
           phone,
           website,
           hours,
@@ -1909,6 +1615,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             latitude,
             longitude,
             address,
+            placeId,
             phone,
             website,
             hours,
@@ -1936,6 +1643,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     resetStoreForm,
     storeArea,
     storeAddress,
+    storePlaceId,
     storeHours,
     storeIsActive,
     storeLatitude,
@@ -2384,59 +2092,19 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         {authUser && hasAdminAccess ? (
           <>
             {(!isLg || !sidebarCollapsed) ? (
-              <View style={[st.sidebar, !isLg && st.sidebarMobile]}>
-                <View style={st.sidebarHeader}>
-                  <Text style={st.sidebarBrand}>PocketCart</Text>
-                  <Text style={st.sidebarSub}>Admin Workspace</Text>
-                </View>
-
-                <View style={st.menuGroup}>
-                  {sectionMenu.map((item) => {
-                    const active = activeMenu === item.key;
-                    return (
-                      <Pressable
-                        key={item.key}
-                        accessibilityRole="button"
-                        onPress={() => setActiveMenu(item.key)}
-                        style={[st.menuBtn, active && st.menuBtnActive]}
-                      >
-                        <Text style={[st.menuText, active && st.menuTextActive]}>{item.label}</Text>
-                        <View style={[st.menuBadge, active && st.menuBadgeActive]}>
-                          <Text style={[st.menuBadgeText, active && st.menuBadgeTextActive]}>
-                            {item.badge}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                <View style={st.sidebarFooter}>
-                  <Text style={st.sidebarUser}>{authUser.email || authUser.id}</Text>
-                  <Text style={st.sidebarRole}>Administrator</Text>
-
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      void handleSignOut();
-                    }}
-                    style={[st.btn, st.btnSidebar]}
-                    disabled={authLoading}
-                  >
-                    <Text style={st.btnSidebarText}>{authLoading ? "..." : "Sign Out"}</Text>
-                  </Pressable>
-
-                  {isLg ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => setSidebarCollapsed(true)}
-                      style={[st.btn, st.btnSidebar]}
-                    >
-                      <Text style={st.btnSidebarText}>Collapse Sidebar</Text>
-                    </Pressable>
-                  ) : null}
-                </View>
-              </View>
+              <AdminSidebar
+                isLg={isLg}
+                sectionMenu={sectionMenu}
+                activeMenu={activeMenu}
+                authUserLabel={authUser.email || authUser.id}
+                authLoading={authLoading}
+                styles={st}
+                onSelectMenu={setActiveMenu}
+                onSignOut={() => {
+                  void handleSignOut();
+                }}
+                onCollapse={() => setSidebarCollapsed(true)}
+              />
             ) : null}
 
             {isLg && sidebarCollapsed ? (
@@ -3070,38 +2738,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 	                      </Text>
 	                    </View>
 
-	                    <View style={st.storeMapPanel}>
-	                      <View style={st.storeMapHeader}>
-	                        <View style={st.listMain}>
-	                          <Text style={st.fieldLabel}>Store Map</Text>
-	                          <Text style={st.dataMuted}>
-	                            {selectedStoreForMap
-	                              ? `${selectedStoreForMap.name} | ${selectedStoreForMap.area}`
-	                              : "No store selected"}
-	                          </Text>
-	                        </View>
-	                        <Pressable
-	                          accessibilityRole="button"
-	                          onPress={() => selectedStoreForMap && handleOpenMapUrl(storeMapUrl(selectedStoreForMap))}
-	                          style={[st.btn, st.btnGhost, !selectedStoreForMap && st.btnDisabled]}
-	                          disabled={!selectedStoreForMap}
-	                        >
-	                          <Text style={st.btnGhostText}>Open Map</Text>
-	                        </Pressable>
-	                      </View>
-	                      {selectedStoreMapSrcDoc && Platform.OS === "web" ? (
-	                        <iframe
-	                          title="Store map"
-	                          srcDoc={selectedStoreMapSrcDoc}
-	                          style={WEB_STORE_MAP_IFRAME_STYLE}
-	                          loading="lazy"
-	                        />
-	                      ) : (
-	                        <View style={st.storeMapEmpty}>
-	                          <Text style={st.dataMuted}>No valid coordinates to display.</Text>
-	                        </View>
-	                      )}
-	                    </View>
+                    <StoreMapPanel
+                      stores={filteredStores}
+                      selectedStore={selectedStoreForMap}
+                      styles={st}
+                      onOpenMap={(store) => handleOpenMapUrl(storeMapUrl(store))}
+                    />
 
                     {displayStores.length === 0 ? (
                       <Text style={st.dataMuted}>No stores yet.</Text>
@@ -3159,6 +2801,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                               </Text>
                               {store.address ? (
                                 <Text style={st.dataMuted}>{store.address}</Text>
+                              ) : null}
+                              {store.place_id ? (
+                                <Text style={st.dataMuted}>Place ID {store.place_id}</Text>
                               ) : null}
                               {store.phone || store.website || store.hours ? (
                                 <Text style={st.dataMuted}>
@@ -3731,6 +3376,17 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 </View>
                 <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
                   <TextInput
+                    value={storePlaceId}
+                    onChangeText={setStorePlaceId}
+                    placeholder="Google Place ID"
+                    placeholderTextColor={C.textMuted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={st.input}
+                  />
+                </View>
+                <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                  <TextInput
                     value={storePhone}
                     onChangeText={setStorePhone}
                     placeholder="Phone"
@@ -3772,7 +3428,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
               <View style={st.modalActionRow}>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => handleOpenMapUrl(storeAddressSearchUrl(storeName, storeArea))}
+                  onPress={() => handleOpenMapUrl(storeAddressSearchUrl(storeName, storeArea, storeAddress, storePlaceId))}
                   style={[st.btn, st.btnGhost, (!storeName.trim() && !storeArea.trim()) && st.btnDisabled]}
                   disabled={!storeName.trim() && !storeArea.trim()}
                 >
@@ -3803,7 +3459,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 </Pressable>
               </View>
               <Text style={st.dataMuted}>
-                CSV headers: name, area, latitude, longitude, price_note, address, phone, website, hours,
+                CSV headers: name, area, latitude, longitude, price_note, address, place_id, phone, website, hours,
                 store_type, is_active.
               </Text>
             </ScrollView>
@@ -4109,8 +3765,12 @@ const st = StyleSheet.create({
     width: "100%",
     minHeight: 0,
     height: "auto",
-    borderRadius: 14,
+    borderRadius: 12,
     position: "relative",
+    padding: 8,
+    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
   },
   sidebarHeader: {
     borderRadius: 12,
@@ -4119,6 +3779,14 @@ const st = StyleSheet.create({
     backgroundColor: "#f5f8ff",
     padding: 12,
     gap: 4,
+  },
+  sidebarHeaderMobile: {
+    flex: 0.9,
+    minWidth: 100,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    padding: 0,
+    gap: 0,
   },
   sidebarBrand: {
     color: "#2a3f7f",
@@ -4183,6 +3851,21 @@ const st = StyleSheet.create({
     borderTopColor: "#e5e9f1",
     paddingTop: 12,
     gap: 7,
+  },
+  sidebarFooterMobile: {
+    flex: 0,
+    minWidth: 0,
+    marginTop: 0,
+    borderTopWidth: 0,
+    paddingTop: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  sidebarUserBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   sidebarUser: {
     color: "#2e3748",
@@ -5058,6 +4741,12 @@ const st = StyleSheet.create({
   btnSidebar: {
     backgroundColor: "#ffffff",
     borderColor: "#d8dee8",
+  },
+  btnSidebarMobile: {
+    minHeight: 30,
+    paddingHorizontal: 12,
+    flexShrink: 0,
+    minWidth: 78,
   },
   btnSidebarText: {
     color: "#40506e",
