@@ -26,6 +26,7 @@ export type StoreImportPreviewRow = {
 
 const PRODUCT_IMPORT_HEADERS = {
   name: ["name", "product_name", "product", "이름", "상품명", "제품명"],
+  englishName: ["english_name", "englishname", "english name", "eng_name", "eng name", "영문명", "영문이름", "영문 이름"],
   category: ["category", "main_category", "대분류", "카테고리", "분류"],
 };
 
@@ -249,9 +250,11 @@ export function buildStoreImportPreview(
 export function productRecordFromCsv(row: Record<string, string>): {
   name: string;
   category: string;
+  englishName: string;
 } {
   return {
     name: csvRowValue(row, PRODUCT_IMPORT_HEADERS.name),
     category: csvRowValue(row, PRODUCT_IMPORT_HEADERS.category),
+    englishName: csvRowValue(row, PRODUCT_IMPORT_HEADERS.englishName),
   };
 }

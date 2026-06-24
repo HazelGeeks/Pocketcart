@@ -62,7 +62,9 @@ export default function AdminProductList({
           <View key={item.id} style={st.listRow}>
             <View style={st.listMain}>
               <Text style={st.listTitle}>{item.name}</Text>
+              {item.english_name ? <Text style={st.dataMuted}>{item.english_name}</Text> : null}
               <Text style={st.dataMuted}>{item.category}</Text>
+              {item.unit ? <Text style={st.dataMuted}>Unit {item.unit}</Text> : null}
               <View style={st.productChipRow}>
                 {latestPrice !== null ? (
                   <View style={st.productMetaChip}>

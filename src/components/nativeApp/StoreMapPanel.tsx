@@ -16,6 +16,7 @@ type StoreMapPanelProps = {
   onChangeQuery: (value: string) => void;
   onFocusStoreId: (storeId: string) => void;
   onFocusStore: (store: MarketStore) => void;
+  onViewStoreInHome: (storeId: string, storeName: string) => void;
 };
 
 export function StoreMapPanel({
@@ -29,6 +30,7 @@ export function StoreMapPanel({
   onChangeQuery,
   onFocusStoreId,
   onFocusStore,
+  onViewStoreInHome,
 }: StoreMapPanelProps) {
   return (
     <View style={st.sectionStack}>
@@ -97,6 +99,15 @@ export function StoreMapPanel({
               <Text style={st.itemName}>{store.name}</Text>
               <Text style={st.itemMeta}>{store.area}</Text>
               <Text style={st.storePrice}>{store.price_note ?? "Price note unavailable"}</Text>
+              <View style={st.storeActionRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => onViewStoreInHome(store.id, store.name)}
+                  style={[st.authBtn, st.authBtnSecondary, st.storeActionBtn]}
+                >
+                  <Text style={st.authBtnSecondaryText}>View deals</Text>
+                </Pressable>
+              </View>
             </Pressable>
           );
         })

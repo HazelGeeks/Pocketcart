@@ -73,6 +73,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [notice, setNotice] = React.useState<string | null>(null);
 
   const [productName, setProductName] = React.useState("");
+  const [productEnglishName, setProductEnglishName] = React.useState("");
+  const [productUnit, setProductUnit] = React.useState("");
   const [productCategory, setProductCategory] = React.useState("");
   const [productCategoryCustom, setProductCategoryCustom] = React.useState("");
   const [productThumb, setProductThumb] = React.useState("");
@@ -286,6 +288,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     updateStorePriceSet,
   } = useAdminProductActions({
     productName,
+    productEnglishName,
+    productUnit,
     productCategory,
     productCategoryCustom,
     productThumb,
@@ -301,8 +305,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     priceStartDate,
     priceEndDate,
     filteredProducts,
+    stores,
     productPriceStats,
     setProductName,
+    setProductEnglishName,
+    setProductUnit,
     setProductCategory,
     setProductCategoryCustom,
     setProductThumb,
@@ -774,6 +781,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         submitting={submitting}
         imageUploading={productImageUploading}
         productName={productName}
+        productEnglishName={productEnglishName}
+        productUnit={productUnit}
         productCategory={productCategory}
         productCategoryCustom={productCategoryCustom}
         productThumb={productThumb}
@@ -784,6 +793,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         recentStoreOptions={recentStoreOptions}
         styles={st}
         onNameChange={setProductName}
+        onEnglishNameChange={setProductEnglishName}
+        onUnitChange={setProductUnit}
         onCategoryChange={setProductCategory}
         onCategoryCustomChange={setProductCategoryCustom}
         onUploadImage={() => {

@@ -105,8 +105,15 @@ export const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
 
 export const PRODUCT_IMPORT_HEADERS = {
   name: ["name", "product_name", "product", "이름", "상품명", "제품명"],
+  englishName: ["english_name", "englishname", "english name", "eng_name", "eng name", "영문명", "영문이름", "영문 이름"],
   category: ["category", "main_category", "대분류", "카테고리", "분류"],
+  unit: ["unit", "size", "size_unit", "용량", "규격"],
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
+  storeId: ["store_id", "storeid", "store id"],
+  storeName: ["store_name", "store", "store name", "매장", "마트"],
+  price: ["price", "current_price", "latest_price", "price_value", "가격"],
+  observedAt: ["observed_at", "observedat", "date", "날짜", "기준일"],
+  periodEnd: ["valid_to", "period_end", "valid to", "종료일", "종료 날짜"],
 };
 
 export const STORE_TYPE_OPTIONS = [
@@ -197,7 +204,9 @@ export function productsToCsv(products: AdminProduct[], priceStats: Map<string, 
   const header = [
     "id",
     "name",
+    "english_name",
     "category",
+    "unit",
     "thumbnail_url",
     "latest_price",
     "min_price",
@@ -210,7 +219,9 @@ export function productsToCsv(products: AdminProduct[], priceStats: Map<string, 
     return [
       product.id,
       product.name,
+      product.english_name ?? "",
       product.category,
+      product.unit ?? "",
       product.thumbnail_url ?? "",
       stats?.latestPrice !== null && stats?.latestPrice !== undefined ? stats.latestPrice.toFixed(2) : "",
       stats?.minPrice !== null && stats?.minPrice !== undefined ? stats.minPrice.toFixed(2) : "",

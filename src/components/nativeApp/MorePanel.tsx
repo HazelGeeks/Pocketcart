@@ -9,44 +9,22 @@ type MorePanelProps = {
   profile: UserProfile | null;
   loading: boolean;
   message: string | null;
-  adminMessage: string | null;
+  authMode: "signIn" | "signUp";
+  signInEmail: string;
+  signInPassword: string;
   signUpName: string;
   signUpEmail: string;
   signUpPassword: string;
-  adminProductName: string;
-  adminProductCategory: string;
-  adminProductThumb: string;
-  adminStoreName: string;
-  adminStoreArea: string;
-  adminStoreLat: string;
-  adminStoreLng: string;
-  adminStoreNote: string;
-  adminPriceProductId: string;
-  adminPriceStoreId: string;
-  adminPriceValue: string;
-  adminPriceObservedAt: string;
-  adminSubmitting: boolean;
   onRefreshProfile: () => void;
+  onChangeAuthMode: (mode: "signIn" | "signUp") => void;
+  onSignIn: () => void;
   onSignOut: () => void;
   onSignUp: () => void;
+  onChangeSignInEmail: (value: string) => void;
+  onChangeSignInPassword: (value: string) => void;
   onChangeSignUpName: (value: string) => void;
   onChangeSignUpEmail: (value: string) => void;
   onChangeSignUpPassword: (value: string) => void;
-  onChangeAdminProductName: (value: string) => void;
-  onChangeAdminProductCategory: (value: string) => void;
-  onChangeAdminProductThumb: (value: string) => void;
-  onChangeAdminStoreName: (value: string) => void;
-  onChangeAdminStoreArea: (value: string) => void;
-  onChangeAdminStoreLat: (value: string) => void;
-  onChangeAdminStoreLng: (value: string) => void;
-  onChangeAdminStoreNote: (value: string) => void;
-  onChangeAdminPriceProductId: (value: string) => void;
-  onChangeAdminPriceStoreId: (value: string) => void;
-  onChangeAdminPriceValue: (value: string) => void;
-  onChangeAdminPriceObservedAt: (value: string) => void;
-  onCreateProduct: () => void;
-  onCreateStore: () => void;
-  onCreatePrice: () => void;
 };
 
 export function MorePanel(props: MorePanelProps) {
@@ -56,17 +34,10 @@ export function MorePanel(props: MorePanelProps) {
       <Text style={st.sectionSub}>Create account and manage your profile/data.</Text>
 
       <ProfileCard {...props} />
-      {props.profile ? <AdminDataEntryCard {...props} /> : null}
 
       {props.message ? (
         <View style={st.rowCard}>
           <Text style={st.itemMeta}>{props.message}</Text>
-        </View>
-      ) : null}
-
-      {props.adminMessage ? (
-        <View style={st.rowCard}>
-          <Text style={st.itemMeta}>{props.adminMessage}</Text>
         </View>
       ) : null}
     </View>
@@ -76,12 +47,19 @@ export function MorePanel(props: MorePanelProps) {
 function ProfileCard({
   profile,
   loading,
+  authMode,
+  signInEmail,
+  signInPassword,
   signUpName,
   signUpEmail,
   signUpPassword,
   onRefreshProfile,
+  onChangeAuthMode,
+  onSignIn,
   onSignOut,
   onSignUp,
+  onChangeSignInEmail,
+  onChangeSignInPassword,
   onChangeSignUpName,
   onChangeSignUpEmail,
   onChangeSignUpPassword,
@@ -130,211 +108,111 @@ function ProfileCard({
 
   return (
     <View style={st.rowCard}>
-      <Text style={st.itemName}>Sign Up</Text>
-      <Text style={st.itemMeta}>Create your account with email and password.</Text>
+      <Text style={st.itemName}>{authMode === "signIn" ? "Sign In" : "Sign Up"}</Text>
+      <Text style={st.itemMeta}>
+        {authMode === "signIn"
+          ? "Sign in to manage your watchlist and profile."
+          : "Create your account with email and password."}
+      </Text>
 
-      <TextInput
-        value={signUpName}
-        onChangeText={onChangeSignUpName}
-        placeholder="Name"
-        placeholderTextColor={C.textMuted}
-        autoCapitalize="words"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <TextInput
-        value={signUpEmail}
-        onChangeText={onChangeSignUpEmail}
-        placeholder="Email"
-        placeholderTextColor={C.textMuted}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <TextInput
-        value={signUpPassword}
-        onChangeText={onChangeSignUpPassword}
-        placeholder="Password (min 8)"
-        placeholderTextColor={C.textMuted}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <Pressable
-        accessibilityRole="button"
-        onPress={onSignUp}
-        style={[st.authBtn, st.authBtnPrimary]}
-        disabled={loading}
-      >
-        <Text style={st.authBtnPrimaryText}>
-          {loading ? "Creating..." : "Create Account"}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
+      <View style={st.authModeRow}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onChangeAuthMode("signIn")}
+          style={[st.authModeBtn, authMode === "signIn" && st.authModeBtnActive]}
+        >
+          <Text style={[st.authModeText, authMode === "signIn" && st.authModeTextActive]}>
+            Sign In
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onChangeAuthMode("signUp")}
+          style={[st.authModeBtn, authMode === "signUp" && st.authModeBtnActive]}
+        >
+          <Text style={[st.authModeText, authMode === "signUp" && st.authModeTextActive]}>
+            Sign Up
+          </Text>
+        </Pressable>
+      </View>
 
-function AdminDataEntryCard({
-  adminProductName,
-  adminProductCategory,
-  adminProductThumb,
-  adminStoreName,
-  adminStoreArea,
-  adminStoreLat,
-  adminStoreLng,
-  adminStoreNote,
-  adminPriceProductId,
-  adminPriceStoreId,
-  adminPriceValue,
-  adminPriceObservedAt,
-  adminSubmitting,
-  onChangeAdminProductName,
-  onChangeAdminProductCategory,
-  onChangeAdminProductThumb,
-  onChangeAdminStoreName,
-  onChangeAdminStoreArea,
-  onChangeAdminStoreLat,
-  onChangeAdminStoreLng,
-  onChangeAdminStoreNote,
-  onChangeAdminPriceProductId,
-  onChangeAdminPriceStoreId,
-  onChangeAdminPriceValue,
-  onChangeAdminPriceObservedAt,
-  onCreateProduct,
-  onCreateStore,
-  onCreatePrice,
-}: MorePanelProps) {
-  return (
-    <View style={st.rowCard}>
-      <Text style={st.itemName}>Admin Data Entry (MVP)</Text>
-      <Text style={st.itemMeta}>Add product, store, and price records manually.</Text>
+      {authMode === "signIn" ? (
+        <>
+          <TextInput
+            value={signInEmail}
+            onChangeText={onChangeSignInEmail}
+            placeholder="Email"
+            placeholderTextColor={C.textMuted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={st.formInput}
+          />
+          <TextInput
+            value={signInPassword}
+            onChangeText={onChangeSignInPassword}
+            placeholder="Password"
+            placeholderTextColor={C.textMuted}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={st.formInput}
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={onSignIn}
+            style={[st.authBtn, st.authBtnPrimary]}
+            disabled={loading}
+          >
+            <Text style={st.authBtnPrimaryText}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Text>
+          </Pressable>
+        </>
+      ) : (
+        <>
 
-      <Text style={st.adminTitle}>Create Product</Text>
-      <TextInput
-        value={adminProductName}
-        onChangeText={onChangeAdminProductName}
-        placeholder="Product name"
-        placeholderTextColor={C.textMuted}
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminProductCategory}
-        onChangeText={onChangeAdminProductCategory}
-        placeholder="Category"
-        placeholderTextColor={C.textMuted}
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminProductThumb}
-        onChangeText={onChangeAdminProductThumb}
-        placeholder="Thumbnail URL (optional)"
-        placeholderTextColor={C.textMuted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <Pressable
-        accessibilityRole="button"
-        onPress={onCreateProduct}
-        style={[st.authBtn, st.authBtnSecondary]}
-        disabled={adminSubmitting}
-      >
-        <Text style={st.authBtnSecondaryText}>Save Product</Text>
-      </Pressable>
-
-      <Text style={st.adminTitle}>Create Store</Text>
-      <TextInput
-        value={adminStoreName}
-        onChangeText={onChangeAdminStoreName}
-        placeholder="Store name"
-        placeholderTextColor={C.textMuted}
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminStoreArea}
-        onChangeText={onChangeAdminStoreArea}
-        placeholder="Area"
-        placeholderTextColor={C.textMuted}
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminStoreLat}
-        onChangeText={onChangeAdminStoreLat}
-        placeholder="Latitude"
-        placeholderTextColor={C.textMuted}
-        keyboardType="decimal-pad"
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminStoreLng}
-        onChangeText={onChangeAdminStoreLng}
-        placeholder="Longitude"
-        placeholderTextColor={C.textMuted}
-        keyboardType="decimal-pad"
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminStoreNote}
-        onChangeText={onChangeAdminStoreNote}
-        placeholder="Price note (optional)"
-        placeholderTextColor={C.textMuted}
-        style={st.formInput}
-      />
-      <Pressable
-        accessibilityRole="button"
-        onPress={onCreateStore}
-        style={[st.authBtn, st.authBtnSecondary]}
-        disabled={adminSubmitting}
-      >
-        <Text style={st.authBtnSecondaryText}>Save Store</Text>
-      </Pressable>
-
-      <Text style={st.adminTitle}>Create Price Entry</Text>
-      <TextInput
-        value={adminPriceProductId}
-        onChangeText={onChangeAdminPriceProductId}
-        placeholder="Product ID"
-        placeholderTextColor={C.textMuted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminPriceStoreId}
-        onChangeText={onChangeAdminPriceStoreId}
-        placeholder="Store ID"
-        placeholderTextColor={C.textMuted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminPriceValue}
-        onChangeText={onChangeAdminPriceValue}
-        placeholder="Price"
-        placeholderTextColor={C.textMuted}
-        keyboardType="decimal-pad"
-        style={st.formInput}
-      />
-      <TextInput
-        value={adminPriceObservedAt}
-        onChangeText={onChangeAdminPriceObservedAt}
-        placeholder="Observed at (optional, ISO date)"
-        placeholderTextColor={C.textMuted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.formInput}
-      />
-      <Pressable
-        accessibilityRole="button"
-        onPress={onCreatePrice}
-        style={[st.authBtn, st.authBtnSecondary]}
-        disabled={adminSubmitting}
-      >
-        <Text style={st.authBtnSecondaryText}>Save Price Entry</Text>
-      </Pressable>
+          <TextInput
+            value={signUpName}
+            onChangeText={onChangeSignUpName}
+            placeholder="Name"
+            placeholderTextColor={C.textMuted}
+            autoCapitalize="words"
+            autoCorrect={false}
+            style={st.formInput}
+          />
+          <TextInput
+            value={signUpEmail}
+            onChangeText={onChangeSignUpEmail}
+            placeholder="Email"
+            placeholderTextColor={C.textMuted}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={st.formInput}
+          />
+          <TextInput
+            value={signUpPassword}
+            onChangeText={onChangeSignUpPassword}
+            placeholder="Password (min 8)"
+            placeholderTextColor={C.textMuted}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={st.formInput}
+          />
+          <Pressable
+            accessibilityRole="button"
+            onPress={onSignUp}
+            style={[st.authBtn, st.authBtnPrimary]}
+            disabled={loading}
+          >
+            <Text style={st.authBtnPrimaryText}>
+              {loading ? "Creating..." : "Create Account"}
+            </Text>
+          </Pressable>
+        </>
+      )}
     </View>
   );
 }

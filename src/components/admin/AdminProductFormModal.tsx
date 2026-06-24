@@ -11,6 +11,8 @@ type Props = {
   submitting: boolean;
   imageUploading: boolean;
   productName: string;
+  productEnglishName: string;
+  productUnit: string;
   productCategory: string;
   productCategoryCustom: string;
   productThumb: string;
@@ -21,6 +23,8 @@ type Props = {
   recentStoreOptions: AdminStore[];
   styles: any;
   onNameChange: (value: string) => void;
+  onEnglishNameChange: (value: string) => void;
+  onUnitChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onCategoryCustomChange: (value: string) => void;
   onUploadImage: () => void;
@@ -41,6 +45,8 @@ export default function AdminProductFormModal({
   submitting,
   imageUploading,
   productName,
+  productEnglishName,
+  productUnit,
   productCategory,
   productCategoryCustom,
   productThumb,
@@ -51,6 +57,8 @@ export default function AdminProductFormModal({
   recentStoreOptions,
   styles: st,
   onNameChange,
+  onEnglishNameChange,
+  onUnitChange,
   onCategoryChange,
   onCategoryCustomChange,
   onUploadImage,
@@ -87,6 +95,33 @@ export default function AdminProductFormModal({
                 <Text style={st.fieldLabel}>Product Name</Text>
                 <TextInput value={productName} onChangeText={onNameChange} placeholder="Product name" placeholderTextColor={C.textMuted} style={st.input} />
               </View>
+              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                <Text style={st.fieldLabel}>English Name</Text>
+                <TextInput
+                  value={productEnglishName}
+                  onChangeText={onEnglishNameChange}
+                  placeholder="Product name in English"
+                  placeholderTextColor={C.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={st.input}
+                />
+              </View>
+              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                <Text style={st.fieldLabel}>Unit</Text>
+                <TextInput
+                  value={productUnit}
+                  onChangeText={onUnitChange}
+                  placeholder="2L, 500g (optional)"
+                  placeholderTextColor={C.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={st.input}
+                />
+              </View>
+            </View>
+
+            <View style={st.modalTopGrid}>
               <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
                 <Text style={st.fieldLabel}>Custom Category</Text>
                 <TextInput
