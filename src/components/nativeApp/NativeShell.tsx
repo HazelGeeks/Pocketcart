@@ -54,6 +54,7 @@ export function NativeBottomTabs({
       <View style={st.tabRow}>
         {TABS.map((tab) => {
           const active = tab.id === activeTab;
+          const icon = getTabIcon(tab.id);
           return (
             <Pressable
               key={tab.id}
@@ -63,11 +64,31 @@ export function NativeBottomTabs({
               onPress={() => onSelectTab(tab.id)}
               style={[st.tabBtn, active && st.tabBtnActive]}
             >
-              <Text style={[st.tabText, active && st.tabTextActive]}>{tab.label}</Text>
+              <View style={st.tabBtnContent}>
+                <Text style={[st.tabIcon, active && st.tabTextActive]}>{icon}</Text>
+                <Text style={[st.tabText, active && st.tabTextActive]}>{tab.label}</Text>
+              </View>
             </Pressable>
           );
         })}
       </View>
     </View>
   );
+}
+
+function getTabIcon(tabId: NativeTabId): string {
+  switch (tabId) {
+    case "home":
+      return "🏠";
+    case "watchlist":
+      return "⭐";
+    case "map":
+      return "🗺️";
+    case "alerts":
+      return "🔔";
+    case "more":
+      return "⚙️";
+    default:
+      return "";
+  }
 }

@@ -1,6 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { hasSupabaseEnv, supabase } from "./supabaseClient";
 
+const authRedirectUrl = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
+
 export type UserProfile = {
   id: string;
   email: string;
@@ -68,6 +70,7 @@ export async function signUpUser(params: {
     email,
     password,
     options: {
+      ...(authRedirectUrl ? { emailRedirectTo: authRedirectUrl } : {}),
       data: {
         full_name: name,
       },
@@ -81,18 +84,50 @@ export async function signUpUser(params: {
     };
   }
 
-  if (data.user) {
-    const profileError = await upsertProfileFromUser(data.user);
-    if (profileError) {
-      return {
-        data: { awaitingVerification: !data.session },
-        error: profileError,
-      };
-    }
+  return {
+    data: { awaitingVerification: !data.session },
+    error: null,
+  };
+}
+
+export async function signInUser(params: {
+  email: string;
+  password: string;
+}): Promise<ServiceResult<UserProfile | null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const { email, password } = params;
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return {
+      data: null,
+      error: error.message,
+    };
+  }
+
+  if (!data.user) {
+    return {
+      data: null,
+      error: "Unable to read signed-in user.",
+    };
+  }
+
+  const profileError = await upsertProfileFromUser(data.user);
+  if (profileError) {
+    return {
+      data: profileFromUser(data.user),
+      error: profileError,
+    };
   }
 
   return {
-    data: { awaitingVerification: !data.session },
+    data: profileFromUser(data.user),
     error: null,
   };
 }

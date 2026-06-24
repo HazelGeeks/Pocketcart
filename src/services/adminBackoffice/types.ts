@@ -11,7 +11,9 @@ export type AdminUser = {
 export type AdminProduct = {
   id: string;
   name: string;
+  english_name: string | null;
   category: string;
+  unit: string | null;
   thumbnail_url: string | null;
   created_at: string;
 };

@@ -1,33 +1,24 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import {
+  BackHandler,
+  PanResponder,
+  Platform,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import MapView, { type Region } from "react-native-maps";
 import { HomeCatalogPanel } from "../components/nativeApp/HomeCatalogPanel";
+import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MorePanel } from "../components/nativeApp/MorePanel";
 import { NativeBottomTabs, NativeTopBar } from "../components/nativeApp/NativeShell";
 import { ProductDetailPanel } from "../components/nativeApp/ProductDetailPanel";
 import { StoreMapPanel } from "../components/nativeApp/StoreMapPanel";
 import { WatchlistPanel } from "../components/nativeApp/WatchlistPanel";
 import useLayout from "../hooks/useLayout";
 import { hasSupabaseEnv } from "../services/supabaseClient";
-import {
-  createProduct,
-  createProductPrice,
-  createStore,
-  listProductCategories,
-  listProductPriceHistory,
-  listProducts,
-  listStores,
-  type MarketPricePoint,
-  type MarketProduct,
-  type MarketStore,
-} from "../services/marketData";
-import {
-  getCurrentUserProfile,
-  signOutUser,
-  signUpUser,
-  type UserProfile,
-} from "../services/userProfile";
+import { MorePanel } from "../components/nativeApp/MorePanel";
 import {
   addWatchlistItem,
   listWatchlistItems,
@@ -35,16 +26,65 @@ import {
   type WatchlistItem,
 } from "../services/watchlist";
 import {
-  ALERT_ROWS,
-  DEFAULT_REGION,
-  SUMMARY_CARDS,
+  getCurrentUserProfile,
+  signInUser,
+  signOutUser,
+  signUpUser,
+  type UserProfile,
+} from "../services/userProfile";
+import {
+  listProductCategories,
+  listProductPriceHistory,
+  listLatestStorePricesForProduct,
+  listProducts,
+  listStores,
+  type MarketPricePoint,
+  type MarketProduct,
+  type MarketStorePrice,
+  type MarketStore,
+} from "../services/marketData";
+import {
   buildPreviousPriceRows,
   buildPriceChart,
+  DEFAULT_REGION,
   money,
+  type AlertRow,
+  type SummaryCard,
   type HomeRoute,
   type NativeTabId,
 } from "./nativeAppData";
+import {
+  formatSignedPercent,
+} from "../components/nativeApp/priceDisplay";
+import {
+  buildLocationSearchPlaceholder,
+  requestAlertPermission,
+  requestLocationPermissionAndPosition,
+  type OnboardingLocationMode,
+} from "../services/nativePermissions";
 import { st } from "./nativeAppStyles";
+
+type OnboardingState = {
+  locationCompleted: boolean;
+  locationMode: OnboardingLocationMode;
+  postalCode: string | null;
+  locationLatitude: number | null;
+  locationLongitude: number | null;
+  alertsCompleted: boolean;
+  alertsEnabled: boolean;
+};
+
+const ONBOARDING_STORAGE_KEY = "pc-native-onboarding-v1";
+
+const INITIAL_ONBOARDING_STATE: OnboardingState = {
+  locationCompleted: false,
+  locationMode: "skip",
+  postalCode: null,
+  locationLatitude: null,
+  locationLongitude: null,
+  alertsCompleted: false,
+  alertsEnabled: false,
+};
 
 export default function NativeAppScreen() {
   const { pad, w } = useLayout();
@@ -52,8 +92,11 @@ export default function NativeAppScreen() {
   const mapRef = React.useRef<MapView | null>(null);
 
   const [activeTab, setActiveTab] = React.useState<NativeTabId>("home");
-
   const [homeRoute, setHomeRoute] = React.useState<HomeRoute>("catalog");
+  const [homeSortMode, setHomeSortMode] = React.useState<
+    "deals" | "lowestPrice" | "biggestDrop"
+  >("deals");
+
   const [homeQuery, setHomeQuery] = React.useState("");
   const [homeCategory, setHomeCategory] = React.useState("All");
   const [homeProducts, setHomeProducts] = React.useState<MarketProduct[]>([]);
@@ -64,21 +107,18 @@ export default function NativeAppScreen() {
   const [homePriceHistory, setHomePriceHistory] = React.useState<MarketPricePoint[]>(
     [],
   );
+  const [homeStorePrices, setHomeStorePrices] = React.useState<MarketStorePrice[]>([]);
   const [homeHistoryLoading, setHomeHistoryLoading] = React.useState(false);
+  const [homeStorePricesLoading, setHomeStorePricesLoading] = React.useState(false);
   const [homeHistoryMessage, setHomeHistoryMessage] = React.useState<string | null>(
     null,
   );
-  const [homeActionMessage, setHomeActionMessage] = React.useState<string | null>(
-    null,
-  );
+  const [homeActionMessage, setHomeActionMessage] = React.useState<string | null>(null);
   const [homeAddSubmitting, setHomeAddSubmitting] = React.useState(false);
+  const [detailTargetPrice, setDetailTargetPrice] = React.useState("");
 
   const [watchlistItems, setWatchlistItems] = React.useState<WatchlistItem[]>([]);
-  const [watchName, setWatchName] = React.useState("");
-  const [watchStore, setWatchStore] = React.useState("");
-  const [watchTargetPrice, setWatchTargetPrice] = React.useState("");
   const [watchLoading, setWatchLoading] = React.useState(false);
-  const [watchSubmitting, setWatchSubmitting] = React.useState(false);
   const [watchRemovingId, setWatchRemovingId] = React.useState<string | null>(null);
   const [watchMessage, setWatchMessage] = React.useState<string | null>(null);
 
@@ -87,43 +127,96 @@ export default function NativeAppScreen() {
   const [focusedStoreId, setFocusedStoreId] = React.useState("");
   const [mapLoading, setMapLoading] = React.useState(false);
   const [mapMessage, setMapMessage] = React.useState<string | null>(null);
+  const [pendingStoreIdFromHome, setPendingStoreIdFromHome] = React.useState<string | null>(
+    null,
+  );
+  const [homeStoreFilterId, setHomeStoreFilterId] = React.useState<string | null>(null);
+  const [homeStoreFilterName, setHomeStoreFilterName] = React.useState<string | null>(null);
 
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [moreLoading, setMoreLoading] = React.useState(false);
   const [moreMessage, setMoreMessage] = React.useState<string | null>(null);
+  const [authMode, setAuthMode] = React.useState<"signIn" | "signUp">("signIn");
+  const [signInEmail, setSignInEmail] = React.useState("");
+  const [signInPassword, setSignInPassword] = React.useState("");
   const [signUpName, setSignUpName] = React.useState("");
   const [signUpEmail, setSignUpEmail] = React.useState("");
   const [signUpPassword, setSignUpPassword] = React.useState("");
 
-  const [adminProductName, setAdminProductName] = React.useState("");
-  const [adminProductCategory, setAdminProductCategory] = React.useState("");
-  const [adminProductThumb, setAdminProductThumb] = React.useState("");
-  const [adminStoreName, setAdminStoreName] = React.useState("");
-  const [adminStoreArea, setAdminStoreArea] = React.useState("");
-  const [adminStoreLat, setAdminStoreLat] = React.useState("");
-  const [adminStoreLng, setAdminStoreLng] = React.useState("");
-  const [adminStoreNote, setAdminStoreNote] = React.useState("");
-  const [adminPriceProductId, setAdminPriceProductId] = React.useState("");
-  const [adminPriceStoreId, setAdminPriceStoreId] = React.useState("");
-  const [adminPriceValue, setAdminPriceValue] = React.useState("");
-  const [adminPriceObservedAt, setAdminPriceObservedAt] = React.useState("");
-  const [adminSubmitting, setAdminSubmitting] = React.useState(false);
-  const [adminMessage, setAdminMessage] = React.useState<string | null>(null);
+  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
-  const summaryCards = React.useMemo(
-    () =>
-      SUMMARY_CARDS.map((card) =>
-        card.id === "watch"
-          ? { ...card, value: String(watchlistItems.length) }
-          : card,
-      ),
-    [watchlistItems.length],
+  const [onboardingState, setOnboardingState] = React.useState(INITIAL_ONBOARDING_STATE);
+  const [onboardingVisible, setOnboardingVisible] = React.useState(false);
+  const [onboardingStep, setOnboardingStep] = React.useState<"location" | "alerts">(
+    "location",
   );
+  const [onboardingPostalCode, setOnboardingPostalCode] = React.useState("");
+  const [onboardingAlertsEnabled, setOnboardingAlertsEnabled] = React.useState(false);
+  const [onboardingMessage, setOnboardingMessage] = React.useState<string | null>(null);
+
+  const showToast = React.useCallback((message: string) => {
+    setToastMessage(message);
+  }, []);
+
+  const filteredHomeProducts = React.useMemo(() => {
+    if (!homeStoreFilterId) return homeProducts;
+    return homeProducts.filter((product) => product.best_store_id === homeStoreFilterId);
+  }, [homeStoreFilterId, homeProducts]);
 
   const selectedHomeProduct = React.useMemo(
-    () => homeProducts.find((product) => product.id === selectedHomeProductId) ?? null,
-    [homeProducts, selectedHomeProductId],
+    () =>
+      filteredHomeProducts.find((product) => product.id === selectedHomeProductId) ??
+      filteredHomeProducts[0] ??
+      null,
+    [filteredHomeProducts, selectedHomeProductId],
   );
+
+  const handleSetHomeStoreFilter = React.useCallback(
+    (storeId: string, storeName: string) => {
+      setHomeStoreFilterId(storeId);
+      setHomeStoreFilterName(storeName);
+      setHomeRoute("catalog");
+      setActiveTab("home");
+      setSelectedHomeProductId("");
+      showToast(`Showing deals at ${storeName}.`);
+    },
+    [showToast],
+  );
+
+  const clearHomeStoreFilter = React.useCallback(() => {
+    setHomeStoreFilterId(null);
+    setHomeStoreFilterName(null);
+  }, []);
+
+  const productById = React.useMemo(() => {
+    const map = new Map<string, MarketProduct>();
+    homeProducts.forEach((product) => {
+      map.set(product.id, product);
+    });
+    return map;
+  }, [homeProducts]);
+
+  const targetPriceByProduct = React.useMemo(() => {
+    const map = new Map<string, number>();
+    watchlistItems.forEach((item) => {
+      if (!item.product_id || !item.target_price) return;
+      const value = Number(item.target_price);
+      if (Number.isFinite(value)) {
+        map.set(item.product_id, value);
+      }
+    });
+    return map;
+  }, [watchlistItems]);
+
+  const watchedProductIds = React.useMemo(() => {
+    const productIds = new Set<string>();
+    for (const item of watchlistItems) {
+      if (item.product_id) {
+        productIds.add(item.product_id);
+      }
+    }
+    return productIds;
+  }, [watchlistItems]);
 
   const filteredStores = React.useMemo(() => {
     const q = mapQuery.trim().toLowerCase();
@@ -145,6 +238,37 @@ export default function NativeAppScreen() {
     [homeChart],
   );
 
+  const homeSummaryCards = React.useMemo<SummaryCard[]>(() => {
+    const dropCount = filteredHomeProducts.reduce((count, product) => {
+      return count + (product.price_delta !== null && product.price_delta < 0 ? 1 : 0);
+    }, 0);
+
+    const savingsPotential = filteredHomeProducts.reduce((sum, product) => {
+      if (product.price_delta === null || product.price_delta >= 0) {
+        return sum;
+      }
+      return sum + Math.abs(product.price_delta);
+    }, 0);
+
+    const belowTargetCount = filteredHomeProducts.reduce((count, product) => {
+      const target = targetPriceByProduct.get(product.id);
+      return (
+        count + (target !== null && target !== undefined && product.current_price !== null && product.current_price <= target ? 1 : 0)
+      );
+    }, 0);
+
+    return [
+      { id: "watchlist", label: "Watching", value: String(watchlistItems.length) },
+      { id: "drop", label: "Drops now", value: `${dropCount}` },
+      {
+        id: "saving",
+        label: "Potential savings",
+        value: `$${savingsPotential.toFixed(1)}`,
+      },
+      { id: "target", label: "Near target", value: `${belowTargetCount}` },
+    ];
+  }, [filteredHomeProducts, watchlistItems, targetPriceByProduct]);
+
   const activeStore = React.useMemo(
     () => filteredStores.find((store) => store.id === focusedStoreId) ?? filteredStores[0],
     [filteredStores, focusedStoreId],
@@ -159,6 +283,154 @@ export default function NativeAppScreen() {
       longitudeDelta: 0.045,
     };
   }, [activeStore]);
+
+  const alertRows = React.useMemo(() => {
+    const rows: AlertRow[] = [];
+    const nowLabel = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    watchlistItems.forEach((item) => {
+      const product = item.product_id ? productById.get(item.product_id) : null;
+      if (!product) return;
+      const target = item.target_price ? Number(item.target_price) : null;
+      const price = product.current_price;
+      const previous = product.previous_price;
+      if (target !== null && Number.isFinite(target) && price !== null && price <= target) {
+        rows.push({
+          id: `${item.id}-target`,
+          title: "Target hit",
+          body: `${item.name} is now ${money.format(price)} (target ${money.format(target)}).`,
+          when: nowLabel,
+        });
+      } else if (
+        product.price_delta_percent !== null &&
+        product.price_delta_percent < 0
+      ) {
+        rows.push({
+          id: `${item.id}-drop`,
+          title: "Price dropped",
+          body: `${item.name} is ${formatSignedPercent(product.price_delta_percent)} from last cycle.`,
+          when: nowLabel,
+        });
+      } else if (previous !== null && target !== null && Number.isFinite(target) && price !== null) {
+        rows.push({
+          id: `${item.id}-progress`,
+          title: "Tracking target",
+          body: `${item.name}: ${money.format(price)} vs target ${money.format(target)}.`,
+          when: nowLabel,
+        });
+      }
+    });
+
+    if (rows.length === 0) {
+      rows.push({
+        id: "watchlist-empty",
+        title: "No active alerts",
+        body:
+          watchlistItems.length === 0
+            ? "Save items from Home to start watching for drops."
+            : "No active alerts right now. Check again after prices update.",
+        when: nowLabel,
+      });
+    }
+
+    return rows.slice(0, 6);
+  }, [watchlistItems, productById]);
+
+  const detailBackPanResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: () => {
+          if (Platform.OS === "web") return false;
+          if (homeRoute !== "detail") return false;
+          if (activeTab !== "home") return false;
+          return true;
+        },
+        onPanResponderRelease: (_event, gestureState) => {
+          if (
+            gestureState.dx > 72 &&
+            gestureState.vx > 0.25 &&
+            Math.abs(gestureState.vy) < 1
+          ) {
+            setHomeRoute("catalog");
+          }
+        },
+      }),
+    [activeTab, homeRoute],
+  );
+
+  const persistOnboardingState = React.useCallback(
+    async (nextState: OnboardingState) => {
+      setOnboardingState(nextState);
+      setOnboardingAlertsEnabled(nextState.alertsEnabled);
+      setOnboardingPostalCode(nextState.postalCode ?? "");
+      setOnboardingMessage(null);
+      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(nextState)).catch(
+        () => {},
+      );
+    },
+    [],
+  );
+
+  const loadOnboardingState = React.useCallback(async () => {
+    const raw = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) {
+      setOnboardingVisible(true);
+      setOnboardingStep("location");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as Partial<OnboardingState>;
+      const normalized: OnboardingState = {
+        locationCompleted: Boolean(parsed.locationCompleted),
+        locationMode: parsed.locationMode ?? "skip",
+        postalCode: parsed.postalCode ?? null,
+        locationLatitude: parsed.locationLatitude ?? null,
+        locationLongitude: parsed.locationLongitude ?? null,
+        alertsCompleted: Boolean(parsed.alertsCompleted),
+        alertsEnabled: Boolean(parsed.alertsEnabled),
+      };
+      setOnboardingState(normalized);
+      setOnboardingPostalCode(normalized.postalCode ?? "");
+      setOnboardingAlertsEnabled(normalized.alertsEnabled);
+      if (!normalized.locationCompleted) {
+        setOnboardingVisible(true);
+        setOnboardingStep("location");
+      } else if (!normalized.alertsCompleted) {
+        setOnboardingVisible(true);
+        setOnboardingStep("alerts");
+      } else {
+        setOnboardingVisible(false);
+      }
+    } catch {
+      setOnboardingVisible(true);
+      setOnboardingStep("location");
+      await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY).catch(() => {});
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadOnboardingState();
+  }, [loadOnboardingState]);
+
+  React.useEffect(() => {
+    if (homeRoute !== "detail") {
+      return;
+    }
+
+    if (Platform.OS === "android") {
+      const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+        setHomeRoute("catalog");
+        return true;
+      });
+      return () => subscription.remove();
+    }
+
+    return;
+  }, [homeRoute]);
 
   const loadHomeProducts = React.useCallback(async () => {
     setHomeLoading(true);
@@ -202,6 +474,22 @@ export default function NativeAppScreen() {
     }
   }, []);
 
+  const loadHomeStorePrices = React.useCallback(async (productId: string) => {
+    if (!productId) {
+      setHomeStorePrices([]);
+      return;
+    }
+
+    setHomeStorePricesLoading(true);
+    const { data, error } = await listLatestStorePricesForProduct(productId);
+    setHomeStorePrices(data);
+    setHomeStorePricesLoading(false);
+
+    if (error) {
+      setHomeHistoryMessage(error);
+    }
+  }, []);
+
   const loadWatchlist = React.useCallback(async (keepMessage = false) => {
     if (!hasSupabaseEnv) {
       setWatchlistItems([]);
@@ -212,7 +500,6 @@ export default function NativeAppScreen() {
     const { data, error } = await listWatchlistItems();
     setWatchlistItems(data);
     setWatchLoading(false);
-
     if (error) {
       setWatchMessage(error);
     } else if (!keepMessage) {
@@ -221,8 +508,22 @@ export default function NativeAppScreen() {
   }, []);
 
   const loadMapStores = React.useCallback(async () => {
+    const searchText =
+      mapQuery.trim().length > 0
+        ? mapQuery.trim()
+        : buildLocationSearchPlaceholder({
+            locationMode: onboardingState.locationMode,
+            postalCode: onboardingState.postalCode,
+            latitude: onboardingState.locationLatitude,
+            longitude: onboardingState.locationLongitude,
+          });
+
     setMapLoading(true);
-    const { data, error } = await listStores({ search: mapQuery });
+    const { data, error } = await listStores({
+      search: searchText,
+      latitude: onboardingState.locationLatitude ?? undefined,
+      longitude: onboardingState.locationLongitude ?? undefined,
+    });
     setMapStores(data);
     setMapLoading(false);
 
@@ -232,10 +533,10 @@ export default function NativeAppScreen() {
       setMapMessage(null);
     }
 
-    if (data.length > 0) {
-      setFocusedStoreId((prev) => prev || data[0].id);
+    if (data.length > 0 && !focusedStoreId) {
+      setFocusedStoreId(data[0].id);
     }
-  }, [mapQuery]);
+  }, [mapQuery, onboardingState.locationLatitude, onboardingState.locationLongitude, onboardingState.locationMode, onboardingState.postalCode]);
 
   const loadProfile = React.useCallback(async (keepMessage = false) => {
     if (!hasSupabaseEnv) {
@@ -264,22 +565,26 @@ export default function NativeAppScreen() {
   React.useEffect(() => {
     if (activeTab !== "home") return;
     void loadHomeProducts();
-  }, [activeTab, loadHomeProducts]);
+  }, [activeTab, homeCategory, homeQuery, loadHomeProducts]);
 
   React.useEffect(() => {
-    if (homeProducts.length === 0) {
+    if (activeTab !== "home") return;
+    void loadWatchlist(true);
+  }, [activeTab, loadWatchlist]);
+
+  React.useEffect(() => {
+    if (filteredHomeProducts.length === 0) {
       setSelectedHomeProductId("");
       return;
     }
 
-    const hasSelected = homeProducts.some(
+    const hasSelected = filteredHomeProducts.some(
       (product) => product.id === selectedHomeProductId,
     );
-
     if (!hasSelected) {
-      setSelectedHomeProductId(homeProducts[0].id);
+      setSelectedHomeProductId(filteredHomeProducts[0].id);
     }
-  }, [homeProducts, selectedHomeProductId]);
+  }, [filteredHomeProducts, selectedHomeProductId]);
 
   React.useEffect(() => {
     setHomeActionMessage(null);
@@ -290,7 +595,18 @@ export default function NativeAppScreen() {
     if (homeRoute !== "detail") return;
     if (!selectedHomeProductId) return;
     void loadHomePriceHistory(selectedHomeProductId);
-  }, [activeTab, homeRoute, loadHomePriceHistory, selectedHomeProductId]);
+    void loadHomeStorePrices(selectedHomeProductId);
+  }, [activeTab, homeRoute, loadHomePriceHistory, loadHomeStorePrices, selectedHomeProductId]);
+
+  React.useEffect(() => {
+    if (!selectedHomeProductId) {
+      setDetailTargetPrice("");
+      return;
+    }
+
+    const existing = watchlistItems.find((item) => item.product_id === selectedHomeProductId);
+    setDetailTargetPrice(existing?.target_price ?? "");
+  }, [selectedHomeProductId, watchlistItems]);
 
   React.useEffect(() => {
     if (activeTab !== "watchlist") return;
@@ -301,6 +617,29 @@ export default function NativeAppScreen() {
     if (activeTab !== "map") return;
     void loadMapStores();
   }, [activeTab, loadMapStores]);
+
+  React.useEffect(() => {
+    if (pendingStoreIdFromHome === null) {
+      return;
+    }
+
+    const target = filteredStores.find((store) => store.id === pendingStoreIdFromHome);
+    if (target) {
+      setFocusedStoreId(target.id);
+      mapRef.current?.animateToRegion(
+        {
+          latitude: target.latitude,
+          longitude: target.longitude,
+          latitudeDelta: 0.022,
+          longitudeDelta: 0.022,
+        },
+        220,
+      );
+      setPendingStoreIdFromHome(null);
+      showToast(`Open ${target.name} on map.`);
+      return;
+    }
+  }, [filteredStores, pendingStoreIdFromHome, showToast]);
 
   React.useEffect(() => {
     if (filteredStores.length === 0) {
@@ -324,38 +663,134 @@ export default function NativeAppScreen() {
     void loadProfile();
   }, [activeTab, loadProfile]);
 
-  const handleAddWatchlistItem = React.useCallback(async () => {
-    const name = watchName.trim();
-    const store = watchStore.trim();
-
-    if (!name) {
-      setWatchMessage("Item name is required.");
-      return;
-    }
-    if (!store) {
-      setWatchMessage("Store name is required.");
+  React.useEffect(() => {
+    if (onboardingState.locationMode !== "postal") {
+      if (onboardingState.locationMode === "share" && mapQuery.includes(",")) {
+        setMapQuery("");
+      }
       return;
     }
 
-    setWatchSubmitting(true);
-    const { error } = await addWatchlistItem({
-      name,
-      store,
-      targetPrice: watchTargetPrice,
-    });
-    setWatchSubmitting(false);
+    if (!onboardingState.postalCode) return;
+    if (!mapQuery) {
+      setMapQuery(onboardingState.postalCode);
+    }
+  }, [mapQuery, onboardingState.locationMode, onboardingState.postalCode]);
 
-    if (error) {
-      setWatchMessage(error);
+  React.useEffect(() => {
+    if (!toastMessage) return;
+    const timeout = setTimeout(() => {
+      setToastMessage(null);
+    }, 2300);
+    return () => clearTimeout(timeout);
+  }, [toastMessage]);
+
+  const handleLocationShare = React.useCallback(async () => {
+    const permission = await requestLocationPermissionAndPosition();
+    if (!permission.granted) {
+      setHomeActionMessage(permission.message ?? "Location access not available.");
+    } else {
+      setHomeActionMessage(null);
+    }
+
+    const nextState: OnboardingState = {
+      ...onboardingState,
+      locationCompleted: true,
+      locationMode: "share",
+      postalCode: permission.granted ? null : onboardingState.postalCode,
+      locationLatitude: permission.latitude ?? null,
+      locationLongitude: permission.longitude ?? null,
+      alertsCompleted: false,
+      alertsEnabled: onboardingState.alertsEnabled,
+    };
+    setOnboardingMessage(permission.message ?? null);
+    if (permission.granted) {
+      setMapQuery("");
+    }
+
+    await persistOnboardingState(nextState);
+    setOnboardingStep("alerts");
+    showToast(permission.granted ? "Using live location mode." : "Location not granted. Continue with alerts.");
+  }, [onboardingState, persistOnboardingState, showToast]);
+
+  const handleLocationPostal = React.useCallback(async () => {
+    const normalized = onboardingPostalCode.trim();
+    if (!normalized) {
+      setHomeActionMessage("Please enter postal code.");
       return;
     }
 
-    setWatchName("");
-    setWatchStore("");
-    setWatchTargetPrice("");
-    setWatchMessage("Added to your watchlist.");
-    await loadWatchlist(true);
-  }, [loadWatchlist, watchName, watchStore, watchTargetPrice]);
+    const nextState: OnboardingState = {
+      ...onboardingState,
+      locationCompleted: true,
+      locationMode: "postal",
+      postalCode: normalized,
+      locationLatitude: null,
+      locationLongitude: null,
+      alertsCompleted: false,
+      alertsEnabled: onboardingState.alertsEnabled,
+    };
+    setOnboardingMessage(null);
+    await persistOnboardingState(nextState);
+    setMapQuery(normalized);
+    setOnboardingStep("alerts");
+    showToast(`Saved postal code ${normalized}.`);
+  }, [onboardingPostalCode, onboardingState, persistOnboardingState, showToast]);
+
+  const handleSkipLocation = React.useCallback(async () => {
+    const nextState: OnboardingState = {
+      ...onboardingState,
+      locationCompleted: true,
+      locationMode: "skip",
+      postalCode: null,
+      locationLatitude: null,
+      locationLongitude: null,
+      alertsCompleted: false,
+      alertsEnabled: onboardingState.alertsEnabled,
+    };
+    setOnboardingMessage(null);
+    await persistOnboardingState(nextState);
+    setOnboardingStep("alerts");
+    showToast("Location setup skipped. You can set it later.");
+  }, [onboardingState, persistOnboardingState, showToast]);
+
+  const handleAlertsStep = React.useCallback(async () => {
+    if (onboardingAlertsEnabled) {
+      const permission = await requestAlertPermission();
+      setOnboardingMessage(permission.message ?? null);
+
+      if (!permission.granted) {
+        showToast(permission.message ?? "Alert permission not enabled.");
+      }
+
+      setOnboardingAlertsEnabled(permission.granted);
+
+      const nextState: OnboardingState = {
+        ...onboardingState,
+        alertsCompleted: true,
+        alertsEnabled: permission.granted,
+      };
+      await persistOnboardingState(nextState);
+      setOnboardingVisible(false);
+      showToast(permission.granted ? "Alerts enabled." : "Alerts disabled.");
+      return;
+    }
+
+    const skippedState: OnboardingState = {
+      ...onboardingState,
+      alertsCompleted: true,
+      alertsEnabled: false,
+    };
+    await persistOnboardingState(skippedState);
+    setOnboardingVisible(false);
+    showToast("Alerts disabled.");
+    return;
+  }, [
+    onboardingAlertsEnabled,
+    onboardingState,
+    persistOnboardingState,
+    showToast,
+  ]);
 
   const handleRemoveWatchlistItem = React.useCallback(
     async (itemId: string) => {
@@ -368,10 +803,11 @@ export default function NativeAppScreen() {
         return;
       }
 
-      setWatchMessage("Removed from your watchlist.");
+      setWatchMessage(null);
       await loadWatchlist(true);
+      showToast("Removed from watchlist.");
     },
-    [loadWatchlist],
+    [loadWatchlist, showToast],
   );
 
   const handleSignUp = React.useCallback(async () => {
@@ -406,32 +842,93 @@ export default function NativeAppScreen() {
         ? "Account created. Check your email to verify your account."
         : "Account created successfully.",
     );
+    showToast(data.awaitingVerification ? "Account created. Verify your email." : "Account created.");
     setSignUpPassword("");
     await loadProfile(true);
-  }, [loadProfile, signUpEmail, signUpName, signUpPassword]);
+  }, [
+    loadProfile,
+    showToast,
+    signUpEmail,
+    signUpName,
+    signUpPassword,
+  ]);
 
-  const handleAddSelectedToWatchlist = React.useCallback(async () => {
-    if (!selectedHomeProduct) return;
+  const handleSignIn = React.useCallback(async () => {
+    const email = signInEmail.trim();
+    const password = signInPassword;
 
-    setHomeAddSubmitting(true);
-    const { error } = await addWatchlistItem({
-      name: selectedHomeProduct.name,
-      store: "Home Catalog",
-      targetPrice:
-        selectedHomeProduct.current_price !== null
-          ? selectedHomeProduct.current_price.toFixed(2)
-          : undefined,
-    });
-    setHomeAddSubmitting(false);
-
-    if (error) {
-      setHomeActionMessage(error);
+    if (!email) {
+      setMoreMessage("Email is required.");
+      return;
+    }
+    if (!password) {
+      setMoreMessage("Password is required.");
       return;
     }
 
-    setHomeActionMessage("Added to your watchlist.");
+    setMoreLoading(true);
+    const { data, error } = await signInUser({ email, password });
+    setMoreLoading(false);
+
+    if (error) {
+      setMoreMessage(error);
+      return;
+    }
+
+    setProfile(data);
+    setMoreMessage(null);
+    setSignInPassword("");
+    showToast("Signed in.");
     await loadWatchlist(true);
-  }, [loadWatchlist, selectedHomeProduct]);
+  }, [loadWatchlist, showToast, signInEmail, signInPassword]);
+
+  const handleAddProductToWatchlist = React.useCallback(
+    async (product: MarketProduct, targetPrice?: string) => {
+      const target = targetPrice?.trim() ?? "";
+      if (!product) return;
+      if (target) {
+        const parsed = Number(target);
+        if (!Number.isFinite(parsed) || parsed < 0) {
+          setHomeActionMessage("Target price must be a valid non-negative number.");
+          return;
+        }
+      }
+
+      setHomeAddSubmitting(true);
+      const { error } = await addWatchlistItem({
+        productId: product.id,
+        storeId: product.best_store_id,
+        name: product.name,
+        store: product.best_store_name ?? "Unknown store",
+        targetPrice: target || undefined,
+      });
+      setHomeAddSubmitting(false);
+
+      if (error) {
+        setHomeActionMessage(error);
+        return;
+      }
+
+      setHomeActionMessage(null);
+      await loadWatchlist(true);
+      showToast("Added to watchlist.");
+    },
+    [loadWatchlist, showToast],
+  );
+
+  const handleAddSelectedToWatchlist = React.useCallback(async () => {
+    if (!selectedHomeProduct) return;
+    await handleAddProductToWatchlist(selectedHomeProduct, detailTargetPrice);
+  }, [detailTargetPrice, handleAddProductToWatchlist, selectedHomeProduct]);
+
+  const handleWatchProductFromHome = React.useCallback(
+    (productId: string) => {
+      const product = filteredHomeProducts.find((item) => item.id === productId);
+      if (!product) return;
+      void handleAddProductToWatchlist(product);
+    },
+    [filteredHomeProducts, handleAddProductToWatchlist],
+  );
 
   const handleSignOut = React.useCallback(async () => {
     setMoreLoading(true);
@@ -446,7 +943,21 @@ export default function NativeAppScreen() {
     setProfile(null);
     setWatchlistItems([]);
     setMoreMessage("Signed out.");
-  }, []);
+    showToast("Signed out.");
+  }, [showToast]);
+
+  const handleOpenStoreOnMap = React.useCallback(
+    (storeId: string, storeName?: string) => {
+      if (!storeId || storeId === "unlinked-store") {
+        return;
+      }
+      setPendingStoreIdFromHome(storeId);
+      setActiveTab("map");
+      setMapQuery(storeName ?? "");
+      setOnboardingVisible(false);
+    },
+    [],
+  );
 
   const focusStore = React.useCallback(
     (store: MarketStore) => {
@@ -463,110 +974,6 @@ export default function NativeAppScreen() {
     },
     [],
   );
-
-  const handleCreateProduct = React.useCallback(async () => {
-    const name = adminProductName.trim();
-    const category = adminProductCategory.trim();
-
-    if (!name || !category) {
-      setAdminMessage("Product name and category are required.");
-      return;
-    }
-
-    setAdminSubmitting(true);
-    const { error } = await createProduct({
-      name,
-      category,
-      thumbnailUrl: adminProductThumb,
-    });
-    setAdminSubmitting(false);
-
-    if (error) {
-      setAdminMessage(error);
-      return;
-    }
-
-    setAdminMessage("Product created.");
-    setAdminProductName("");
-    setAdminProductCategory("");
-    setAdminProductThumb("");
-    await loadHomeCategories();
-    await loadHomeProducts();
-  }, [adminProductCategory, adminProductName, adminProductThumb, loadHomeCategories, loadHomeProducts]);
-
-  const handleCreateStore = React.useCallback(async () => {
-    const name = adminStoreName.trim();
-    const area = adminStoreArea.trim();
-
-    if (!name || !area || !adminStoreLat.trim() || !adminStoreLng.trim()) {
-      setAdminMessage("Store name, area, latitude, and longitude are required.");
-      return;
-    }
-
-    setAdminSubmitting(true);
-    const { error } = await createStore({
-      name,
-      area,
-      latitude: adminStoreLat,
-      longitude: adminStoreLng,
-      priceNote: adminStoreNote,
-    });
-    setAdminSubmitting(false);
-
-    if (error) {
-      setAdminMessage(error);
-      return;
-    }
-
-    setAdminMessage("Store created.");
-    setAdminStoreName("");
-    setAdminStoreArea("");
-    setAdminStoreLat("");
-    setAdminStoreLng("");
-    setAdminStoreNote("");
-    await loadMapStores();
-  }, [adminStoreArea, adminStoreLat, adminStoreLng, adminStoreName, adminStoreNote, loadMapStores]);
-
-  const handleCreatePrice = React.useCallback(async () => {
-    if (!adminPriceProductId.trim() || !adminPriceStoreId.trim()) {
-      setAdminMessage("Product ID and Store ID are required.");
-      return;
-    }
-    if (!adminPriceValue.trim()) {
-      setAdminMessage("Price is required.");
-      return;
-    }
-
-    setAdminSubmitting(true);
-    const { error } = await createProductPrice({
-      productId: adminPriceProductId,
-      storeId: adminPriceStoreId,
-      price: adminPriceValue,
-      observedAt: adminPriceObservedAt,
-    });
-    setAdminSubmitting(false);
-
-    if (error) {
-      setAdminMessage(error);
-      return;
-    }
-
-    setAdminMessage("Price entry created.");
-    setAdminPriceValue("");
-    setAdminPriceObservedAt("");
-    if (selectedHomeProductId === adminPriceProductId) {
-      await loadHomePriceHistory(selectedHomeProductId);
-      await loadHomeProducts();
-    }
-  }, [
-    adminPriceObservedAt,
-    adminPriceProductId,
-    adminPriceStoreId,
-    adminPriceValue,
-    loadHomePriceHistory,
-    loadHomeProducts,
-    selectedHomeProductId,
-  ]);
 
   return (
     <View style={st.root}>
@@ -588,49 +995,60 @@ export default function NativeAppScreen() {
             query={homeQuery}
             category={homeCategory}
             categories={homeCategories}
-            summaryCards={summaryCards}
             message={homeMessage}
+            actionMessage={homeActionMessage}
             loading={homeLoading}
-            products={homeProducts}
+            products={filteredHomeProducts}
+            summaryCards={homeSummaryCards}
+            watchedProductIds={watchedProductIds}
+            sortMode={homeSortMode}
+            storeFilterName={homeStoreFilterName}
+            onClearStoreFilter={clearHomeStoreFilter}
             selectedProduct={selectedHomeProduct}
+            targetPriceByProduct={targetPriceByProduct}
             onChangeQuery={setHomeQuery}
             onChangeCategory={setHomeCategory}
+            onChangeSort={setHomeSortMode}
             onSelectProduct={(productId) => {
               setSelectedHomeProductId(productId);
               setHomeRoute("detail");
             }}
+            onWatchProduct={(productId) => {
+              void handleWatchProductFromHome(productId);
+            }}
+            onOpenStoreOnMap={handleOpenStoreOnMap}
           />
         ) : null}
 
         {activeTab === "home" && homeRoute === "detail" ? (
-          <ProductDetailPanel
-            product={selectedHomeProduct}
-            chart={homeChart}
-            previousPriceRows={previousPriceRows}
-            actionMessage={homeActionMessage}
-            historyMessage={homeHistoryMessage}
-            historyLoading={homeHistoryLoading}
-            addSubmitting={homeAddSubmitting}
-            onBack={() => setHomeRoute("catalog")}
-            onAddToWatchlist={handleAddSelectedToWatchlist}
-          />
+          <View {...detailBackPanResponder.panHandlers}>
+            <ProductDetailPanel
+              product={selectedHomeProduct}
+              chart={homeChart}
+              previousPriceRows={previousPriceRows}
+              actionMessage={homeActionMessage}
+              historyMessage={homeHistoryMessage}
+              historyLoading={homeHistoryLoading}
+              storePrices={homeStorePrices}
+              storePricesLoading={homeStorePricesLoading}
+              targetPrice={detailTargetPrice}
+              addSubmitting={homeAddSubmitting}
+              onBack={() => setHomeRoute("catalog")}
+              onChangeTargetPrice={setDetailTargetPrice}
+              onAddToWatchlist={handleAddSelectedToWatchlist}
+              onOpenStoreOnMap={handleOpenStoreOnMap}
+            />
+          </View>
         ) : null}
 
         {activeTab === "watchlist" ? (
           <WatchlistPanel
             hasSupabaseEnv={hasSupabaseEnv}
             items={watchlistItems}
-            name={watchName}
-            store={watchStore}
-            targetPrice={watchTargetPrice}
+            productById={productById}
             loading={watchLoading}
-            submitting={watchSubmitting}
             removingId={watchRemovingId}
             message={watchMessage}
-            onChangeName={setWatchName}
-            onChangeStore={setWatchStore}
-            onChangeTargetPrice={setWatchTargetPrice}
-            onAddItem={handleAddWatchlistItem}
             onRemoveItem={(itemId) => {
               void handleRemoveWatchlistItem(itemId);
             }}
@@ -649,14 +1067,15 @@ export default function NativeAppScreen() {
             onChangeQuery={setMapQuery}
             onFocusStoreId={setFocusedStoreId}
             onFocusStore={focusStore}
+            onViewStoreInHome={handleSetHomeStoreFilter}
           />
         ) : null}
 
         {activeTab === "alerts" ? (
           <View style={st.sectionStack}>
             <Text style={st.sectionTitle}>Alert</Text>
-            <Text style={st.sectionSub}>Notification center placeholder.</Text>
-            {ALERT_ROWS.map((row) => (
+            <Text style={st.sectionSub}>Price alerts and watchlist highlights.</Text>
+            {alertRows.map((row) => (
               <View key={row.id} style={st.rowCard}>
                 <Text style={st.alertTitle}>{row.title}</Text>
                 <Text style={st.itemMeta}>{row.body}</Text>
@@ -671,46 +1090,24 @@ export default function NativeAppScreen() {
             profile={profile}
             loading={moreLoading}
             message={moreMessage}
-            adminMessage={adminMessage}
+            authMode={authMode}
+            signInEmail={signInEmail}
+            signInPassword={signInPassword}
             signUpName={signUpName}
             signUpEmail={signUpEmail}
             signUpPassword={signUpPassword}
-            adminProductName={adminProductName}
-            adminProductCategory={adminProductCategory}
-            adminProductThumb={adminProductThumb}
-            adminStoreName={adminStoreName}
-            adminStoreArea={adminStoreArea}
-            adminStoreLat={adminStoreLat}
-            adminStoreLng={adminStoreLng}
-            adminStoreNote={adminStoreNote}
-            adminPriceProductId={adminPriceProductId}
-            adminPriceStoreId={adminPriceStoreId}
-            adminPriceValue={adminPriceValue}
-            adminPriceObservedAt={adminPriceObservedAt}
-            adminSubmitting={adminSubmitting}
             onRefreshProfile={() => {
               void loadProfile();
             }}
+            onChangeAuthMode={setAuthMode}
+            onSignIn={handleSignIn}
             onSignOut={handleSignOut}
             onSignUp={handleSignUp}
+            onChangeSignInEmail={setSignInEmail}
+            onChangeSignInPassword={setSignInPassword}
             onChangeSignUpName={setSignUpName}
             onChangeSignUpEmail={setSignUpEmail}
             onChangeSignUpPassword={setSignUpPassword}
-            onChangeAdminProductName={setAdminProductName}
-            onChangeAdminProductCategory={setAdminProductCategory}
-            onChangeAdminProductThumb={setAdminProductThumb}
-            onChangeAdminStoreName={setAdminStoreName}
-            onChangeAdminStoreArea={setAdminStoreArea}
-            onChangeAdminStoreLat={setAdminStoreLat}
-            onChangeAdminStoreLng={setAdminStoreLng}
-            onChangeAdminStoreNote={setAdminStoreNote}
-            onChangeAdminPriceProductId={setAdminPriceProductId}
-            onChangeAdminPriceStoreId={setAdminPriceStoreId}
-            onChangeAdminPriceValue={setAdminPriceValue}
-            onChangeAdminPriceObservedAt={setAdminPriceObservedAt}
-            onCreateProduct={handleCreateProduct}
-            onCreateStore={handleCreateStore}
-            onCreatePrice={handleCreatePrice}
           />
         ) : null}
       </ScrollView>
@@ -721,6 +1118,41 @@ export default function NativeAppScreen() {
         pad={pad}
         onSelectTab={setActiveTab}
       />
+
+      <NativeAppOnboarding
+        visible={onboardingVisible}
+        step={onboardingStep}
+        locationPostalCode={onboardingPostalCode}
+        alertsEnabled={onboardingAlertsEnabled}
+        onChangePostalCode={setOnboardingPostalCode}
+        onShareLocation={handleLocationShare}
+        onSetPostalLocation={() => {
+          void handleLocationPostal();
+        }}
+        onSkipLocation={handleSkipLocation}
+        onSetAlerts={(enabled) => {
+          setOnboardingAlertsEnabled(enabled);
+        }}
+        onFinish={() => {
+          void handleAlertsStep();
+        }}
+      />
+
+      {toastMessage ? (
+        <View
+          pointerEvents="none"
+          style={[
+            st.toastWrap,
+            {
+              left: pad,
+              right: pad,
+              bottom: 76 + Math.max(insets.bottom, 10),
+            },
+          ]}
+        >
+          <Text style={st.toastText}>{toastMessage}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

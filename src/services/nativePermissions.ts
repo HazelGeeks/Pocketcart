@@ -1,0 +1,247 @@
+import { Platform, PermissionsAndroid } from "react-native";
+
+type PermissionStatus = "granted" | "denied" | "unsupported";
+
+export type GeoPermissionResult = {
+  granted: boolean;
+  status: PermissionStatus;
+  latitude?: number;
+  longitude?: number;
+  message?: string;
+  source?: string;
+};
+
+export type NotificationPermissionResult = {
+  granted: boolean;
+  status: PermissionStatus;
+  message?: string;
+  source?: string;
+};
+
+const fallbackMessage = {
+  locationUnsupported: "Location is not available in this build. Use postal code instead.",
+  locationDenied: "Location access was denied. Use postal code instead.",
+  notificationUnsupported: "Notification permission control is managed by the OS in this build.",
+};
+
+function getNavigator(): any {
+  return (globalThis as any).navigator;
+}
+
+function getPermissionsApi(): any {
+  const navigator = getNavigator();
+  return navigator?.permissions;
+}
+
+function readPositionErrorMessage(error: any): string {
+  const code = (error?.code as string | number) ?? "";
+  const message = String(error?.message ?? "");
+
+  if (code === 1 || /permission/i.test(message)) {
+    return fallbackMessage.locationDenied;
+  }
+
+  if (code === 2 || /timeout|timed out/i.test(message)) {
+    return "Location request timed out. Try again with a better GPS signal.";
+  }
+
+  return message || "Unable to read current location.";
+}
+
+function requestCurrentPosition(): Promise<GeoPermissionResult> {
+  const navigator = getNavigator();
+  const geolocation = navigator?.geolocation;
+
+  if (!geolocation || typeof geolocation.getCurrentPosition !== "function") {
+    return Promise.resolve({
+      granted: false,
+      status: "unsupported",
+      message: fallbackMessage.locationUnsupported,
+      source: "api",
+    });
+  }
+
+  return new Promise((resolve) => {
+    geolocation.getCurrentPosition(
+      (position: { coords: { latitude: number; longitude: number } }) => {
+        const coords = position.coords;
+        if (!coords) {
+          resolve({
+            granted: false,
+            status: "denied",
+            message: "Location service returned no coordinates.",
+            source: "api",
+          });
+          return;
+        }
+
+        resolve({
+          granted: true,
+          status: "granted",
+          source: "api",
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          message: `Location found (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`,
+        });
+      },
+      (error: { code?: number; message?: string }) => {
+        resolve({
+          granted: false,
+          status: "denied",
+          source: "api",
+          message: readPositionErrorMessage(error),
+        });
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 12000,
+        maximumAge: 10 * 60 * 1000,
+      },
+    );
+  });
+}
+
+async function queryWebPermissionState(permissionName: "geolocation"): Promise<PermissionStatus> {
+  try {
+    const permissionsApi = getPermissionsApi();
+    if (!permissionsApi || typeof permissionsApi.query !== "function") {
+      return "granted";
+    }
+
+    const result = await permissionsApi.query({ name: permissionName });
+    if (result.state === "granted") {
+      return "granted";
+    }
+    if (result.state === "denied") {
+      return "denied";
+    }
+    return "unsupported";
+  } catch {
+    return "unsupported";
+  }
+}
+
+export async function requestLocationPermissionAndPosition(): Promise<GeoPermissionResult> {
+  const navigator = getNavigator();
+
+  if (Platform.OS === "android") {
+    try {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      );
+
+      if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+        const deniedMessage =
+          result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
+            ? "Location permission permanently denied. Open app settings and allow location."
+            : "Location permission denied. Use postal code instead.";
+
+        return {
+          granted: false,
+          status: result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ? "unsupported" : "denied",
+          source: "android-permissions",
+          message: deniedMessage,
+        };
+      }
+    } catch {
+      return {
+        granted: false,
+        status: "denied",
+        source: "android-permissions",
+        message: "Unable to request Android location permission.",
+      };
+    }
+  }
+
+  if (Platform.OS === "web") {
+    const permissionState = await queryWebPermissionState("geolocation");
+    if (permissionState === "denied") {
+      return {
+        granted: false,
+        status: "denied",
+        source: "web-permissions",
+        message: fallbackMessage.locationDenied,
+      };
+    }
+  }
+
+  if (!navigator?.geolocation) {
+    return {
+      granted: false,
+      status: "unsupported",
+      source: "web-permissions",
+      message: fallbackMessage.locationUnsupported,
+    };
+  }
+
+  return requestCurrentPosition();
+}
+
+export async function requestAlertPermission(): Promise<NotificationPermissionResult> {
+  const notification = (globalThis as any).Notification;
+  if (!notification) {
+    if (Platform.OS !== "web") {
+      return {
+        granted: false,
+        status: "unsupported",
+        source: Platform.OS,
+        message: fallbackMessage.notificationUnsupported,
+      };
+    }
+
+    return {
+      granted: false,
+      status: "denied",
+      source: "web",
+      message: "Notifications are unavailable. Browser blocking might be applied.",
+    };
+  }
+
+  if (Platform.OS === "web" && typeof notification.requestPermission === "function") {
+    const permissions = await notification.requestPermission();
+    if (permissions === "granted") {
+      return {
+        granted: true,
+        status: "granted",
+        source: "web",
+        message: "Price alerts notifications are enabled.",
+      };
+    }
+
+    return {
+      granted: false,
+      status: permissions === "denied" ? "denied" : "unsupported",
+      source: "web",
+      message:
+        permissions === "denied"
+          ? "Notification permission denied. You can enable it later in browser settings."
+          : "Notification permission not granted yet.",
+    };
+  }
+
+  return {
+    granted: false,
+    status: "unsupported",
+    source: Platform.OS,
+    message: fallbackMessage.notificationUnsupported,
+  };
+}
+
+export function buildLocationSearchPlaceholder(state: {
+  locationMode: OnboardingLocationMode;
+  postalCode: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}): string {
+  if (state.locationMode === "share" && state.latitude && state.longitude) {
+    return `${state.latitude.toFixed(3)}, ${state.longitude.toFixed(3)}`;
+  }
+
+  if (state.locationMode === "postal" && state.postalCode) {
+    return state.postalCode;
+  }
+
+  return "";
+}
+
+export type OnboardingLocationMode = "share" | "postal" | "skip";

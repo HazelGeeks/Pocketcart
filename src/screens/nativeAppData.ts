@@ -51,27 +51,6 @@ export const TABS: Array<{ id: NativeTabId; label: string }> = [
   { id: "more", label: "More" },
 ];
 
-export const SUMMARY_CARDS: SummaryCard[] = [
-  { id: "watch", label: "Watchlist", value: "0" },
-  { id: "drop", label: "Price Drops Today", value: "2" },
-  { id: "save", label: "Monthly Savings", value: "$94" },
-];
-
-export const ALERT_ROWS: AlertRow[] = [
-  {
-    id: "a1",
-    title: "Price hit your target",
-    body: "Dish Soap is now $5.20 at Mart B.",
-    when: "Today 09:42",
-  },
-  {
-    id: "a2",
-    title: "New lower price detected",
-    body: "Baby Formula dropped by 8% at Market C.",
-    when: "Yesterday 18:10",
-  },
-];
-
 export const DEFAULT_REGION: Region = {
   latitude: 37.5326,
   longitude: 126.991,

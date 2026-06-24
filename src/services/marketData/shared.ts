@@ -42,3 +42,24 @@ export function matchesStoreFilter(store: MarketStore, search?: string): boolean
     .toLowerCase()
     .includes(q);
 }
+
+export function calculateHaversineDistanceKm(
+  originLat: number,
+  originLng: number,
+  targetLat: number,
+  targetLng: number,
+): number {
+  const R = 6371;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const deltaLat = toRadians(targetLat - originLat);
+  const deltaLng = toRadians(targetLng - originLng);
+
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(toRadians(originLat)) *
+      Math.cos(toRadians(targetLat)) *
+      Math.sin(deltaLng / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}

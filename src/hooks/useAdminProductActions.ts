@@ -1,5 +1,5 @@
 import React from "react";
-import type { AdminPriceEntry, AdminProduct } from "../services/adminBackoffice";
+import type { AdminPriceEntry, AdminProduct, AdminStore } from "../services/adminBackoffice";
 import type { ProductPriceStats, StorePriceSetInput } from "../utils/adminScreenHelpers";
 import { createStorePriceSet, dateInputValue } from "../utils/adminScreenHelpers";
 import { prepareProductPriceSets } from "../utils/productStorePriceSets";
@@ -14,6 +14,8 @@ type Mutation<TParams, TResult> = {
 
 type UseAdminProductActionsParams = {
   productName: string;
+  productEnglishName: string;
+  productUnit: string;
   productCategory: string;
   productCategoryCustom: string;
   productThumb: string;
@@ -30,7 +32,10 @@ type UseAdminProductActionsParams = {
   priceEndDate: string;
   filteredProducts: AdminProduct[];
   productPriceStats: Map<string, ProductPriceStats>;
+  stores: AdminStore[];
   setProductName: (value: string) => void;
+  setProductEnglishName: (value: string) => void;
+  setProductUnit: (value: string) => void;
   setProductCategory: (value: string) => void;
   setProductCategoryCustom: (value: string) => void;
   setProductThumb: (value: string) => void;
@@ -51,8 +56,14 @@ type UseAdminProductActionsParams = {
   setNotice: (value: string | null) => void;
   resetProductFilters: () => void;
   loadAll: (keepNotice?: boolean) => Promise<void>;
-  createProductMutation: Mutation<{ name: string; category: string; thumbnailUrl?: string }, AdminProduct | null>;
-  updateProductMutation: Mutation<{ id: string; name: string; category: string; thumbnailUrl?: string }, AdminProduct | null>;
+  createProductMutation: Mutation<
+    { name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
+    AdminProduct | null
+  >;
+  updateProductMutation: Mutation<
+    { id: string; name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
+    AdminProduct | null
+  >;
   deleteProductMutation: Mutation<string, unknown>;
   createPriceEntryMutation: Mutation<{
     productId: string;
@@ -75,6 +86,8 @@ type UseAdminProductActionsParams = {
 
 export default function useAdminProductActions({
   productName,
+  productEnglishName,
+  productUnit,
   productCategory,
   productThumb,
   productStorePriceSets,
@@ -88,8 +101,11 @@ export default function useAdminProductActions({
   priceStartDate,
   priceEndDate,
   filteredProducts,
+  stores,
   productPriceStats,
   setProductName,
+  setProductEnglishName,
+  setProductUnit,
   setProductCategory,
   setProductCategoryCustom,
   setProductThumb,
@@ -144,6 +160,8 @@ export default function useAdminProductActions({
   const resetProductForm = React.useCallback(() => {
     setEditingProductId(null);
     setProductName("");
+    setProductEnglishName("");
+    setProductUnit("");
     setProductCategory("");
     setProductCategoryCustom("");
     setProductThumb("");
@@ -152,9 +170,11 @@ export default function useAdminProductActions({
     setProductPeriodEndDate("");
   }, [
     setEditingProductId,
+    setProductEnglishName,
     setProductCategory,
     setProductCategoryCustom,
     setProductName,
+    setProductUnit,
     setProductPeriodEndDate,
     setProductPeriodStartDate,
     setProductStorePriceSets,
@@ -179,6 +199,8 @@ export default function useAdminProductActions({
     (product: AdminProduct) => {
       setEditingProductId(product.id);
       setProductName(product.name);
+      setProductEnglishName(product.english_name ?? "");
+      setProductUnit(product.unit ?? "");
       setProductCategory(product.category);
       setProductCategoryCustom(product.category);
       setProductThumb(product.thumbnail_url ?? "");
@@ -191,8 +213,10 @@ export default function useAdminProductActions({
       setEditingProductId,
       setProductCategory,
       setProductCategoryCustom,
+      setProductEnglishName,
       setProductModalOpen,
       setProductName,
+      setProductUnit,
       setProductPeriodEndDate,
       setProductPeriodStartDate,
       setProductStorePriceSets,
@@ -214,6 +238,8 @@ export default function useAdminProductActions({
 
   const handleCreateProduct = React.useCallback(async () => {
     const name = productName.trim();
+    const englishName = productEnglishName.trim();
+    const unit = productUnit.trim();
     const category = productCategory.trim();
 
     if (!name || !category) {
@@ -233,8 +259,15 @@ export default function useAdminProductActions({
     try {
       setSubmitting(true);
       const savedProduct = editingProductId
-        ? await updateProductMutation.mutateAsync({ id: editingProductId, name, category, thumbnailUrl: productThumb })
-        : await createProductMutation.mutateAsync({ name, category, thumbnailUrl: productThumb });
+        ? await updateProductMutation.mutateAsync({
+            id: editingProductId,
+            name,
+            englishName,
+            unit,
+            category,
+            thumbnailUrl: productThumb,
+          })
+        : await createProductMutation.mutateAsync({ name, englishName, unit, category, thumbnailUrl: productThumb });
 
       if (!savedProduct) {
         setNotice(editingProductId ? "Product was not updated." : "Product was not created.");
@@ -285,6 +318,8 @@ export default function useAdminProductActions({
     loadAll,
     productCategory,
     productName,
+    productEnglishName,
+    productUnit,
     productPeriodEndDate,
     productPeriodStartDate,
     productStorePriceSets,
@@ -318,10 +353,12 @@ export default function useAdminProductActions({
   const { handleExportProductsCsv, handleImportProductsCsv } = useAdminProductCsvActions({
     filteredProducts,
     productPriceStats,
+    stores,
     setSubmitting,
     setNotice,
     loadAll,
     createProductMutation,
+    createPriceEntryMutation,
   });
 
   const { handleSavePriceEntry, handleDeletePriceEntry } = useAdminPriceEntryActions({

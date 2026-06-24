@@ -296,8 +296,9 @@ export default function useAdminDashboardData({
 
       if (query) {
         const storeNames = stats?.storeNames.join(" ").toLowerCase() ?? "";
-        const haystack = `${item.name} ${item.category} ${item.id} ${storeNames}`.toLowerCase();
-        if (!haystack.includes(query)) return false;
+      const englishName = item.english_name?.trim() || "";
+      const haystack = `${item.name} ${englishName} ${item.category} ${item.id} ${storeNames}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
       }
       if (categoryFilter !== "all" && category !== categoryFilter) return false;
       if (storeFilter.toLowerCase() !== "all" && !stats?.storeIds.has(storeFilter)) return false;

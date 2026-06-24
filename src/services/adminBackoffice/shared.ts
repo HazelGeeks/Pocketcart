@@ -95,9 +95,32 @@ export function joinedName(value: JoinedName | undefined): string | null {
   return value.name ?? null;
 }
 
-export function isMissingColumnError(message?: string | null): boolean {
-  const text = message?.toLowerCase() ?? "";
-  return text.includes("does not exist") && (text.includes("valid_from") || text.includes("valid_to"));
+type MissingColumnInput = string | null | undefined | {
+  message?: string | null;
+  details?: string | null;
+  hint?: string | null;
+  code?: string | null;
+};
+
+function getMessageText(error: MissingColumnInput): string {
+  if (typeof error === "string") return error.toLowerCase();
+  if (!error) return "";
+  const message = error.message ?? "";
+  const details = error.details ?? "";
+  const hint = error.hint ?? "";
+  return `${message} ${details} ${hint}`.toLowerCase();
+}
+
+export function isMissingColumnError(error?: MissingColumnInput): boolean {
+  const text = getMessageText(error);
+  const code = typeof error === "object" && error !== null ? (error.code ?? "").toLowerCase() : "";
+  const hasTargetColumn = text.includes("valid_from") || text.includes("valid_to");
+  const hasMissingPattern =
+    text.includes("does not exist") ||
+    text.includes("could not find") ||
+    text.includes("schema cache") ||
+    code === "pgrst204";
+  return hasTargetColumn && hasMissingPattern;
 }
 
 export function priceEntryFromRow(row: PriceRow, fallbackPrice?: number): AdminPriceEntry | null {

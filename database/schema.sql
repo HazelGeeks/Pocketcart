@@ -35,6 +35,33 @@ to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
+create or replace function public.handle_new_user_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, full_name)
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    nullif(new.raw_user_meta_data ->> 'full_name', '')
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = coalesce(excluded.full_name, public.profiles.full_name);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created_profile on auth.users;
+create trigger on_auth_user_created_profile
+after insert on auth.users
+for each row execute function public.handle_new_user_profile();
+
 -- watchlist_items
 create table if not exists public.watchlist_items (
   id uuid primary key default gen_random_uuid(),
@@ -127,9 +154,15 @@ create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null,
+  unit text,
+  english_name text,
   thumbnail_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.products
+  add column if not exists unit text,
+  add column if not exists english_name text;
 
 alter table public.products enable row level security;
 
@@ -235,6 +268,14 @@ on public.stores
 for delete
 to authenticated
 using (public.is_admin());
+
+-- watchlist product/store links
+alter table public.watchlist_items
+  add column if not exists product_id uuid references public.products(id) on delete set null,
+  add column if not exists store_id uuid references public.stores(id) on delete set null;
+
+create index if not exists watchlist_items_user_product_idx
+  on public.watchlist_items(user_id, product_id);
 
 -- admin_audit_logs
 create table if not exists public.admin_audit_logs (
