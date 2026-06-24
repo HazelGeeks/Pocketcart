@@ -1,9 +1,13 @@
 import React from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Linking, Pressable, Text, TextInput, View } from "react-native";
 import type { UserProfile } from "../../services/userProfile";
 import { hasSupabaseEnv } from "../../services/supabaseClient";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
+
+const PRIVACY_URL = "https://pocketcart.app/privacy";
+const TERMS_URL = "https://pocketcart.app/terms";
+const DELETE_ACCOUNT_URL = "https://pocketcart.app/delete-account";
 
 type MorePanelProps = {
   profile: UserProfile | null;
@@ -15,11 +19,16 @@ type MorePanelProps = {
   signUpName: string;
   signUpEmail: string;
   signUpPassword: string;
+  deleteConfirming: boolean;
+  deletingAccount: boolean;
   onRefreshProfile: () => void;
   onChangeAuthMode: (mode: "signIn" | "signUp") => void;
   onSignIn: () => void;
   onSignOut: () => void;
   onSignUp: () => void;
+  onStartDeleteAccount: () => void;
+  onCancelDeleteAccount: () => void;
+  onConfirmDeleteAccount: () => void;
   onChangeSignInEmail: (value: string) => void;
   onChangeSignInPassword: (value: string) => void;
   onChangeSignUpName: (value: string) => void;
@@ -34,12 +43,115 @@ export function MorePanel(props: MorePanelProps) {
       <Text style={st.sectionSub}>Create account and manage your profile/data.</Text>
 
       <ProfileCard {...props} />
+      <AccountDeletionCard {...props} />
+      <LegalLinksCard />
 
       {props.message ? (
         <View style={st.rowCard}>
           <Text style={st.itemMeta}>{props.message}</Text>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+function openExternalUrl(url: string) {
+  void Linking.openURL(url);
+}
+
+function AccountDeletionCard({
+  profile,
+  deleteConfirming,
+  deletingAccount,
+  onStartDeleteAccount,
+  onCancelDeleteAccount,
+  onConfirmDeleteAccount,
+}: MorePanelProps) {
+  const signedInEmail = profile?.email ?? null;
+
+  return (
+    <View style={st.rowCard}>
+      <Text style={st.itemName}>Account deletion</Text>
+      <Text style={st.itemMeta}>
+        {signedInEmail
+          ? `Request deletion for ${signedInEmail}. We delete account-linked data unless retention is required for security or legal reasons.`
+          : "Sign in first if you want your request matched to your account email."}
+      </Text>
+      {signedInEmail ? (
+        deleteConfirming ? (
+          <>
+            <Text style={st.destructiveWarning}>
+              This permanently deletes your account profile and saved watchlist data.
+            </Text>
+            <View style={st.authActionRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onCancelDeleteAccount}
+                style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
+                disabled={deletingAccount}
+              >
+                <Text style={st.authBtnSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onConfirmDeleteAccount}
+                style={[st.authBtn, st.authBtnDanger, st.legalActionBtn]}
+                disabled={deletingAccount}
+              >
+                <Text style={st.authBtnDangerText}>
+                  {deletingAccount ? "Deleting..." : "Confirm Delete"}
+                </Text>
+              </Pressable>
+            </View>
+          </>
+        ) : (
+          <View style={st.authActionRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onStartDeleteAccount}
+              style={[st.authBtn, st.authBtnDanger, st.legalActionBtn]}
+              disabled={deletingAccount}
+            >
+              <Text style={st.authBtnDangerText}>Delete Account</Text>
+            </Pressable>
+          </View>
+        )
+      ) : (
+        <View style={st.authActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => openExternalUrl(DELETE_ACCOUNT_URL)}
+            style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
+          >
+            <Text style={st.authBtnSecondaryText}>Open Deletion Portal</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function LegalLinksCard() {
+  return (
+    <View style={st.rowCard}>
+      <Text style={st.itemName}>Legal</Text>
+      <Text style={st.itemMeta}>Privacy, terms, and data deletion resources.</Text>
+      <View style={st.legalLinkRow}>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => openExternalUrl(PRIVACY_URL)}
+          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
+        >
+          <Text style={st.authBtnSecondaryText}>Privacy</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => openExternalUrl(TERMS_URL)}
+          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
+        >
+          <Text style={st.authBtnSecondaryText}>Terms</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

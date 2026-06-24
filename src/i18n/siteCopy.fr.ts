@@ -252,8 +252,8 @@ export const frSiteCopy: SiteCopy = {
           "requise pour Google Play.",
         inAppTitle: "Supprimer dans l application",
         inAppBody:
-          "Les controles de compte dans l application ne sont pas " +
-          "exposes dans cette version. Utilisez la methode web ci-dessous.",
+          "Ouvrez l onglet More dans l application iOS ou Android, " +
+          "puis choisissez Account deletion dans les reglages du compte.",
         webTitle: "Supprimer via demande web",
         webBody:
           "Si vous ne pouvez pas ouvrir l application, envoyez " +
@@ -261,8 +261,8 @@ export const frSiteCopy: SiteCopy = {
         urlLabel: "URL de suppression",
         retainedTitle: "Donnees conservees apres suppression",
         retainedBody:
-          "Aucun profil cloud lie au compte n est conserve dans " +
-          "cette version. Les demandes passent par le support.",
+          "Le profil, la watchlist et les preferences liees au compte sont " +
+          "supprimes sauf conservation requise pour securite, fraude ou loi.",
         supportTitle: "Assistance",
         supportBody:
           "Si la suppression echoue, contactez support@pocketcart.app " +

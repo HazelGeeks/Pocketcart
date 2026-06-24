@@ -7,9 +7,9 @@ Server-side AI extraction for PocketCart flyer imports.
 Set these secrets in Supabase:
 
 ```bash
-supabase secrets set GOOGLE_VISION_API_KEY=AIza...
+supabase secrets set GOOGLE_VISION_API_KEY=<google-vision-api-key>
 supabase secrets set GOOGLE_VISION_PDF_PAGES=5
-supabase secrets set OPENAI_API_KEY=sk-...
+supabase secrets set OPENAI_API_KEY=<openai-api-key>
 supabase secrets set OPENAI_MODEL=gpt-4.1-mini
 supabase secrets set FLYER_ADMIN_EMAILS=admin@example.com
 ```
