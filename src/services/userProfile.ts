@@ -1,5 +1,10 @@
 import type { User } from "@supabase/supabase-js";
-import { hasSupabaseEnv, supabase } from "./supabaseClient";
+import {
+  hasSupabaseEnv,
+  supabase,
+  supabaseAnonKey,
+  supabaseUrl,
+} from "./supabaseClient";
 
 const authRedirectUrl = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
 
@@ -208,4 +213,46 @@ export async function signOutUser(): Promise<ServiceResult<null>> {
     data: null,
     error: error ? error.message : null,
   };
+}
+
+export async function deleteCurrentUserAccount(): Promise<ServiceResult<null>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult(null);
+  }
+
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    return { data: null, error: sessionError.message };
+  }
+
+  if (!session?.access_token) {
+    return { data: null, error: "Please sign in first." };
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: supabaseAnonKey,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as {
+      error?: string;
+    } | null;
+    return {
+      data: null,
+      error: payload?.error ?? "Unable to delete account.",
+    };
+  }
+
+  await supabase.auth.signOut().catch(() => undefined);
+  return { data: null, error: null };
 }

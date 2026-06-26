@@ -557,8 +557,18 @@ export const st = StyleSheet.create({
   },
   authActionRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: 8,
+  },
+  legalLinkRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  legalActionBtn: {
+    minWidth: 116,
   },
   authModeRow: {
     flexDirection: "row",
@@ -600,6 +610,10 @@ export const st = StyleSheet.create({
     backgroundColor: C.primary,
     borderColor: C.primary,
   },
+  authBtnDanger: {
+    backgroundColor: "#A83939",
+    borderColor: "#A83939",
+  },
   authBtnSecondary: {
     backgroundColor: C.white,
     borderColor: C.line,
@@ -613,6 +627,19 @@ export const st = StyleSheet.create({
   authBtnSecondaryText: {
     color: C.text,
     fontSize: 13,
+    fontWeight: "700",
+    fontFamily: F.bold,
+  },
+  authBtnDangerText: {
+    color: C.white,
+    fontSize: 13,
+    fontWeight: "700",
+    fontFamily: F.bold,
+  },
+  destructiveWarning: {
+    color: "#A83939",
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: "700",
     fontFamily: F.bold,
   },

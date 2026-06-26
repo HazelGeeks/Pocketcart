@@ -40,7 +40,7 @@ Personal Information Provided by You:
 Information Automatically Collected:
 • Device Information — device type, operating system, unique device identifiers, and mobile network information.
 • Log & Usage Data — access times, pages viewed, app crashes, and other diagnostic data.
-• Location Data — approximate location based on IP address (we do not collect precise GPS data).`,
+• Location Data — optional approximate or precise location only when you choose to share it to find nearby stores. You can also use postal-code entry instead.`,
   },
   {
     title: "3. How We Use Your Information",
@@ -58,7 +58,7 @@ We do not sell your personal information to third parties. We do not use your da
     title: "4. Data Sharing & Third Parties",
     body: `We may share your information in the following situations:
 
-• Service Providers — We share data with third-party vendors who perform services on our behalf, such as cloud hosting (e.g., AWS, Google Cloud), analytics (e.g., Google Analytics), and crash reporting. These providers are contractually obligated to protect your data.
+• Service Providers — We share data with third-party vendors who perform services on our behalf, such as cloud hosting and authentication (Supabase), app delivery tooling (Expo), analytics where enabled (Google Analytics), and crash or diagnostic tooling where enabled. These providers are contractually obligated to protect your data.
 • Legal Obligations — We may disclose your information where required by law, court order, or governmental regulation.
 • Business Transfers — In the event of a merger, acquisition, or asset sale, your data may be transferred as part of that transaction. We will notify you of any such change.
 • With Your Consent — We may share your information for any other purpose with your explicit consent.`,

@@ -38,6 +38,9 @@ Recommended Node runtime:
 - `npm run test`: route smoke tests
 - `npm run build:web`: Expo static web export
 - `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)
+- `npm run release:native:check`: pre-store gate for iOS/Android release work
+- `npm run build:ios` / `npm run build:android`: EAS production builds
+- `npm run submit:ios` / `npm run submit:android`: EAS store submissions
 
 ## Structure
 
@@ -76,6 +79,10 @@ Recommended Node runtime:
 - Web deploy:
   - Export a production build with `npm run build:web`
   - Upload the generated `dist/` directory to your hosting provider
+- Mobile store release:
+  - Follow `docs/mobile-store-release.md`
+  - Build profiles are configured in `eas.json`
+  - Keep Apple/Google credentials, Android keystores, service account JSON, and API keys out of git
 - Get the App navigation:
   - Hover `Get the App` in the top navbar (web) to open direct iOS/Android download links.
   - Tap `Get the App` on native/mobile to toggle the same two links.

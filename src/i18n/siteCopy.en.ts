@@ -256,8 +256,8 @@ export const enSiteCopy: SiteCopy = {
           "for Google Play account-based apps.",
         inAppTitle: "Delete inside the app",
         inAppBody:
-          "In-app account controls are not exposed in this build. " +
-          "Use the web request method below for deletion.",
+          "Open the More tab in the iOS or Android app, then choose " +
+          "Account deletion to request deletion from your account settings.",
         webTitle: "Delete through web request",
         webBody:
           "If you cannot access the app, send a deletion request to " +
@@ -265,8 +265,8 @@ export const enSiteCopy: SiteCopy = {
         urlLabel: "Deletion URL",
         retainedTitle: "Data retained after deletion",
         retainedBody:
-          "No account-linked cloud profile is retained in this build. " +
-          "Deletion requests are processed through support.",
+          "Account-linked profile, watchlist, and preference data are deleted " +
+          "unless retention is required for security, fraud prevention, or law.",
         supportTitle: "Support",
         supportBody:
           "If deletion fails, contact support@pocketcart.app with your " +

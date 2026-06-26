@@ -26,6 +26,7 @@ import {
   type WatchlistItem,
 } from "../services/watchlist";
 import {
+  deleteCurrentUserAccount,
   getCurrentUserProfile,
   signInUser,
   signOutUser,
@@ -142,6 +143,8 @@ export default function NativeAppScreen() {
   const [signUpName, setSignUpName] = React.useState("");
   const [signUpEmail, setSignUpEmail] = React.useState("");
   const [signUpPassword, setSignUpPassword] = React.useState("");
+  const [deleteConfirming, setDeleteConfirming] = React.useState(false);
+  const [deletingAccount, setDeletingAccount] = React.useState(false);
 
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
@@ -942,8 +945,26 @@ export default function NativeAppScreen() {
 
     setProfile(null);
     setWatchlistItems([]);
+    setDeleteConfirming(false);
     setMoreMessage("Signed out.");
     showToast("Signed out.");
+  }, [showToast]);
+
+  const handleDeleteAccount = React.useCallback(async () => {
+    setDeletingAccount(true);
+    const { error } = await deleteCurrentUserAccount();
+    setDeletingAccount(false);
+
+    if (error) {
+      setMoreMessage(error);
+      return;
+    }
+
+    setDeleteConfirming(false);
+    setProfile(null);
+    setWatchlistItems([]);
+    setMoreMessage("Account deleted.");
+    showToast("Account deleted.");
   }, [showToast]);
 
   const handleOpenStoreOnMap = React.useCallback(
@@ -1096,6 +1117,8 @@ export default function NativeAppScreen() {
             signUpName={signUpName}
             signUpEmail={signUpEmail}
             signUpPassword={signUpPassword}
+            deleteConfirming={deleteConfirming}
+            deletingAccount={deletingAccount}
             onRefreshProfile={() => {
               void loadProfile();
             }}
@@ -1103,6 +1126,11 @@ export default function NativeAppScreen() {
             onSignIn={handleSignIn}
             onSignOut={handleSignOut}
             onSignUp={handleSignUp}
+            onStartDeleteAccount={() => setDeleteConfirming(true)}
+            onCancelDeleteAccount={() => setDeleteConfirming(false)}
+            onConfirmDeleteAccount={() => {
+              void handleDeleteAccount();
+            }}
             onChangeSignInEmail={setSignInEmail}
             onChangeSignInPassword={setSignInPassword}
             onChangeSignUpName={setSignUpName}
