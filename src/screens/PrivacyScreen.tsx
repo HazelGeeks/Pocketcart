@@ -36,6 +36,7 @@ When you use our mobile application ("App") and related services (collectively, 
 Personal Information Provided by You:
 • Account Data — name and email address when you create an account. Authentication credentials are processed by Supabase Auth; we do not store plaintext passwords.
 • Watchlist Data — products you choose to track, target prices, in-app alerts, and budget preferences.
+• Support & Deletion Request Data — account email, platform, request details, and technical request metadata when you submit a support or account deletion request.
 • Usage Data — how you interact with the App, including searches performed, features used, and time spent.
 
 Information Automatically Collected:

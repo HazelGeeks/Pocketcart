@@ -237,6 +237,9 @@ Confirm this against the production build before submission:
 - Authentication data: managed by Supabase Auth.
 - User content/preferences: watchlist items, target prices, in-app alert
   preferences, and app preferences.
+- Support/account deletion request data: account email, platform, request
+  details, and technical request metadata submitted through `/support` or
+  `/delete-account`.
 - Location: optional, requested only when the user chooses location-based store
   discovery. Postal-code/manual discovery must remain available.
 - Product/search usage: used to provide product search and deal tracking.

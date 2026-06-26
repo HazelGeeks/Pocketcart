@@ -177,6 +177,15 @@ if (requireFile("store-assets/metadata/en-US.json")) {
     fail("Data safety baseline must include in-app and web account deletion");
   }
 
+  if (
+    Array.isArray(metadata.dataSafetyBaseline?.collectedData) &&
+    metadata.dataSafetyBaseline.collectedData.includes("support and account deletion request details")
+  ) {
+    pass("Data safety baseline includes support and account deletion request details");
+  } else {
+    fail("Data safety baseline must include support and account deletion request details");
+  }
+
   if (metadata.dataSafetyBaseline?.thirdPartyAdTracking === false && metadata.dataSafetyBaseline?.dataSold === false) {
     pass("Data safety baseline states no ad tracking or data sale");
   } else {
