@@ -39,6 +39,7 @@ Recommended Node runtime:
 - `npm run build:web`: Expo static web export
 - `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)
 - `npm run release:native:check`: pre-store gate for iOS/Android release work
+- `npm run release:native:doctor`: external EAS/Supabase/key readiness check
 - `npm run build:ios` / `npm run build:android`: EAS production builds
 - `npm run submit:ios` / `npm run submit:android`: EAS store submissions
 

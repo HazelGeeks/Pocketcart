@@ -22,7 +22,9 @@
     "submit:ios": "npx eas-cli submit --platform ios --profile production --latest",
     "submit:android": "npx eas-cli submit --platform android --profile production --latest",
     "submit:native": "npm run submit:ios && npm run submit:android",
-    "release:native:check": "npm run verify",
+    "release:native:config-check": "node scripts/check-mobile-release-readiness.mjs",
+    "release:native:doctor": "node scripts/check-mobile-release-readiness.mjs --external",
+    "release:native:check": "npm run verify && npm run release:native:config-check",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build:web"
   },
   "dependencies": {
