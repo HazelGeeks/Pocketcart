@@ -32,6 +32,19 @@ Expected checks:
 - Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for `delete-account`.
 - Supabase backend is live and reachable during review.
 
+Run this after logging into Expo and Supabase and setting release secrets:
+
+```bash
+npm run release:native:doctor
+```
+
+The doctor checks repository release settings plus external readiness:
+
+- EAS CLI login
+- Supabase CLI authentication
+- Android Google Maps API key
+- Supabase service role key for the account-deletion function
+
 ## EAS Build
 
 Initialize EAS once per Expo account/project if it has not been initialized:
