@@ -21,6 +21,13 @@ Run this before every store build:
 npm run release:native:check
 ```
 
+This project keeps `ios/` and `android/` in the repository, so native
+store-facing settings are not automatically synced from `app.json` by prebuild.
+The readiness check explicitly verifies the critical native files that reviewers
+care about: iOS bundle ID, build number, privacy manifest, location purpose
+string, Android package, versionCode, deep link, maps API metadata, and release
+signing behavior.
+
 Expected checks:
 
 - TypeScript compile succeeds.
@@ -40,10 +47,33 @@ npm run release:native:doctor
 
 The doctor checks repository release settings plus external readiness:
 
-- EAS CLI login
-- Supabase CLI authentication
+- Expo authentication through `EXPO_TOKEN` or EAS CLI login
+- Supabase authentication through `SUPABASE_ACCESS_TOKEN` or CLI login
+- `SUPABASE_PROJECT_ID` for CI function deploys
 - Android Google Maps API key
 - Supabase service role key for the account-deletion function
+
+## GitHub Actions Release Automation
+
+The repository includes three release workflows:
+
+- `Mobile Release Check`: runs `npm run release:native:check` and
+  `npm audit --audit-level=high` on PRs and `main`.
+- `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
+- `Supabase Functions Deploy`: manually deploys the `delete-account` function
+  and sets its `SUPABASE_SERVICE_ROLE_KEY` secret.
+
+Required GitHub repository secrets:
+
+- `EXPO_TOKEN`: Expo token used by the EAS build workflow.
+- `SUPABASE_ACCESS_TOKEN`: Supabase access token used by function deployment.
+- `SUPABASE_PROJECT_ID`: Supabase project reference.
+- `SUPABASE_SERVICE_ROLE_KEY`: service role key used only by Supabase Edge
+  Functions.
+
+Also set `POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY` as an EAS environment secret
+for Android production builds. Restrict it to the Android package and release
+upload certificate SHA-1 before store submission.
 
 ## EAS Build
 
@@ -60,6 +90,9 @@ Create production artifacts:
 npm run build:ios
 npm run build:android
 ```
+
+Or use GitHub Actions > `EAS Native Build` after setting `EXPO_TOKEN` and EAS
+production environment secrets.
 
 Submit after store records and credentials are ready:
 
@@ -156,6 +189,9 @@ supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
 supabase functions deploy delete-account
 ```
 
+Or use GitHub Actions > `Supabase Functions Deploy` after setting the required
+Supabase repository secrets.
+
 The native app calls `https://YOUR_PROJECT_REF.supabase.co/functions/v1/delete-account`
 with the current Supabase session token. Keep JWT verification enabled in
 `supabase/config.toml`.
@@ -174,6 +210,10 @@ Confirm this against the production build before submission:
 - Data is encrypted in transit via HTTPS/TLS.
 - Data is not sold.
 - No third-party ad tracking is enabled in this release.
+
+Store forms must match the production app exactly. If a new SDK, analytics
+provider, push notification provider, or payment provider is added later,
+revisit this section before shipping another build.
 
 ## Reviewer Pass Criteria
 

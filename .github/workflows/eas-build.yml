@@ -1,0 +1,57 @@
+name: EAS Native Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Native platform to build
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ios
+          - android
+      profile:
+        description: EAS build profile
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - preview
+          - development
+
+permissions:
+  contents: read
+
+jobs:
+  eas-build:
+    name: EAS ${{ inputs.platform }} ${{ inputs.profile }} build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run static release checks
+        run: npm run release:native:config-check
+
+      - name: Build native artifacts
+        run: npx eas-cli build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive --no-wait

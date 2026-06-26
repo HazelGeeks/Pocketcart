@@ -10,6 +10,9 @@ const requiredFiles = [
   "package.json",
   "package-lock.json",
   ".easignore",
+  ".github/workflows/mobile-release-check.yml",
+  ".github/workflows/eas-build.yml",
+  ".github/workflows/supabase-functions.yml",
   "docs/mobile-store-release.md",
   "ios/PocketCart/Info.plist",
   "ios/PocketCart/PrivacyInfo.xcprivacy",
@@ -147,6 +150,12 @@ if (eas.build?.production?.autoIncrement === true) {
   warn("Production EAS autoIncrement is not enabled");
 }
 
+if (pkg.expo?.doctor?.appConfigFieldsNotSyncedCheck?.enabled === false) {
+  pass("Expo doctor app-config sync warning is disabled for this manually synced native project");
+} else {
+  warn("Expo doctor app-config sync warning is not explicitly configured for this native project");
+}
+
 includes(
   "ios/PocketCart/Info.plist",
   "NSLocationWhenInUseUsageDescription",
@@ -214,6 +223,46 @@ includes(
   "App Store Connect app created",
   "Mobile store release checklist includes App Store setup",
 );
+includes(
+  ".github/workflows/mobile-release-check.yml",
+  "npm run release:native:check",
+  "GitHub Actions runs the mobile release readiness check",
+);
+includes(
+  ".github/workflows/mobile-release-check.yml",
+  "npm audit --audit-level=high",
+  "GitHub Actions blocks high severity dependency audit failures",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "secrets.EXPO_TOKEN",
+  "EAS build workflow uses an Expo token secret",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "eas-cli build",
+  "EAS build workflow can create native artifacts",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "supabase functions deploy delete-account",
+  "Supabase workflow deploys the account deletion function",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "Supabase workflow sets the delete-account service role secret",
+);
+includes(
+  ".easignore",
+  "*.jks",
+  "EAS ignore excludes local Android keystores",
+);
+includes(
+  ".easignore",
+  "GoogleService-Info.plist",
+  "EAS ignore excludes local platform service config files",
+);
 
 const secretPattern =
   /(BEGIN PRIVATE KEY|sk_[A-Za-z0-9_]{10,}|AIza[0-9A-Za-z_-]{20,}|SUPABASE_SERVICE_ROLE_KEY=[^\s<.]|POCKETCART_UPLOAD_STORE_PASSWORD=[^\s.]|POCKETCART_UPLOAD_KEY_PASSWORD=[^\s.])/;
@@ -235,16 +284,22 @@ for (const file of filesToScan) {
 pass("No obvious real secret values found in release metadata files");
 
 if (checkExternal) {
-  if (commandOk("npx", ["eas-cli", "whoami"])) {
-    pass("EAS CLI is logged in");
+  if (process.env.EXPO_TOKEN || commandOk("npx", ["eas-cli", "whoami"])) {
+    pass("Expo authentication is available through EXPO_TOKEN or EAS CLI login");
   } else {
-    fail("EAS CLI is not logged in. Run: npx eas-cli login");
+    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npx eas-cli login");
   }
 
-  if (commandOk("npx", ["supabase", "projects", "list"])) {
-    pass("Supabase CLI is authenticated");
+  if (process.env.SUPABASE_ACCESS_TOKEN || commandOk("npx", ["supabase", "projects", "list"])) {
+    pass("Supabase authentication is available through SUPABASE_ACCESS_TOKEN or CLI login");
   } else {
-    fail("Supabase CLI is not authenticated. Run: npx supabase login");
+    fail("Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or run: npx supabase login");
+  }
+
+  if (process.env.SUPABASE_PROJECT_ID) {
+    pass("SUPABASE_PROJECT_ID is present for CI function deploys");
+  } else {
+    fail("SUPABASE_PROJECT_ID is not set for CI function deploys");
   }
 
   if (process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY) {
