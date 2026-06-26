@@ -199,6 +199,16 @@ includes(
   "iOS privacy manifest declares email address collection",
 );
 includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyCollectedDataTypePreciseLocation",
+  "iOS privacy manifest declares optional precise location use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyCollectedDataTypeCoarseLocation",
+  "iOS privacy manifest declares optional coarse location use",
+);
+includes(
   "android/app/src/main/AndroidManifest.xml",
   "android.permission.ACCESS_FINE_LOCATION",
   "Android location permission is declared",

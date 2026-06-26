@@ -242,6 +242,8 @@ Confirm this against the production build before submission:
   `/delete-account`.
 - Location: optional, requested only when the user chooses location-based store
   discovery. Postal-code/manual discovery must remain available.
+  iOS privacy manifest declares precise/coarse location for app functionality,
+  not tracking.
 - Product/search usage: used to provide product search and deal tracking.
 - Data is encrypted in transit via HTTPS/TLS.
 - Data is not sold.
