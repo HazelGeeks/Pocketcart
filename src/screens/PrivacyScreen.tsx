@@ -33,8 +33,8 @@ When you use our mobile application ("App") and related services (collectively, 
     body: `We collect information that you voluntarily provide to us when you register on the App, express an interest in obtaining information about us or our products, or otherwise contact us.
 
 Personal Information Provided by You:
-• Account Data — name, email address, and password when you create an account.
-• Watchlist Data — products you choose to track, price alerts, and budget preferences.
+• Account Data — name and email address when you create an account. Authentication credentials are processed by Supabase Auth; we do not store plaintext passwords.
+• Watchlist Data — products you choose to track, target prices, in-app alerts, and budget preferences.
 • Usage Data — how you interact with the App, including searches performed, features used, and time spent.
 
 Information Automatically Collected:
@@ -47,7 +47,7 @@ Information Automatically Collected:
     body: `We use the information we collect or receive for the following purposes:
 
 • To provide and maintain the Service — including price comparison, watchlist tracking, and budget planning features.
-• To send you notifications — price drop alerts, watchlist updates, and other service-related notifications you have opted into.
+• To provide in-app alerts — price drop highlights, watchlist updates, and other service-related alert states you have opted into.
 • To improve our Service — we analyze usage patterns to enhance app performance, fix bugs, and develop new features.
 • To communicate with you — responding to your inquiries, sending service updates, and providing customer support.
 • To protect our Service — detecting and preventing fraud, abuse, and security incidents.

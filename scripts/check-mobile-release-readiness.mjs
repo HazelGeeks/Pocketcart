@@ -142,6 +142,12 @@ if (app.ios?.buildNumber === "1") {
   fail(`Unexpected iOS build number: ${app.ios?.buildNumber}`);
 }
 
+if (app.ios?.supportsTablet === false) {
+  pass("iOS first release is scoped to iPhone only");
+} else {
+  fail("iOS supportsTablet should be false for the first phone-only release");
+}
+
 if (app.android?.package === "com.pocketcart.app") {
   pass("Android package is com.pocketcart.app");
 } else {
@@ -194,6 +200,16 @@ includes(
   "android.permission.ACCESS_FINE_LOCATION",
   "Android location permission is declared",
 );
+if (read("android/app/src/main/AndroidManifest.xml").includes("android.permission.VIBRATE")) {
+  fail("Android VIBRATE permission should not be declared until native vibration or push features exist");
+} else {
+  pass("Android VIBRATE permission is not declared");
+}
+if (read("ios/PocketCart.xcodeproj/project.pbxproj").includes("TARGETED_DEVICE_FAMILY = 1;")) {
+  pass("iOS native project targets iPhone only");
+} else {
+  fail("iOS native project should target iPhone only for this release");
+}
 includes(
   "src/services/nativePermissions.ts",
   "Location.requestForegroundPermissionsAsync",

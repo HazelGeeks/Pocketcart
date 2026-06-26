@@ -17,8 +17,8 @@ Recommended upload sets:
 
 - 6.9-inch iPhone display
 - 6.5-inch iPhone display
-- 12.9-inch iPad display if iPad screenshots are requested because
-  `supportsTablet` is enabled
+This first release targets iPhone only, so iPad screenshots are not part of the
+default submission package.
 
 ## Android
 

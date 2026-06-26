@@ -14,7 +14,7 @@
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.pocketcart.app",
       "buildNumber": "1",
       "infoPlist": {
@@ -31,8 +31,7 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.INTERNET",
-        "android.permission.VIBRATE"
+        "android.permission.INTERNET"
       ],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",

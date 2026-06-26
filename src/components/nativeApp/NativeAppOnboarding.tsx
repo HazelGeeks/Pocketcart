@@ -91,7 +91,7 @@ export function NativeAppOnboarding({
         {!!message ? <Text style={st.itemMeta}>{message}</Text> : null}
         <Text style={st.onboardingTitle}>Don&apos;t miss price drops</Text>
         <Text style={st.onboardingMeta}>
-          Enable deal alerts to get notified when watchlist items fall.
+          Enable in-app deal alerts when watchlist items fall.
         </Text>
 
         <Pressable
@@ -100,7 +100,7 @@ export function NativeAppOnboarding({
           style={[st.authBtn, st.authBtnSecondary, st.inlineToggleBtn]}
         >
           <Text style={st.authBtnSecondaryText}>
-            {alertsEnabled ? "Notifications On" : "Notifications Off"}
+            {alertsEnabled ? "Alerts On" : "Alerts Off"}
           </Text>
         </Pressable>
         <Pressable

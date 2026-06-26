@@ -12,6 +12,7 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - Release version: `1.0.0`
 - iOS build number: `1`
 - Android versionCode: `1`
+- iOS device target: iPhone only for the first store release
 
 ## Pre-Submission Gate
 
@@ -185,7 +186,7 @@ Review notes:
 
 ```text
 PocketCart helps users compare grocery prices, save products to a watchlist,
-view nearby stores on a map, and request price alerts. Account creation is
+view nearby stores on a map, and review in-app price alerts. Account creation is
 available in More. Account deletion is available in More > Account deletion and
 at https://pocketcart.app/delete-account.
 ```
@@ -219,8 +220,8 @@ Confirm this against the production build before submission:
 
 - Account data: name and email, used for account management.
 - Authentication data: managed by Supabase Auth.
-- User content/preferences: watchlist items, target prices, and app
-  preferences.
+- User content/preferences: watchlist items, target prices, in-app alert
+  preferences, and app preferences.
 - Location: optional, requested only when the user chooses location-based store
   discovery. Postal-code/manual discovery must remain available.
 - Product/search usage: used to provide product search and deal tracking.
@@ -240,6 +241,6 @@ revisit this section before shipping another build.
 - Account deletion path is visible from More.
 - Signed-in account deletion removes the current Supabase Auth user.
 - Location permission has a clear purpose string and can be skipped.
-- Push/alert permission is optional and the app remains usable if declined.
+- In-app alert preferences are optional and the app remains usable if disabled.
 - Android release artifact is not signed with the debug keystore.
 - Store screenshots show real app screens, not web admin pages.

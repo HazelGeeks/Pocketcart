@@ -53,7 +53,7 @@ We reserve the right to suspend or terminate your account if any information pro
 • Compare product prices across multiple retail stores.
 • Create and manage product watchlists with customizable price alerts.
 • Track spending and visualize potential savings through budget planning tools.
-• Receive notifications when tracked products reach desired price points.
+• View in-app alerts when tracked products reach desired price points.
 
 The Service is provided on an "as-is" and "as-available" basis. We do not guarantee that product pricing information will always be accurate, complete, or up-to-date, as prices are sourced from third-party retailers and may change without notice.`,
   },
