@@ -83,6 +83,7 @@ upload certificate SHA-1 before store submission.
 Initialize EAS once per Expo account/project if it has not been initialized:
 
 ```bash
+npm install --global eas-cli
 eas login
 eas init
 ```

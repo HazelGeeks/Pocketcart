@@ -84,6 +84,7 @@ function commandOk(command, commandArgs) {
     execFileSync(command, commandArgs, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      timeout: 8000,
     });
     return true;
   } catch {
@@ -364,16 +365,16 @@ for (const file of filesToScan) {
 pass("No obvious real secret values found in release metadata files");
 
 if (checkExternal) {
-  if (process.env.EXPO_TOKEN || commandOk("npx", ["eas-cli", "whoami"])) {
+  if (process.env.EXPO_TOKEN || commandOk("eas", ["whoami"])) {
     pass("Expo authentication is available through EXPO_TOKEN or EAS CLI login");
   } else {
-    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npx eas-cli login");
+    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or install EAS CLI and run: eas login");
   }
 
-  if (process.env.SUPABASE_ACCESS_TOKEN || commandOk("npx", ["supabase", "projects", "list"])) {
+  if (process.env.SUPABASE_ACCESS_TOKEN || commandOk("supabase", ["projects", "list"])) {
     pass("Supabase authentication is available through SUPABASE_ACCESS_TOKEN or CLI login");
   } else {
-    fail("Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or run: npx supabase login");
+    fail("Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or install Supabase CLI and run: supabase login");
   }
 
   if (process.env.SUPABASE_PROJECT_ID) {
