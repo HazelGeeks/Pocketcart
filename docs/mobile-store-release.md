@@ -60,6 +60,8 @@ The repository includes three release workflows:
 - `Mobile Release Check`: runs `npm run release:native:check` and
   `npm audit --audit-level=high` on PRs and `main`.
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
+- `EAS Store Submit`: manually submits the latest iOS or Android EAS artifact
+  after store records and credentials are ready.
 - `Supabase Functions Deploy`: manually deploys the `delete-account` function
   and sets its `SUPABASE_SERVICE_ROLE_KEY` secret.
 
@@ -100,6 +102,9 @@ Submit after store records and credentials are ready:
 npm run submit:ios
 npm run submit:android
 ```
+
+Or use GitHub Actions > `EAS Store Submit` after the corresponding EAS build
+has completed and store credentials are configured.
 
 ## Required External Credentials
 
@@ -152,6 +157,18 @@ Restrict the key in Google Cloud:
 - API: Maps SDK for Android
 
 ## Store Metadata
+
+The source-controlled store listing draft lives in:
+
+- `store-assets/metadata/en-US.json`
+- `store-assets/google-play/feature-graphic.jpg`
+- `store-assets/screenshots/README.md`
+
+Validate it before submission:
+
+```bash
+npm run release:store-assets:check
+```
 
 Recommended category:
 

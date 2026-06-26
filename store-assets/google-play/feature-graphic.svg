@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">PocketCart Google Play feature graphic</title>
+  <desc id="desc">A bright PocketCart feature graphic with grocery price comparison messaging.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FAFCF2"/>
+      <stop offset="0.58" stop-color="#F3F9D5"/>
+      <stop offset="1" stop-color="#EAF3B8"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F8FBEC"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="830" cy="300" r="230" fill="#ABC900" opacity="0.88"/>
+  <circle cx="970" cy="705" r="260" fill="#20310F" opacity="0.10"/>
+  <circle cx="86" cy="786" r="240" fill="#FFC857" opacity="0.36"/>
+  <g transform="translate(72 286)">
+    <text x="0" y="78" fill="#18220E" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="800" letter-spacing="-2">PocketCart</text>
+    <text x="2" y="140" fill="#40512A" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700">Compare grocery deals fast</text>
+    <g transform="translate(0 196)">
+      <rect width="178" height="54" rx="27" fill="#20310F"/>
+      <text x="29" y="36" fill="#FAFCF2" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800">Price drops</text>
+      <rect x="196" width="157" height="54" rx="27" fill="#FFFFFF" opacity="0.92"/>
+      <text x="227" y="36" fill="#20310F" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800">Watchlist</text>
+      <rect x="371" width="132" height="54" rx="27" fill="#FFFFFF" opacity="0.92"/>
+      <text x="402" y="36" fill="#20310F" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800">Stores</text>
+    </g>
+  </g>
+  <g transform="translate(650 280)">
+    <rect width="268" height="330" rx="42" fill="url(#card)" stroke="#D9E7A4" stroke-width="3"/>
+    <rect x="34" y="36" width="200" height="64" rx="24" fill="#ABC900"/>
+    <text x="63" y="78" fill="#20310F" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800">Best deal</text>
+    <text x="39" y="158" fill="#18220E" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="800">$3.98</text>
+    <text x="43" y="203" fill="#65744A" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Save 24% today</text>
+    <path d="M44 260 C86 220 111 244 139 212 S191 174 225 130" fill="none" stroke="#20310F" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="224" cy="130" r="12" fill="#FFC857"/>
+  </g>
+</svg>

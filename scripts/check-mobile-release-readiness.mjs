@@ -12,8 +12,15 @@ const requiredFiles = [
   ".easignore",
   ".github/workflows/mobile-release-check.yml",
   ".github/workflows/eas-build.yml",
+  ".github/workflows/eas-submit.yml",
   ".github/workflows/supabase-functions.yml",
   "docs/mobile-store-release.md",
+  "scripts/check-store-submission-assets.mjs",
+  "store-assets/README.md",
+  "store-assets/metadata/en-US.json",
+  "store-assets/google-play/feature-graphic.svg",
+  "store-assets/google-play/feature-graphic.jpg",
+  "store-assets/screenshots/README.md",
   "ios/PocketCart/Info.plist",
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "android/app/build.gradle",
@@ -244,6 +251,16 @@ includes(
   "EAS build workflow can create native artifacts",
 );
 includes(
+  ".github/workflows/eas-submit.yml",
+  "eas-cli submit",
+  "EAS submit workflow can submit latest native artifacts",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "--latest --non-interactive",
+  "EAS submit workflow runs non-interactively against the latest artifact",
+);
+includes(
   ".github/workflows/supabase-functions.yml",
   "supabase functions deploy delete-account",
   "Supabase workflow deploys the account deletion function",
@@ -263,15 +280,37 @@ includes(
   "GoogleService-Info.plist",
   "EAS ignore excludes local platform service config files",
 );
+includes(
+  "package.json",
+  "release:store-assets:check",
+  "Package scripts include the store asset validator",
+);
+includes(
+  "store-assets/metadata/en-US.json",
+  "accountDeletionUrl",
+  "Store metadata includes account deletion URL",
+);
+includes(
+  "store-assets/screenshots/README.md",
+  "real device or simulator captures",
+  "Store screenshot plan requires real app captures",
+);
 
 const secretPattern =
-  /(BEGIN PRIVATE KEY|sk_[A-Za-z0-9_]{10,}|AIza[0-9A-Za-z_-]{20,}|SUPABASE_SERVICE_ROLE_KEY=[^\s<.]|POCKETCART_UPLOAD_STORE_PASSWORD=[^\s.]|POCKETCART_UPLOAD_KEY_PASSWORD=[^\s.])/;
+  /(BEGIN PRIVATE KEY|sk_[A-Za-z0-9_]{10,}|AIza[0-9A-Za-z_-]{20,}|SUPABASE_SERVICE_ROLE_KEY=(?!["']?\$)[^\s<.]|POCKETCART_UPLOAD_STORE_PASSWORD=(?!["']?\$)[^\s.]|POCKETCART_UPLOAD_KEY_PASSWORD=(?!["']?\$)[^\s.])/;
 const filesToScan = [
   ".env.example",
+  ".github/workflows/eas-build.yml",
+  ".github/workflows/eas-submit.yml",
+  ".github/workflows/mobile-release-check.yml",
+  ".github/workflows/supabase-functions.yml",
   "app.json",
   "eas.json",
   "package.json",
   "docs/mobile-store-release.md",
+  "store-assets/metadata/en-US.json",
+  "store-assets/README.md",
+  "store-assets/screenshots/README.md",
   "supabase/functions/delete-account/README.md",
   "supabase/functions/back-office-flyer/README.md",
 ];

@@ -1,0 +1,43 @@
+{
+  "locale": "en-US",
+  "appName": "PocketCart",
+  "subtitle": "Compare grocery deals",
+  "shortDescription": "Track grocery prices, compare stores, and watch for better deals.",
+  "promotionalText": "Find better grocery prices before you shop.",
+  "keywords": [
+    "grocery",
+    "deals",
+    "price tracker",
+    "shopping",
+    "watchlist",
+    "flyers"
+  ],
+  "category": {
+    "ios": "Shopping",
+    "android": "Shopping"
+  },
+  "fullDescription": "PocketCart helps shoppers compare grocery prices, save products to a watchlist, and spot better deals across nearby stores. Search products, review price history, check store prices, and use alerts to decide when a deal is worth buying. The app is designed for practical grocery planning without ad tracking or data resale.",
+  "supportUrl": "mailto:support@pocketcart.app",
+  "marketingUrl": "https://pocketcart.app",
+  "privacyPolicyUrl": "https://pocketcart.app/privacy",
+  "termsUrl": "https://pocketcart.app/terms",
+  "accountDeletionUrl": "https://pocketcart.app/delete-account",
+  "reviewNotes": "PocketCart can be reviewed with a new email/password account from More. Account deletion is available inside More and on the web at https://pocketcart.app/delete-account. Location permission is optional and is only used when a reviewer chooses map-based store discovery.",
+  "dataSafetyBaseline": {
+    "dataSold": false,
+    "thirdPartyAdTracking": false,
+    "encryptedInTransit": true,
+    "locationOptional": true,
+    "accountDeletionAvailableInApp": true,
+    "accountDeletionAvailableOnWeb": true,
+    "collectedData": [
+      "name",
+      "email address",
+      "user id",
+      "watchlist items",
+      "target prices",
+      "app preferences",
+      "optional location"
+    ]
+  }
+}
