@@ -121,6 +121,15 @@ if (app.scheme === "pocketcart") {
   fail(`Unexpected app scheme: ${app.scheme}`);
 }
 
+const expoLocationPlugin = Array.isArray(app.plugins)
+  ? app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-location")
+  : null;
+if (expoLocationPlugin) {
+  pass("Expo location config plugin is configured for future native sync");
+} else {
+  fail("Expo location config plugin must be configured for future native sync");
+}
+
 if (app.ios?.bundleIdentifier === "com.pocketcart.app") {
   pass("iOS bundle identifier is com.pocketcart.app");
 } else {
@@ -143,6 +152,12 @@ if (app.android?.versionCode === 1) {
   pass("Android versionCode is 1");
 } else {
   fail(`Unexpected Android versionCode: ${app.android?.versionCode}`);
+}
+
+if (pkg.dependencies?.["expo-location"]) {
+  pass("expo-location dependency is installed for native foreground location");
+} else {
+  fail("expo-location dependency is required for native foreground location");
 }
 
 if (eas.build?.production?.android?.buildType === "app-bundle") {
@@ -178,6 +193,16 @@ includes(
   "android/app/src/main/AndroidManifest.xml",
   "android.permission.ACCESS_FINE_LOCATION",
   "Android location permission is declared",
+);
+includes(
+  "src/services/nativePermissions.ts",
+  "Location.requestForegroundPermissionsAsync",
+  "Native location permission uses expo-location",
+);
+includes(
+  "src/services/nativePermissions.ts",
+  "Location.getCurrentPositionAsync",
+  "Native current position uses expo-location",
 );
 includes(
   "android/app/src/main/AndroidManifest.xml",

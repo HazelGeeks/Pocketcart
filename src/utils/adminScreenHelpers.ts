@@ -76,7 +76,7 @@ export const DEFAULT_PRODUCT_CATEGORIES = [
 
 export const ADMIN_EMAIL_ALLOWLIST = (process.env.EXPO_PUBLIC_ADMIN_EMAILS ?? "")
   .split(",")
-  .map((value) => value.trim().toLowerCase())
+  .map((value: string) => value.trim().toLowerCase())
   .filter(Boolean);
 
 export const WEB_FILTER_SELECT_STYLE: React.CSSProperties = {

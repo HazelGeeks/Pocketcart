@@ -37,6 +37,7 @@
     "babel-preset-expo": "~55.0.8",
     "expo": "~55.0.27",
     "expo-font": "~55.0.8",
+    "expo-location": "~55.1.11",
     "framer-motion": "^12.34.3",
     "pdfjs-dist": "^6.0.227",
     "react": "19.2.0",

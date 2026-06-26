@@ -49,6 +49,16 @@
       "themeColor": "#ABC900",
       "backgroundColor": "#FAFCF2"
     },
-    "plugins": ["expo-font"]
+    "plugins": [
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PocketCart uses your location only when you choose to find nearby stores and deals.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
+    ]
   }
 }
