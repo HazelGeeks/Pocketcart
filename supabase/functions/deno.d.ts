@@ -25,5 +25,15 @@ declare module "https://esm.sh/@supabase/supabase-js@2.106.2" {
         }>;
       };
     };
+    from(table: string): {
+      insert(values: Record<string, unknown>): {
+        select(columns: string): {
+          single(): Promise<{
+            data: { id?: string } | null;
+            error: { message: string } | null;
+          }>;
+        };
+      };
+    };
   };
 }

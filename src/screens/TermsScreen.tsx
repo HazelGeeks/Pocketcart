@@ -20,6 +20,7 @@ function useLayout() {
 /* ═══════════════════════════════════════════════════════════════ */
 
 const LAST_UPDATED = "February 21, 2026";
+const SUPPORT_URL = "https://pocketcart.pages.dev/support";
 
 const SECTIONS = [
   {
@@ -136,7 +137,7 @@ In no event shall our total liability exceed the amount you have paid us in the 
 
 If you wish to terminate your account, you may do so by:
 • Using the account deletion feature within the App settings.
-• Contacting us at support@pocketcart.app.
+• Using the support page at ${SUPPORT_URL}.
 
 Upon termination, your right to use the Service will immediately cease. All provisions of these Terms which by their nature should survive termination shall survive, including ownership provisions, warranty disclaimers, indemnity, and limitations of liability.`,
   },
@@ -161,10 +162,10 @@ Our failure to enforce any right or provision of these Terms will not be conside
     body: `If you have questions about these Terms of Service, you may contact us at:
 
 PocketCart
-Email: legal@pocketcart.app
+Support: ${SUPPORT_URL}
 Address: Seoul, South Korea
 
-For general support inquiries, please contact support@pocketcart.app.`,
+For general support inquiries, use the same support page and include your platform (iOS or Android).`,
   },
 ];
 

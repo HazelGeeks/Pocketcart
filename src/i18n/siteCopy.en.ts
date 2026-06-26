@@ -163,6 +163,7 @@ export const enSiteCopy: SiteCopy = {
           links: [
             { id: "privacy", label: "Privacy" },
             { id: "terms", label: "Terms" },
+            { id: "support", label: "Support" },
             { id: "delete-account", label: "Delete Account" },
           ],
         },
@@ -260,8 +261,8 @@ export const enSiteCopy: SiteCopy = {
           "Account deletion to request deletion from your account settings.",
         webTitle: "Delete through web request",
         webBody:
-          "If you cannot access the app, send a deletion request to " +
-          "support@pocketcart.app from your account email address.",
+          "If you cannot access the app, use the PocketCart support page " +
+          "and include your account email address in the request details.",
         urlLabel: "Deletion URL",
         retainedTitle: "Data retained after deletion",
         retainedBody:
@@ -269,8 +270,8 @@ export const enSiteCopy: SiteCopy = {
           "unless retention is required for security, fraud prevention, or law.",
         supportTitle: "Support",
         supportBody:
-          "If deletion fails, contact support@pocketcart.app with your " +
-          "account email and platform (iOS or Android).",
+          "If deletion fails, open https://pocketcart.pages.dev/support " +
+          "and include your account email and platform (iOS or Android).",
       },
       items: {
         title: "Tracking Items",

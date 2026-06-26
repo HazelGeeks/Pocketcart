@@ -20,13 +20,14 @@ function useLayout() {
 /* ═══════════════════════════════════════════════════════════════ */
 
 const LAST_UPDATED = "February 21, 2026";
+const SUPPORT_URL = "https://pocketcart.pages.dev/support";
 
 const SECTIONS = [
   {
     title: "1. Introduction",
     body: `Welcome to PocketCart ("we", "our", or "us"). We are committed to protecting your personal information and your right to privacy. This Privacy Policy explains what information we collect, how we use it, and what rights you have in relation to it.
 
-When you use our mobile application ("App") and related services (collectively, the "Service"), you trust us with your personal information. We take your privacy very seriously. If you have any questions or concerns about this policy or our practices with regard to your personal information, please contact us at privacy@pocketcart.app.`,
+When you use our mobile application ("App") and related services (collectively, the "Service"), you trust us with your personal information. We take your privacy very seriously. If you have any questions or concerns about this policy or our practices with regard to your personal information, please use our support page at ${SUPPORT_URL}.`,
   },
   {
     title: "2. Information We Collect",
@@ -93,7 +94,7 @@ However, no electronic transmission or storage method is 100% secure. While we s
 • Objection — Object to processing of your data for certain purposes.
 • Withdrawal of Consent — Withdraw consent at any time where we rely on consent to process your data.
 
-To exercise any of these rights, please contact us at privacy@pocketcart.app. We will respond within 30 days.`,
+To exercise any of these rights, please use our support page at ${SUPPORT_URL}. We will respond within 30 days after receiving the request details needed to identify your account.`,
   },
   {
     title: "8. Children's Privacy",
@@ -116,10 +117,10 @@ If we make material changes, we will notify you through the App or by email prio
     body: `If you have questions or comments about this Privacy Policy, you may contact us at:
 
 PocketCart
-Email: privacy@pocketcart.app
+Support: ${SUPPORT_URL}
 Address: Seoul, South Korea
 
-For data protection inquiries in the EU, you may also contact our Data Protection Officer at dpo@pocketcart.app.`,
+For data protection inquiries, include "Privacy request" in your support request details.`,
   },
 ];
 

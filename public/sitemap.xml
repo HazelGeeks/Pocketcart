@@ -61,6 +61,12 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://pocketcart.pages.dev/support</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
     <loc>https://pocketcart.pages.dev/delete-account</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>

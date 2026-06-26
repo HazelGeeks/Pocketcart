@@ -256,3 +256,43 @@ export async function deleteCurrentUserAccount(): Promise<ServiceResult<null>> {
   await supabase.auth.signOut().catch(() => undefined);
   return { data: null, error: null };
 }
+
+export async function submitAccountDeletionRequest(params: {
+  email: string;
+  platform: string;
+  details?: string;
+}): Promise<ServiceResult<{ id: string | null }>> {
+  if (!hasSupabaseEnv) {
+    return missingEnvResult({ id: null });
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/delete-account-request`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseAnonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: params.email.trim(),
+      platform: params.platform,
+      details: params.details?.trim() || null,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null) as {
+    id?: string;
+    error?: string;
+  } | null;
+
+  if (!response.ok) {
+    return {
+      data: { id: null },
+      error: payload?.error ?? "Unable to submit deletion request.",
+    };
+  }
+
+  return {
+    data: { id: payload?.id ?? null },
+    error: null,
+  };
+}

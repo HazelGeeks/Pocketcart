@@ -21,6 +21,7 @@ export const ROUTE_PATHS: Record<Route, string> = {
   blog: "/blog",
   privacy: "/privacy",
   terms: "/terms",
+  support: "/support",
   "delete-account": "/delete-account",
   admin: "/admin",
 };
@@ -161,6 +162,14 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
       canonical: `${BASE_URL}/terms`,
       noindex: false,
     },
+    support: {
+      title: "Support - PocketCart",
+      description:
+        "PocketCart support resources for account access, privacy, " +
+        "terms, and account deletion.",
+      canonical: `${BASE_URL}/support`,
+      noindex: false,
+    },
     "delete-account": {
       title: "Delete Account - PocketCart",
       description:
@@ -205,6 +214,14 @@ export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
         "Conditions d utilisation PocketCart. Consultez " +
         "les regles d usage et clauses importantes.",
       canonical: `${BASE_URL}/terms`,
+      noindex: false,
+    },
+    support: {
+      title: "Assistance - PocketCart",
+      description:
+        "Ressources d assistance PocketCart pour le compte, la " +
+        "confidentialite, les conditions et la suppression.",
+      canonical: `${BASE_URL}/support`,
       noindex: false,
     },
     "delete-account": {

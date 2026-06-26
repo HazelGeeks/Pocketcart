@@ -7,6 +7,7 @@ import { st } from "../../screens/nativeAppStyles";
 
 const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
 const TERMS_URL = "https://pocketcart.pages.dev/terms";
+const SUPPORT_URL = "https://pocketcart.pages.dev/support";
 const DELETE_ACCOUNT_URL = "https://pocketcart.pages.dev/delete-account";
 
 type MorePanelProps = {
@@ -150,6 +151,13 @@ function LegalLinksCard() {
           style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
         >
           <Text style={st.authBtnSecondaryText}>Terms</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => openExternalUrl(SUPPORT_URL)}
+          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
+        >
+          <Text style={st.authBtnSecondaryText}>Support</Text>
         </Pressable>
       </View>
     </View>

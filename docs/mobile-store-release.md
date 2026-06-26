@@ -34,10 +34,11 @@ Expected checks:
 - TypeScript compile succeeds.
 - Test suite succeeds.
 - Web export succeeds for hosted legal pages.
-- `/privacy`, `/terms`, and `/delete-account` are reachable in production.
+- `/privacy`, `/terms`, `/support`, and `/delete-account` are reachable in production.
 - Supabase Auth redirect URLs include `pocketcart://auth/callback`.
-- Supabase Edge Functions `delete-account` and `back-office-flyer` are deployed.
-- Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for `delete-account`.
+- Supabase Edge Functions `delete-account`, `delete-account-request`, and
+  `back-office-flyer` are deployed.
+- Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for account functions.
 - Supabase backend is live and reachable during review.
 
 Run this after logging into Expo and Supabase and setting release secrets:
@@ -63,8 +64,8 @@ The repository includes three release workflows:
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
 - `EAS Store Submit`: manually submits the latest iOS or Android EAS artifact
   after store records and credentials are ready.
-- `Supabase Functions Deploy`: manually deploys the `delete-account` function
-  and sets its `SUPABASE_SERVICE_ROLE_KEY` secret.
+- `Supabase Functions Deploy`: manually deploys the account functions and sets
+  their `SUPABASE_SERVICE_ROLE_KEY` secret.
 
 Required GitHub repository secrets:
 
@@ -195,7 +196,8 @@ at https://pocketcart.pages.dev/delete-account.
 
 Required URLs:
 
-- Support / Marketing: `https://pocketcart.pages.dev`
+- Support: `https://pocketcart.pages.dev/support`
+- Marketing: `https://pocketcart.pages.dev`
 - Privacy Policy: `https://pocketcart.pages.dev/privacy`
 - Terms: `https://pocketcart.pages.dev/terms`
 - Account deletion: `https://pocketcart.pages.dev/delete-account`
@@ -206,11 +208,15 @@ records first, then update the policies and listing metadata in the same PR.
 
 ## Supabase Functions
 
-Deploy account deletion before store review:
+Apply the latest `database/schema.sql` before deploying account functions. The
+web deletion request form writes to `public.account_deletion_requests`.
+
+Deploy account deletion functions before store review:
 
 ```bash
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
 supabase functions deploy delete-account
+supabase functions deploy delete-account-request
 ```
 
 Or use GitHub Actions > `Supabase Functions Deploy` after setting the required
@@ -218,7 +224,10 @@ Supabase repository secrets.
 
 The native app calls `https://YOUR_PROJECT_REF.supabase.co/functions/v1/delete-account`
 with the current Supabase session token. Keep JWT verification enabled in
-`supabase/config.toml`.
+`supabase/config.toml`. The web deletion page calls
+`https://YOUR_PROJECT_REF.supabase.co/functions/v1/delete-account-request`
+without a user session so users can request deletion even if they cannot access
+the app.
 
 ## Data Safety / App Privacy Baseline
 
@@ -246,6 +255,8 @@ revisit this section before shipping another build.
 - Sign up, sign in, and sign out work against production Supabase.
 - Account deletion path is visible from More.
 - Signed-in account deletion removes the current Supabase Auth user.
+- Web account deletion request form accepts an account email and creates an
+  `account_deletion_requests` row.
 - Location permission has a clear purpose string and can be skipped.
 - In-app alert preferences are optional and the app remains usable if disabled.
 - Android release artifact is not signed with the debug keystore.

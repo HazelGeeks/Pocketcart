@@ -27,6 +27,8 @@ const requiredFiles = [
   "android/app/src/main/AndroidManifest.xml",
   "supabase/config.toml",
   "supabase/functions/delete-account/index.ts",
+  "supabase/functions/delete-account-request/index.ts",
+  "supabase/functions/delete-account-request/README.md",
 ];
 
 const findings = [];
@@ -258,9 +260,24 @@ includes(
   "Supabase delete-account function is configured",
 );
 includes(
+  "supabase/config.toml",
+  "[functions.delete-account-request]",
+  "Supabase delete-account-request function is configured",
+);
+includes(
   "supabase/functions/delete-account/index.ts",
   "auth.admin.deleteUser",
   "Supabase delete-account function deletes the authenticated user",
+);
+includes(
+  "supabase/functions/delete-account-request/index.ts",
+  "account_deletion_requests",
+  "Supabase delete-account-request function stores web deletion requests",
+);
+includes(
+  "src/screens/DeleteAccountScreen.tsx",
+  "submitAccountDeletionRequest",
+  "Web delete-account page submits deletion requests",
 );
 includes(
   "docs/mobile-store-release.md",
@@ -309,6 +326,11 @@ includes(
 );
 includes(
   ".github/workflows/supabase-functions.yml",
+  "supabase functions deploy delete-account-request",
+  "Supabase workflow deploys the account deletion request function",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
   "SUPABASE_SERVICE_ROLE_KEY",
   "Supabase workflow sets the delete-account service role secret",
 );
@@ -354,6 +376,7 @@ const filesToScan = [
   "store-assets/README.md",
   "store-assets/screenshots/README.md",
   "supabase/functions/delete-account/README.md",
+  "supabase/functions/delete-account-request/README.md",
   "supabase/functions/back-office-flyer/README.md",
 ];
 

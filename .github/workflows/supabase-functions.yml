@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 jobs:
-  deploy-delete-account:
-    name: Deploy delete-account function
+  deploy-account-functions:
+    name: Deploy account functions
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -35,8 +35,11 @@ jobs:
           test -n "$SUPABASE_PROJECT_ID"
           test -n "$SUPABASE_SERVICE_ROLE_KEY"
 
-      - name: Set delete-account function secret
+      - name: Set account function secrets
         run: npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Deploy delete-account function
         run: npx supabase functions deploy delete-account --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Deploy delete-account-request function
+        run: npx supabase functions deploy delete-account-request --project-ref "$SUPABASE_PROJECT_ID"

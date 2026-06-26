@@ -161,6 +161,7 @@ export const frSiteCopy: SiteCopy = {
           links: [
             { id: "privacy", label: "Confidentialite" },
             { id: "terms", label: "Conditions" },
+            { id: "support", label: "Assistance" },
             { id: "delete-account", label: "Suppression compte" },
           ],
         },
@@ -256,8 +257,8 @@ export const frSiteCopy: SiteCopy = {
           "puis choisissez Account deletion dans les reglages du compte.",
         webTitle: "Supprimer via demande web",
         webBody:
-          "Si vous ne pouvez pas ouvrir l application, envoyez " +
-          "une demande a support@pocketcart.app avec votre e-mail.",
+          "Si vous ne pouvez pas ouvrir l application, utilisez " +
+          "la page d assistance PocketCart avec votre e-mail de compte.",
         urlLabel: "URL de suppression",
         retainedTitle: "Donnees conservees apres suppression",
         retainedBody:
@@ -265,7 +266,7 @@ export const frSiteCopy: SiteCopy = {
           "supprimes sauf conservation requise pour securite, fraude ou loi.",
         supportTitle: "Assistance",
         supportBody:
-          "Si la suppression echoue, contactez support@pocketcart.app " +
+          "Si la suppression echoue, ouvrez https://pocketcart.pages.dev/support " +
           "avec votre e-mail de compte et la plateforme.",
       },
       items: {
