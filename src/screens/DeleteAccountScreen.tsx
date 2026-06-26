@@ -11,7 +11,7 @@ import { useSiteI18n } from "../i18n/siteI18n";
 import useLayout from "../hooks/useLayout";
 import { appPalette as P } from "../shared/design/palette";
 
-const DELETION_URL = "https://pocketcart.app/delete-account";
+const DELETION_URL = "https://pocketcart.pages.dev/delete-account";
 
 export default function DeleteAccountScreen({
   onBack,

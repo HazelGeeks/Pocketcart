@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 
+const args = new Set(process.argv.slice(2));
+const checkLiveUrls = args.has("--live");
 const findings = [];
 
 function pass(message) {
@@ -125,6 +127,24 @@ function expectTextLength(value, max, label, min = 1) {
   }
 }
 
+async function expectLiveUrl(url, label) {
+  try {
+    const response = await fetch(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (response.ok) {
+      pass(`${label} is reachable (${response.status})`);
+    } else {
+      fail(`${label} should return 2xx, found ${response.status}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    fail(`${label} is not reachable: ${message}`);
+  }
+}
+
 expectImageSize("assets/icon.png", 1024, 1024, "App icon");
 expectImageSize("assets/adaptive-icon.png", 1024, 1024, "Android adaptive icon foreground");
 expectMinPortrait("assets/splash.png", 1000, 2000, "Splash image");
@@ -132,8 +152,10 @@ expectImageSize("store-assets/google-play/feature-graphic.jpg", 1024, 500, "Goog
 requireFile("store-assets/google-play/feature-graphic.svg");
 requireFile("store-assets/screenshots/README.md");
 
+let metadata = null;
+
 if (requireFile("store-assets/metadata/en-US.json")) {
-  const metadata = readJson("store-assets/metadata/en-US.json");
+  metadata = readJson("store-assets/metadata/en-US.json");
   expectTextLength(metadata.appName, 30, "Store app name");
   expectTextLength(metadata.subtitle, 30, "App Store subtitle");
   expectTextLength(metadata.shortDescription, 80, "Google Play short description");
@@ -141,18 +163,12 @@ if (requireFile("store-assets/metadata/en-US.json")) {
   expectTextLength(metadata.fullDescription, 4000, "Store full description", 80);
   expectTextLength(metadata.reviewNotes, 4000, "Store review notes", 80);
 
-  for (const urlField of ["marketingUrl", "privacyPolicyUrl", "termsUrl", "accountDeletionUrl"]) {
+  for (const urlField of ["supportUrl", "marketingUrl", "privacyPolicyUrl", "termsUrl", "accountDeletionUrl"]) {
     if (typeof metadata[urlField] === "string" && metadata[urlField].startsWith("https://")) {
       pass(`${urlField} uses HTTPS`);
     } else {
       fail(`${urlField} must be an HTTPS URL`);
     }
-  }
-
-  if (metadata.supportUrl === "mailto:support@pocketcart.app") {
-    pass("Support URL is configured");
-  } else {
-    warn("Support URL should be confirmed before submission");
   }
 
   if (metadata.dataSafetyBaseline?.accountDeletionAvailableInApp && metadata.dataSafetyBaseline?.accountDeletionAvailableOnWeb) {
@@ -165,6 +181,20 @@ if (requireFile("store-assets/metadata/en-US.json")) {
     pass("Data safety baseline states no ad tracking or data sale");
   } else {
     fail("Data safety baseline must explicitly state no ad tracking or data sale for this release");
+  }
+}
+
+if (checkLiveUrls && metadata) {
+  for (const [field, label] of [
+    ["supportUrl", "Support URL"],
+    ["marketingUrl", "Marketing URL"],
+    ["privacyPolicyUrl", "Privacy policy URL"],
+    ["termsUrl", "Terms URL"],
+    ["accountDeletionUrl", "Account deletion URL"],
+  ]) {
+    if (typeof metadata[field] === "string" && metadata[field].startsWith("https://")) {
+      await expectLiveUrl(metadata[field], label);
+    }
   }
 }
 

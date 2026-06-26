@@ -5,9 +5,9 @@ import { hasSupabaseEnv } from "../../services/supabaseClient";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
 
-const PRIVACY_URL = "https://pocketcart.app/privacy";
-const TERMS_URL = "https://pocketcart.app/terms";
-const DELETE_ACCOUNT_URL = "https://pocketcart.app/delete-account";
+const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
+const TERMS_URL = "https://pocketcart.pages.dev/terms";
+const DELETE_ACCOUNT_URL = "https://pocketcart.pages.dev/delete-account";
 
 type MorePanelProps = {
   profile: UserProfile | null;

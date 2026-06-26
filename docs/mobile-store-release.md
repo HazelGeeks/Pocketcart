@@ -170,6 +170,7 @@ Validate it before submission:
 
 ```bash
 npm run release:store-assets:check
+npm run release:store-assets:live-check
 ```
 
 Recommended category:
@@ -189,15 +190,19 @@ Review notes:
 PocketCart helps users compare grocery prices, save products to a watchlist,
 view nearby stores on a map, and review in-app price alerts. Account creation is
 available in More. Account deletion is available in More > Account deletion and
-at https://pocketcart.app/delete-account.
+at https://pocketcart.pages.dev/delete-account.
 ```
 
 Required URLs:
 
-- Privacy Policy: `https://pocketcart.app/privacy`
-- Terms: `https://pocketcart.app/terms`
-- Account deletion: `https://pocketcart.app/delete-account`
-- Support: `mailto:support@pocketcart.app`
+- Support / Marketing: `https://pocketcart.pages.dev`
+- Privacy Policy: `https://pocketcart.pages.dev/privacy`
+- Terms: `https://pocketcart.pages.dev/terms`
+- Account deletion: `https://pocketcart.pages.dev/delete-account`
+
+The custom `pocketcart.app` domain should not be used in store metadata until
+DNS is live. If a branded support email is required later, configure DNS and MX
+records first, then update the policies and listing metadata in the same PR.
 
 ## Supabase Functions
 
