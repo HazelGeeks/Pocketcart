@@ -201,6 +201,12 @@ if (eas.build?.production?.autoIncrement === true) {
   warn("Production EAS autoIncrement is not enabled");
 }
 
+if (eas.build?.production?.environment === "production") {
+  pass("Production EAS builds use the production environment");
+} else {
+  fail("Production EAS builds must use the production environment");
+}
+
 if (pkg.expo?.doctor?.appConfigFieldsNotSyncedCheck?.enabled === false) {
   pass("Expo doctor app-config sync warning is disabled for this manually synced native project");
 } else {
@@ -320,6 +326,11 @@ includes(
   "Mobile store release checklist includes App Store setup",
 );
 includes(
+  "docs/mobile-store-release.md",
+  "Required EAS `production` environment variables",
+  "Mobile store release checklist documents EAS production env vars",
+);
+includes(
   ".github/workflows/mobile-release-check.yml",
   "npm run release:native:check",
   "GitHub Actions runs the mobile release readiness check",
@@ -336,9 +347,24 @@ includes(
 );
 includes(
   ".github/workflows/eas-build.yml",
+  "npm run release:native:check",
+  "EAS build workflow runs the full release readiness check",
+);
+includes(
+  ".github/workflows/eas-build.yml",
   "eas-cli build",
   "EAS build workflow can create native artifacts",
 );
+includes(
+  ".github/workflows/eas-build.yml",
+  "timeout-minutes: 120",
+  "EAS build workflow allows enough time for store artifacts",
+);
+if (read(".github/workflows/eas-build.yml").includes("--no-wait")) {
+  fail("EAS build workflow must wait for native artifact completion");
+} else {
+  pass("EAS build workflow waits for native artifact completion");
+}
 includes(
   ".github/workflows/eas-submit.yml",
   "eas-cli submit",
@@ -348,6 +374,11 @@ includes(
   ".github/workflows/eas-submit.yml",
   "--latest --non-interactive",
   "EAS submit workflow runs non-interactively against the latest artifact",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "npm run release:store-assets:live-check",
+  "EAS submit workflow verifies live legal and support URLs",
 );
 includes(
   ".github/workflows/supabase-functions.yml",
@@ -446,6 +477,19 @@ if (checkExternal) {
     pass("SUPABASE_SERVICE_ROLE_KEY is present in the environment");
   } else {
     fail("SUPABASE_SERVICE_ROLE_KEY is not set");
+  }
+
+  const requiredEasPublicEnv = [
+    "EXPO_PUBLIC_SUPABASE_URL",
+    "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+    "EXPO_PUBLIC_AUTH_REDIRECT_URL",
+  ];
+  for (const envName of requiredEasPublicEnv) {
+    if (process.env[envName]?.trim()) {
+      pass(`${envName} is present for production EAS builds`);
+    } else {
+      fail(`${envName} is not set for production EAS builds`);
+    }
   }
 }
 

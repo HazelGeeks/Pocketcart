@@ -48,7 +48,7 @@ jobs:
         run: npm ci
 
       - name: Run release checks
-        run: npm run release:native:config-check && npm run release:store-assets:check
+        run: npm run release:native:config-check && npm run release:store-assets:live-check
 
       - name: Submit latest native artifact
         run: npx eas-cli submit --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --latest --non-interactive

@@ -55,6 +55,9 @@ The doctor checks repository release settings plus external readiness:
 - `SUPABASE_PROJECT_ID` for CI function deploys
 - Android Google Maps API key
 - Supabase service role key for the account-deletion function
+- Production EAS public client env:
+  `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and
+  `EXPO_PUBLIC_AUTH_REDIRECT_URL`
 
 ## GitHub Actions Release Automation
 
@@ -63,8 +66,11 @@ The repository includes three release workflows:
 - `Mobile Release Check`: runs `npm run release:native:check` and
   `npm audit --audit-level=high` on PRs and `main`.
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
+  It runs `npm run release:native:check` first and waits for native artifact
+  completion.
 - `EAS Store Submit`: manually submits the latest iOS or Android EAS artifact
-  after store records and credentials are ready.
+  after store records and credentials are ready. It verifies the live legal,
+  support, and account deletion URLs before submission.
 - `Supabase Functions Deploy`: manually deploys the account functions and sets
   their `SUPABASE_SERVICE_ROLE_KEY` secret.
 
@@ -76,8 +82,18 @@ Required GitHub repository secrets:
 - `SUPABASE_SERVICE_ROLE_KEY`: service role key used only by Supabase Edge
   Functions.
 
-Also set `POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY` as an EAS environment secret
-for Android production builds. Restrict it to the Android package and release
+Required EAS `production` environment variables:
+
+- `EXPO_PUBLIC_SUPABASE_URL`: production Supabase project URL.
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: production Supabase anon key. This is a
+  public client key, but it must still point at the production project.
+- `EXPO_PUBLIC_AUTH_REDIRECT_URL`: `pocketcart://auth/callback`.
+- `EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET`: `product-images`.
+- `EXPO_PUBLIC_FLYER_AI_ENDPOINT`: production `back-office-flyer` function URL
+  if admin flyer extraction is needed in the release build.
+- `POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY`: Android Maps SDK key.
+
+Restrict the Android maps key to package `com.pocketcart.app` and the release
 upload certificate SHA-1 before store submission.
 
 ## EAS Build
@@ -98,7 +114,18 @@ npm run build:android
 ```
 
 Or use GitHub Actions > `EAS Native Build` after setting `EXPO_TOKEN` and EAS
-production environment secrets.
+production environment variables. The production build profile uses the EAS
+`production` environment and the GitHub workflow waits for artifact completion.
+
+Minimum EAS environment setup:
+
+```bash
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR_PROJECT_REF.supabase.co --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value YOUR_SUPABASE_ANON_KEY --visibility sensitive
+eas env:create --environment production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --value pocketcart://auth/callback --visibility plaintext
+eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --value product-images --visibility plaintext
+eas env:create --environment production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --value YOUR_ANDROID_MAPS_KEY --visibility sensitive
+```
 
 Submit after store records and credentials are ready:
 
