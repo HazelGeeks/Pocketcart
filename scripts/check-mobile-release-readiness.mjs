@@ -244,6 +244,11 @@ includes(
   "targetSdkVersion rootProject.ext.targetSdkVersion",
   "Android app target SDK follows React Native/Expo root target",
 );
+includes(
+  "android/app/build.gradle",
+  "require.resolve('hermes-compiler/package.json')",
+  "Android release build uses the installed Hermes compiler package",
+);
 const reactNativeTargetSdk = readAndroidTargetSdkFromManifest(
   "node_modules/react-native/ReactAndroid/src/main/AndroidManifest.xml",
 );
