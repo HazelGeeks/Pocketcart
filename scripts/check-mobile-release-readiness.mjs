@@ -444,8 +444,23 @@ includes(
 );
 includes(
   ".github/workflows/eas-build.yml",
+  "Missing GitHub secret: EXPO_TOKEN",
+  "EAS build workflow fails clearly when EXPO_TOKEN is missing",
+);
+includes(
+  ".github/workflows/eas-build.yml",
   "npm run release:native:check",
   "EAS build workflow runs the full release readiness check",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "Validate EAS production environment",
+  "EAS build workflow validates production environment variables before building",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY",
+  "EAS build workflow validates the Android Maps key before building",
 );
 includes(
   ".github/workflows/eas-build.yml",
@@ -469,6 +484,11 @@ includes(
 );
 includes(
   ".github/workflows/eas-submit.yml",
+  "Missing GitHub secret: EXPO_TOKEN",
+  "EAS submit workflow fails clearly when EXPO_TOKEN is missing",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
   "--latest --non-interactive",
   "EAS submit workflow runs non-interactively against the latest artifact",
 );
@@ -476,6 +496,11 @@ includes(
   ".github/workflows/eas-submit.yml",
   "npm run release:store-assets:live-check",
   "EAS submit workflow verifies live legal and support URLs",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "Validate EAS production environment",
+  "EAS submit workflow validates production environment variables before submission",
 );
 includes(
   ".github/workflows/supabase-functions.yml",

@@ -38,6 +38,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Validate GitHub secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          test -n "$EXPO_TOKEN" || { echo "Missing GitHub secret: EXPO_TOKEN"; exit 1; }
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
@@ -49,6 +55,14 @@ jobs:
 
       - name: Run release checks
         run: npm run release:native:config-check && npm run release:store-assets:live-check
+
+      - name: Validate EAS production environment
+        run: |
+          npx eas-cli env:list production --format long > /tmp/pocketcart-eas-env.txt
+          grep -q "EXPO_PUBLIC_SUPABASE_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
+          grep -q "EXPO_PUBLIC_SUPABASE_ANON_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_ANON_KEY"; exit 1; }
+          grep -q "EXPO_PUBLIC_AUTH_REDIRECT_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_AUTH_REDIRECT_URL"; exit 1; }
+          grep -q "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"; exit 1; }
 
       - name: Submit latest native artifact
         run: npx eas-cli submit --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --latest --non-interactive

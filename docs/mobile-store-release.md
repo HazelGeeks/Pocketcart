@@ -73,10 +73,12 @@ The repository includes three release workflows:
   `npm audit --audit-level=high` on PRs and `main`.
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
   It runs `npm run release:native:check` first and waits for native artifact
-  completion.
+  completion. Production builds fail before starting if required EAS production
+  environment variables are missing.
 - `EAS Store Submit`: manually submits the latest iOS or Android EAS artifact
   after store records and credentials are ready. It verifies the live legal,
-  support, and account deletion URLs before submission.
+  support, account deletion URLs, and EAS production environment before
+  submission.
 - `Supabase Functions Deploy`: manually deploys the account functions and sets
   their `SUPABASE_SERVICE_ROLE_KEY` secret.
 
