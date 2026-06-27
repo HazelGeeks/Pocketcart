@@ -173,6 +173,8 @@ Before the first store submission, configure EAS credentials interactively from
 the account that owns the Expo project:
 
 ```bash
+npx eas-cli credentials:configure-build --platform ios --profile production
+npx eas-cli credentials:configure-build --platform android --profile production
 npx eas-cli credentials --platform ios
 npx eas-cli credentials --platform android
 ```
@@ -181,6 +183,11 @@ Use these menus to confirm:
 
 - iOS distribution certificate and provisioning profile are available for
   `com.pocketcart.app`.
+- iOS distribution certificate validation succeeds. If a non-interactive iOS
+  build fails with
+  `Distribution Certificate is not validated for non-interactive builds`, rerun
+  the iOS `credentials:configure-build` command above and log in to the Apple
+  account when prompted.
 - App Store Connect access is available for the PocketCart app record.
 - Android upload key is available through EAS credentials or the local
   `POCKETCART_UPLOAD_*` variables.

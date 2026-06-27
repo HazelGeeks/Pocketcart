@@ -125,6 +125,11 @@ console.log("\nAfter setup:");
 console.log("npm run release:native:doctor");
 
 console.log("\nBefore first store submission:");
+console.log("npx eas-cli credentials:configure-build --platform ios --profile production");
+console.log("npx eas-cli credentials:configure-build --platform android --profile production");
 console.log("npx eas-cli credentials --platform ios");
 console.log("npx eas-cli credentials --platform android");
+console.log(
+  "If iOS non-interactive builds report an unvalidated Distribution Certificate, rerun the iOS configure-build command and complete Apple login/2FA.",
+);
 console.log("Confirm App Store Connect and Google Play access in EAS before running submit workflows.");

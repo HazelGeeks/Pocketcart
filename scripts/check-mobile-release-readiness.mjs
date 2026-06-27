@@ -526,8 +526,18 @@ includes(
 );
 includes(
   "docs/mobile-store-release.md",
+  "npx eas-cli credentials:configure-build --platform ios --profile production",
+  "Mobile store release checklist documents iOS build credential configuration",
+);
+includes(
+  "docs/mobile-store-release.md",
   "npx eas-cli credentials --platform ios",
   "Mobile store release checklist documents iOS EAS credential setup",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "Distribution Certificate is not validated for non-interactive builds",
+  "Mobile store release checklist documents the iOS certificate validation blocker",
 );
 includes(
   "docs/mobile-store-release.md",
@@ -663,6 +673,11 @@ includes(
   "docs/mobile-store-release.md",
   "npm run release:native:setup-guide",
   "Mobile store release checklist references the setup guide",
+);
+includes(
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "npx eas-cli credentials:configure-build --platform ios --profile production",
+  "Mobile release setup guide prints iOS build credential configuration command",
 );
 includes(
   "scripts/print-mobile-release-setup-guide.mjs",
