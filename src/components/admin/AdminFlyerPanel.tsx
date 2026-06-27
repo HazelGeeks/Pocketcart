@@ -92,17 +92,17 @@ export default function AdminFlyerPanel({
         <View style={st.flyerTable}>
           <View style={[st.flyerTableRow, st.flyerTableHeader]}>
             <Text style={[st.flyerHeaderCell, st.flyerCellSelect]}>Use</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>마트명</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>지역/지점</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>세일 시작일</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>세일 종료일</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>이름</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>대분류</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>중분류</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>브랜드</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>가격</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellUnit]}>단위</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellMemo]}>메모</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Store</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Area / Branch</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale Start</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale End</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Product Name</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Main Category</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Subcategory</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>Brand</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>Price</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellUnit]}>Unit</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellMemo]}>Memo</Text>
           </View>
           {rows.length === 0 ? (
             <View style={st.flyerTableEmptyRow}>
@@ -125,14 +125,14 @@ export default function AdminFlyerPanel({
                 <TextInput
                   value={row.martName}
                   onChangeText={(value) => onUpdateRow(row.id, "martName", value)}
-                  placeholder="마트명"
+                  placeholder="Store"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellMart, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.regionBranch}
                   onChangeText={(value) => onUpdateRow(row.id, "regionBranch", value)}
-                  placeholder="지역/지점"
+                  placeholder="Area / Branch"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellBranch, row.selected && st.flyerInputCellSelected]}
                 />
@@ -157,28 +157,28 @@ export default function AdminFlyerPanel({
                 <TextInput
                   value={row.name}
                   onChangeText={(value) => onUpdateRow(row.id, "name", value)}
-                  placeholder="이름"
+                  placeholder="Product name"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.mainCategory}
                   onChangeText={(value) => onUpdateRow(row.id, "mainCategory", value)}
-                  placeholder="대분류"
+                  placeholder="Main category"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellCategory, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.subCategory}
                   onChangeText={(value) => onUpdateRow(row.id, "subCategory", value)}
-                  placeholder="중분류"
+                  placeholder="Subcategory"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellCategory, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.brand}
                   onChangeText={(value) => onUpdateRow(row.id, "brand", value)}
-                  placeholder="브랜드"
+                  placeholder="Brand"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellBrand, row.selected && st.flyerInputCellSelected]}
                 />
@@ -193,14 +193,14 @@ export default function AdminFlyerPanel({
                 <TextInput
                   value={row.unit}
                   onChangeText={(value) => onUpdateRow(row.id, "unit", value)}
-                  placeholder="단위"
+                  placeholder="Unit"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellUnit, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.memo}
                   onChangeText={(value) => onUpdateRow(row.id, "memo", value)}
-                  placeholder="메모"
+                  placeholder="Memo"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellMemo, row.selected && st.flyerInputCellSelected]}
                 />
