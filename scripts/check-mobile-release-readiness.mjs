@@ -302,6 +302,31 @@ includes(
   "Native More tab includes in-app account deletion confirmation",
 );
 includes(
+  "src/services/userProfile.ts",
+  "completeAuthSessionFromUrl",
+  "Native auth service can complete email verification callbacks",
+);
+includes(
+  "src/services/userProfile.ts",
+  "exchangeCodeForSession",
+  "Native auth service supports PKCE email callback codes",
+);
+includes(
+  "src/services/userProfile.ts",
+  "setSession",
+  "Native auth service supports implicit email callback tokens",
+);
+includes(
+  "src/screens/NativeAppScreen.native.tsx",
+  "Linking.getInitialURL",
+  "Native app handles auth callback cold starts",
+);
+includes(
+  "src/screens/NativeAppScreen.native.tsx",
+  'Linking.addEventListener("url"',
+  "Native app handles auth callback while running",
+);
+includes(
   "supabase/config.toml",
   "[functions.delete-account]",
   "Supabase delete-account function is configured",

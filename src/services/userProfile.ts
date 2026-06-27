@@ -5,6 +5,7 @@ import {
   supabaseAnonKey,
   supabaseUrl,
 } from "./supabaseClient";
+import { parseAuthCallbackUrl } from "../utils/authCallback";
 
 const authRedirectUrl = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
 
@@ -18,6 +19,11 @@ export type UserProfile = {
 type ServiceResult<T> = {
   data: T;
   error: string | null;
+};
+
+type AuthCallbackResult = {
+  handled: boolean;
+  profile: UserProfile | null;
 };
 
 function isAuthSessionMissing(message?: string | null): boolean {
@@ -199,6 +205,66 @@ export async function getCurrentUserProfile(): Promise<
   return {
     data,
     error: null,
+  };
+}
+
+export async function completeAuthSessionFromUrl(
+  url: string,
+): Promise<ServiceResult<AuthCallbackResult>> {
+  const params = parseAuthCallbackUrl(url);
+  if (!params.hasAuthParams) {
+    return {
+      data: { handled: false, profile: null },
+      error: null,
+    };
+  }
+
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult({ handled: true, profile: null });
+  }
+
+  if (params.error) {
+    return {
+      data: { handled: true, profile: null },
+      error: params.errorDescription ?? params.error,
+    };
+  }
+
+  if (params.accessToken && params.refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: params.accessToken,
+      refresh_token: params.refreshToken,
+    });
+
+    if (error) {
+      return {
+        data: { handled: true, profile: null },
+        error: error.message,
+      };
+    }
+  } else if (params.code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(params.code);
+
+    if (error) {
+      return {
+        data: { handled: true, profile: null },
+        error: error.message,
+      };
+    }
+  } else {
+    return {
+      data: { handled: true, profile: null },
+      error: "Email verification link did not include a usable auth session.",
+    };
+  }
+
+  const profileResult = await getCurrentUserProfile();
+  return {
+    data: {
+      handled: true,
+      profile: profileResult.data,
+    },
+    error: profileResult.error,
   };
 }
 

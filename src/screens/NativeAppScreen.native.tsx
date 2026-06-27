@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import {
   BackHandler,
+  Linking,
   PanResponder,
   Platform,
   ScrollView,
@@ -26,6 +27,7 @@ import {
   type WatchlistItem,
 } from "../services/watchlist";
 import {
+  completeAuthSessionFromUrl,
   deleteCurrentUserAccount,
   getCurrentUserProfile,
   signInUser,
@@ -91,6 +93,7 @@ export default function NativeAppScreen() {
   const { pad, w } = useLayout();
   const insets = useSafeAreaInsets();
   const mapRef = React.useRef<MapView | null>(null);
+  const handledAuthCallbackUrlsRef = React.useRef<Set<string>>(new Set());
 
   const [activeTab, setActiveTab] = React.useState<NativeTabId>("home");
   const [homeRoute, setHomeRoute] = React.useState<HomeRoute>("catalog");
@@ -558,6 +561,59 @@ export default function NativeAppScreen() {
       setMoreMessage(null);
     }
   }, []);
+
+  const handleAuthCallbackUrl = React.useCallback(
+    async (url: string | null) => {
+      if (!url) return;
+      if (handledAuthCallbackUrlsRef.current.has(url)) return;
+
+      const looksLikeAuthCallback =
+        url.startsWith("pocketcart://auth/callback") ||
+        url.startsWith("com.pocketcart.app://auth/callback") ||
+        url.includes("access_token=") ||
+        url.includes("error=");
+      if (!looksLikeAuthCallback) return;
+
+      handledAuthCallbackUrlsRef.current.add(url);
+      setMoreLoading(true);
+      const { data, error } = await completeAuthSessionFromUrl(url);
+      setMoreLoading(false);
+
+      if (!data.handled) return;
+
+      setActiveTab("more");
+      setAuthMode("signIn");
+
+      if (error) {
+        setMoreMessage(error);
+        showToast("Unable to verify email.");
+        return;
+      }
+
+      setProfile(data.profile);
+      setMoreMessage("Email verified. You're signed in.");
+      showToast("Email verified.");
+      await loadWatchlist(true);
+    },
+    [loadWatchlist, showToast],
+  );
+
+  React.useEffect(() => {
+    let isMounted = true;
+    void Linking.getInitialURL().then((url) => {
+      if (!isMounted) return;
+      void handleAuthCallbackUrl(url);
+    });
+
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      void handleAuthCallbackUrl(url);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.remove();
+    };
+  }, [handleAuthCallbackUrl]);
 
   React.useEffect(() => {
     if (activeTab !== "home") return;

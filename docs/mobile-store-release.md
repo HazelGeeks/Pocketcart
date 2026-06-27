@@ -38,6 +38,8 @@ Expected checks:
 - Web export succeeds for hosted legal pages.
 - `/privacy`, `/terms`, `/support`, and `/delete-account` are reachable in production.
 - Supabase Auth redirect URLs include `pocketcart://auth/callback`.
+- Native app handles `pocketcart://auth/callback` email verification links and
+  stores the Supabase session.
 - Supabase Edge Functions `delete-account`, `delete-account-request`, and
   `back-office-flyer` are deployed.
 - Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for account functions.
