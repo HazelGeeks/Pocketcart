@@ -9,6 +9,7 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - iOS bundle ID: `com.pocketcart.app`
 - Android package: `com.pocketcart.app`
 - App scheme: `pocketcart`
+- EAS project: linked through `expo.extra.eas.projectId` in `app.json`
 - Release version: `1.0.0`
 - iOS build number: `1`
 - Android versionCode: `1`
@@ -125,6 +126,10 @@ npm install --global eas-cli
 eas login
 eas init
 ```
+
+`eas init` or project linking writes `expo.extra.eas.projectId` to `app.json`.
+Keep that value committed so local CLI builds and GitHub Actions target the same
+Expo project.
 
 Create production artifacts:
 

@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#FAFCF2"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pocketcart.app",
@@ -59,6 +61,11 @@
           "isAndroidBackgroundLocationEnabled": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b2c314b8-b5ac-443c-b848-819da5ef3d32"
+      }
+    }
   }
 }

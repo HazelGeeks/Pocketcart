@@ -187,6 +187,12 @@ if (app.scheme === "pocketcart") {
   fail(`Unexpected app scheme: ${app.scheme}`);
 }
 
+if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(app.extra?.eas?.projectId ?? "")) {
+  pass("Expo app is linked to an EAS project");
+} else {
+  fail("Expo app must include extra.eas.projectId from eas init/project link");
+}
+
 const expoLocationPlugin = Array.isArray(app.plugins)
   ? app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-location")
   : null;
