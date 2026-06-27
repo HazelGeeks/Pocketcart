@@ -85,6 +85,16 @@ Required GitHub repository secrets:
 - `SUPABASE_SERVICE_ROLE_KEY`: service role key used only by Supabase Edge
   Functions.
 
+Set and verify them with:
+
+```bash
+gh secret set EXPO_TOKEN
+gh secret set SUPABASE_ACCESS_TOKEN
+gh secret set SUPABASE_PROJECT_ID
+gh secret set SUPABASE_SERVICE_ROLE_KEY
+gh secret list
+```
+
 Required EAS `production` environment variables:
 
 - `EXPO_PUBLIC_SUPABASE_URL`: production Supabase project URL.

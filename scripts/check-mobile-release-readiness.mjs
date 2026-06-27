@@ -367,6 +367,11 @@ includes(
   "Mobile store release checklist documents EAS production env vars",
 );
 includes(
+  "docs/mobile-store-release.md",
+  "gh secret set EXPO_TOKEN",
+  "Mobile store release checklist documents GitHub secret setup",
+);
+includes(
   ".github/workflows/mobile-release-check.yml",
   "npm run release:native:check",
   "GitHub Actions runs the mobile release readiness check",
