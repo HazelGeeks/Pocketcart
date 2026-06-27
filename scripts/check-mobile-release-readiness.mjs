@@ -14,6 +14,7 @@ const requiredFiles = [
   ".github/workflows/eas-build.yml",
   ".github/workflows/eas-submit.yml",
   ".github/workflows/supabase-functions.yml",
+  "database/schema.sql",
   "docs/mobile-store-release.md",
   "scripts/print-mobile-release-setup-guide.mjs",
   "scripts/check-store-submission-assets.mjs",
@@ -401,6 +402,31 @@ includes(
   "supabase/functions/delete-account-request/index.ts",
   "account_deletion_requests",
   "Supabase delete-account-request function stores web deletion requests",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.account_deletion_requests",
+  "Supabase schema includes account deletion request table",
+);
+includes(
+  "database/schema.sql",
+  "create trigger on_auth_user_created_profile",
+  "Supabase schema creates profiles from auth users",
+);
+includes(
+  "database/schema.sql",
+  "add column if not exists product_id uuid references public.products",
+  "Supabase schema links watchlist items to products",
+);
+includes(
+  "database/schema.sql",
+  "add column if not exists valid_from timestamptz",
+  "Supabase schema includes product price validity windows",
+);
+includes(
+  "database/schema.sql",
+  "insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)",
+  "Supabase schema provisions product image storage bucket",
 );
 includes(
   "src/screens/DeleteAccountScreen.tsx",

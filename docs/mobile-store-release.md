@@ -42,6 +42,8 @@ Expected checks:
   stores the Supabase session.
 - Supabase Edge Functions `delete-account`, `delete-account-request`, and
   `back-office-flyer` are deployed.
+- `database/schema.sql` includes the required profile, watchlist, product price,
+  storage, and account deletion request schema.
 - Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for account functions.
 - Supabase backend is live and reachable during review.
 
