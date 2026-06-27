@@ -12,6 +12,7 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - Release version: `1.0.0`
 - iOS build number: `1`
 - Android versionCode: `1`
+- Android target SDK baseline: React Native/Expo target `36`
 - iOS device target: iPhone only for the first store release
 
 ## Pre-Submission Gate
@@ -26,8 +27,8 @@ This project keeps `ios/` and `android/` in the repository, so native
 store-facing settings are not automatically synced from `app.json` by prebuild.
 The readiness check explicitly verifies the critical native files that reviewers
 care about: iOS bundle ID, build number, privacy manifest, location purpose
-string, Android package, versionCode, deep link, maps API metadata, and release
-signing behavior.
+string, Android package, versionCode, target SDK baseline, deep link, maps API
+metadata, and release signing behavior.
 
 Expected checks:
 

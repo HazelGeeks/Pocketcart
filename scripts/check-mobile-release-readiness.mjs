@@ -61,6 +61,12 @@ function includes(path, text, message) {
   }
 }
 
+function readAndroidTargetSdkFromManifest(path) {
+  if (!existsSync(path)) return null;
+  const match = read(path).match(/android:targetSdkVersion="(\d+)"/);
+  return match ? Number(match[1]) : null;
+}
+
 function extractNamedBlock(source, name, fromIndex = 0) {
   const start = source.indexOf(`${name} {`, fromIndex);
   if (start === -1) return "";
@@ -161,6 +167,20 @@ if (app.android?.versionCode === 1) {
   pass("Android versionCode is 1");
 } else {
   fail(`Unexpected Android versionCode: ${app.android?.versionCode}`);
+}
+
+includes(
+  "android/app/build.gradle",
+  "targetSdkVersion rootProject.ext.targetSdkVersion",
+  "Android app target SDK follows React Native/Expo root target",
+);
+const reactNativeTargetSdk = readAndroidTargetSdkFromManifest(
+  "node_modules/react-native/ReactAndroid/src/main/AndroidManifest.xml",
+);
+if (reactNativeTargetSdk !== null && reactNativeTargetSdk >= 35) {
+  pass(`Android target SDK baseline is Google Play compliant (${reactNativeTargetSdk})`);
+} else {
+  fail(`Android target SDK baseline must be 35 or higher, found ${reactNativeTargetSdk ?? "unknown"}`);
 }
 
 if (pkg.dependencies?.["expo-location"]) {
