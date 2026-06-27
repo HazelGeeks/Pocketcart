@@ -300,6 +300,8 @@ Confirm this against the production build before submission:
   discovery. Postal-code/manual discovery must remain available.
   iOS privacy manifest declares precise/coarse location for app functionality,
   not tracking.
+- iOS required-reason APIs: privacy manifest declares file timestamp,
+  UserDefaults, and system boot time access with approved reason codes.
 - Product/search usage: used to provide product search and deal tracking.
 - Data is encrypted in transit via HTTPS/TLS.
 - Data is not sold.

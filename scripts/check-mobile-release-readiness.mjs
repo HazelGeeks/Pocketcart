@@ -303,6 +303,36 @@ includes(
   "iOS privacy manifest declares optional coarse location use",
 );
 includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyAccessedAPICategoryFileTimestamp",
+  "iOS privacy manifest declares file timestamp required-reason API use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "C617.1",
+  "iOS privacy manifest declares file timestamp reason",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyAccessedAPICategoryUserDefaults",
+  "iOS privacy manifest declares UserDefaults required-reason API use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "CA92.1",
+  "iOS privacy manifest declares UserDefaults reason",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyAccessedAPICategorySystemBootTime",
+  "iOS privacy manifest declares system boot time required-reason API use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "35F9.1",
+  "iOS privacy manifest declares system boot time reason",
+);
+includes(
   "android/app/src/main/AndroidManifest.xml",
   "android.permission.ACCESS_FINE_LOCATION",
   "Android location permission is declared",
