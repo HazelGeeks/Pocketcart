@@ -5,6 +5,7 @@ const args = new Set(process.argv.slice(2));
 const checkExternal = args.has("--external");
 
 const requiredFiles = [
+  "App.native.tsx",
   "app.json",
   "eas.json",
   "package.json",
@@ -232,10 +233,10 @@ if (app.android?.package === "com.pocketcart.app") {
   fail(`Unexpected Android package: ${app.android?.package}`);
 }
 
-if (app.android?.versionCode === 1) {
-  pass("Android versionCode is 1");
+if (Number.isInteger(app.android?.versionCode) && app.android.versionCode >= 1) {
+  pass(`Android versionCode is ${app.android.versionCode}`);
 } else {
-  fail(`Unexpected Android versionCode: ${app.android?.versionCode}`);
+  fail(`Android versionCode must be an integer greater than or equal to 1, found ${app.android?.versionCode}`);
 }
 
 includes(
@@ -387,6 +388,16 @@ includes(
   "Location.getCurrentPositionAsync",
   "Native current position uses expo-location",
 );
+includes(
+  "App.native.tsx",
+  "NativeAppScreen",
+  "Native app entry renders the native app screen",
+);
+if (read("App.native.tsx").includes("AdminScreen") || read("App.native.tsx").includes("pdfjs-dist")) {
+  fail("Native app entry must not import web admin or PDF extraction modules");
+} else {
+  pass("Native app entry excludes web admin and PDF extraction modules");
+}
 includes(
   "android/app/src/main/AndroidManifest.xml",
   "com.google.android.geo.API_KEY",

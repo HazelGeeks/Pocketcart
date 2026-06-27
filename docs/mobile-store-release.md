@@ -12,7 +12,8 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - EAS project: linked through `expo.extra.eas.projectId` in `app.json`
 - Release version: `1.0.0`
 - iOS build number: `1`
-- Android versionCode: `1`
+- Android versionCode: starts at `1`; EAS production builds auto-increment store
+  build numbers.
 - Android target SDK baseline: React Native/Expo target `36`
 - iOS device target: iPhone only for the first store release
 - iOS export compliance: no non-exempt encryption declared in `Info.plist`
