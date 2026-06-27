@@ -157,6 +157,12 @@ if (app.ios?.supportsTablet === false) {
   fail("iOS supportsTablet should be false for the first phone-only release");
 }
 
+if (app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption === false) {
+  pass("iOS Expo config declares no non-exempt encryption");
+} else {
+  fail("iOS Expo config should set ITSAppUsesNonExemptEncryption to false");
+}
+
 if (app.android?.package === "com.pocketcart.app") {
   pass("Android package is com.pocketcart.app");
 } else {
@@ -217,6 +223,11 @@ includes(
   "ios/PocketCart/Info.plist",
   "NSLocationWhenInUseUsageDescription",
   "iOS location permission usage description is present",
+);
+includes(
+  "ios/PocketCart/Info.plist",
+  "ITSAppUsesNonExemptEncryption",
+  "iOS native project declares export compliance encryption setting",
 );
 includes("ios/PocketCart/Info.plist", "<string>pocketcart</string>", "iOS pocketcart URL scheme is present");
 includes(

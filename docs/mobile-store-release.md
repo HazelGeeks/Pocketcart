@@ -14,6 +14,7 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - Android versionCode: `1`
 - Android target SDK baseline: React Native/Expo target `36`
 - iOS device target: iPhone only for the first store release
+- iOS export compliance: no non-exempt encryption declared in `Info.plist`
 
 ## Pre-Submission Gate
 
@@ -147,6 +148,8 @@ iOS:
 - App privacy questionnaire completed from the app's actual data practices.
 - Review notes include a demo account or a fully usable demo path.
 - Account deletion is available in the app from More > Account deletion.
+- Export compliance answer matches `ITSAppUsesNonExemptEncryption=false` unless
+  a future release adds custom or non-exempt encryption.
 
 Android:
 

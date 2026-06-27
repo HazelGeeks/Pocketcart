@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.pocketcart.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "PocketCart uses your location only when you choose to find nearby stores and deals."
       }
     },
