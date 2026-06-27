@@ -69,13 +69,11 @@ function readEasEnvNames() {
 function printStatus(title, required, configured, fallback = new Set()) {
   console.log(`\n${title}`);
   for (const name of required) {
-    const isConfigured = configured?.has(name) || fallback.has(name);
-    const source = configured?.has(name)
-      ? "remote"
-      : fallback.has(name)
-        ? ".env.local"
-        : "missing";
-    console.log(`- ${isConfigured ? "OK" : "MISSING"} ${name} (${source})`);
+    const isRemote = configured?.has(name) ?? false;
+    const isLocalOnly = !isRemote && fallback.has(name);
+    const label = isRemote ? "OK" : isLocalOnly ? "LOCAL ONLY" : "MISSING";
+    const source = isRemote ? "remote" : isLocalOnly ? ".env.local" : "missing";
+    console.log(`- ${label} ${name} (${source})`);
   }
 }
 
@@ -94,6 +92,10 @@ console.log(`EAS CLI: ${easWhoami ? `authenticated as ${easWhoami.trim()}` : "no
 
 printStatus("GitHub repository secrets", githubSecrets, githubSecretNames);
 printStatus("EAS production environment", easProductionEnv, easEnvNames, envLocalKeys);
+
+console.log(
+  "\nNote: LOCAL ONLY values exist for local development but still need to be created in the EAS production environment for remote builds.",
+);
 
 console.log("\nNext commands for GitHub secrets:");
 for (const name of githubSecrets) {
