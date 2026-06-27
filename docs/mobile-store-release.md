@@ -53,10 +53,12 @@ npm run release:native:doctor
 
 The doctor checks repository release settings plus external readiness:
 
-- Expo authentication through `EXPO_TOKEN` or EAS CLI login
-- Supabase authentication through `SUPABASE_ACCESS_TOKEN` or CLI login
+- Expo authentication through `EXPO_TOKEN`, GitHub secret, or EAS CLI login
+- Supabase authentication through `SUPABASE_ACCESS_TOKEN`, GitHub secret, or
+  CLI login
+- GitHub repository secrets are present, verified by `gh secret list`
 - `SUPABASE_PROJECT_ID` for CI function deploys
-- Android Google Maps API key
+- Android Google Maps API key in the EAS `production` environment
 - Supabase service role key for the account-deletion function
 - Production EAS public client env:
   `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and

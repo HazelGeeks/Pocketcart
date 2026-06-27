@@ -100,6 +100,61 @@ function commandOk(command, commandArgs) {
   }
 }
 
+function commandOutput(command, commandArgs) {
+  try {
+    return execFileSync(command, commandArgs, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 15000,
+    });
+  } catch {
+    return null;
+  }
+}
+
+function extractNamedItems(payload) {
+  if (Array.isArray(payload)) {
+    return payload
+      .map((item) => (typeof item?.name === "string" ? item.name : null))
+      .filter(Boolean);
+  }
+
+  if (payload && typeof payload === "object") {
+    return Object.values(payload)
+      .flatMap((value) => extractNamedItems(value));
+  }
+
+  return [];
+}
+
+function readJsonCommandNames(command, commandArgs) {
+  const output = commandOutput(command, commandArgs);
+  if (!output) return null;
+
+  try {
+    return new Set(extractNamedItems(JSON.parse(output)));
+  } catch {
+    return null;
+  }
+}
+
+function readGithubSecretNames() {
+  return readJsonCommandNames("gh", ["secret", "list", "--json", "name"]);
+}
+
+function readEasProductionEnvNames() {
+  const output = commandOutput("npx", [
+    "eas-cli",
+    "env:list",
+    "production",
+    "--format",
+    "long",
+  ]);
+  if (!output) return null;
+
+  return new Set(output.match(/\b[A-Z][A-Z0-9_]{2,}\b/g) ?? []);
+}
+
 for (const file of requiredFiles) {
   if (existsSync(file)) {
     pass(`Required file exists: ${file}`);
@@ -490,31 +545,52 @@ for (const file of filesToScan) {
 pass("No obvious real secret values found in release metadata files");
 
 if (checkExternal) {
-  if (process.env.EXPO_TOKEN || commandOk("eas", ["whoami"])) {
-    pass("Expo authentication is available through EXPO_TOKEN or EAS CLI login");
+  const githubSecretNames = readGithubSecretNames();
+  const easProductionEnvNames = readEasProductionEnvNames();
+
+  if (process.env.EXPO_TOKEN || githubSecretNames?.has("EXPO_TOKEN") || commandOk("npx", ["eas-cli", "whoami"])) {
+    pass("Expo authentication is available through EXPO_TOKEN, GitHub secret, or EAS CLI login");
   } else {
-    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or install EAS CLI and run: eas login");
+    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npx eas-cli login");
   }
 
-  if (process.env.SUPABASE_ACCESS_TOKEN || commandOk("supabase", ["projects", "list"])) {
-    pass("Supabase authentication is available through SUPABASE_ACCESS_TOKEN or CLI login");
+  if (process.env.SUPABASE_ACCESS_TOKEN || githubSecretNames?.has("SUPABASE_ACCESS_TOKEN") || commandOk("supabase", ["projects", "list"])) {
+    pass("Supabase authentication is available through SUPABASE_ACCESS_TOKEN, GitHub secret, or CLI login");
   } else {
     fail("Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or install Supabase CLI and run: supabase login");
   }
 
-  if (process.env.SUPABASE_PROJECT_ID) {
+  const requiredGithubSecrets = [
+    "EXPO_TOKEN",
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_PROJECT_ID",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ];
+  if (!githubSecretNames) {
+    fail("Unable to verify GitHub repository secrets. Run: gh auth login");
+  } else {
+    for (const secretName of requiredGithubSecrets) {
+      if (githubSecretNames.has(secretName)) {
+        pass(`GitHub secret is configured: ${secretName}`);
+      } else {
+        fail(`GitHub secret is missing: ${secretName}`);
+      }
+    }
+  }
+
+  if (process.env.SUPABASE_PROJECT_ID || githubSecretNames?.has("SUPABASE_PROJECT_ID")) {
     pass("SUPABASE_PROJECT_ID is present for CI function deploys");
   } else {
     fail("SUPABASE_PROJECT_ID is not set for CI function deploys");
   }
 
-  if (process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY) {
-    pass("Android Google Maps API key is present in the environment");
+  if (process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY || easProductionEnvNames?.has("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY")) {
+    pass("Android Google Maps API key is present for production builds");
   } else {
     fail("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY is not set");
   }
 
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY || githubSecretNames?.has("SUPABASE_SERVICE_ROLE_KEY")) {
     pass("SUPABASE_SERVICE_ROLE_KEY is present in the environment");
   } else {
     fail("SUPABASE_SERVICE_ROLE_KEY is not set");
@@ -525,12 +601,21 @@ if (checkExternal) {
     "EXPO_PUBLIC_SUPABASE_ANON_KEY",
     "EXPO_PUBLIC_AUTH_REDIRECT_URL",
   ];
+  if (!easProductionEnvNames) {
+    fail("Unable to verify EAS production environment variables. Run: npx eas-cli login");
+  }
   for (const envName of requiredEasPublicEnv) {
-    if (process.env[envName]?.trim()) {
+    if (process.env[envName]?.trim() || easProductionEnvNames?.has(envName)) {
       pass(`${envName} is present for production EAS builds`);
     } else {
       fail(`${envName} is not set for production EAS builds`);
     }
+  }
+
+  if (process.env.EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET?.trim() || easProductionEnvNames?.has("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET")) {
+    pass("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is present for production EAS builds");
+  } else {
+    warn("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is not set; app will use the product-images default");
   }
 }
 
