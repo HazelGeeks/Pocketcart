@@ -48,6 +48,7 @@ Expected checks:
 Run this after logging into Expo and Supabase and setting release secrets:
 
 ```bash
+npm run release:native:setup-guide
 npm run release:native:doctor
 ```
 
@@ -135,11 +136,17 @@ production environment variables. The production build profile uses the EAS
 Minimum EAS environment setup:
 
 ```bash
-eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR_PROJECT_REF.supabase.co --visibility plaintext
-eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value YOUR_SUPABASE_ANON_KEY --visibility sensitive
-eas env:create --environment production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --value pocketcart://auth/callback --visibility plaintext
-eas env:create --environment production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --value product-images --visibility plaintext
-eas env:create --environment production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --value YOUR_ANDROID_MAPS_KEY --visibility sensitive
+npx eas-cli env:create production --name EXPO_PUBLIC_SUPABASE_URL --visibility plaintext
+npx eas-cli env:create production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --visibility sensitive
+npx eas-cli env:create production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --visibility plaintext
+npx eas-cli env:create production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --visibility plaintext
+npx eas-cli env:create production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --visibility sensitive
+```
+
+The setup guide prints the same commands for missing values:
+
+```bash
+npm run release:native:setup-guide
 ```
 
 Submit after store records and credentials are ready:

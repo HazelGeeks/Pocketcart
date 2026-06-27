@@ -15,6 +15,7 @@ const requiredFiles = [
   ".github/workflows/eas-submit.yml",
   ".github/workflows/supabase-functions.yml",
   "docs/mobile-store-release.md",
+  "scripts/print-mobile-release-setup-guide.mjs",
   "scripts/check-store-submission-assets.mjs",
   "store-assets/README.md",
   "store-assets/metadata/en-US.json",
@@ -505,6 +506,16 @@ includes(
   "package.json",
   "release:store-assets:check",
   "Package scripts include the store asset validator",
+);
+includes(
+  "package.json",
+  "release:native:setup-guide",
+  "Package scripts include the mobile release setup guide",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "npm run release:native:setup-guide",
+  "Mobile store release checklist references the setup guide",
 );
 includes(
   "store-assets/metadata/en-US.json",
