@@ -29,7 +29,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FAFCF2"
       },
-      "versionCode": 5,
+      "versionCode": 6,
       "package": "com.pocketcart.app",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
