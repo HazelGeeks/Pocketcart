@@ -249,6 +249,11 @@ includes(
   "require.resolve('hermes-compiler/package.json')",
   "Android release build uses the installed Hermes compiler package",
 );
+includes(
+  "android/app/build.gradle",
+  'buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL"',
+  "Android release build defines the React Native release level",
+);
 const reactNativeTargetSdk = readAndroidTargetSdkFromManifest(
   "node_modules/react-native/ReactAndroid/src/main/AndroidManifest.xml",
 );
