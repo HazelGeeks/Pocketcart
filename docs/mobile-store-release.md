@@ -163,6 +163,28 @@ npm run submit:android
 Or use GitHub Actions > `EAS Store Submit` after the corresponding EAS build
 has completed and store credentials are configured.
 
+Before the first store submission, configure EAS credentials interactively from
+the account that owns the Expo project:
+
+```bash
+npx eas-cli credentials --platform ios
+npx eas-cli credentials --platform android
+```
+
+Use these menus to confirm:
+
+- iOS distribution certificate and provisioning profile are available for
+  `com.pocketcart.app`.
+- App Store Connect access is available for the PocketCart app record.
+- Android upload key is available through EAS credentials or the local
+  `POCKETCART_UPLOAD_*` variables.
+- Google Play service account access is configured before using
+  `eas submit --platform android`.
+
+Keep App Store Connect API keys, Google service account JSON files, and
+keystores out of git. Store them in Expo/EAS, Apple, Google, or CI secret
+storage only.
+
 ## Required External Credentials
 
 iOS:

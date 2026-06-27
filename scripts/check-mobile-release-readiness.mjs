@@ -270,6 +270,30 @@ if (eas.build?.production?.environment === "production") {
   fail("Production EAS builds must use the production environment");
 }
 
+if (eas.submit?.production) {
+  pass("Production EAS submit profile is configured");
+} else {
+  fail("Production EAS submit profile is required for non-interactive store submission");
+}
+
+if (eas.submit?.production?.ios && typeof eas.submit.production.ios === "object") {
+  pass("Production iOS submit profile is configured");
+} else {
+  fail("Production iOS submit profile is required for App Store submission");
+}
+
+if (eas.submit?.production?.android && typeof eas.submit.production.android === "object") {
+  pass("Production Android submit profile is configured");
+} else {
+  fail("Production Android submit profile is required for Google Play submission");
+}
+
+if (eas.submit?.production?.android?.track === "internal") {
+  pass("Production Android submit profile targets the internal track first");
+} else {
+  warn("Production Android submit profile should target the internal track for first review uploads");
+}
+
 if (pkg.expo?.doctor?.appConfigFieldsNotSyncedCheck?.enabled === false) {
   pass("Expo doctor app-config sync warning is disabled for this manually synced native project");
 } else {
@@ -475,6 +499,16 @@ includes(
 );
 includes(
   "docs/mobile-store-release.md",
+  "npx eas-cli credentials --platform ios",
+  "Mobile store release checklist documents iOS EAS credential setup",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "npx eas-cli credentials --platform android",
+  "Mobile store release checklist documents Android EAS credential setup",
+);
+includes(
+  "docs/mobile-store-release.md",
   "Required EAS `production` environment variables",
   "Mobile store release checklist documents EAS production env vars",
 );
@@ -538,6 +572,11 @@ includes(
   "eas-cli submit",
   "EAS submit workflow can submit latest native artifacts",
 );
+if (eas.submit?.production) {
+  pass("EAS submit workflow has a matching production submit profile");
+} else {
+  fail("EAS submit workflow references production but eas.json has no matching submit profile");
+}
 includes(
   ".github/workflows/eas-submit.yml",
   "Missing GitHub secret: EXPO_TOKEN",
@@ -597,6 +636,16 @@ includes(
   "docs/mobile-store-release.md",
   "npm run release:native:setup-guide",
   "Mobile store release checklist references the setup guide",
+);
+includes(
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "npx eas-cli credentials --platform ios",
+  "Mobile release setup guide prints iOS credential setup command",
+);
+includes(
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "npx eas-cli credentials --platform android",
+  "Mobile release setup guide prints Android credential setup command",
 );
 includes(
   "store-assets/metadata/en-US.json",

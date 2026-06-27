@@ -123,3 +123,8 @@ for (const name of easProductionEnv) {
 
 console.log("\nAfter setup:");
 console.log("npm run release:native:doctor");
+
+console.log("\nBefore first store submission:");
+console.log("npx eas-cli credentials --platform ios");
+console.log("npx eas-cli credentials --platform android");
+console.log("Confirm App Store Connect and Google Play access in EAS before running submit workflows.");
