@@ -76,7 +76,7 @@ export async function listStores(params?: {
         id: row.id,
         brand: row.brand ?? null,
         name: row.name,
-        area: row.area,
+        area: row.area?.trim() ?? "",
         latitude,
         longitude,
         price_note: row.price_note,
@@ -108,7 +108,7 @@ export async function listStores(params?: {
 export async function createStore(params: {
   name: string;
   brand?: string;
-  area: string;
+  area?: string;
   latitude: string;
   longitude: string;
   priceNote?: string;
@@ -128,7 +128,7 @@ export async function createStore(params: {
   const payload = {
     name: params.name.trim(),
     brand: params.brand?.trim() ? params.brand.trim() : null,
-    area: params.area.trim(),
+    area: params.area?.trim() || params.name.trim(),
     latitude,
     longitude,
     price_note: params.priceNote?.trim() ? params.priceNote.trim() : null,
@@ -150,7 +150,7 @@ export async function createStore(params: {
       id: row.id,
       brand: row.brand ?? null,
       name: row.name,
-      area: row.area,
+      area: row.area?.trim() ?? "",
       latitude: parseNumber(row.latitude) ?? latitude,
       longitude: parseNumber(row.longitude) ?? longitude,
       price_note: row.price_note,

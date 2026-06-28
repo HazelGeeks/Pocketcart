@@ -6,7 +6,7 @@ import WebLink from "../WebLink";
 type SectionMenuItem = {
   key: AdminMenuKey;
   label: string;
-  badge: number;
+  badge?: number;
 };
 
 type AdminHeaderProps = {

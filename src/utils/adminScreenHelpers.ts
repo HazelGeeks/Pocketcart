@@ -4,10 +4,8 @@ import type {
   AdminProduct,
   AdminStore,
 } from "../services/adminBackoffice";
-import {
-  createFlyerRow,
-  type FlyerRow,
-} from "../state/adminStore";
+import { createFlyerRow } from "../state/adminStore";
+import type { FlyerRow } from "../state/adminStore";
 
 export type OverviewCard = {
   id: string;
@@ -21,14 +19,19 @@ export type StorePriceSetInput = {
   brand: string;
   storeId: string;
   price: string;
+  periodStartDate: string;
+  periodEndDate: string;
 };
 
 export type ProductPriceStats = {
   latestPrice: number | null;
   latestObservedAtMs: number;
+  latestValidFrom: string | null;
+  latestValidTo: string | null;
   minPrice: number | null;
   maxPrice: number | null;
   storeIds: Set<string>;
+  storeBrands: string[];
   storeNames: string[];
 };
 
@@ -112,9 +115,14 @@ export const PRODUCT_IMPORT_HEADERS = {
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
   storeId: ["store_id", "storeid", "store id"],
   storeName: ["store_name", "store", "stores", "store name", "매장", "마트"],
-  price: ["price", "current_price", "latest_price", "price_value", "가격"],
-  observedAt: ["observed_at", "observedat", "date", "날짜", "기준일"],
-  periodEnd: ["valid_to", "period_end", "valid to", "종료일", "종료 날짜"],
+  storeBrand: ["store_brand", "store brand", "mart_brand", "mart brand", "마트브랜드"],
+  storeAddress: ["store_address", "address", "store address", "주소"],
+  storePlaceId: ["store_place_id", "place_id", "placeid", "google_place_id", "google_place", "장소id"],
+  storeLatitude: ["store_latitude", "latitude", "lat", "위도"],
+  storeLongitude: ["store_longitude", "longitude", "lng", "lon", "경도"],
+  price: ["price", "current_price", "latest_price", "source_price", "price_value", "가격"],
+  observedAt: ["observed_at", "observedat", "valid_from", "sale_start_date", "date", "날짜", "시작일", "시작 날짜", "기준일"],
+  periodEnd: ["valid_to", "period_end", "sale_end_date", "valid to", "종료일", "종료 날짜"],
 };
 
 export const STORE_TYPE_OPTIONS = [
@@ -124,20 +132,6 @@ export const STORE_TYPE_OPTIONS = [
   { value: "specialty", label: "Specialty" },
   { value: "online", label: "Online" },
   { value: "other", label: "Other" },
-];
-
-const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
-  { label: "store", key: "martName" },
-  { label: "area_branch", key: "regionBranch" },
-  { label: "sale_start_date", key: "saleStartDate" },
-  { label: "sale_end_date", key: "saleEndDate" },
-  { label: "name", key: "name" },
-  { label: "main_category", key: "mainCategory" },
-  { label: "sub_category", key: "subCategory" },
-  { label: "brand", key: "brand" },
-  { label: "price", key: "price" },
-  { label: "unit", key: "unit" },
-  { label: "memo", key: "memo" },
 ];
 
 export function toDateOnlyLabel(value: string): string {
@@ -152,13 +146,6 @@ export function toDateOnlyLabel(value: string): string {
 
 export function toNonNegativeCount(value: number): number {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
-}
-
-export function toOptionalNumber(value: string): number | null {
-  const text = value.trim();
-  if (!text) return null;
-  const parsed = Number(text);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function uniqueValues(values: string[]): string[] {
@@ -176,13 +163,15 @@ export function uniqueValues(values: string[]): string[] {
 }
 
 export function createStorePriceSet(
-  seed?: Partial<Pick<StorePriceSetInput, "brand" | "storeId" | "price">>,
+  seed?: Partial<Pick<StorePriceSetInput, "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate">>,
 ): StorePriceSetInput {
   return {
     id: `sp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     brand: seed?.brand ?? "",
     storeId: seed?.storeId ?? "",
     price: seed?.price ?? "",
+    periodStartDate: seed?.periodStartDate ?? "",
+    periodEndDate: seed?.periodEndDate ?? "",
   };
 }
 
@@ -194,14 +183,6 @@ function csvCell(value: string): string {
   return text;
 }
 
-export function buildFlyerCsv(rows: FlyerRow[]): string {
-  const header = FLYER_CSV_COLUMNS.map((column) => csvCell(column.label)).join(",");
-  const body = rows.map((row) =>
-    FLYER_CSV_COLUMNS.map((column) => csvCell(String(row[column.key] ?? ""))).join(","),
-  );
-  return ["\uFEFF" + header, ...body].join("\r\n") + "\r\n";
-}
-
 export function productsToCsv(products: AdminProduct[], priceStats: Map<string, ProductPriceStats>): string {
   const header = [
     "id",
@@ -210,10 +191,13 @@ export function productsToCsv(products: AdminProduct[], priceStats: Map<string, 
     "category",
     "unit",
     "thumbnail_url",
-    "latest_price",
-    "min_price",
-    "max_price",
-    "stores",
+    "summary_latest_price",
+    "summary_sale_start_date",
+    "summary_sale_end_date",
+    "summary_min_price",
+    "summary_max_price",
+    "summary_store_brands",
+    "summary_stores",
     "created_at",
   ];
   const rows = products.map((product) => {
@@ -226,8 +210,11 @@ export function productsToCsv(products: AdminProduct[], priceStats: Map<string, 
       product.unit ?? "",
       product.thumbnail_url ?? "",
       stats?.latestPrice !== null && stats?.latestPrice !== undefined ? stats.latestPrice.toFixed(2) : "",
+      stats?.latestValidFrom ? dateInputValue(stats.latestValidFrom) : "",
+      stats?.latestValidTo ? dateInputValue(stats.latestValidTo) : "",
       stats?.minPrice !== null && stats?.minPrice !== undefined ? stats.minPrice.toFixed(2) : "",
       stats?.maxPrice !== null && stats?.maxPrice !== undefined ? stats.maxPrice.toFixed(2) : "",
+      stats?.storeBrands.join(" | ") ?? "",
       stats?.storeNames.join(" | ") ?? "",
       product.created_at,
     ].map(csvCell).join(",");
@@ -240,7 +227,6 @@ export function storesToCsv(stores: AdminStore[]): string {
     "id",
     "brand",
     "name",
-    "area",
     "latitude",
     "longitude",
     "price_note",
@@ -258,7 +244,6 @@ export function storesToCsv(stores: AdminStore[]): string {
       store.id,
       store.brand ?? "",
       store.name,
-      store.area,
       String(store.latitude),
       String(store.longitude),
       store.price_note ?? "",
@@ -286,34 +271,6 @@ export function looksLikeProductStoreRow(store: AdminStore): boolean {
   return false;
 }
 
-export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
-  const header = [
-    "name",
-    "category",
-    "thumbnail_url",
-    "brand",
-    "source_price",
-    "unit",
-    "memo",
-  ];
-  const body = rows.map((row) => {
-    const name = [row.brand, row.name]
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .join(" ");
-    return [
-      name || row.name,
-      row.mainCategory || row.subCategory || "Uncategorized",
-      "",
-      row.brand,
-      row.price,
-      row.unit,
-      row.memo,
-    ].map(csvCell).join(",");
-  });
-  return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
-}
-
 export function dateInputValue(value: string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
@@ -324,19 +281,16 @@ export function dateInputValue(value: string | null | undefined): string {
 export function storeMapUrl(
   store: Pick<AdminStore, "name" | "area" | "latitude" | "longitude" | "address" | "place_id">,
 ): string {
-  const query = [store.name, store.area, store.address ?? ""].filter(Boolean).join(" ");
+  const coordinateQuery = `${store.latitude},${store.longitude}`;
   const params = new URLSearchParams({
     api: "1",
-    query: query || `${store.latitude},${store.longitude}`,
+    query: coordinateQuery,
   });
-  if (store.place_id) {
-    params.set("query_place_id", store.place_id);
-  }
   return `https://www.google.com/maps/search/?${params.toString()}`;
 }
 
-export function storeAddressSearchUrl(name: string, area: string, address: string, placeId: string): string {
-  const query = [name, area, address].map((value) => value.trim()).filter(Boolean).join(" ");
+export function storeAddressSearchUrl(name: string, address: string, placeId: string): string {
+  const query = [name, address].map((value) => value.trim()).filter(Boolean).join(" ");
   const params = new URLSearchParams({
     api: "1",
     query,

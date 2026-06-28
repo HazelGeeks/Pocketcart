@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   buildStoreImportPreview,
   csvHeaderKey,
+  dateOnlyToIso,
   parseCsvRows,
   validatePriceEntryInput,
   validateProductInput,
@@ -30,24 +31,24 @@ test("validateProductInput requires product name and category", () => {
 
 test("validateStoreInput checks required fields, coordinates, and duplicates", () => {
   assert.equal(
-    validateStoreInput({ name: "Fresh Mart", area: "", latitude: "49", longitude: "-123" }),
-    "Branch name, area, latitude, and longitude are required.",
+    validateStoreInput({ name: "", latitude: "49", longitude: "-123" }),
+    "Branch name, latitude, and longitude are required.",
   );
   assert.equal(
-    validateStoreInput({ name: "Fresh Mart", area: "Burnaby", latitude: "91", longitude: "-123" }),
+    validateStoreInput({ name: "Fresh Mart", latitude: "91", longitude: "-123" }),
     "Latitude must be between -90 and 90.",
   );
   assert.equal(
     validateStoreInput(
-      { name: "Fresh Mart", area: "Burnaby", latitude: "49.2", longitude: "-123.1" },
-      [{ id: "store-1", brand: "", name: "Fresh Mart", area: "Burnaby" }],
+      { name: "Fresh Mart", latitude: "49.2", longitude: "-123.1" },
+      [{ id: "store-1", brand: "", name: "Fresh Mart" }],
     ),
-    "A store with the same brand, branch, and area already exists.",
+    "A store with the same brand and branch already exists.",
   );
   assert.equal(
     validateStoreInput(
-      { name: "Fresh Mart", area: "Burnaby", latitude: "49.2", longitude: "-123.1" },
-      [{ id: "store-1", brand: "", name: "Fresh Mart", area: "Burnaby" }],
+      { name: "Fresh Mart", latitude: "49.2", longitude: "-123.1" },
+      [{ id: "store-1", brand: "", name: "Fresh Mart" }],
       "store-1",
     ),
     null,
@@ -65,12 +66,21 @@ test("validatePriceEntryInput checks relation, price, and dates", () => {
   );
   assert.equal(
     validatePriceEntryInput({ productId: "p1", storeId: "s1", price: "2.99", validFrom: "2026-99-01" }),
+    "Sale period start and end dates are required.",
+  );
+  assert.equal(
+    validatePriceEntryInput({ productId: "p1", storeId: "s1", price: "2.99", validFrom: "2026-99-01", validTo: "2026-06-20" }),
     "Valid from must be a valid date.",
   );
   assert.equal(
-    validatePriceEntryInput({ productId: "p1", storeId: "s1", price: "2.99", validFrom: "2026-06-18" }),
+    validatePriceEntryInput({ productId: "p1", storeId: "s1", price: "2.99", validFrom: "2026-06-18", validTo: "2026-06-20" }),
     null,
   );
+});
+
+test("dateOnlyToIso preserves sale period dates in UTC", () => {
+  assert.equal(dateOnlyToIso("2026-06-18", false), "2026-06-18T00:00:00.000Z");
+  assert.equal(dateOnlyToIso("2026-06-18", true), "2026-06-18T23:59:59.999Z");
 });
 
 test("buildStoreImportPreview validates store CSV rows with brand and place_id", () => {

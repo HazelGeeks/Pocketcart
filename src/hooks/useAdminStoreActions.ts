@@ -14,7 +14,7 @@ type Mutation<TParams, TResult> = {
 type StoreMutationParams = {
   brand?: string;
   name: string;
-  area: string;
+  area?: string;
   latitude: string;
   longitude: string;
   priceNote?: string;
@@ -41,7 +41,6 @@ type Params = {
   editingStoreId: string | null;
   storeBrand: string;
   storeName: string;
-  storeArea: string;
   storeLatitude: string;
   storeLongitude: string;
   storePriceNote: string;
@@ -59,7 +58,6 @@ type Params = {
   setStoreModalOpen: (value: boolean) => void;
   setStoreBrand: (value: string) => void;
   setStoreName: (value: string) => void;
-  setStoreArea: (value: string) => void;
   setStoreLatitude: (value: string) => void;
   setStoreLongitude: (value: string) => void;
   setStorePriceNote: (value: string) => void;
@@ -89,7 +87,6 @@ export default function useAdminStoreActions({
   editingStoreId,
   storeBrand,
   storeName,
-  storeArea,
   storeLatitude,
   storeLongitude,
   storePriceNote,
@@ -107,7 +104,6 @@ export default function useAdminStoreActions({
   setStoreModalOpen,
   setStoreBrand,
   setStoreName,
-  setStoreArea,
   setStoreLatitude,
   setStoreLongitude,
   setStorePriceNote,
@@ -134,7 +130,6 @@ export default function useAdminStoreActions({
     setEditingStoreId(null);
     setStoreBrand("");
     setStoreName("");
-    setStoreArea("");
     setStoreLatitude("");
     setStoreLongitude("");
     setStorePriceNote("");
@@ -149,7 +144,6 @@ export default function useAdminStoreActions({
     setEditingStoreId,
     setStoreBrand,
     setStoreAddress,
-    setStoreArea,
     setStoreHours,
     setStoreIsActive,
     setStoreLatitude,
@@ -180,7 +174,6 @@ export default function useAdminStoreActions({
       setEditingStoreId(store.id);
       setStoreBrand(store.brand ?? "");
       setStoreName(store.name);
-      setStoreArea(store.area);
       setStoreLatitude(String(store.latitude));
       setStoreLongitude(String(store.longitude));
       setStorePriceNote(store.price_note ?? "");
@@ -197,7 +190,6 @@ export default function useAdminStoreActions({
       setEditingStoreId,
       setStoreBrand,
       setStoreAddress,
-      setStoreArea,
       setStoreHours,
       setStoreIsActive,
       setStoreLatitude,
@@ -249,7 +241,7 @@ export default function useAdminStoreActions({
           const store = await createStoreMutation.mutateAsync({
             brand: row.brand,
             name: row.name,
-            area: row.area,
+            area: row.address || row.area || row.name,
             latitude: row.latitude,
             longitude: row.longitude,
             priceNote: row.priceNote,
@@ -305,18 +297,18 @@ export default function useAdminStoreActions({
   const handleSaveStore = React.useCallback(async () => {
     const name = storeName.trim();
     const brand = storeBrand.trim();
-    const area = storeArea.trim();
     const latitude = storeLatitude.trim();
     const longitude = storeLongitude.trim();
     const priceNote = storePriceNote.trim();
     const address = storeAddress.trim();
+    const areaFallback = address || name;
     const placeId = storePlaceId.trim();
     const phone = storePhone.trim();
     const website = storeWebsite.trim();
     const hours = storeHours.trim();
 
-    if (!name || !area || !latitude || !longitude) {
-      setNotice("Branch name, area, latitude, and longitude are required.");
+    if (!name || !latitude || !longitude) {
+      setNotice("Branch name, latitude, and longitude are required.");
       return;
     }
     const coordinateError = coordinateValidationMessage(latitude, longitude);
@@ -328,11 +320,10 @@ export default function useAdminStoreActions({
     const duplicate = stores.find((store) => {
       if (editingStoreId && store.id === editingStoreId) return false;
       return (store.brand ?? "").trim().toLowerCase() === brand.toLowerCase() &&
-        store.name.trim().toLowerCase() === name.toLowerCase() &&
-        store.area.trim().toLowerCase() === area.toLowerCase();
+        store.name.trim().toLowerCase() === name.toLowerCase();
     });
     if (duplicate) {
-      setNotice("A store with the same brand, branch, and area already exists.");
+      setNotice("A store with the same brand and branch already exists.");
       return;
     }
 
@@ -343,7 +334,7 @@ export default function useAdminStoreActions({
             id: editingStoreId,
             brand,
             name,
-            area,
+            area: areaFallback,
             latitude,
             longitude,
             priceNote,
@@ -358,7 +349,7 @@ export default function useAdminStoreActions({
         : await createStoreMutation.mutateAsync({
             brand,
             name,
-            area,
+            area: areaFallback,
             latitude,
             longitude,
             priceNote,
@@ -380,7 +371,7 @@ export default function useAdminStoreActions({
           metadata: {
             name,
             brand,
-            area,
+            area: areaFallback,
             latitude,
             longitude,
             address,
@@ -414,7 +405,6 @@ export default function useAdminStoreActions({
     setStoreModalOpen,
     setSubmitting,
     storeAddress,
-    storeArea,
     storeBrand,
     storeHours,
     storeIsActive,

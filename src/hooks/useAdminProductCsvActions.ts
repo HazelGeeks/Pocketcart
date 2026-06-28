@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import type { AdminProduct, AdminStore } from "../services/adminBackoffice";
 import type { ProductPriceStats } from "../utils/adminScreenHelpers";
 import { PRODUCT_IMPORT_HEADERS, downloadCsvFile, productsToCsv } from "../utils/adminScreenHelpers";
-import { csvHeaderKey, csvRowValue, parseCsvRows } from "../utils/adminValidation";
+import { csvHeaderKey, csvRowValue, dateOnlyToIso, parseCsvRows } from "../utils/adminValidation";
 import { productIdentityKey } from "../utils/productIdentity";
 
 type Mutation<TParams, TResult> = {
@@ -45,6 +45,10 @@ function parseStoreIdCandidate(candidate: string): string | null {
   const trimmed = candidate.trim();
   if (!trimmed) return null;
   return trimmed;
+}
+
+function storeIdentityKey(params: { brand?: string | null; name: string }): string {
+  return `${params.brand?.trim().toLowerCase() ?? ""}|${params.name.trim().toLowerCase()}`;
 }
 
 export default function useAdminProductCsvActions({
@@ -114,14 +118,16 @@ export default function useAdminProductCsvActions({
             products.map((product) => [productIdentityKey(product), product]),
           );
           const storeIdByName = new Map<string, string>();
+          const storeIdByIdentity = new Map<string, string>();
           stores.forEach((store) => {
             storeIdByName.set(store.name.trim().toLowerCase(), store.id);
+            storeIdByIdentity.set(storeIdentityKey(store), store.id);
             if (store.brand?.trim()) {
               storeIdByName.set(`${store.brand.trim()} - ${store.name.trim()}`.toLowerCase(), store.id);
             }
           });
 
-          const resolveStoreId = (storeIdValue: string, storeNameValue: string): string | null => {
+          const resolveStoreId = (storeIdValue: string, storeNameValue: string, storeBrandValue: string): string | null => {
             const directStoreId = parseStoreIdCandidate(storeIdValue);
             if (directStoreId) {
               return storeById.get(directStoreId.toLowerCase()) ?? directStoreId;
@@ -132,6 +138,8 @@ export default function useAdminProductCsvActions({
               .map((value) => value.trim().toLowerCase())
               .filter(Boolean);
             for (const candidate of candidates) {
+              const identityMatch = storeIdByIdentity.get(storeIdentityKey({ brand: storeBrandValue, name: candidate }));
+              if (identityMatch) return identityMatch;
               const match = storeIdByName.get(candidate);
               if (match) return match;
             }
@@ -153,6 +161,7 @@ export default function useAdminProductCsvActions({
             const rawPrice = csvRowValue(record, PRODUCT_IMPORT_HEADERS.price);
             const rawStoreId = csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeId);
             const rawStoreName = csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeName);
+            const rawStoreBrand = csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeBrand);
             const observedAt = csvRowValue(record, PRODUCT_IMPORT_HEADERS.observedAt);
             const periodEnd = csvRowValue(record, PRODUCT_IMPORT_HEADERS.periodEnd);
 
@@ -193,10 +202,24 @@ export default function useAdminProductCsvActions({
                 skipped.push(`row ${index + 2}: invalid price '${rawPrice}'`);
                 continue;
               }
+              if (!observedAt || !periodEnd) {
+                priceSkipped.push(`row ${index + 2}: price skipped (missing sale_start_date/sale_end_date)`);
+                continue;
+              }
+              const observedAtIso = dateOnlyToIso(observedAt, false);
+              const periodEndIso = dateOnlyToIso(periodEnd, true);
+              if (!observedAtIso || !periodEndIso) {
+                priceSkipped.push(`row ${index + 2}: price skipped (invalid sale period dates)`);
+                continue;
+              }
 
-              const storeId = resolveStoreId(rawStoreId, rawStoreName);
+              const storeId = resolveStoreId(rawStoreId, rawStoreName, rawStoreBrand);
               if (!storeId) {
-                priceSkipped.push(`row ${index + 2}: price skipped (missing store/store_id)`);
+                if (!rawStoreName && !rawStoreId) {
+                  priceSkipped.push(`row ${index + 2}: price skipped (missing store/store_id)`);
+                } else {
+                  priceSkipped.push(`row ${index + 2}: price skipped (store not found)`);
+                }
                 continue;
               }
 
@@ -205,8 +228,8 @@ export default function useAdminProductCsvActions({
                   productId: product.id,
                   storeId,
                   price: normalizedPrice,
-                  observedAt: observedAt || undefined,
-                  periodEnd: periodEnd || undefined,
+                  observedAt: observedAtIso,
+                  periodEnd: periodEndIso,
                 });
                 priceImported.push(`row ${index + 2}`);
               } catch (priceError) {

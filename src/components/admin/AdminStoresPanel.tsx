@@ -14,11 +14,9 @@ type Props = {
   storeAuditLogs: AdminAuditLog[];
   storeSearchQuery: string;
   storeBrandFilter: string;
-  storeAreaFilter: string;
   storeStatusFilter: string;
   storeTypeFilter: string;
   storeBrandOptions: string[];
-  storeAreaOptions: string[];
   storeTypeOptions: string[];
   storeActiveFilterCount: number;
   deletingKey: string | null;
@@ -29,7 +27,6 @@ type Props = {
   onExportStoresCsv: () => void;
   onStoreSearchChange: (value: string) => void;
   onStoreBrandChange: (value: string) => void;
-  onStoreAreaChange: (value: string) => void;
   onStoreStatusChange: (value: string) => void;
   onStoreTypeChange: (value: string) => void;
   onResetStoreFilters: () => void;
@@ -47,11 +44,9 @@ export default function AdminStoresPanel({
   storeAuditLogs,
   storeSearchQuery,
   storeBrandFilter,
-  storeAreaFilter,
   storeStatusFilter,
   storeTypeFilter,
   storeBrandOptions,
-  storeAreaOptions,
   storeTypeOptions,
   storeActiveFilterCount,
   deletingKey,
@@ -62,7 +57,6 @@ export default function AdminStoresPanel({
   onExportStoresCsv,
   onStoreSearchChange,
   onStoreBrandChange,
-  onStoreAreaChange,
   onStoreStatusChange,
   onStoreTypeChange,
   onResetStoreFilters,
@@ -91,11 +85,9 @@ export default function AdminStoresPanel({
       <AdminStoreFilters
         searchQuery={storeSearchQuery}
         brandFilter={storeBrandFilter}
-        areaFilter={storeAreaFilter}
         statusFilter={storeStatusFilter}
         typeFilter={storeTypeFilter}
         brandOptions={storeBrandOptions}
-        areaOptions={storeAreaOptions}
         typeOptions={storeTypeOptions}
         filteredCount={filteredStores.length}
         totalCount={stores.length}
@@ -103,7 +95,6 @@ export default function AdminStoresPanel({
         styles={st}
         onSearchChange={onStoreSearchChange}
         onBrandChange={onStoreBrandChange}
-        onAreaChange={onStoreAreaChange}
         onStatusChange={onStoreStatusChange}
         onTypeChange={onStoreTypeChange}
         onReset={onResetStoreFilters}

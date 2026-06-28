@@ -4,8 +4,9 @@ import type { AdminPriceEntry, PriceRow, ServiceResult } from "./types";
 
 const PRICE_WITH_PERIOD_SELECT =
   "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(name), stores(name)";
-const PRICE_BASE_SELECT = "id, product_id, store_id, price, observed_at, created_at, products(name), stores(name)";
 const PRICE_PAGE_SIZE = 1000;
+const PRICE_PERIOD_MIGRATION_ERROR =
+  "Sale period columns are missing in Supabase. Run the product_prices valid_from/valid_to migration, then retry.";
 
 type PricePayloadParams = {
   productId: string;
@@ -23,23 +24,25 @@ function buildPricePayload(params: PricePayloadParams) {
   const price = parseNumber(params.price);
   if (price === null) return { error: "Price must be a valid number." as const };
 
-  let observedAt = new Date().toISOString();
   const observedRaw = params.observedAt?.trim() ?? "";
-  if (observedRaw.length > 0) {
-    const parsed = new Date(observedRaw);
-    if (Number.isNaN(parsed.getTime())) return { error: "Observed date must be a valid date string." as const };
-    observedAt = parsed.toISOString();
+  const periodEndRaw = params.periodEnd?.trim() ?? "";
+  if (!observedRaw || !periodEndRaw) {
+    return { error: "Sale period start and end dates are required for price entries." as const };
   }
 
-  let validTo: string | null = null;
-  const periodEndRaw = params.periodEnd?.trim() ?? "";
-  if (periodEndRaw) {
-    const parsed = new Date(periodEndRaw);
-    if (Number.isNaN(parsed.getTime())) return { error: "Period end date must be a valid date string." as const };
-    validTo = parsed.toISOString();
-    if (new Date(validTo).getTime() < new Date(observedAt).getTime()) {
-      return { error: "Period end date must be after period start date." as const };
-    }
+  const parsedObserved = new Date(observedRaw);
+  if (Number.isNaN(parsedObserved.getTime())) {
+    return { error: "Observed date must be a valid date string." as const };
+  }
+  const observedAt = parsedObserved.toISOString();
+
+  const parsedPeriodEnd = new Date(periodEndRaw);
+  if (Number.isNaN(parsedPeriodEnd.getTime())) {
+    return { error: "Period end date must be a valid date string." as const };
+  }
+  const validTo = parsedPeriodEnd.toISOString();
+  if (new Date(validTo).getTime() < new Date(observedAt).getTime()) {
+    return { error: "Period end date must be after period start date." as const };
   }
 
   return {
@@ -50,12 +53,6 @@ function buildPricePayload(params: PricePayloadParams) {
       price,
       valid_from: observedAt,
       valid_to: validTo,
-      observed_at: observedAt,
-    },
-    fallbackPayload: {
-      product_id: productId,
-      store_id: storeId,
-      price,
       observed_at: observedAt,
     },
     observedAt,
@@ -108,12 +105,7 @@ export async function listAdminPriceEntries(limit = 5000): Promise<ServiceResult
     if (!isMissingColumnError(withPeriodRows.error)) {
       return { data: [], error: withPeriodRows.error };
     }
-
-    const fallbackRows = await fetchPriceRows(PRICE_BASE_SELECT);
-    if (fallbackRows.error) {
-      return { data: [], error: fallbackRows.error };
-    }
-    rows = fallbackRows.rows;
+    return { data: [], error: PRICE_PERIOD_MIGRATION_ERROR };
   } else {
     rows = withPeriodRows.rows;
   }
@@ -141,18 +133,7 @@ export async function createAdminPriceEntry(params: PricePayloadParams): Promise
   let row: PriceRow | null = null;
   if (withPeriod.error) {
     if (!isMissingColumnError(withPeriod.error)) return { data: null, error: withPeriod.error.message };
-    const fallback = await supabase
-      .from("product_prices")
-      .insert(payload.fallbackPayload)
-      .select(PRICE_BASE_SELECT)
-      .single();
-
-    if (fallback.error) return { data: null, error: fallback.error.message };
-    row = (fallback.data as PriceRow) ?? null;
-    if (row) {
-      row.valid_from = payload.observedAt;
-      row.valid_to = payload.validTo;
-    }
+    return { data: null, error: PRICE_PERIOD_MIGRATION_ERROR };
   } else {
     row = (withPeriod.data as PriceRow) ?? null;
   }
@@ -189,19 +170,7 @@ export async function updateAdminPriceEntry(
   let row: PriceRow | null = null;
   if (withPeriod.error) {
     if (!isMissingColumnError(withPeriod.error)) return { data: null, error: withPeriod.error.message };
-    const fallback = await supabase
-      .from("product_prices")
-      .update(payload.fallbackPayload)
-      .eq("id", id)
-      .select(PRICE_BASE_SELECT)
-      .single();
-
-    if (fallback.error) return { data: null, error: fallback.error.message };
-    row = (fallback.data as PriceRow) ?? null;
-    if (row) {
-      row.valid_from = payload.observedAt;
-      row.valid_to = payload.validTo;
-    }
+    return { data: null, error: PRICE_PERIOD_MIGRATION_ERROR };
   } else {
     row = (withPeriod.data as PriceRow) ?? null;
   }

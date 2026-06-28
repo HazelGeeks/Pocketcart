@@ -42,7 +42,7 @@ export default function AdminStoreList({
   }
 
   return (
-    <>
+    <View style={st.storeGrid}>
       {stores.map((store) => {
         const deleteKey = `store:${store.id}`;
         const deleting = deletingKey === deleteKey;
@@ -61,13 +61,13 @@ export default function AdminStoreList({
             accessibilityRole="button"
             accessibilityLabel={`Select ${store.brand ? `${store.brand} ` : ""}${store.name} on map`}
             onPress={() => onSelectStore(store.id)}
-            style={[st.listRow, selectedOnMap && st.storeListRowActive]}
+            style={[st.storeGridCard, selectedOnMap && st.storeListRowActive]}
             disabled={deleting || submitting}
           >
             <View style={st.listMain}>
               <Text style={st.listTitle}>{store.brand ?? store.name}</Text>
               <Text style={st.dataMuted}>
-                {store.brand ? `${store.name} | ${store.area}` : store.area}
+                {store.brand ? store.name : store.address || store.area || "Address unavailable"}
               </Text>
               <View style={st.storeInlineChipRow}>
                 {store.brand ? (
@@ -96,7 +96,7 @@ export default function AdminStoreList({
               <Text style={st.dataMuted}>
                 {store.latitude}, {store.longitude}
               </Text>
-              {store.address ? (
+              {store.address && store.brand ? (
                 <Text style={st.dataMuted}>{store.address}</Text>
               ) : null}
               {store.place_id ? (
@@ -153,6 +153,6 @@ export default function AdminStoreList({
           </Pressable>
         );
       })}
-    </>
+    </View>
   );
 }

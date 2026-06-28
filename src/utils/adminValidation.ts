@@ -4,14 +4,14 @@ export type StoreImportPreviewInput = {
   id?: string;
   brand?: string | null;
   name: string;
-  area: string;
+  area?: string;
 };
 
 export type StoreImportPreviewRow = {
   rowNumber: number;
   brand: string;
   name: string;
-  area: string;
+  area?: string;
   latitude: string;
   longitude: string;
   priceNote: string;
@@ -54,9 +54,21 @@ export function isDateOnly(value: string): boolean {
 
 export function dateOnlyToIso(value: string, endOfDay: boolean): string | null {
   if (!isDateOnly(value)) return null;
-  const clock = endOfDay ? "T23:59:59" : "T00:00:00";
-  const date = new Date(`${value}${clock}`);
+  const [yearText, monthText, dayText] = value.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const date = endOfDay
+    ? new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
+    : new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
   if (Number.isNaN(date.getTime())) return null;
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
   return date.toISOString();
 }
 
@@ -146,7 +158,6 @@ export function validateStoreInput(
   params: {
     brand?: string;
     name: string;
-    area: string;
     latitude: string;
     longitude: string;
   },
@@ -154,9 +165,8 @@ export function validateStoreInput(
   editingStoreId?: string | null,
 ): string | null {
   const name = params.name.trim();
-  const area = params.area.trim();
-  if (!name || !area || !params.latitude.trim() || !params.longitude.trim()) {
-    return "Branch name, area, latitude, and longitude are required.";
+  if (!name || !params.latitude.trim() || !params.longitude.trim()) {
+    return "Branch name, latitude, and longitude are required.";
   }
   const coordinateError = coordinateValidationMessage(params.latitude, params.longitude);
   if (coordinateError) return coordinateError;
@@ -168,10 +178,9 @@ export function validateStoreInput(
       ? params.brand.trim().toLowerCase()
       : "";
     return existingBrand === inputBrand &&
-      store.name.trim().toLowerCase() === name.toLowerCase() &&
-      store.area.trim().toLowerCase() === area.toLowerCase();
+      store.name.trim().toLowerCase() === name.toLowerCase();
   });
-  if (duplicate) return "A store with the same brand, branch, and area already exists.";
+  if (duplicate) return "A store with the same brand and branch already exists.";
   return null;
 }
 
@@ -187,6 +196,9 @@ export function validatePriceEntryInput(params: {
   }
   const price = Number(params.price);
   if (!Number.isFinite(price) || price < 0) return "Price must be a valid non-negative number.";
+  if (!params.validFrom?.trim() || !params.validTo?.trim()) {
+    return "Sale period start and end dates are required.";
+  }
   if (params.validFrom && !dateOnlyToIso(params.validFrom, false)) return "Valid from must be a valid date.";
   if (params.validTo && !dateOnlyToIso(params.validTo, true)) return "Valid to must be a valid date.";
   return null;
@@ -199,7 +211,7 @@ export function buildStoreImportPreview(
 ): StoreImportPreviewRow[] {
   const headers = headerRow.map(csvHeaderKey);
   const existing = new Set(
-    stores.map((store) => `${store.brand?.trim().toLowerCase() ?? ""}|${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
+    stores.map((store) => `${store.brand?.trim().toLowerCase() ?? ""}|${store.name.trim().toLowerCase()}`),
   );
 
   return dataRows.map((values, index) => {
@@ -221,7 +233,7 @@ export function buildStoreImportPreview(
     const hours = csvRowValue(record, STORE_IMPORT_HEADERS.hours);
     const storeType = csvRowValue(record, STORE_IMPORT_HEADERS.storeType) || "grocery";
     const isActive = parseStoreActive(csvRowValue(record, STORE_IMPORT_HEADERS.isActive));
-    const duplicateKey = `${brand.trim().toLowerCase()}|${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+    const duplicateKey = `${brand.trim().toLowerCase()}|${name.trim().toLowerCase()}`;
     const coordinateError = latitude && longitude ? coordinateValidationMessage(latitude, longitude) : null;
 
     const base = {
@@ -241,7 +253,7 @@ export function buildStoreImportPreview(
       isActive,
     };
 
-    if (!name || !area || !latitude || !longitude) {
+    if (!name || !latitude || !longitude) {
       return { ...base, status: "invalid", reason: "Missing required fields" };
     }
 
@@ -250,7 +262,7 @@ export function buildStoreImportPreview(
     }
 
     if (existing.has(duplicateKey)) {
-      return { ...base, status: "duplicate", reason: "Duplicate brand, name, and area" };
+      return { ...base, status: "duplicate", reason: "Duplicate brand and name" };
     }
 
     existing.add(duplicateKey);

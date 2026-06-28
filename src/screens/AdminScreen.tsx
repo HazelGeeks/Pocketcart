@@ -57,7 +57,6 @@ import { type StoreImportPreviewRow } from "../utils/adminValidation";
 import {
   ADMIN_EMAIL_ALLOWLIST,
   createStorePriceSet,
-  toNonNegativeCount,
   type StorePriceSetInput,
 } from "../utils/adminScreenHelpers";
 import { st } from "./adminScreenStyles";
@@ -80,8 +79,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [productStorePriceSets, setProductStorePriceSets] = React.useState<StorePriceSetInput[]>([
     createStorePriceSet(),
   ]);
-  const [productPeriodStartDate, setProductPeriodStartDate] = React.useState("");
-  const [productPeriodEndDate, setProductPeriodEndDate] = React.useState("");
   const [productModalOpen, setProductModalOpen] = React.useState(false);
   const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
   const [productImageUploading, setProductImageUploading] = React.useState(false);
@@ -89,7 +86,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [storeModalOpen, setStoreModalOpen] = React.useState(false);
   const [storeBrand, setStoreBrand] = React.useState("");
   const [storeName, setStoreName] = React.useState("");
-  const [storeArea, setStoreArea] = React.useState("");
   const [storeLatitude, setStoreLatitude] = React.useState("");
   const [storeLongitude, setStoreLongitude] = React.useState("");
   const [storePriceNote, setStorePriceNote] = React.useState("");
@@ -102,7 +98,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const [storeIsActive, setStoreIsActive] = React.useState(true);
   const [storeSearchQuery, setStoreSearchQuery] = React.useState("");
   const [storeBrandFilter, setStoreBrandFilter] = React.useState("all");
-  const [storeAreaFilter, setStoreAreaFilter] = React.useState("all");
   const [storeStatusFilter, setStoreStatusFilter] = React.useState("all");
   const [storeTypeFilter, setStoreTypeFilter] = React.useState("all");
   const [selectedStoreMapId, setSelectedStoreMapId] = React.useState<string | null>(null);
@@ -121,14 +116,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const setProductSearchQuery = useAdminStore((state) => state.setProductSearchQuery);
   const productCategoryFilter = useAdminStore((state) => state.productCategoryFilter);
   const setProductCategoryFilter = useAdminStore((state) => state.setProductCategoryFilter);
+  const productBrandFilter = useAdminStore((state) => state.productBrandFilter);
+  const setProductBrandFilter = useAdminStore((state) => state.setProductBrandFilter);
   const productStoreFilter = useAdminStore((state) => state.productStoreFilter);
   const setProductStoreFilter = useAdminStore((state) => state.setProductStoreFilter);
   const productSaleDateFilter = useAdminStore((state) => state.productSaleDateFilter);
   const setProductSaleDateFilter = useAdminStore((state) => state.setProductSaleDateFilter);
-  const productPriceMin = useAdminStore((state) => state.productPriceMin);
-  const setProductPriceMin = useAdminStore((state) => state.setProductPriceMin);
-  const productPriceMax = useAdminStore((state) => state.productPriceMax);
-  const setProductPriceMax = useAdminStore((state) => state.setProductPriceMax);
   const productSort = useAdminStore((state) => state.productSort);
   const setProductSort = useAdminStore((state) => state.setProductSort);
   const resetProductFilters = useAdminStore((state) => state.resetProductFilters);
@@ -187,17 +180,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     filteredStores,
     flyerSelectedCount,
     overviewCards,
-    priceRowsMissingLink,
     productActiveFilterCount,
+    productBrandFilterOptions,
     productFilterCategoryOptions,
     productPriceStats,
     productSortOptions,
     productStoreFilterOptions,
     recentStoreOptions,
     selectedStoreForMap,
-    stalePriceRows,
     storeActiveFilterCount,
-    storeAreaOptions,
     storeAuditLogs,
     storeBrandOptions,
     storePriceStats,
@@ -209,16 +200,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     auditLogs,
     storeSearchQuery,
     storeBrandFilter,
-    storeAreaFilter,
     storeStatusFilter,
     storeTypeFilter,
     selectedStoreMapId,
     productSearchQuery,
     productCategoryFilter,
+    productBrandFilter,
     productStoreFilter,
     productSaleDateFilter,
-    productPriceMin,
-    productPriceMax,
     productSort,
     flyerSelectedRows: flyerRows.filter((row) => row.selected).length,
   });
@@ -269,6 +258,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     addStorePriceSet,
     handleCreateProduct,
     handleDeleteProduct,
+    handleDeleteProducts,
     handleExportProductsCsv,
     handleImportProductsCsv,
     handleOpenAddProduct,
@@ -286,13 +276,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     productCategoryCustom,
     productThumb,
     productStorePriceSets,
-    productPeriodStartDate,
-    productPeriodEndDate,
     editingProductId,
     products,
     filteredProducts,
     prices,
-    stores,
+    stores: displayStores,
     productPriceStats,
     setProductName,
     setProductEnglishName,
@@ -301,8 +289,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setProductCategoryCustom,
     setProductThumb,
     setProductStorePriceSets,
-    setProductPeriodStartDate,
-    setProductPeriodEndDate,
     setProductModalOpen,
     setEditingProductId,
     setProductImageUploading,
@@ -312,6 +298,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     resetProductFilters,
     loadAll,
     createProductMutation,
+    createStoreMutation,
     updateProductMutation,
     deleteProductMutation,
     createPriceEntryMutation,
@@ -334,7 +321,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     editingStoreId,
     storeBrand,
     storeName,
-    storeArea,
     storeLatitude,
     storeLongitude,
     storePriceNote,
@@ -352,7 +338,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setStoreModalOpen,
     setStoreBrand,
     setStoreName,
-    setStoreArea,
     setStoreLatitude,
     setStoreLongitude,
     setStorePriceNote,
@@ -443,7 +428,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     {
       key: "overview" as const,
       label: "Dashboard",
-      badge: toNonNegativeCount(priceRowsMissingLink + stalePriceRows),
     },
     {
       key: "products" as const,
@@ -458,7 +442,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     {
       key: "flyer" as const,
       label: "Flyer",
-      badge: 0,
     },
   ];
   const panelTitle =
@@ -582,13 +565,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     submitting={submitting}
                     deletingKey={deletingKey}
                     productSearchQuery={productSearchQuery}
-                    productPriceMin={productPriceMin}
-                    productPriceMax={productPriceMax}
                     productCategoryFilter={productCategoryFilter}
+                    productBrandFilter={productBrandFilter}
                     productStoreFilter={productStoreFilter}
                     productSaleDateFilter={productSaleDateFilter}
                     productSort={productSort}
                     productCategoryOptions={productFilterCategoryOptions}
+                    productBrandOptions={productBrandFilterOptions}
                     productStoreOptions={productStoreFilterOptions}
                     productSortOptions={productSortOptions}
                     productActiveFilterCount={productActiveFilterCount}
@@ -598,9 +581,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onExportProductsCsv={handleExportProductsCsv}
                     onOpenAddProduct={handleOpenAddProduct}
                     onProductSearchChange={setProductSearchQuery}
-                    onProductPriceMinChange={setProductPriceMin}
-                    onProductPriceMaxChange={setProductPriceMax}
                     onProductCategoryChange={setProductCategoryFilter}
+                    onProductBrandChange={setProductBrandFilter}
                     onProductStoreChange={setProductStoreFilter}
                     onProductSaleDateChange={setProductSaleDateFilter}
                     onProductSortChange={setProductSort}
@@ -608,6 +590,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onEditProduct={handleOpenEditProduct}
                     onDeleteProduct={(productId) => {
                       void handleDeleteProduct(productId);
+                    }}
+                    onDeleteProducts={(productIds) => {
+                      void handleDeleteProducts(productIds);
                     }}
                   />
                 ) : null}
@@ -621,10 +606,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     storeAuditLogs={storeAuditLogs}
                     storeSearchQuery={storeSearchQuery}
                     storeBrandFilter={storeBrandFilter}
-                    storeAreaFilter={storeAreaFilter}
                     storeStatusFilter={storeStatusFilter}
                     storeTypeFilter={storeTypeFilter}
-                    storeAreaOptions={storeAreaOptions}
                     storeBrandOptions={storeBrandOptions}
                     storeTypeOptions={storeTypeOptions}
                     storeActiveFilterCount={storeActiveFilterCount}
@@ -636,13 +619,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onExportStoresCsv={handleExportStoresCsv}
                     onStoreSearchChange={setStoreSearchQuery}
                     onStoreBrandChange={setStoreBrandFilter}
-                    onStoreAreaChange={setStoreAreaFilter}
                     onStoreStatusChange={setStoreStatusFilter}
                     onStoreTypeChange={setStoreTypeFilter}
                     onResetStoreFilters={() => {
                       setStoreSearchQuery("");
                       setStoreBrandFilter("all");
-                      setStoreAreaFilter("all");
                       setStoreStatusFilter("all");
                       setStoreTypeFilter("all");
                     }}
@@ -707,7 +688,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         submitting={submitting}
         brand={storeBrand}
         name={storeName}
-        area={storeArea}
         latitude={storeLatitude}
         longitude={storeLongitude}
         priceNote={storePriceNote}
@@ -721,7 +701,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         styles={st}
         onBrandChange={setStoreBrand}
         onNameChange={setStoreName}
-        onAreaChange={setStoreArea}
         onLatitudeChange={setStoreLatitude}
         onLongitudeChange={setStoreLongitude}
         onPriceNoteChange={setStorePriceNote}
@@ -755,8 +734,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         productCategoryCustom={productCategoryCustom}
         productThumb={productThumb}
         storePriceSets={productStorePriceSets}
-        periodStartDate={productPeriodStartDate}
-        periodEndDate={productPeriodEndDate}
         categoryOptions={categoryOptions}
         recentStoreOptions={recentStoreOptions}
         styles={st}
@@ -771,8 +748,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         onAddStorePriceSet={addStorePriceSet}
         onRemoveStorePriceSet={removeStorePriceSet}
         onUpdateStorePriceSet={updateStorePriceSet}
-        onPeriodStartChange={setProductPeriodStartDate}
-        onPeriodEndChange={setProductPeriodEndDate}
         onClose={() => {
           setProductModalOpen(false);
           resetProductForm();

@@ -2,6 +2,7 @@ import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import {
+  dateInputValue,
   toDateOnlyLabel,
   type ProductPriceStats,
 } from "../../utils/adminScreenHelpers";
@@ -13,7 +14,9 @@ type AdminProductListProps = {
   priceStats: Map<string, ProductPriceStats>;
   deletingKey: string | null;
   submitting: boolean;
+  selectedProductIds: Set<string>;
   styles: Record<string, any>;
+  onToggleProduct: (productId: string) => void;
   onEditProduct: (product: AdminProduct) => void;
   onDeleteProduct: (productId: string) => void;
 };
@@ -25,7 +28,9 @@ export default function AdminProductList({
   priceStats,
   deletingKey,
   submitting,
+  selectedProductIds,
   styles: st,
+  onToggleProduct,
   onEditProduct,
   onDeleteProduct,
 }: AdminProductListProps) {
@@ -46,6 +51,8 @@ export default function AdminProductList({
       {products.map((item) => {
         const deleteKey = `product:${item.id}`;
         const deleting = deletingKey === deleteKey;
+        const bulkDeleting = deletingKey === "products:bulk";
+        const selected = selectedProductIds.has(item.id);
         const stats = priceStats.get(item.id);
         const latestPrice = stats?.latestPrice ?? null;
         const storeCount = stats?.storeIds.size ?? 0;
@@ -57,9 +64,23 @@ export default function AdminProductList({
           stats && stats.latestObservedAtMs >= 0
             ? toDateOnlyLabel(new Date(stats.latestObservedAtMs).toISOString())
             : toDateOnlyLabel(item.created_at);
+        const salePeriodLabel = stats?.latestValidFrom
+          ? `${dateInputValue(stats.latestValidFrom)} - ${stats.latestValidTo ? dateInputValue(stats.latestValidTo) : "No end date"}`
+          : null;
 
         return (
           <View key={item.id} style={st.listRow}>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: selected }}
+              onPress={() => onToggleProduct(item.id)}
+              style={[st.productCheckboxHitArea, (deleting || bulkDeleting || submitting) && st.btnDisabled]}
+              disabled={deleting || bulkDeleting || submitting}
+            >
+              <View style={[st.productCheckboxBox, selected && st.productCheckboxBoxChecked]}>
+                {selected ? <View style={st.productCheckboxMark} /> : null}
+              </View>
+            </Pressable>
             <View style={st.listMain}>
               <Text style={st.listTitle}>{item.name}</Text>
               {item.english_name ? <Text style={st.dataMuted}>{item.english_name}</Text> : null}
@@ -77,6 +98,11 @@ export default function AdminProductList({
                 <View style={st.productMetaChip}>
                   <Text style={st.productMetaChipText}>Range {priceRangeLabel}</Text>
                 </View>
+                {salePeriodLabel ? (
+                  <View style={st.productMetaChip}>
+                    <Text style={st.productMetaChipText}>Sale {salePeriodLabel}</Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={st.dataMuted}>{item.id}</Text>
             </View>
@@ -89,7 +115,7 @@ export default function AdminProductList({
                 accessibilityRole="button"
                 onPress={() => onEditProduct(item)}
                 style={[st.btn, st.btnGhost]}
-                disabled={deleting || submitting}
+                disabled={deleting || bulkDeleting || submitting}
               >
                 <Text style={st.btnGhostText}>Edit</Text>
               </Pressable>
@@ -97,7 +123,7 @@ export default function AdminProductList({
                 accessibilityRole="button"
                 onPress={() => onDeleteProduct(item.id)}
                 style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
-                disabled={deleting}
+                disabled={deleting || bulkDeleting}
               >
                 <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
               </Pressable>

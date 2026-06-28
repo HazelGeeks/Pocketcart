@@ -12,6 +12,7 @@ export type FlyerRow = {
   saleStartDate: string;
   saleEndDate: string;
   name: string;
+  englishName: string;
   mainCategory: string;
   subCategory: string;
   brand: string;
@@ -31,6 +32,7 @@ export function createFlyerRow(seed?: Partial<FlyerRow>): FlyerRow {
     saleStartDate: seed?.saleStartDate ?? "",
     saleEndDate: seed?.saleEndDate ?? "",
     name: seed?.name ?? "",
+    englishName: seed?.englishName ?? "",
     mainCategory: seed?.mainCategory ?? "",
     subCategory: seed?.subCategory ?? "",
     brand: seed?.brand ?? "",
@@ -45,10 +47,9 @@ type AdminStoreState = {
   sidebarCollapsed: boolean;
   productSearchQuery: string;
   productCategoryFilter: string;
+  productBrandFilter: string;
   productStoreFilter: string;
   productSaleDateFilter: string;
-  productPriceMin: string;
-  productPriceMax: string;
   productSort: ProductSortKey;
   flyerRows: FlyerRow[];
   flyerProcessing: boolean;
@@ -57,10 +58,9 @@ type AdminStoreState = {
   setSidebarCollapsed: (value: boolean) => void;
   setProductSearchQuery: (value: string) => void;
   setProductCategoryFilter: (value: string) => void;
+  setProductBrandFilter: (value: string) => void;
   setProductStoreFilter: (value: string) => void;
   setProductSaleDateFilter: (value: string) => void;
-  setProductPriceMin: (value: string) => void;
-  setProductPriceMax: (value: string) => void;
   setProductSort: (value: ProductSortKey) => void;
   resetProductFilters: () => void;
   setFlyerRows: (rows: FlyerRow[]) => void;
@@ -76,10 +76,9 @@ type AdminStoreState = {
 const productFilterDefaults = {
   productSearchQuery: "",
   productCategoryFilter: "all",
+  productBrandFilter: "all",
   productStoreFilter: "all",
   productSaleDateFilter: "",
-  productPriceMin: "",
-  productPriceMax: "",
   productSort: "latest" as ProductSortKey,
 };
 
@@ -94,10 +93,9 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   setSidebarCollapsed: (value) => set({ sidebarCollapsed: value }),
   setProductSearchQuery: (value) => set({ productSearchQuery: value }),
   setProductCategoryFilter: (value) => set({ productCategoryFilter: value }),
+  setProductBrandFilter: (value) => set({ productBrandFilter: value }),
   setProductStoreFilter: (value) => set({ productStoreFilter: value }),
   setProductSaleDateFilter: (value) => set({ productSaleDateFilter: value }),
-  setProductPriceMin: (value) => set({ productPriceMin: value }),
-  setProductPriceMax: (value) => set({ productPriceMax: value }),
   setProductSort: (value) => set({ productSort: value }),
   resetProductFilters: () => set(productFilterDefaults),
   setFlyerRows: (rows) => set({ flyerRows: rows }),

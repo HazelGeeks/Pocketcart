@@ -210,7 +210,7 @@ create table if not exists public.stores (
   id uuid primary key default gen_random_uuid(),
   brand text,
   name text not null,
-  area text not null,
+  area text,
   latitude numeric not null,
   longitude numeric not null,
   price_note text,
@@ -233,6 +233,16 @@ alter table public.stores
   add column if not exists hours text,
   add column if not exists store_type text not null default 'grocery',
   add column if not exists is_active boolean not null default true;
+
+alter table public.stores alter column area drop not null;
+alter table public.stores drop constraint if exists stores_name_area_unique;
+drop index if exists stores_brand_name_area_unique;
+
+create unique index if not exists stores_brand_name_unique
+  on public.stores (
+    lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),
+    lower(regexp_replace(trim(name), '\s+', ' ', 'g'))
+  );
 
 alter table public.stores drop constraint if exists stores_latitude_range;
 alter table public.stores

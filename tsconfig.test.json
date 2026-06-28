@@ -14,7 +14,9 @@
     "src/constants/palette.ts",
     "src/utils/authCallback.ts",
     "src/utils/adminValidation.ts",
+    "src/utils/flyerCsv.ts",
     "src/utils/productIdentity.ts",
-    "src/utils/productStorePriceSets.ts"
+    "src/utils/productStorePriceSets.ts",
+    "src/utils/saleAlertRules.ts"
   ]
 }
