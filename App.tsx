@@ -25,6 +25,7 @@ import PrivacyScreen from "./src/screens/PrivacyScreen";
 import TermsScreen from "./src/screens/TermsScreen";
 import BlogScreen from "./src/screens/BlogScreen";
 import DeleteAccountScreen from "./src/screens/DeleteAccountScreen";
+import SupportScreen from "./src/screens/SupportScreen";
 import NativeAppScreen from "./src/screens/NativeAppScreen";
 import AdminScreen from "./src/screens/AdminScreen";
 import { getBlogPost } from "./src/data/blogPosts";
@@ -170,6 +171,8 @@ function AppShell() {
     );
   } else if (route === "delete-account") {
     content = <DeleteAccountScreen onBack={goHome} />;
+  } else if (route === "support") {
+    content = <SupportScreen onBack={goHome} />;
   } else if (route === "privacy") {
     content = (
       <PrivacyScreen

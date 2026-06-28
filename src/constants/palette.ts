@@ -2,6 +2,7 @@ export type Route =
   | "home"
   | "privacy"
   | "terms"
+  | "support"
   | "blog"
   | "delete-account"
   | "admin";

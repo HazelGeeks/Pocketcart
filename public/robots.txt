@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 Disallow: /_expo/
 
-Sitemap: https://pocketcart.app/sitemap.xml
+Sitemap: https://pocketcart.pages.dev/sitemap.xml

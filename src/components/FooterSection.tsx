@@ -29,6 +29,7 @@ export default function FooterSection({
     blog: "blog",
     privacy: "privacy",
     terms: "terms",
+    support: "support",
     "delete-account": "delete-account",
   };
 

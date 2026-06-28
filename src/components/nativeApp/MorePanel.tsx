@@ -5,9 +5,10 @@ import { hasSupabaseEnv } from "../../services/supabaseClient";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
 
-const PRIVACY_URL = "https://pocketcart.app/privacy";
-const TERMS_URL = "https://pocketcart.app/terms";
-const DELETE_ACCOUNT_URL = "https://pocketcart.app/delete-account";
+const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
+const TERMS_URL = "https://pocketcart.pages.dev/terms";
+const SUPPORT_URL = "https://pocketcart.pages.dev/support";
+const DELETE_ACCOUNT_URL = "https://pocketcart.pages.dev/delete-account";
 
 type MorePanelProps = {
   profile: UserProfile | null;
@@ -150,6 +151,13 @@ function LegalLinksCard() {
           style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
         >
           <Text style={st.authBtnSecondaryText}>Terms</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => openExternalUrl(SUPPORT_URL)}
+          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
+        >
+          <Text style={st.authBtnSecondaryText}>Support</Text>
         </Pressable>
       </View>
     </View>

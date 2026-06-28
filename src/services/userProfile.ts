@@ -5,6 +5,7 @@ import {
   supabaseAnonKey,
   supabaseUrl,
 } from "./supabaseClient";
+import { parseAuthCallbackUrl } from "../utils/authCallback";
 
 const authRedirectUrl = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
 
@@ -18,6 +19,11 @@ export type UserProfile = {
 type ServiceResult<T> = {
   data: T;
   error: string | null;
+};
+
+type AuthCallbackResult = {
+  handled: boolean;
+  profile: UserProfile | null;
 };
 
 function isAuthSessionMissing(message?: string | null): boolean {
@@ -202,6 +208,66 @@ export async function getCurrentUserProfile(): Promise<
   };
 }
 
+export async function completeAuthSessionFromUrl(
+  url: string,
+): Promise<ServiceResult<AuthCallbackResult>> {
+  const params = parseAuthCallbackUrl(url);
+  if (!params.hasAuthParams) {
+    return {
+      data: { handled: false, profile: null },
+      error: null,
+    };
+  }
+
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult({ handled: true, profile: null });
+  }
+
+  if (params.error) {
+    return {
+      data: { handled: true, profile: null },
+      error: params.errorDescription ?? params.error,
+    };
+  }
+
+  if (params.accessToken && params.refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: params.accessToken,
+      refresh_token: params.refreshToken,
+    });
+
+    if (error) {
+      return {
+        data: { handled: true, profile: null },
+        error: error.message,
+      };
+    }
+  } else if (params.code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(params.code);
+
+    if (error) {
+      return {
+        data: { handled: true, profile: null },
+        error: error.message,
+      };
+    }
+  } else {
+    return {
+      data: { handled: true, profile: null },
+      error: "Email verification link did not include a usable auth session.",
+    };
+  }
+
+  const profileResult = await getCurrentUserProfile();
+  return {
+    data: {
+      handled: true,
+      profile: profileResult.data,
+    },
+    error: profileResult.error,
+  };
+}
+
 export async function signOutUser(): Promise<ServiceResult<null>> {
   if (!hasSupabaseEnv || !supabase) {
     return missingEnvResult(null);
@@ -255,4 +321,44 @@ export async function deleteCurrentUserAccount(): Promise<ServiceResult<null>> {
 
   await supabase.auth.signOut().catch(() => undefined);
   return { data: null, error: null };
+}
+
+export async function submitAccountDeletionRequest(params: {
+  email: string;
+  platform: string;
+  details?: string;
+}): Promise<ServiceResult<{ id: string | null }>> {
+  if (!hasSupabaseEnv) {
+    return missingEnvResult({ id: null });
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/delete-account-request`, {
+    method: "POST",
+    headers: {
+      apikey: supabaseAnonKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: params.email.trim(),
+      platform: params.platform,
+      details: params.details?.trim() || null,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null) as {
+    id?: string;
+    error?: string;
+  } | null;
+
+  if (!response.ok) {
+    return {
+      data: { id: null },
+      error: payload?.error ?? "Unable to submit deletion request.",
+    };
+  }
+
+  return {
+    data: { id: payload?.id ?? null },
+    error: null,
+  };
 }

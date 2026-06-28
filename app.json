@@ -12,12 +12,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#FAFCF2"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.pocketcart.app",
       "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "PocketCart uses your location only when you choose to find nearby stores and deals."
       }
     },
@@ -26,13 +29,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FAFCF2"
       },
-      "versionCode": 1,
+      "versionCode": 6,
       "package": "com.pocketcart.app",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.INTERNET",
-        "android.permission.VIBRATE"
+        "android.permission.INTERNET"
       ],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
@@ -49,6 +51,21 @@
       "themeColor": "#ABC900",
       "backgroundColor": "#FAFCF2"
     },
-    "plugins": ["expo-font"]
+    "plugins": [
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PocketCart uses your location only when you choose to find nearby stores and deals.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b2c314b8-b5ac-443c-b848-819da5ef3d32"
+      }
+    }
   }
 }

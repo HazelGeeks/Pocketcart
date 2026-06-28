@@ -76,7 +76,7 @@ export const DEFAULT_PRODUCT_CATEGORIES = [
 
 export const ADMIN_EMAIL_ALLOWLIST = (process.env.EXPO_PUBLIC_ADMIN_EMAILS ?? "")
   .split(",")
-  .map((value) => value.trim().toLowerCase())
+  .map((value: string) => value.trim().toLowerCase())
   .filter(Boolean);
 
 export const WEB_FILTER_SELECT_STYLE: React.CSSProperties = {
@@ -126,17 +126,17 @@ export const STORE_TYPE_OPTIONS = [
 ];
 
 const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
-  { label: "마트명", key: "martName" },
-  { label: "지역/지점", key: "regionBranch" },
-  { label: "세일 시작일", key: "saleStartDate" },
-  { label: "세일 종료일", key: "saleEndDate" },
-  { label: "이름", key: "name" },
-  { label: "대분류", key: "mainCategory" },
-  { label: "중분류", key: "subCategory" },
-  { label: "브랜드", key: "brand" },
-  { label: "가격", key: "price" },
-  { label: "단위", key: "unit" },
-  { label: "메모", key: "memo" },
+  { label: "store", key: "martName" },
+  { label: "area_branch", key: "regionBranch" },
+  { label: "sale_start_date", key: "saleStartDate" },
+  { label: "sale_end_date", key: "saleEndDate" },
+  { label: "name", key: "name" },
+  { label: "main_category", key: "mainCategory" },
+  { label: "sub_category", key: "subCategory" },
+  { label: "brand", key: "brand" },
+  { label: "price", key: "price" },
+  { label: "unit", key: "unit" },
+  { label: "memo", key: "memo" },
 ];
 
 export function toDateOnlyLabel(value: string): string {

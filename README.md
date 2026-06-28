@@ -43,6 +43,66 @@ Recommended Node runtime:
 - `npm run build:ios` / `npm run build:android`: EAS production builds
 - `npm run submit:ios` / `npm run submit:android`: EAS store submissions
 
+## Mobile Release / Deployment
+
+Detailed release notes live in `docs/mobile-store-release.md`. Use this README
+section as the quick command path for store deployment.
+
+Preflight before every mobile release:
+
+```bash
+npm run release:native:check
+npm run release:store-assets:live-check
+npm audit --audit-level=high
+```
+
+Print missing GitHub/EAS/Supabase setup values without exposing secrets:
+
+```bash
+npm run release:native:setup-guide
+npm run release:native:doctor
+```
+
+Android production build:
+
+```bash
+npx eas-cli build --platform android --profile production --non-interactive --no-wait
+npx eas-cli build:list --platform android --limit 3
+```
+
+Android submission options:
+
+- Manual first release path: download the latest `.aab` from EAS and upload it
+  to Google Play Console > Internal testing. This does not require a Google
+  Play service account.
+- Automated path: create/configure a Google Play service account, connect it in
+  EAS credentials, then submit with:
+
+```bash
+npx eas-cli credentials --platform android
+npx eas-cli submit --platform android --profile production --latest
+```
+
+When `npx eas-cli credentials --platform android` asks which build profile to
+configure, select `production` for store release work.
+
+iOS release requirements:
+
+- An active paid Apple Developer Program membership is required.
+- App Store Connect must have an app record for bundle ID `com.pocketcart.app`.
+- The first iOS credential setup must be interactive because Apple login/2FA
+  and distribution certificate validation cannot be completed by CI alone.
+
+```bash
+npx eas-cli credentials:configure-build --platform ios --profile production
+npx eas-cli build --platform ios --profile production --non-interactive --no-wait
+npx eas-cli submit --platform ios --profile production --latest
+```
+
+Store submission still requires real screenshots captured from a release,
+TestFlight, or Google Play internal testing build. Keep Apple credentials,
+Google service account JSON files, Android keystores, and API keys out of git.
+
 ## Structure
 
 - `App.tsx`: route shell + section composition

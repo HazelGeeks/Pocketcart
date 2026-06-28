@@ -5,18 +5,33 @@ const args = new Set(process.argv.slice(2));
 const checkExternal = args.has("--external");
 
 const requiredFiles = [
+  "App.native.tsx",
   "app.json",
   "eas.json",
   "package.json",
   "package-lock.json",
   ".easignore",
+  ".github/workflows/mobile-release-check.yml",
+  ".github/workflows/eas-build.yml",
+  ".github/workflows/eas-submit.yml",
+  ".github/workflows/supabase-functions.yml",
+  "database/schema.sql",
   "docs/mobile-store-release.md",
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "scripts/check-store-submission-assets.mjs",
+  "store-assets/README.md",
+  "store-assets/metadata/en-US.json",
+  "store-assets/google-play/feature-graphic.svg",
+  "store-assets/google-play/feature-graphic.jpg",
+  "store-assets/screenshots/README.md",
   "ios/PocketCart/Info.plist",
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "android/app/build.gradle",
   "android/app/src/main/AndroidManifest.xml",
   "supabase/config.toml",
   "supabase/functions/delete-account/index.ts",
+  "supabase/functions/delete-account-request/index.ts",
+  "supabase/functions/delete-account-request/README.md",
 ];
 
 const findings = [];
@@ -49,6 +64,12 @@ function includes(path, text, message) {
   }
 }
 
+function readAndroidTargetSdkFromManifest(path) {
+  if (!existsSync(path)) return null;
+  const match = read(path).match(/android:targetSdkVersion="(\d+)"/);
+  return match ? Number(match[1]) : null;
+}
+
 function extractNamedBlock(source, name, fromIndex = 0) {
   const start = source.indexOf(`${name} {`, fromIndex);
   if (start === -1) return "";
@@ -74,11 +95,67 @@ function commandOk(command, commandArgs) {
     execFileSync(command, commandArgs, {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
+      timeout: 8000,
     });
     return true;
   } catch {
     return false;
   }
+}
+
+function commandOutput(command, commandArgs) {
+  try {
+    return execFileSync(command, commandArgs, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 15000,
+    });
+  } catch {
+    return null;
+  }
+}
+
+function extractNamedItems(payload) {
+  if (Array.isArray(payload)) {
+    return payload
+      .map((item) => (typeof item?.name === "string" ? item.name : null))
+      .filter(Boolean);
+  }
+
+  if (payload && typeof payload === "object") {
+    return Object.values(payload)
+      .flatMap((value) => extractNamedItems(value));
+  }
+
+  return [];
+}
+
+function readJsonCommandNames(command, commandArgs) {
+  const output = commandOutput(command, commandArgs);
+  if (!output) return null;
+
+  try {
+    return new Set(extractNamedItems(JSON.parse(output)));
+  } catch {
+    return null;
+  }
+}
+
+function readGithubSecretNames() {
+  return readJsonCommandNames("gh", ["secret", "list", "--json", "name"]);
+}
+
+function readEasProductionEnvNames() {
+  const output = commandOutput("npx", [
+    "eas-cli",
+    "env:list",
+    "production",
+    "--format",
+    "long",
+  ]);
+  if (!output) return null;
+
+  return new Set(output.match(/\b[A-Z][A-Z0-9_]{2,}\b/g) ?? []);
 }
 
 for (const file of requiredFiles) {
@@ -111,6 +188,21 @@ if (app.scheme === "pocketcart") {
   fail(`Unexpected app scheme: ${app.scheme}`);
 }
 
+if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(app.extra?.eas?.projectId ?? "")) {
+  pass("Expo app is linked to an EAS project");
+} else {
+  fail("Expo app must include extra.eas.projectId from eas init/project link");
+}
+
+const expoLocationPlugin = Array.isArray(app.plugins)
+  ? app.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-location")
+  : null;
+if (expoLocationPlugin) {
+  pass("Expo location config plugin is configured for future native sync");
+} else {
+  fail("Expo location config plugin must be configured for future native sync");
+}
+
 if (app.ios?.bundleIdentifier === "com.pocketcart.app") {
   pass("iOS bundle identifier is com.pocketcart.app");
 } else {
@@ -123,16 +215,58 @@ if (app.ios?.buildNumber === "1") {
   fail(`Unexpected iOS build number: ${app.ios?.buildNumber}`);
 }
 
+if (app.ios?.supportsTablet === false) {
+  pass("iOS first release is scoped to iPhone only");
+} else {
+  fail("iOS supportsTablet should be false for the first phone-only release");
+}
+
+if (app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption === false) {
+  pass("iOS Expo config declares no non-exempt encryption");
+} else {
+  fail("iOS Expo config should set ITSAppUsesNonExemptEncryption to false");
+}
+
 if (app.android?.package === "com.pocketcart.app") {
   pass("Android package is com.pocketcart.app");
 } else {
   fail(`Unexpected Android package: ${app.android?.package}`);
 }
 
-if (app.android?.versionCode === 1) {
-  pass("Android versionCode is 1");
+if (Number.isInteger(app.android?.versionCode) && app.android.versionCode >= 1) {
+  pass(`Android versionCode is ${app.android.versionCode}`);
 } else {
-  fail(`Unexpected Android versionCode: ${app.android?.versionCode}`);
+  fail(`Android versionCode must be an integer greater than or equal to 1, found ${app.android?.versionCode}`);
+}
+
+includes(
+  "android/app/build.gradle",
+  "targetSdkVersion rootProject.ext.targetSdkVersion",
+  "Android app target SDK follows React Native/Expo root target",
+);
+includes(
+  "android/app/build.gradle",
+  "require.resolve('hermes-compiler/package.json')",
+  "Android release build uses the installed Hermes compiler package",
+);
+includes(
+  "android/app/build.gradle",
+  'buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL"',
+  "Android release build defines the React Native release level",
+);
+const reactNativeTargetSdk = readAndroidTargetSdkFromManifest(
+  "node_modules/react-native/ReactAndroid/src/main/AndroidManifest.xml",
+);
+if (reactNativeTargetSdk !== null && reactNativeTargetSdk >= 35) {
+  pass(`Android target SDK baseline is Google Play compliant (${reactNativeTargetSdk})`);
+} else {
+  fail(`Android target SDK baseline must be 35 or higher, found ${reactNativeTargetSdk ?? "unknown"}`);
+}
+
+if (pkg.dependencies?.["expo-location"]) {
+  pass("expo-location dependency is installed for native foreground location");
+} else {
+  fail("expo-location dependency is required for native foreground location");
 }
 
 if (eas.build?.production?.android?.buildType === "app-bundle") {
@@ -147,10 +281,51 @@ if (eas.build?.production?.autoIncrement === true) {
   warn("Production EAS autoIncrement is not enabled");
 }
 
+if (eas.build?.production?.environment === "production") {
+  pass("Production EAS builds use the production environment");
+} else {
+  fail("Production EAS builds must use the production environment");
+}
+
+if (eas.submit?.production) {
+  pass("Production EAS submit profile is configured");
+} else {
+  fail("Production EAS submit profile is required for non-interactive store submission");
+}
+
+if (eas.submit?.production?.ios && typeof eas.submit.production.ios === "object") {
+  pass("Production iOS submit profile is configured");
+} else {
+  fail("Production iOS submit profile is required for App Store submission");
+}
+
+if (eas.submit?.production?.android && typeof eas.submit.production.android === "object") {
+  pass("Production Android submit profile is configured");
+} else {
+  fail("Production Android submit profile is required for Google Play submission");
+}
+
+if (eas.submit?.production?.android?.track === "internal") {
+  pass("Production Android submit profile targets the internal track first");
+} else {
+  warn("Production Android submit profile should target the internal track for first review uploads");
+}
+
+if (pkg.expo?.doctor?.appConfigFieldsNotSyncedCheck?.enabled === false) {
+  pass("Expo doctor app-config sync warning is disabled for this manually synced native project");
+} else {
+  warn("Expo doctor app-config sync warning is not explicitly configured for this native project");
+}
+
 includes(
   "ios/PocketCart/Info.plist",
   "NSLocationWhenInUseUsageDescription",
   "iOS location permission usage description is present",
+);
+includes(
+  "ios/PocketCart/Info.plist",
+  "ITSAppUsesNonExemptEncryption",
+  "iOS native project declares export compliance encryption setting",
 );
 includes("ios/PocketCart/Info.plist", "<string>pocketcart</string>", "iOS pocketcart URL scheme is present");
 includes(
@@ -159,10 +334,80 @@ includes(
   "iOS privacy manifest declares email address collection",
 );
 includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyCollectedDataTypePreciseLocation",
+  "iOS privacy manifest declares optional precise location use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyCollectedDataTypeCoarseLocation",
+  "iOS privacy manifest declares optional coarse location use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyAccessedAPICategoryFileTimestamp",
+  "iOS privacy manifest declares file timestamp required-reason API use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "C617.1",
+  "iOS privacy manifest declares file timestamp reason",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyAccessedAPICategoryUserDefaults",
+  "iOS privacy manifest declares UserDefaults required-reason API use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "CA92.1",
+  "iOS privacy manifest declares UserDefaults reason",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "NSPrivacyAccessedAPICategorySystemBootTime",
+  "iOS privacy manifest declares system boot time required-reason API use",
+);
+includes(
+  "ios/PocketCart/PrivacyInfo.xcprivacy",
+  "35F9.1",
+  "iOS privacy manifest declares system boot time reason",
+);
+includes(
   "android/app/src/main/AndroidManifest.xml",
   "android.permission.ACCESS_FINE_LOCATION",
   "Android location permission is declared",
 );
+if (read("android/app/src/main/AndroidManifest.xml").includes("android.permission.VIBRATE")) {
+  fail("Android VIBRATE permission should not be declared until native vibration or push features exist");
+} else {
+  pass("Android VIBRATE permission is not declared");
+}
+if (read("ios/PocketCart.xcodeproj/project.pbxproj").includes("TARGETED_DEVICE_FAMILY = 1;")) {
+  pass("iOS native project targets iPhone only");
+} else {
+  fail("iOS native project should target iPhone only for this release");
+}
+includes(
+  "src/services/nativePermissions.ts",
+  "Location.requestForegroundPermissionsAsync",
+  "Native location permission uses expo-location",
+);
+includes(
+  "src/services/nativePermissions.ts",
+  "Location.getCurrentPositionAsync",
+  "Native current position uses expo-location",
+);
+includes(
+  "App.native.tsx",
+  "NativeAppScreen",
+  "Native app entry renders the native app screen",
+);
+if (read("App.native.tsx").includes("AdminScreen") || read("App.native.tsx").includes("pdfjs-dist")) {
+  fail("Native app entry must not import web admin or PDF extraction modules");
+} else {
+  pass("Native app entry excludes web admin and PDF extraction modules");
+}
 includes(
   "android/app/src/main/AndroidManifest.xml",
   "com.google.android.geo.API_KEY",
@@ -195,14 +440,79 @@ includes(
   "Native More tab includes in-app account deletion confirmation",
 );
 includes(
+  "src/services/userProfile.ts",
+  "completeAuthSessionFromUrl",
+  "Native auth service can complete email verification callbacks",
+);
+includes(
+  "src/services/userProfile.ts",
+  "exchangeCodeForSession",
+  "Native auth service supports PKCE email callback codes",
+);
+includes(
+  "src/services/userProfile.ts",
+  "setSession",
+  "Native auth service supports implicit email callback tokens",
+);
+includes(
+  "src/screens/NativeAppScreen.native.tsx",
+  "Linking.getInitialURL",
+  "Native app handles auth callback cold starts",
+);
+includes(
+  "src/screens/NativeAppScreen.native.tsx",
+  'Linking.addEventListener("url"',
+  "Native app handles auth callback while running",
+);
+includes(
   "supabase/config.toml",
   "[functions.delete-account]",
   "Supabase delete-account function is configured",
 );
 includes(
+  "supabase/config.toml",
+  "[functions.delete-account-request]",
+  "Supabase delete-account-request function is configured",
+);
+includes(
   "supabase/functions/delete-account/index.ts",
   "auth.admin.deleteUser",
   "Supabase delete-account function deletes the authenticated user",
+);
+includes(
+  "supabase/functions/delete-account-request/index.ts",
+  "account_deletion_requests",
+  "Supabase delete-account-request function stores web deletion requests",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.account_deletion_requests",
+  "Supabase schema includes account deletion request table",
+);
+includes(
+  "database/schema.sql",
+  "create trigger on_auth_user_created_profile",
+  "Supabase schema creates profiles from auth users",
+);
+includes(
+  "database/schema.sql",
+  "add column if not exists product_id uuid references public.products",
+  "Supabase schema links watchlist items to products",
+);
+includes(
+  "database/schema.sql",
+  "add column if not exists valid_from timestamptz",
+  "Supabase schema includes product price validity windows",
+);
+includes(
+  "database/schema.sql",
+  "insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)",
+  "Supabase schema provisions product image storage bucket",
+);
+includes(
+  "src/screens/DeleteAccountScreen.tsx",
+  "submitAccountDeletionRequest",
+  "Web delete-account page submits deletion requests",
 );
 includes(
   "docs/mobile-store-release.md",
@@ -214,16 +524,199 @@ includes(
   "App Store Connect app created",
   "Mobile store release checklist includes App Store setup",
 );
+includes(
+  "docs/mobile-store-release.md",
+  "npx eas-cli credentials:configure-build --platform ios --profile production",
+  "Mobile store release checklist documents iOS build credential configuration",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "npx eas-cli credentials --platform ios",
+  "Mobile store release checklist documents iOS EAS credential setup",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "Distribution Certificate is not validated for non-interactive builds",
+  "Mobile store release checklist documents the iOS certificate validation blocker",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "npx eas-cli credentials --platform android",
+  "Mobile store release checklist documents Android EAS credential setup",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "Required EAS `production` environment variables",
+  "Mobile store release checklist documents EAS production env vars",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "gh secret set EXPO_TOKEN",
+  "Mobile store release checklist documents GitHub secret setup",
+);
+includes(
+  ".github/workflows/mobile-release-check.yml",
+  "npm run release:native:check",
+  "GitHub Actions runs the mobile release readiness check",
+);
+includes(
+  ".github/workflows/mobile-release-check.yml",
+  "npm audit --audit-level=high",
+  "GitHub Actions blocks high severity dependency audit failures",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "secrets.EXPO_TOKEN",
+  "EAS build workflow uses an Expo token secret",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "Missing GitHub secret: EXPO_TOKEN",
+  "EAS build workflow fails clearly when EXPO_TOKEN is missing",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "npm run release:native:check",
+  "EAS build workflow runs the full release readiness check",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "Validate EAS production environment",
+  "EAS build workflow validates production environment variables before building",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY",
+  "EAS build workflow validates the Android Maps key before building",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "eas-cli build",
+  "EAS build workflow can create native artifacts",
+);
+includes(
+  ".github/workflows/eas-build.yml",
+  "timeout-minutes: 120",
+  "EAS build workflow allows enough time for store artifacts",
+);
+if (read(".github/workflows/eas-build.yml").includes("--no-wait")) {
+  fail("EAS build workflow must wait for native artifact completion");
+} else {
+  pass("EAS build workflow waits for native artifact completion");
+}
+includes(
+  ".github/workflows/eas-submit.yml",
+  "eas-cli submit",
+  "EAS submit workflow can submit latest native artifacts",
+);
+if (eas.submit?.production) {
+  pass("EAS submit workflow has a matching production submit profile");
+} else {
+  fail("EAS submit workflow references production but eas.json has no matching submit profile");
+}
+includes(
+  ".github/workflows/eas-submit.yml",
+  "Missing GitHub secret: EXPO_TOKEN",
+  "EAS submit workflow fails clearly when EXPO_TOKEN is missing",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "--latest --non-interactive",
+  "EAS submit workflow runs non-interactively against the latest artifact",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "npm run release:store-assets:live-check",
+  "EAS submit workflow verifies live legal and support URLs",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "Validate EAS production environment",
+  "EAS submit workflow validates production environment variables before submission",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "supabase functions deploy delete-account",
+  "Supabase workflow deploys the account deletion function",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "supabase functions deploy delete-account-request",
+  "Supabase workflow deploys the account deletion request function",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "Supabase workflow sets the delete-account service role secret",
+);
+includes(
+  ".easignore",
+  "*.jks",
+  "EAS ignore excludes local Android keystores",
+);
+includes(
+  ".easignore",
+  "GoogleService-Info.plist",
+  "EAS ignore excludes local platform service config files",
+);
+includes(
+  "package.json",
+  "release:store-assets:check",
+  "Package scripts include the store asset validator",
+);
+includes(
+  "package.json",
+  "release:native:setup-guide",
+  "Package scripts include the mobile release setup guide",
+);
+includes(
+  "docs/mobile-store-release.md",
+  "npm run release:native:setup-guide",
+  "Mobile store release checklist references the setup guide",
+);
+includes(
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "npx eas-cli credentials:configure-build --platform ios --profile production",
+  "Mobile release setup guide prints iOS build credential configuration command",
+);
+includes(
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "npx eas-cli credentials --platform ios",
+  "Mobile release setup guide prints iOS credential setup command",
+);
+includes(
+  "scripts/print-mobile-release-setup-guide.mjs",
+  "npx eas-cli credentials --platform android",
+  "Mobile release setup guide prints Android credential setup command",
+);
+includes(
+  "store-assets/metadata/en-US.json",
+  "accountDeletionUrl",
+  "Store metadata includes account deletion URL",
+);
+includes(
+  "store-assets/screenshots/README.md",
+  "real device or simulator captures",
+  "Store screenshot plan requires real app captures",
+);
 
 const secretPattern =
-  /(BEGIN PRIVATE KEY|sk_[A-Za-z0-9_]{10,}|AIza[0-9A-Za-z_-]{20,}|SUPABASE_SERVICE_ROLE_KEY=[^\s<.]|POCKETCART_UPLOAD_STORE_PASSWORD=[^\s.]|POCKETCART_UPLOAD_KEY_PASSWORD=[^\s.])/;
+  /(BEGIN PRIVATE KEY|sk_[A-Za-z0-9_]{10,}|AIza[0-9A-Za-z_-]{20,}|SUPABASE_SERVICE_ROLE_KEY=(?!["']?\$)[^\s<.]|POCKETCART_UPLOAD_STORE_PASSWORD=(?!["']?\$)[^\s.]|POCKETCART_UPLOAD_KEY_PASSWORD=(?!["']?\$)[^\s.])/;
 const filesToScan = [
   ".env.example",
+  ".github/workflows/eas-build.yml",
+  ".github/workflows/eas-submit.yml",
+  ".github/workflows/mobile-release-check.yml",
+  ".github/workflows/supabase-functions.yml",
   "app.json",
   "eas.json",
   "package.json",
   "docs/mobile-store-release.md",
+  "store-assets/metadata/en-US.json",
+  "store-assets/README.md",
+  "store-assets/screenshots/README.md",
   "supabase/functions/delete-account/README.md",
+  "supabase/functions/delete-account-request/README.md",
   "supabase/functions/back-office-flyer/README.md",
 ];
 
@@ -235,28 +728,77 @@ for (const file of filesToScan) {
 pass("No obvious real secret values found in release metadata files");
 
 if (checkExternal) {
-  if (commandOk("npx", ["eas-cli", "whoami"])) {
-    pass("EAS CLI is logged in");
+  const githubSecretNames = readGithubSecretNames();
+  const easProductionEnvNames = readEasProductionEnvNames();
+
+  if (process.env.EXPO_TOKEN || githubSecretNames?.has("EXPO_TOKEN") || commandOk("npx", ["eas-cli", "whoami"])) {
+    pass("Expo authentication is available through EXPO_TOKEN, GitHub secret, or EAS CLI login");
   } else {
-    fail("EAS CLI is not logged in. Run: npx eas-cli login");
+    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npx eas-cli login");
   }
 
-  if (commandOk("npx", ["supabase", "projects", "list"])) {
-    pass("Supabase CLI is authenticated");
+  if (process.env.SUPABASE_ACCESS_TOKEN || githubSecretNames?.has("SUPABASE_ACCESS_TOKEN") || commandOk("supabase", ["projects", "list"])) {
+    pass("Supabase authentication is available through SUPABASE_ACCESS_TOKEN, GitHub secret, or CLI login");
   } else {
-    fail("Supabase CLI is not authenticated. Run: npx supabase login");
+    fail("Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or install Supabase CLI and run: supabase login");
   }
 
-  if (process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY) {
-    pass("Android Google Maps API key is present in the environment");
+  const requiredGithubSecrets = [
+    "EXPO_TOKEN",
+    "SUPABASE_ACCESS_TOKEN",
+    "SUPABASE_PROJECT_ID",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ];
+  if (!githubSecretNames) {
+    fail("Unable to verify GitHub repository secrets. Run: gh auth login");
+  } else {
+    for (const secretName of requiredGithubSecrets) {
+      if (githubSecretNames.has(secretName)) {
+        pass(`GitHub secret is configured: ${secretName}`);
+      } else {
+        fail(`GitHub secret is missing: ${secretName}`);
+      }
+    }
+  }
+
+  if (process.env.SUPABASE_PROJECT_ID || githubSecretNames?.has("SUPABASE_PROJECT_ID")) {
+    pass("SUPABASE_PROJECT_ID is present for CI function deploys");
+  } else {
+    fail("SUPABASE_PROJECT_ID is not set for CI function deploys");
+  }
+
+  if (process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY || easProductionEnvNames?.has("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY")) {
+    pass("Android Google Maps API key is present for production builds");
   } else {
     fail("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY is not set");
   }
 
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY || githubSecretNames?.has("SUPABASE_SERVICE_ROLE_KEY")) {
     pass("SUPABASE_SERVICE_ROLE_KEY is present in the environment");
   } else {
     fail("SUPABASE_SERVICE_ROLE_KEY is not set");
+  }
+
+  const requiredEasPublicEnv = [
+    "EXPO_PUBLIC_SUPABASE_URL",
+    "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+    "EXPO_PUBLIC_AUTH_REDIRECT_URL",
+  ];
+  if (!easProductionEnvNames) {
+    fail("Unable to verify EAS production environment variables. Run: npx eas-cli login");
+  }
+  for (const envName of requiredEasPublicEnv) {
+    if (process.env[envName]?.trim() || easProductionEnvNames?.has(envName)) {
+      pass(`${envName} is present for production EAS builds`);
+    } else {
+      fail(`${envName} is not set for production EAS builds`);
+    }
+  }
+
+  if (process.env.EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET?.trim() || easProductionEnvNames?.has("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET")) {
+    pass("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is present for production EAS builds");
+  } else {
+    warn("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is not set; app will use the product-images default");
   }
 }
 

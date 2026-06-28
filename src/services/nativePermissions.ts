@@ -1,4 +1,5 @@
-import { Platform, PermissionsAndroid } from "react-native";
+import * as Location from "expo-location";
+import { Platform } from "react-native";
 
 type PermissionStatus = "granted" | "denied" | "unsupported";
 
@@ -101,6 +102,51 @@ function requestCurrentPosition(): Promise<GeoPermissionResult> {
   });
 }
 
+async function requestNativeCurrentPosition(): Promise<GeoPermissionResult> {
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+
+    if (permission.status !== "granted") {
+      return {
+        granted: false,
+        status: permission.canAskAgain === false ? "unsupported" : "denied",
+        source: "expo-location",
+        message:
+          permission.canAskAgain === false
+            ? "Location permission permanently denied. Open app settings and allow location."
+            : fallbackMessage.locationDenied,
+      };
+    }
+
+    const lastKnownPosition = await Location.getLastKnownPositionAsync({
+      maxAge: 10 * 60 * 1000,
+      requiredAccuracy: 3000,
+    });
+    const position =
+      lastKnownPosition ??
+      (await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        mayShowUserSettingsDialog: true,
+      }));
+
+    return {
+      granted: true,
+      status: "granted",
+      source: "expo-location",
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      message: `Location found (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`,
+    };
+  } catch (error) {
+    return {
+      granted: false,
+      status: "denied",
+      source: "expo-location",
+      message: readPositionErrorMessage(error),
+    };
+  }
+}
+
 async function queryWebPermissionState(permissionName: "geolocation"): Promise<PermissionStatus> {
   try {
     const permissionsApi = getPermissionsApi();
@@ -124,33 +170,8 @@ async function queryWebPermissionState(permissionName: "geolocation"): Promise<P
 export async function requestLocationPermissionAndPosition(): Promise<GeoPermissionResult> {
   const navigator = getNavigator();
 
-  if (Platform.OS === "android") {
-    try {
-      const result = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      );
-
-      if (result !== PermissionsAndroid.RESULTS.GRANTED) {
-        const deniedMessage =
-          result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN
-            ? "Location permission permanently denied. Open app settings and allow location."
-            : "Location permission denied. Use postal code instead.";
-
-        return {
-          granted: false,
-          status: result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN ? "unsupported" : "denied",
-          source: "android-permissions",
-          message: deniedMessage,
-        };
-      }
-    } catch {
-      return {
-        granted: false,
-        status: "denied",
-        source: "android-permissions",
-        message: "Unable to request Android location permission.",
-      };
-    }
+  if (Platform.OS === "ios" || Platform.OS === "android") {
+    return requestNativeCurrentPosition();
   }
 
   if (Platform.OS === "web") {
