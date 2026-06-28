@@ -43,6 +43,7 @@ export type MarketStorePrice = {
 
 export type MarketStore = {
   id: string;
+  brand: string | null;
   name: string;
   area: string;
   latitude: number;
@@ -75,11 +76,12 @@ export type PriceRow = {
   observed_at: string;
   valid_from?: string | null;
   valid_to?: string | null;
-  stores?: { name?: string | null; area?: string | null } | null;
+  stores?: { brand?: string | null; name?: string | null; area?: string | null } | null;
 };
 
 export type StoreRow = {
   id: string;
+  brand?: string | null;
   name: string;
   area: string;
   latitude: number | string;

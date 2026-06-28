@@ -18,6 +18,7 @@ export type OverviewCard = {
 
 export type StorePriceSetInput = {
   id: string;
+  brand: string;
   storeId: string;
   price: string;
 };
@@ -110,7 +111,7 @@ export const PRODUCT_IMPORT_HEADERS = {
   unit: ["unit", "size", "size_unit", "용량", "규격"],
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
   storeId: ["store_id", "storeid", "store id"],
-  storeName: ["store_name", "store", "store name", "매장", "마트"],
+  storeName: ["store_name", "store", "stores", "store name", "매장", "마트"],
   price: ["price", "current_price", "latest_price", "price_value", "가격"],
   observedAt: ["observed_at", "observedat", "date", "날짜", "기준일"],
   periodEnd: ["valid_to", "period_end", "valid to", "종료일", "종료 날짜"],
@@ -175,10 +176,11 @@ export function uniqueValues(values: string[]): string[] {
 }
 
 export function createStorePriceSet(
-  seed?: Partial<Pick<StorePriceSetInput, "storeId" | "price">>,
+  seed?: Partial<Pick<StorePriceSetInput, "brand" | "storeId" | "price">>,
 ): StorePriceSetInput {
   return {
     id: `sp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    brand: seed?.brand ?? "",
     storeId: seed?.storeId ?? "",
     price: seed?.price ?? "",
   };
@@ -236,6 +238,7 @@ export function productsToCsv(products: AdminProduct[], priceStats: Map<string, 
 export function storesToCsv(stores: AdminStore[]): string {
   const header = [
     "id",
+    "brand",
     "name",
     "area",
     "latitude",
@@ -253,6 +256,7 @@ export function storesToCsv(stores: AdminStore[]): string {
   const rows = stores.map((store) =>
     [
       store.id,
+      store.brand ?? "",
       store.name,
       store.area,
       String(store.latitude),

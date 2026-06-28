@@ -47,6 +47,7 @@ export function normalizeStoreRow(row: StoreRow, fallback?: { latitude: number; 
   if (lat === null || lng === null) return null;
   return {
     id: row.id,
+    brand: row.brand?.trim() || null,
     name: row.name,
     area: row.area,
     latitude: lat,

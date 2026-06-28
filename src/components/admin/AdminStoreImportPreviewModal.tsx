@@ -52,7 +52,9 @@ export default function AdminStoreImportPreviewModal({
             {rows.map((row) => (
               <View key={`store-import-${row.rowNumber}`} style={st.dataRow}>
                 <View style={st.dataRowMain}>
-                  <Text style={st.dataRowTitle}>Row {row.rowNumber}: {row.name || "Unnamed store"}</Text>
+	                  <Text style={st.dataRowTitle}>
+	                    Row {row.rowNumber}: {row.brand ? `${row.brand} - ` : ""}{row.name || "Unnamed store"}
+	                  </Text>
                   <Text style={st.dataMuted}>
                     {row.area || "No area"} | {row.latitude || "No lat"}, {row.longitude || "No lng"}
                   </Text>

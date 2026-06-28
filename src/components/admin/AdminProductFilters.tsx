@@ -20,6 +20,7 @@ type AdminProductFiltersProps = {
   priceMax: string;
   categoryFilter: string;
   storeFilter: string;
+  saleDateFilter: string;
   sort: ProductSortKey;
   categoryOptions: string[];
   storeOptions: ProductStoreFilterOption[];
@@ -33,6 +34,7 @@ type AdminProductFiltersProps = {
   onPriceMaxChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onStoreChange: (value: string) => void;
+  onSaleDateChange: (value: string) => void;
   onSortChange: (value: ProductSortKey) => void;
   onReset: () => void;
 };
@@ -43,6 +45,7 @@ export default function AdminProductFilters({
   priceMax,
   categoryFilter,
   storeFilter,
+  saleDateFilter,
   sort,
   categoryOptions,
   storeOptions,
@@ -56,6 +59,7 @@ export default function AdminProductFilters({
   onPriceMaxChange,
   onCategoryChange,
   onStoreChange,
+  onSaleDateChange,
   onSortChange,
   onReset,
 }: AdminProductFiltersProps) {
@@ -105,6 +109,14 @@ export default function AdminProductFilters({
                 </option>
               ))}
             </select>
+
+            <input
+              aria-label="Sale date filter"
+              type="date"
+              value={saleDateFilter}
+              onChange={(event) => onSaleDateChange((event.target as HTMLInputElement).value)}
+              style={WEB_FILTER_SELECT_STYLE}
+            />
 
             <select
               value={storeFilter}

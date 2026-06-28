@@ -115,6 +115,12 @@ export const adminModalStyles = {
   },
   storePriceCard: {
     flexGrow: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#dbe2ef",
+    backgroundColor: "#f8faff",
+    padding: 10,
+    gap: 10,
   },
   storePriceCardTwoCol: {
     minWidth: 260,
@@ -134,6 +140,78 @@ export const adminModalStyles = {
     color: "#2f3748",
     fontSize: 13,
     fontWeight: "800",
+  },
+  storePriceFieldGroup: {
+    gap: 6,
+  },
+  storeDropdownButton: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d8dee8",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  storeDropdownTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  storeDropdownSelectedText: {
+    color: "#2f3748",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  storeDropdownPlaceholderText: {
+    color: "#8a95ad",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  storeDropdownMetaText: {
+    color: "#66748f",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  storeDropdownChevron: {
+    color: C.primaryDeep,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  storeDropdownMenu: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d8dee8",
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+  },
+  storeDropdownScroll: {
+    maxHeight: 220,
+  },
+  storeDropdownOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f7",
+    gap: 2,
+  },
+  storeDropdownOptionActive: {
+    backgroundColor: C.primaryGhost,
+  },
+  storeDropdownOptionText: {
+    color: "#2f3748",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  storeDropdownOptionTextActive: {
+    color: C.primaryDeep,
+  },
+  storeDropdownOptionMeta: {
+    color: "#66748f",
+    fontSize: 11,
   },
   modalActionRow: {
     borderTopWidth: 1,
@@ -155,16 +233,24 @@ export const adminModalStyles = {
     fontWeight: "800",
     textAlign: "right",
   },
+  productImageTopSection: {
+    alignSelf: "flex-start",
+    gap: 8,
+  },
+  productImageTopCopy: {
+    gap: 2,
+  },
   modalImagePreview: {
-    width: "100%",
-    minHeight: 160,
+    width: 180,
+    height: 180,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#dbe1ec",
     backgroundColor: "#eef1f7",
   },
   imageUploadArea: {
-    width: "100%",
+    width: 180,
+    height: 180,
     borderRadius: 12,
     overflow: "hidden",
     position: "relative",
@@ -191,50 +277,5 @@ export const adminModalStyles = {
   modalImagePlaceholder: {
     alignItems: "center",
     justifyContent: "center",
-  },
-  storePillRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  storePill: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#dbe2ef",
-    backgroundColor: "#f7f9fc",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    minWidth: 170,
-    gap: 2,
-  },
-  storePillActive: {
-    borderColor: C.primaryLight,
-    backgroundColor: C.primaryGhost,
-  },
-  storePillText: {
-    color: "#2f3748",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  storePillSubText: {
-    color: "#66748f",
-    fontSize: 11,
-  },
-  storePillTextActive: {
-    color: C.primaryDeep,
-  },
-  dateBtn: {
-    minWidth: 190,
-    justifyContent: "flex-start",
-  },
-  dateBtnText: {
-    color: "#3a4865",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  dateBtnPlaceholder: {
-    color: "#8a95ad",
-    fontSize: 12,
-    fontWeight: "600",
   },
 } as const;

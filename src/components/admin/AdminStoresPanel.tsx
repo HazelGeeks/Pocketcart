@@ -13,9 +13,11 @@ type Props = {
   storePriceStats: Map<string, StorePriceStats>;
   storeAuditLogs: AdminAuditLog[];
   storeSearchQuery: string;
+  storeBrandFilter: string;
   storeAreaFilter: string;
   storeStatusFilter: string;
   storeTypeFilter: string;
+  storeBrandOptions: string[];
   storeAreaOptions: string[];
   storeTypeOptions: string[];
   storeActiveFilterCount: number;
@@ -26,6 +28,7 @@ type Props = {
   onImportStoresCsv: () => void;
   onExportStoresCsv: () => void;
   onStoreSearchChange: (value: string) => void;
+  onStoreBrandChange: (value: string) => void;
   onStoreAreaChange: (value: string) => void;
   onStoreStatusChange: (value: string) => void;
   onStoreTypeChange: (value: string) => void;
@@ -43,9 +46,11 @@ export default function AdminStoresPanel({
   storePriceStats,
   storeAuditLogs,
   storeSearchQuery,
+  storeBrandFilter,
   storeAreaFilter,
   storeStatusFilter,
   storeTypeFilter,
+  storeBrandOptions,
   storeAreaOptions,
   storeTypeOptions,
   storeActiveFilterCount,
@@ -56,6 +61,7 @@ export default function AdminStoresPanel({
   onImportStoresCsv,
   onExportStoresCsv,
   onStoreSearchChange,
+  onStoreBrandChange,
   onStoreAreaChange,
   onStoreStatusChange,
   onStoreTypeChange,
@@ -84,9 +90,11 @@ export default function AdminStoresPanel({
 
       <AdminStoreFilters
         searchQuery={storeSearchQuery}
+        brandFilter={storeBrandFilter}
         areaFilter={storeAreaFilter}
         statusFilter={storeStatusFilter}
         typeFilter={storeTypeFilter}
+        brandOptions={storeBrandOptions}
         areaOptions={storeAreaOptions}
         typeOptions={storeTypeOptions}
         filteredCount={filteredStores.length}
@@ -94,6 +102,7 @@ export default function AdminStoresPanel({
         activeFilterCount={storeActiveFilterCount}
         styles={st}
         onSearchChange={onStoreSearchChange}
+        onBrandChange={onStoreBrandChange}
         onAreaChange={onStoreAreaChange}
         onStatusChange={onStoreStatusChange}
         onTypeChange={onStoreTypeChange}

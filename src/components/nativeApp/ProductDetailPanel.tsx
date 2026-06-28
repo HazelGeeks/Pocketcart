@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import type { MarketProduct, MarketStorePrice } from "../../services/marketData";
 import { marketingPalette as C } from "../../shared/design/palette";
@@ -20,10 +20,8 @@ type ProductDetailPanelProps = {
   historyLoading: boolean;
   storePrices: MarketStorePrice[];
   storePricesLoading: boolean;
-  targetPrice: string;
   addSubmitting: boolean;
   onBack: () => void;
-  onChangeTargetPrice: (value: string) => void;
   onAddToWatchlist: () => void;
   onOpenStoreOnMap?: (storeId: string, storeName?: string) => void;
 };
@@ -37,15 +35,11 @@ export function ProductDetailPanel({
   historyLoading,
   storePrices,
   storePricesLoading,
-  targetPrice,
   addSubmitting,
   onBack,
-  onChangeTargetPrice,
   onAddToWatchlist,
   onOpenStoreOnMap,
 }: ProductDetailPanelProps) {
-  const parsedTarget = Number(targetPrice);
-  const hasTarget = Number.isFinite(parsedTarget) && targetPrice.trim().length > 0;
   const currentPrice = product?.current_price ?? null;
   const previousPrice = product?.previous_price ?? null;
   const priceDelta = product?.price_delta ?? null;
@@ -93,46 +87,27 @@ export function ProductDetailPanel({
   }, [chart, currentPrice]);
   const displayChart = chart ?? fallbackChart;
 
-  const belowTarget =
-    hasTarget &&
-    currentPrice !== null &&
-    product !== null &&
-    currentPrice <= parsedTarget;
-
-  const distanceToTarget =
-    hasTarget && currentPrice !== null
-      ? currentPrice - parsedTarget
-      : null;
-  const nearTarget =
-    hasTarget && currentPrice !== null
-      ? distanceToTarget !== null && Math.abs(distanceToTarget) <= 0.5 * parsedTarget
-      : false;
   const distanceToPrevious = previousPrice === null || currentPrice === null ? null : currentPrice - previousPrice;
   const hasTrend = priceDelta !== null && previousPrice !== null && currentPrice !== null;
   const hasPreviousData = previousPrice !== null && currentPrice !== null;
   const decisionText = hasPreviousData
     ? isDropping
-      ? `${money.format(Math.abs(distanceToPrevious ?? 0))} cheaper than last cycle`
+      ? `${money.format(Math.abs(distanceToPrevious ?? 0))} cheaper than the last sale`
       : isRising
-        ? `${money.format(distanceToPrevious ?? 0)} higher than last cycle`
-        : "Flat vs last cycle"
-    : "Need previous cycle price to compare.";
+        ? `${money.format(distanceToPrevious ?? 0)} higher than the last sale`
+        : "Same as the last sale"
+    : "No earlier sale price to compare yet.";
   const bestStoreId = product?.best_store_id ?? null;
   const bestStoreName = product?.best_store_name ?? null;
   const canOpenStore = bestStoreId !== null && onOpenStoreOnMap !== undefined;
   const bestStoreArea = product?.best_store_area ?? "TBD";
   const decisionLabel = hasTrend
     ? isRising
-      ? `Price trend: ${formatSignedPercent(priceDeltaPercent ?? 0)} vs previous cycle (up)`
+      ? `Price trend: ${formatSignedPercent(priceDeltaPercent ?? 0)} from the last sale (up)`
       : isDropping
-        ? `Price trend: ${formatSignedPercent(priceDeltaPercent ?? 0)} vs previous cycle (down)`
-        : "Price trend: stable vs previous cycle"
+        ? `Price trend: ${formatSignedPercent(priceDeltaPercent ?? 0)} from the last sale (down)`
+        : "Price trend: same as the last sale"
     : "Price trend data is not enough yet.";
-  const targetLabel = hasTarget
-    ? belowTarget
-      ? `This is ${money.format(Math.abs(distanceToTarget ?? 0))} under your target.`
-      : `Need ${money.format(distanceToTarget ?? 0)} to hit your target.`
-    : "No target set.";
 
   return (
     <View style={st.sectionStack}>
@@ -165,7 +140,7 @@ export function ProductDetailPanel({
             <View style={st.dealSummaryCell}>
               <Text style={st.summaryLabel}>Decision</Text>
               <Text style={st.summaryValue}>
-                {hasTrend ? (isDropping ? "Buy" : isRising ? "Wait" : "Watch") : "Track"}
+                {hasTrend ? (isDropping ? "Buy" : isRising ? "Wait" : "Monitor") : "Track"}
               </Text>
             </View>
             <View style={st.dealSummaryCell}>
@@ -198,12 +173,9 @@ export function ProductDetailPanel({
             <Text style={st.itemName}>Price judgment</Text>
             <Text style={st.itemMeta}>{decisionText}</Text>
             <Text style={st.itemMeta}>{decisionLabel}</Text>
-            <Text style={st.itemMeta}>{targetLabel}</Text>
-            {hasTarget ? (
-              <Text style={[st.tag, nearTarget ? st.targetBadge : st.tag]}>
-                {belowTarget ? "Target reached" : nearTarget ? "Close to target" : "Target active"}
-              </Text>
-            ) : null}
+            <Text style={st.itemMeta}>
+              Save this product to get notified when a weekly sale starts.
+            </Text>
           </View>
 
           {actionMessage ? <Text style={st.itemMeta}>{actionMessage}</Text> : null}
@@ -247,12 +219,11 @@ export function ProductDetailPanel({
                 {formatSignedPercent(priceDeltaPercent)}
               </Text>
             ) : null}
-            {product.best_store_name ? <Text style={st.tag}>Best store: {product.best_store_name}</Text> : null}
-            {belowTarget ? <Text style={st.tag}>Below target</Text> : null}
+            {product.best_store_name ? <Text style={st.tag}>Lowest store: {product.best_store_name}</Text> : null}
           </View>
 
           <View style={st.historyRow}>
-            <Text style={st.historyLabel}>Price vs previous cycle</Text>
+            <Text style={st.historyLabel}>Price vs last sale</Text>
             <Text style={st.historyPrice}>
               {distanceToPrevious === null ? "-" : `${distanceToPrevious > 0 ? "+" : ""}${money.format(distanceToPrevious)}`}
             </Text>
@@ -261,38 +232,26 @@ export function ProductDetailPanel({
             </Text>
           </View>
 
-          <Text style={st.historyTitle}>Target Price</Text>
-          <View style={st.targetRow}>
-            <TextInput
-              value={targetPrice}
-              onChangeText={onChangeTargetPrice}
-              placeholder="Set target price"
-              placeholderTextColor={C.textMuted}
-              keyboardType="decimal-pad"
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={[st.formInput, st.targetInput]}
-            />
+          <Text style={st.historyTitle}>Sale Alert</Text>
+          <View style={st.saleAlertCard}>
+            <View style={st.saleAlertCopy}>
+              <Text style={st.itemName}>Notify me when on sale</Text>
+              <Text style={st.itemMeta}>
+                We'll keep this product in your watchlist and surface it when the weekly
+                sale data shows a fresh drop.
+              </Text>
+            </View>
             <Pressable
               accessibilityRole="button"
               onPress={onAddToWatchlist}
-              style={[st.authBtn, st.authBtnPrimary, st.targetSaveBtn]}
+              style={[st.authBtn, st.authBtnPrimary, st.saleAlertBtn]}
               disabled={addSubmitting}
             >
               <Text style={st.authBtnPrimaryText}>
-                {addSubmitting ? "Saving..." : "Watch"}
+                {addSubmitting ? "Saving..." : "Notify me when on sale"}
               </Text>
             </Pressable>
           </View>
-          {hasTarget ? (
-            <Text style={belowTarget ? st.dealText : st.itemMeta}>
-              {belowTarget
-                ? `Current price is ${money.format(Math.abs(distanceToTarget ?? 0))} below target.`
-                : currentPrice !== null
-                  ? `Need ${money.format(distanceToTarget ?? 0)} off to hit target.`
-                  : "Target price is set. Add latest price to compare."}
-            </Text>
-          ) : null}
 
           <Text style={st.historyTitle}>Price Trend</Text>
           {historyLoading ? (
@@ -381,11 +340,11 @@ export function ProductDetailPanel({
             ))
           )}
 
-        <Text style={st.historyTitle}>Store price comparison</Text>
+        <Text style={st.historyTitle}>Compare stores</Text>
           {storePricesLoading ? (
             <Text style={st.itemMeta}>Loading store prices...</Text>
           ) : storePrices.length === 0 ? (
-            <Text style={st.itemMeta}>No store price data yet.</Text>
+            <Text style={st.itemMeta}>No current store prices yet.</Text>
           ) : (
             <>
               <StorePriceBarChart rows={storePrices} />
@@ -409,11 +368,11 @@ export function ProductDetailPanel({
                     {row.price_delta_percent !== null ? (
                       <Text style={st.itemMeta}>
                         {row.price_delta_percent > 0 ? "Up " : row.price_delta_percent < 0 ? "Down " : "Flat "}
-                        {formatSignedPercent(row.price_delta_percent)} vs previous cycle
+                        {formatSignedPercent(row.price_delta_percent)} from last sale
                       </Text>
                     ) : null}
                   </View>
-                  {index === 0 ? <Text style={st.tag}>Best</Text> : null}
+                  {index === 0 ? <Text style={st.tag}>Lowest</Text> : null}
                 </View>
               ))}
             </>
@@ -442,7 +401,7 @@ function StorePriceBarChart({ rows }: { rows: MarketStorePrice[] }) {
               <Text style={st.storeChartLabel} numberOfLines={1}>
                 {row.store_name}
               </Text>
-              {index === 0 ? <Text style={st.storeChartBest}>Best</Text> : null}
+              {index === 0 ? <Text style={st.storeChartBest}>Lowest</Text> : null}
             </View>
             <View style={st.storeChartTrack}>
               <View

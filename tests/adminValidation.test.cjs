@@ -31,7 +31,7 @@ test("validateProductInput requires product name and category", () => {
 test("validateStoreInput checks required fields, coordinates, and duplicates", () => {
   assert.equal(
     validateStoreInput({ name: "Fresh Mart", area: "", latitude: "49", longitude: "-123" }),
-    "Store name, area, latitude, and longitude are required.",
+    "Branch name, area, latitude, and longitude are required.",
   );
   assert.equal(
     validateStoreInput({ name: "Fresh Mart", area: "Burnaby", latitude: "91", longitude: "-123" }),
@@ -40,14 +40,14 @@ test("validateStoreInput checks required fields, coordinates, and duplicates", (
   assert.equal(
     validateStoreInput(
       { name: "Fresh Mart", area: "Burnaby", latitude: "49.2", longitude: "-123.1" },
-      [{ id: "store-1", name: "Fresh Mart", area: "Burnaby" }],
+      [{ id: "store-1", brand: "", name: "Fresh Mart", area: "Burnaby" }],
     ),
-    "A store with the same name and area already exists.",
+    "A store with the same brand, branch, and area already exists.",
   );
   assert.equal(
     validateStoreInput(
       { name: "Fresh Mart", area: "Burnaby", latitude: "49.2", longitude: "-123.1" },
-      [{ id: "store-1", name: "Fresh Mart", area: "Burnaby" }],
+      [{ id: "store-1", brand: "", name: "Fresh Mart", area: "Burnaby" }],
       "store-1",
     ),
     null,
@@ -73,18 +73,19 @@ test("validatePriceEntryInput checks relation, price, and dates", () => {
   );
 });
 
-test("buildStoreImportPreview validates store CSV rows with place_id", () => {
+test("buildStoreImportPreview validates store CSV rows with brand and place_id", () => {
   const preview = buildStoreImportPreview(
-    ["name", "area", "latitude", "longitude", "address", "place_id", "is_active"],
+    ["brand", "name", "area", "latitude", "longitude", "address", "place_id", "is_active"],
     [
-      ["Fresh Mart", "Burnaby", "49.25", "-123.01", "123 Main St", "ChIJ123", "true"],
-      ["Fresh Mart", "Burnaby", "49.25", "-123.01", "", "", "true"],
-      ["No Coords", "Vancouver", "", "", "", "", "true"],
+      ["Safeway", "Robson", "Burnaby", "49.25", "-123.01", "123 Main St", "ChIJ123", "true"],
+      ["Safeway", "Robson", "Burnaby", "49.25", "-123.01", "", "", "true"],
+      ["Safeway", "No Coords", "Vancouver", "", "", "", "", "true"],
     ],
     [],
   );
 
   assert.equal(preview[0].status, "ready");
+  assert.equal(preview[0].brand, "Safeway");
   assert.equal(preview[0].placeId, "ChIJ123");
   assert.equal(preview[1].status, "duplicate");
   assert.equal(preview[2].status, "invalid");

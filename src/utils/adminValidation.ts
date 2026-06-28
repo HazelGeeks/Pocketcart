@@ -2,12 +2,14 @@ export type StoreImportStatus = "ready" | "duplicate" | "invalid";
 
 export type StoreImportPreviewInput = {
   id?: string;
+  brand?: string | null;
   name: string;
   area: string;
 };
 
 export type StoreImportPreviewRow = {
   rowNumber: number;
+  brand: string;
   name: string;
   area: string;
   latitude: string;
@@ -31,6 +33,7 @@ const PRODUCT_IMPORT_HEADERS = {
 };
 
 const STORE_IMPORT_HEADERS = {
+  brand: ["brand", "store_brand", "브랜드"],
   name: ["name", "store_name", "마트명", "매장명", "스토어"],
   area: ["area", "region", "지역", "지역/지점", "지점"],
   latitude: ["latitude", "lat", "위도"],
@@ -141,6 +144,7 @@ export function validateProductInput(params: {
 
 export function validateStoreInput(
   params: {
+    brand?: string;
     name: string;
     area: string;
     latitude: string;
@@ -152,17 +156,22 @@ export function validateStoreInput(
   const name = params.name.trim();
   const area = params.area.trim();
   if (!name || !area || !params.latitude.trim() || !params.longitude.trim()) {
-    return "Store name, area, latitude, and longitude are required.";
+    return "Branch name, area, latitude, and longitude are required.";
   }
   const coordinateError = coordinateValidationMessage(params.latitude, params.longitude);
   if (coordinateError) return coordinateError;
 
   const duplicate = existingStores.find((store) => {
     if (editingStoreId && "id" in store && store.id === editingStoreId) return false;
-    return store.name.trim().toLowerCase() === name.toLowerCase() &&
+    const existingBrand = store.brand?.trim().toLowerCase() ?? "";
+    const inputBrand = "brand" in params && typeof params.brand === "string"
+      ? params.brand.trim().toLowerCase()
+      : "";
+    return existingBrand === inputBrand &&
+      store.name.trim().toLowerCase() === name.toLowerCase() &&
       store.area.trim().toLowerCase() === area.toLowerCase();
   });
-  if (duplicate) return "A store with the same name and area already exists.";
+  if (duplicate) return "A store with the same brand, branch, and area already exists.";
   return null;
 }
 
@@ -190,7 +199,7 @@ export function buildStoreImportPreview(
 ): StoreImportPreviewRow[] {
   const headers = headerRow.map(csvHeaderKey);
   const existing = new Set(
-    stores.map((store) => `${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
+    stores.map((store) => `${store.brand?.trim().toLowerCase() ?? ""}|${store.name.trim().toLowerCase()}|${store.area.trim().toLowerCase()}`),
   );
 
   return dataRows.map((values, index) => {
@@ -199,6 +208,7 @@ export function buildStoreImportPreview(
       record[header] = values[headerIndex] ?? "";
     });
 
+    const brand = csvRowValue(record, STORE_IMPORT_HEADERS.brand);
     const name = csvRowValue(record, STORE_IMPORT_HEADERS.name);
     const area = csvRowValue(record, STORE_IMPORT_HEADERS.area);
     const latitude = csvRowValue(record, STORE_IMPORT_HEADERS.latitude);
@@ -211,11 +221,12 @@ export function buildStoreImportPreview(
     const hours = csvRowValue(record, STORE_IMPORT_HEADERS.hours);
     const storeType = csvRowValue(record, STORE_IMPORT_HEADERS.storeType) || "grocery";
     const isActive = parseStoreActive(csvRowValue(record, STORE_IMPORT_HEADERS.isActive));
-    const duplicateKey = `${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+    const duplicateKey = `${brand.trim().toLowerCase()}|${name.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
     const coordinateError = latitude && longitude ? coordinateValidationMessage(latitude, longitude) : null;
 
     const base = {
       rowNumber: index + 2,
+      brand,
       name,
       area,
       latitude,
@@ -239,7 +250,7 @@ export function buildStoreImportPreview(
     }
 
     if (existing.has(duplicateKey)) {
-      return { ...base, status: "duplicate", reason: "Duplicate name and area" };
+      return { ...base, status: "duplicate", reason: "Duplicate brand, name, and area" };
     }
 
     existing.add(duplicateKey);

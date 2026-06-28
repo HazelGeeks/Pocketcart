@@ -1,9 +1,8 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
-import type { AdminPriceEntry, AdminProduct } from "../../services/adminBackoffice";
+import type { AdminProduct } from "../../services/adminBackoffice";
 import type { ProductSortKey } from "../../state/adminStore";
 import type { ProductPriceStats } from "../../utils/adminScreenHelpers";
-import AdminPriceManagementPanel from "./AdminPriceManagementPanel";
 import AdminProductFilters from "./AdminProductFilters";
 import AdminProductList from "./AdminProductList";
 
@@ -20,7 +19,6 @@ type SortOption = {
 type Props = {
   products: AdminProduct[];
   filteredProducts: AdminProduct[];
-  prices: AdminPriceEntry[];
   loading: boolean;
   submitting: boolean;
   deletingKey: string | null;
@@ -29,20 +27,13 @@ type Props = {
   productPriceMax: string;
   productCategoryFilter: string;
   productStoreFilter: string;
+  productSaleDateFilter: string;
   productSort: ProductSortKey;
   productCategoryOptions: string[];
   productStoreOptions: StoreFilterOption[];
   productSortOptions: SortOption[];
   productActiveFilterCount: number;
   productPriceStats: Map<string, ProductPriceStats>;
-  productNameById: Map<string, string>;
-  storeNameById: Map<string, string>;
-  editingPriceId: string | null;
-  priceProductId: string;
-  priceStoreId: string;
-  priceValue: string;
-  priceStartDate: string;
-  priceEndDate: string;
   styles: any;
   onImportProductsCsv: () => void;
   onExportProductsCsv: () => void;
@@ -52,25 +43,16 @@ type Props = {
   onProductPriceMaxChange: (value: string) => void;
   onProductCategoryChange: (value: string) => void;
   onProductStoreChange: (value: string) => void;
+  onProductSaleDateChange: (value: string) => void;
   onProductSortChange: (value: ProductSortKey) => void;
   onResetProductFilters: () => void;
   onEditProduct: (product: AdminProduct) => void;
   onDeleteProduct: (productId: string) => void;
-  onPriceProductIdChange: (value: string) => void;
-  onPriceStoreIdChange: (value: string) => void;
-  onPriceChange: (value: string) => void;
-  onPriceStartDateChange: (value: string) => void;
-  onPriceEndDateChange: (value: string) => void;
-  onSavePrice: () => void;
-  onResetPriceForm: () => void;
-  onEditPrice: (price: AdminPriceEntry) => void;
-  onDeletePrice: (priceId: string) => void;
 };
 
 export default function AdminProductsPanel({
   products,
   filteredProducts,
-  prices,
   loading,
   submitting,
   deletingKey,
@@ -79,20 +61,13 @@ export default function AdminProductsPanel({
   productPriceMax,
   productCategoryFilter,
   productStoreFilter,
+  productSaleDateFilter,
   productSort,
   productCategoryOptions,
   productStoreOptions,
   productSortOptions,
   productActiveFilterCount,
   productPriceStats,
-  productNameById,
-  storeNameById,
-  editingPriceId,
-  priceProductId,
-  priceStoreId,
-  priceValue,
-  priceStartDate,
-  priceEndDate,
   styles: st,
   onImportProductsCsv,
   onExportProductsCsv,
@@ -102,19 +77,11 @@ export default function AdminProductsPanel({
   onProductPriceMaxChange,
   onProductCategoryChange,
   onProductStoreChange,
+  onProductSaleDateChange,
   onProductSortChange,
   onResetProductFilters,
   onEditProduct,
   onDeleteProduct,
-  onPriceProductIdChange,
-  onPriceStoreIdChange,
-  onPriceChange,
-  onPriceStartDateChange,
-  onPriceEndDateChange,
-  onSavePrice,
-  onResetPriceForm,
-  onEditPrice,
-  onDeletePrice,
 }: Props) {
   return (
     <View style={st.productAdminStack}>
@@ -141,6 +108,7 @@ export default function AdminProductsPanel({
           priceMax={productPriceMax}
           categoryFilter={productCategoryFilter}
           storeFilter={productStoreFilter}
+          saleDateFilter={productSaleDateFilter}
           sort={productSort}
           categoryOptions={productCategoryOptions}
           storeOptions={productStoreOptions}
@@ -154,6 +122,7 @@ export default function AdminProductsPanel({
           onPriceMaxChange={onProductPriceMaxChange}
           onCategoryChange={onProductCategoryChange}
           onStoreChange={onProductStoreChange}
+          onSaleDateChange={onProductSaleDateChange}
           onSortChange={onProductSortChange}
           onReset={onResetProductFilters}
         />
@@ -170,30 +139,6 @@ export default function AdminProductsPanel({
           onDeleteProduct={onDeleteProduct}
         />
       </View>
-
-      <AdminPriceManagementPanel
-        prices={prices}
-        productNameById={productNameById}
-        storeNameById={storeNameById}
-        editingPriceId={editingPriceId}
-        priceProductId={priceProductId}
-        priceStoreId={priceStoreId}
-        priceValue={priceValue}
-        priceStartDate={priceStartDate}
-        priceEndDate={priceEndDate}
-        deletingKey={deletingKey}
-        submitting={submitting}
-        styles={st}
-        onProductIdChange={onPriceProductIdChange}
-        onStoreIdChange={onPriceStoreIdChange}
-        onPriceChange={onPriceChange}
-        onStartDateChange={onPriceStartDateChange}
-        onEndDateChange={onPriceEndDateChange}
-        onSavePrice={onSavePrice}
-        onResetPriceForm={onResetPriceForm}
-        onEditPrice={onEditPrice}
-        onDeletePrice={onDeletePrice}
-      />
     </View>
   );
 }

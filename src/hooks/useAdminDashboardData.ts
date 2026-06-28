@@ -6,6 +6,7 @@ import type {
   AdminStore,
 } from "../services/adminBackoffice";
 import type { ProductSortKey } from "../state/adminStore";
+import { dateOnlyToIso } from "../utils/adminValidation";
 import {
   DEFAULT_PRODUCT_CATEGORIES,
   STORE_TYPE_OPTIONS,
@@ -24,6 +25,7 @@ type AdminDashboardDataParams = {
   prices: AdminPriceEntry[];
   auditLogs: AdminAuditLog[];
   storeSearchQuery: string;
+  storeBrandFilter: string;
   storeAreaFilter: string;
   storeStatusFilter: string;
   storeTypeFilter: string;
@@ -31,6 +33,7 @@ type AdminDashboardDataParams = {
   productSearchQuery: string;
   productCategoryFilter: string;
   productStoreFilter: string;
+  productSaleDateFilter: string;
   productPriceMin: string;
   productPriceMax: string;
   productSort: ProductSortKey;
@@ -43,6 +46,7 @@ export default function useAdminDashboardData({
   prices,
   auditLogs,
   storeSearchQuery,
+  storeBrandFilter,
   storeAreaFilter,
   storeStatusFilter,
   storeTypeFilter,
@@ -50,6 +54,7 @@ export default function useAdminDashboardData({
   productSearchQuery,
   productCategoryFilter,
   productStoreFilter,
+  productSaleDateFilter,
   productPriceMin,
   productPriceMax,
   productSort,
@@ -114,7 +119,8 @@ export default function useAdminDashboardData({
     stores.forEach((store) => {
       const storeId = store.id.trim();
       if (!storeId) return;
-      map.set(storeId, store.name.trim() || storeId);
+      const branchName = store.name.trim() || storeId;
+      map.set(storeId, store.brand ? `${store.brand} - ${branchName}` : branchName);
     });
     prices.forEach((row) => {
       const storeId = row.store_id.trim();
@@ -123,21 +129,6 @@ export default function useAdminDashboardData({
     });
     return map;
   }, [prices, stores]);
-
-  const productNameById = React.useMemo(() => {
-    const map = new Map<string, string>();
-    products.forEach((product) => {
-      const productId = product.id.trim();
-      if (!productId) return;
-      map.set(productId, product.name.trim() || productId);
-    });
-    prices.forEach((row) => {
-      const productId = row.product_id.trim();
-      if (!productId || map.has(productId)) return;
-      map.set(productId, row.product_name?.trim() || productId);
-    });
-    return map;
-  }, [prices, products]);
 
   const productPriceStats = React.useMemo(() => {
     const stats = new Map<string, ProductPriceStats>();
@@ -207,6 +198,11 @@ export default function useAdminDashboardData({
     return stats;
   }, [prices]);
 
+  const storeBrandOptions = React.useMemo(
+    () => uniqueValues(displayStores.map((store) => store.brand ?? "")).sort((a, b) => a.localeCompare(b)),
+    [displayStores],
+  );
+
   const storeAreaOptions = React.useMemo(
     () => uniqueValues(displayStores.map((store) => store.area)).sort((a, b) => a.localeCompare(b)),
     [displayStores],
@@ -223,10 +219,12 @@ export default function useAdminDashboardData({
 
   const filteredStores = React.useMemo(() => {
     const query = storeSearchQuery.trim().toLowerCase();
+    const brandFilter = storeBrandFilter.trim().toLowerCase();
     const areaFilter = storeAreaFilter.trim().toLowerCase();
     const statusFilter = storeStatusFilter.trim().toLowerCase();
     const typeFilter = storeTypeFilter.trim().toLowerCase();
     return displayStores.filter((store) => {
+      if (brandFilter !== "all" && (store.brand ?? "").trim().toLowerCase() !== brandFilter) return false;
       if (areaFilter !== "all" && store.area.trim().toLowerCase() !== areaFilter) return false;
       if (statusFilter === "active" && !store.is_active) return false;
       if (statusFilter === "inactive" && store.is_active) return false;
@@ -235,6 +233,7 @@ export default function useAdminDashboardData({
       const stats = storePriceStats.get(store.id);
       const haystack = [
         store.name,
+        store.brand ?? "",
         store.area,
         store.id,
         store.price_note ?? "",
@@ -251,16 +250,17 @@ export default function useAdminDashboardData({
       ].join(" ").toLowerCase();
       return haystack.includes(query);
     });
-  }, [displayStores, storeAreaFilter, storePriceStats, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
+  }, [displayStores, storeAreaFilter, storeBrandFilter, storePriceStats, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
 
   const storeActiveFilterCount = React.useMemo(() => {
     let count = 0;
     if (storeSearchQuery.trim()) count += 1;
+    if (storeBrandFilter !== "all") count += 1;
     if (storeAreaFilter !== "all") count += 1;
     if (storeStatusFilter !== "all") count += 1;
     if (storeTypeFilter !== "all") count += 1;
     return count;
-  }, [storeAreaFilter, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
+  }, [storeAreaFilter, storeBrandFilter, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
 
   const selectedStoreForMap = React.useMemo(() => {
     if (!selectedStoreMapId) return null;
@@ -284,6 +284,14 @@ export default function useAdminDashboardData({
 
   const productMinPriceFilter = React.useMemo(() => toOptionalNumber(productPriceMin), [productPriceMin]);
   const productMaxPriceFilter = React.useMemo(() => toOptionalNumber(productPriceMax), [productPriceMax]);
+  const productSaleDateRangeMs = React.useMemo(() => {
+    const startIso = dateOnlyToIso(productSaleDateFilter, false);
+    const endIso = dateOnlyToIso(productSaleDateFilter, true);
+    if (!startIso || !endIso) return null;
+    const start = new Date(startIso).getTime();
+    const end = new Date(endIso).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) ? { start, end } : null;
+  }, [productSaleDateFilter]);
 
   const filteredProducts = React.useMemo(() => {
     const query = productSearchQuery.trim().toLowerCase();
@@ -302,6 +310,16 @@ export default function useAdminDashboardData({
       }
       if (categoryFilter !== "all" && category !== categoryFilter) return false;
       if (storeFilter.toLowerCase() !== "all" && !stats?.storeIds.has(storeFilter)) return false;
+      if (productSaleDateRangeMs !== null) {
+        const hasSaleOnDate = prices.some((row) => {
+          if (row.product_id !== item.id) return false;
+          const start = new Date(row.valid_from || row.observed_at).getTime();
+          if (!Number.isFinite(start) || start > productSaleDateRangeMs.end) return false;
+          const end = row.valid_to ? new Date(row.valid_to).getTime() : Number.POSITIVE_INFINITY;
+          return !Number.isNaN(end) && end >= productSaleDateRangeMs.start;
+        });
+        if (!hasSaleOnDate) return false;
+      }
 
       const latestPrice = stats?.latestPrice ?? null;
       if (productMinPriceFilter !== null && (latestPrice === null || latestPrice < productMinPriceFilter)) return false;
@@ -327,9 +345,11 @@ export default function useAdminDashboardData({
     productMaxPriceFilter,
     productMinPriceFilter,
     productPriceStats,
+    productSaleDateRangeMs,
     productSearchQuery,
     productSort,
     productStoreFilter,
+    prices,
     products,
   ]);
 
@@ -338,10 +358,11 @@ export default function useAdminDashboardData({
     if (productSearchQuery.trim()) count += 1;
     if (productCategoryFilter !== "all") count += 1;
     if (productStoreFilter !== "all") count += 1;
+    if (productSaleDateFilter.trim()) count += 1;
     if (productPriceMin.trim()) count += 1;
     if (productPriceMax.trim()) count += 1;
     return count;
-  }, [productCategoryFilter, productPriceMax, productPriceMin, productSearchQuery, productStoreFilter]);
+  }, [productCategoryFilter, productPriceMax, productPriceMin, productSaleDateFilter, productSearchQuery, productStoreFilter]);
 
   return {
     categoryOptions,
@@ -353,7 +374,6 @@ export default function useAdminDashboardData({
     priceRowsMissingLink,
     productActiveFilterCount,
     productFilterCategoryOptions,
-    productNameById,
     productPriceStats,
     productSortOptions,
     productStoreFilterOptions,
@@ -363,6 +383,7 @@ export default function useAdminDashboardData({
     storeActiveFilterCount,
     storeAreaOptions,
     storeAuditLogs,
+    storeBrandOptions,
     storeNameById,
     storePriceStats,
     storeTypeOptions,

@@ -21,7 +21,7 @@ function storeLeafletMapSrcDoc(
   const points = stores
     .map((store) => ({
       id: store.id,
-      name: store.name,
+      name: store.brand ? `${store.brand} - ${store.name}` : store.name,
       area: store.area,
       storeType: store.store_type,
       isActive: store.is_active,
@@ -127,7 +127,9 @@ export default function StoreMapPanel({
         <View style={st.listMain}>
           <Text style={st.fieldLabel}>Store Map</Text>
           <Text style={st.dataMuted}>
-            {selectedStore ? `${selectedStore.name} | ${selectedStore.area}` : "No store selected"}
+            {selectedStore
+              ? `${selectedStore.brand ? `${selectedStore.brand} - ` : ""}${selectedStore.name} | ${selectedStore.area}`
+              : "No store selected"}
           </Text>
         </View>
         <Pressable

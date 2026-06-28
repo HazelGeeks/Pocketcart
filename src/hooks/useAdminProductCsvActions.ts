@@ -4,12 +4,14 @@ import type { AdminProduct, AdminStore } from "../services/adminBackoffice";
 import type { ProductPriceStats } from "../utils/adminScreenHelpers";
 import { PRODUCT_IMPORT_HEADERS, downloadCsvFile, productsToCsv } from "../utils/adminScreenHelpers";
 import { csvHeaderKey, csvRowValue, parseCsvRows } from "../utils/adminValidation";
+import { productIdentityKey } from "../utils/productIdentity";
 
 type Mutation<TParams, TResult> = {
   mutateAsync: (params: TParams) => Promise<TResult>;
 };
 
 type Params = {
+  products: AdminProduct[];
   filteredProducts: AdminProduct[];
   productPriceStats: Map<string, ProductPriceStats>;
   stores: AdminStore[];
@@ -46,6 +48,7 @@ function parseStoreIdCandidate(candidate: string): string | null {
 }
 
 export default function useAdminProductCsvActions({
+  products,
   filteredProducts,
   productPriceStats,
   stores,
@@ -101,14 +104,22 @@ export default function useAdminProductCsvActions({
 
           const headers = headerRow.map(csvHeaderKey);
           const created: string[] = [];
+          const reused: string[] = [];
           const skipped: string[] = [];
           const priceImported: string[] = [];
           const priceSkipped: string[] = [];
 
           const storeById = new Map(stores.map((store) => [store.id.trim().toLowerCase(), store.id]));
-          const storeIdByName = new Map(
-            stores.map((store) => [store.name.trim().toLowerCase(), store.id]),
+          const productByIdentity = new Map(
+            products.map((product) => [productIdentityKey(product), product]),
           );
+          const storeIdByName = new Map<string, string>();
+          stores.forEach((store) => {
+            storeIdByName.set(store.name.trim().toLowerCase(), store.id);
+            if (store.brand?.trim()) {
+              storeIdByName.set(`${store.brand.trim()} - ${store.name.trim()}`.toLowerCase(), store.id);
+            }
+          });
 
           const resolveStoreId = (storeIdValue: string, storeNameValue: string): string | null => {
             const directStoreId = parseStoreIdCandidate(storeIdValue);
@@ -116,9 +127,15 @@ export default function useAdminProductCsvActions({
               return storeById.get(directStoreId.toLowerCase()) ?? directStoreId;
             }
 
-            const normalizedName = storeNameValue.trim().toLowerCase();
-            if (!normalizedName) return null;
-            return storeIdByName.get(normalizedName) ?? null;
+            const candidates = storeNameValue
+              .split("|")
+              .map((value) => value.trim().toLowerCase())
+              .filter(Boolean);
+            for (const candidate of candidates) {
+              const match = storeIdByName.get(candidate);
+              if (match) return match;
+            }
+            return null;
           };
 
           for (const [index, values] of dataRows.entries()) {
@@ -145,19 +162,28 @@ export default function useAdminProductCsvActions({
             }
 
             try {
-              const product = await createProductMutation.mutateAsync({
-                name,
-                englishName,
-                unit,
-                category,
-                thumbnailUrl,
-              });
+              const productKey = productIdentityKey({ name, unit, category });
+              let product = productByIdentity.get(productKey) ?? null;
+              if (product) {
+                reused.push(product.id);
+              } else {
+                product = await createProductMutation.mutateAsync({
+                  name,
+                  englishName,
+                  unit,
+                  category,
+                  thumbnailUrl,
+                });
+              }
               if (!product) {
                 skipped.push(`row ${index + 2}: created product but no response returned`);
                 continue;
               }
 
-              created.push(product.id);
+              productByIdentity.set(productKey, product);
+              if (!created.includes(product.id) && !reused.includes(product.id)) {
+                created.push(product.id);
+              }
 
               if (!rawPrice || !createPriceEntryMutation) continue;
 
@@ -201,6 +227,7 @@ export default function useAdminProductCsvActions({
               `Imported ${created.length} products from CSV${
                 priceImported.length > 0 ? ` with ${priceImported.length} prices` : ""
               }.`,
+              reused.length > 0 ? `Reused ${new Set(reused).size} existing products.` : "",
               skipped.length > 0
                 ? `Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}`
                 : "",
@@ -219,7 +246,7 @@ export default function useAdminProductCsvActions({
       })();
     };
     input.click();
-  }, [createPriceEntryMutation, createProductMutation, loadAll, setNotice, setSubmitting, stores]);
+  }, [createPriceEntryMutation, createProductMutation, loadAll, products, setNotice, setSubmitting, stores]);
 
   return { handleExportProductsCsv, handleImportProductsCsv };
 }

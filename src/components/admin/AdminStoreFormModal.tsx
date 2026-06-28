@@ -8,6 +8,7 @@ type Props = {
   isLg: boolean;
   editingStoreId: string | null;
   submitting: boolean;
+  brand: string;
   name: string;
   area: string;
   latitude: string;
@@ -21,6 +22,7 @@ type Props = {
   storeType: string;
   isActive: boolean;
   styles: any;
+  onBrandChange: (value: string) => void;
   onNameChange: (value: string) => void;
   onAreaChange: (value: string) => void;
   onLatitudeChange: (value: string) => void;
@@ -43,6 +45,7 @@ export default function AdminStoreFormModal({
   isLg,
   editingStoreId,
   submitting,
+  brand,
   name,
   area,
   latitude,
@@ -56,6 +59,7 @@ export default function AdminStoreFormModal({
   storeType,
   isActive,
   styles: st,
+  onBrandChange,
   onNameChange,
   onAreaChange,
   onLatitudeChange,
@@ -81,7 +85,7 @@ export default function AdminStoreFormModal({
           <View style={st.modalHeader}>
             <View>
               <Text style={st.modalTitle}>{editingStoreId ? "Edit Store" : "Add Store"}</Text>
-              <Text style={st.modalSub}>Enter store details and coordinates. Coordinates are checked before saving.</Text>
+              <Text style={st.modalSub}>Enter brand, branch details, and coordinates. Coordinates are checked before saving.</Text>
             </View>
             <Pressable accessibilityRole="button" onPress={onClose} style={[st.btn, st.btnGhost]} disabled={submitting}>
               <Text style={st.btnGhostText}>Close</Text>
@@ -91,12 +95,16 @@ export default function AdminStoreFormModal({
           <ScrollView style={st.modalBody} contentContainerStyle={st.modalBodyContent}>
             <View style={st.modalTopGrid}>
               <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
-                <Text style={st.fieldLabel}>Store Name</Text>
-                <TextInput value={name} onChangeText={onNameChange} placeholder="Store name" placeholderTextColor={C.textMuted} style={st.input} />
+                <Text style={st.fieldLabel}>Brand</Text>
+                <TextInput value={brand} onChangeText={onBrandChange} placeholder="Safeway, No Frills, T&T" placeholderTextColor={C.textMuted} style={st.input} />
               </View>
               <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
-                <Text style={st.fieldLabel}>Area / Branch</Text>
-                <TextInput value={area} onChangeText={onAreaChange} placeholder="Area / branch" placeholderTextColor={C.textMuted} style={st.input} />
+                <Text style={st.fieldLabel}>Branch / Store Name</Text>
+                <TextInput value={name} onChangeText={onNameChange} placeholder="Robson, Davie Street" placeholderTextColor={C.textMuted} style={st.input} />
+              </View>
+              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
+                <Text style={st.fieldLabel}>Area</Text>
+                <TextInput value={area} onChangeText={onAreaChange} placeholder="Downtown Vancouver" placeholderTextColor={C.textMuted} style={st.input} />
               </View>
             </View>
 
@@ -171,7 +179,7 @@ export default function AdminStoreFormModal({
                 <Text style={st.btnPrimaryText}>{submitting ? "Saving..." : editingStoreId ? "Update Store" : "Add Store"}</Text>
               </Pressable>
             </View>
-            <Text style={st.dataMuted}>CSV headers: name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active.</Text>
+            <Text style={st.dataMuted}>CSV headers: brand, name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active.</Text>
           </ScrollView>
         </View>
       </View>

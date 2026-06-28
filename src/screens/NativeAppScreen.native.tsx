@@ -52,7 +52,6 @@ import {
   DEFAULT_REGION,
   money,
   type AlertRow,
-  type SummaryCard,
   type HomeRoute,
   type NativeTabId,
 } from "./nativeAppData";
@@ -89,6 +88,10 @@ const INITIAL_ONBOARDING_STATE: OnboardingState = {
   alertsEnabled: false,
 };
 
+function isSignInRequiredMessage(message: string | null | undefined): boolean {
+  return message?.trim().toLowerCase() === "please sign in first.";
+}
+
 export default function NativeAppScreen() {
   const { pad, w } = useLayout();
   const insets = useSafeAreaInsets();
@@ -119,7 +122,6 @@ export default function NativeAppScreen() {
   );
   const [homeActionMessage, setHomeActionMessage] = React.useState<string | null>(null);
   const [homeAddSubmitting, setHomeAddSubmitting] = React.useState(false);
-  const [detailTargetPrice, setDetailTargetPrice] = React.useState("");
 
   const [watchlistItems, setWatchlistItems] = React.useState<WatchlistItem[]>([]);
   const [watchLoading, setWatchLoading] = React.useState(false);
@@ -202,18 +204,6 @@ export default function NativeAppScreen() {
     return map;
   }, [homeProducts]);
 
-  const targetPriceByProduct = React.useMemo(() => {
-    const map = new Map<string, number>();
-    watchlistItems.forEach((item) => {
-      if (!item.product_id || !item.target_price) return;
-      const value = Number(item.target_price);
-      if (Number.isFinite(value)) {
-        map.set(item.product_id, value);
-      }
-    });
-    return map;
-  }, [watchlistItems]);
-
   const watchedProductIds = React.useMemo(() => {
     const productIds = new Set<string>();
     for (const item of watchlistItems) {
@@ -228,7 +218,7 @@ export default function NativeAppScreen() {
     const q = mapQuery.trim().toLowerCase();
     if (!q) return mapStores;
     return mapStores.filter((store) =>
-      `${store.name} ${store.area} ${store.price_note ?? ""}`
+      `${store.brand ?? ""} ${store.name} ${store.area} ${store.price_note ?? ""}`
         .toLowerCase()
         .includes(q),
     );
@@ -243,37 +233,6 @@ export default function NativeAppScreen() {
     () => buildPreviousPriceRows(homeChart),
     [homeChart],
   );
-
-  const homeSummaryCards = React.useMemo<SummaryCard[]>(() => {
-    const dropCount = filteredHomeProducts.reduce((count, product) => {
-      return count + (product.price_delta !== null && product.price_delta < 0 ? 1 : 0);
-    }, 0);
-
-    const savingsPotential = filteredHomeProducts.reduce((sum, product) => {
-      if (product.price_delta === null || product.price_delta >= 0) {
-        return sum;
-      }
-      return sum + Math.abs(product.price_delta);
-    }, 0);
-
-    const belowTargetCount = filteredHomeProducts.reduce((count, product) => {
-      const target = targetPriceByProduct.get(product.id);
-      return (
-        count + (target !== null && target !== undefined && product.current_price !== null && product.current_price <= target ? 1 : 0)
-      );
-    }, 0);
-
-    return [
-      { id: "watchlist", label: "Watching", value: String(watchlistItems.length) },
-      { id: "drop", label: "Drops now", value: `${dropCount}` },
-      {
-        id: "saving",
-        label: "Potential savings",
-        value: `$${savingsPotential.toFixed(1)}`,
-      },
-      { id: "target", label: "Near target", value: `${belowTargetCount}` },
-    ];
-  }, [filteredHomeProducts, watchlistItems, targetPriceByProduct]);
 
   const activeStore = React.useMemo(
     () => filteredStores.find((store) => store.id === focusedStoreId) ?? filteredStores[0],
@@ -300,31 +259,23 @@ export default function NativeAppScreen() {
     watchlistItems.forEach((item) => {
       const product = item.product_id ? productById.get(item.product_id) : null;
       if (!product) return;
-      const target = item.target_price ? Number(item.target_price) : null;
       const price = product.current_price;
       const previous = product.previous_price;
-      if (target !== null && Number.isFinite(target) && price !== null && price <= target) {
-        rows.push({
-          id: `${item.id}-target`,
-          title: "Target hit",
-          body: `${item.name} is now ${money.format(price)} (target ${money.format(target)}).`,
-          when: nowLabel,
-        });
-      } else if (
+      if (
         product.price_delta_percent !== null &&
         product.price_delta_percent < 0
       ) {
         rows.push({
           id: `${item.id}-drop`,
-          title: "Price dropped",
+          title: "Sale started",
           body: `${item.name} is ${formatSignedPercent(product.price_delta_percent)} from last cycle.`,
           when: nowLabel,
         });
-      } else if (previous !== null && target !== null && Number.isFinite(target) && price !== null) {
+      } else if (previous !== null && price !== null) {
         rows.push({
           id: `${item.id}-progress`,
-          title: "Tracking target",
-          body: `${item.name}: ${money.format(price)} vs target ${money.format(target)}.`,
+          title: "Watching weekly update",
+          body: `${item.name}: ${money.format(price)} now vs ${money.format(previous)} last cycle.`,
           when: nowLabel,
         });
       }
@@ -506,7 +457,9 @@ export default function NativeAppScreen() {
     const { data, error } = await listWatchlistItems();
     setWatchlistItems(data);
     setWatchLoading(false);
-    if (error) {
+    if (isSignInRequiredMessage(error)) {
+      setWatchMessage(null);
+    } else if (error) {
       setWatchMessage(error);
     } else if (!keepMessage) {
       setWatchMessage(null);
@@ -656,16 +609,6 @@ export default function NativeAppScreen() {
     void loadHomePriceHistory(selectedHomeProductId);
     void loadHomeStorePrices(selectedHomeProductId);
   }, [activeTab, homeRoute, loadHomePriceHistory, loadHomeStorePrices, selectedHomeProductId]);
-
-  React.useEffect(() => {
-    if (!selectedHomeProductId) {
-      setDetailTargetPrice("");
-      return;
-    }
-
-    const existing = watchlistItems.find((item) => item.product_id === selectedHomeProductId);
-    setDetailTargetPrice(existing?.target_price ?? "");
-  }, [selectedHomeProductId, watchlistItems]);
 
   React.useEffect(() => {
     if (activeTab !== "watchlist") return;
@@ -942,16 +885,8 @@ export default function NativeAppScreen() {
   }, [loadWatchlist, showToast, signInEmail, signInPassword]);
 
   const handleAddProductToWatchlist = React.useCallback(
-    async (product: MarketProduct, targetPrice?: string) => {
-      const target = targetPrice?.trim() ?? "";
+    async (product: MarketProduct) => {
       if (!product) return;
-      if (target) {
-        const parsed = Number(target);
-        if (!Number.isFinite(parsed) || parsed < 0) {
-          setHomeActionMessage("Target price must be a valid non-negative number.");
-          return;
-        }
-      }
 
       setHomeAddSubmitting(true);
       const { error } = await addWatchlistItem({
@@ -959,26 +894,32 @@ export default function NativeAppScreen() {
         storeId: product.best_store_id,
         name: product.name,
         store: product.best_store_name ?? "Unknown store",
-        targetPrice: target || undefined,
       });
       setHomeAddSubmitting(false);
 
       if (error) {
+        if (isSignInRequiredMessage(error)) {
+          setHomeActionMessage(null);
+          setActiveTab("more");
+          setHomeRoute("catalog");
+          showToast("Sign in to enable sale alerts.");
+          return;
+        }
         setHomeActionMessage(error);
         return;
       }
 
       setHomeActionMessage(null);
       await loadWatchlist(true);
-      showToast("Added to watchlist.");
+      showToast("Sale alert enabled.");
     },
     [loadWatchlist, showToast],
   );
 
   const handleAddSelectedToWatchlist = React.useCallback(async () => {
     if (!selectedHomeProduct) return;
-    await handleAddProductToWatchlist(selectedHomeProduct, detailTargetPrice);
-  }, [detailTargetPrice, handleAddProductToWatchlist, selectedHomeProduct]);
+    await handleAddProductToWatchlist(selectedHomeProduct);
+  }, [handleAddProductToWatchlist, selectedHomeProduct]);
 
   const handleWatchProductFromHome = React.useCallback(
     (productId: string) => {
@@ -1076,13 +1017,11 @@ export default function NativeAppScreen() {
             actionMessage={homeActionMessage}
             loading={homeLoading}
             products={filteredHomeProducts}
-            summaryCards={homeSummaryCards}
             watchedProductIds={watchedProductIds}
             sortMode={homeSortMode}
             storeFilterName={homeStoreFilterName}
             onClearStoreFilter={clearHomeStoreFilter}
             selectedProduct={selectedHomeProduct}
-            targetPriceByProduct={targetPriceByProduct}
             onChangeQuery={setHomeQuery}
             onChangeCategory={setHomeCategory}
             onChangeSort={setHomeSortMode}
@@ -1108,10 +1047,8 @@ export default function NativeAppScreen() {
               historyLoading={homeHistoryLoading}
               storePrices={homeStorePrices}
               storePricesLoading={homeStorePricesLoading}
-              targetPrice={detailTargetPrice}
               addSubmitting={homeAddSubmitting}
               onBack={() => setHomeRoute("catalog")}
-              onChangeTargetPrice={setDetailTargetPrice}
               onAddToWatchlist={handleAddSelectedToWatchlist}
               onOpenStoreOnMap={handleOpenStoreOnMap}
             />

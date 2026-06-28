@@ -33,7 +33,7 @@ function normalizeProductRow(row: ProductRowWithOptionalEnglish): MarketProduct 
     previous_price: null,
     price_delta: null,
     price_delta_percent: null,
-    price_compare_label: "Overall sale cycle: current batch only",
+    price_compare_label: "First tracked sale price",
     price_compare_current_batch: null,
     price_compare_previous_batch: null,
     best_store_id: null,
@@ -113,7 +113,7 @@ export async function listProducts(params?: {
         previous_price: summary?.previous_price ?? null,
         price_delta: summary?.price_delta ?? null,
         price_delta_percent: summary?.price_delta_percent ?? null,
-        price_compare_label: summary?.price_compare_label ?? "Overall sale cycle: current batch only",
+        price_compare_label: summary?.price_compare_label ?? "First tracked sale price",
         price_compare_current_batch: summary?.price_compare_current_batch ?? null,
         price_compare_previous_batch: summary?.price_compare_previous_batch ?? null,
         best_store_id: summary?.best_store_id ?? null,
@@ -123,6 +123,7 @@ export async function listProducts(params?: {
       };
     })
     .filter((product) =>
+      priceSummaries.data.has(product.id) &&
       matchesProductFilter(product, params?.search, params?.category),
     );
 
@@ -200,7 +201,7 @@ export async function createProduct(params: {
       previous_price: null,
       price_delta: null,
       price_delta_percent: null,
-      price_compare_label: "Overall sale cycle: current batch only",
+      price_compare_label: "First tracked sale price",
       price_compare_current_batch: null,
       price_compare_previous_batch: null,
       best_store_id: null,

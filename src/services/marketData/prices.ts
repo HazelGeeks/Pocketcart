@@ -14,6 +14,20 @@ type PriceRowWithMeta = PriceRow & {
   priceSession: string;
 };
 
+function isMissingPriceQueryColumnError(error: string | null | undefined): boolean {
+  const text = (error ?? "").toLowerCase();
+  const mentionsKnownOptionalColumn =
+    text.includes("brand") ||
+    text.includes("valid_from") ||
+    text.includes("valid_to");
+  const hasMissingPattern =
+    text.includes("does not exist") ||
+    text.includes("could not find") ||
+    text.includes("schema cache") ||
+    text.includes("pgrst204");
+  return mentionsKnownOptionalColumn && hasMissingPattern;
+}
+
 function toPriceSession(row: PriceRow): string {
   const source = row.valid_from?.trim() || row.observed_at;
   const parsed = new Date(source);
@@ -34,6 +48,50 @@ function buildSessionLabel(session: string): string {
     day: "2-digit",
     year: "numeric",
   });
+}
+
+function sessionTime(session: string): number {
+  const parsed = new Date(session).getTime();
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
+function rowEndTime(row: PriceRowWithMeta): number {
+  if (!row.valid_to) return Number.POSITIVE_INFINITY;
+  const parsed = new Date(row.valid_to).getTime();
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
+function getCurrentSaleSession(rows: PriceRowWithMeta[], nowMs = Date.now()): string | null {
+  const orderedSessions: string[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    if (seen.has(row.priceSession)) continue;
+    seen.add(row.priceSession);
+    orderedSessions.push(row.priceSession);
+  }
+
+  return orderedSessions.find((session) =>
+    rows.some((row) => row.priceSession === session && sessionTime(row.priceSession) <= nowMs && rowEndTime(row) >= nowMs),
+  ) ?? null;
+}
+
+function getPreviousVisibleSession(rows: PriceRowWithMeta[], currentSession: string | null, nowMs = Date.now()): string | null {
+  if (!currentSession) return null;
+  const currentTime = sessionTime(currentSession);
+  const orderedSessions: string[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    if (seen.has(row.priceSession)) continue;
+    seen.add(row.priceSession);
+    orderedSessions.push(row.priceSession);
+  }
+
+  return orderedSessions.find((session) => {
+    const time = sessionTime(session);
+    return time <= nowMs && time < currentTime;
+  }) ?? null;
 }
 
 function toPriceDelta(current: number | null, previous: number | null): PriceDeltaInfo {
@@ -69,14 +127,24 @@ function rowToMeta(row: PriceRow): PriceRowWithMeta | null {
 
 function formatComparisonLabel(currentLabel: string | null, previousLabel: string | null): string {
   if (!currentLabel || !previousLabel) {
-    return "Overall sale cycle: current batch only";
+    return "First tracked sale price";
   }
 
-  return `Across stores sale-cycle: ${currentLabel} vs ${previousLabel}`;
+  return `Current sale ${currentLabel} vs last sale ${previousLabel}`;
 }
 
 function getStoreNameFromRow(row: PriceRowWithMeta | undefined | null): string {
-  return row?.stores?.name ?? "Unknown store";
+  return storeDisplayName(row?.stores);
+}
+
+function storeDisplayName(store: PriceRow["stores"] | undefined | null): string {
+  if (!store) return "Unknown store";
+  const name = store.name?.trim() ?? "";
+  const brand = store.brand?.trim() ?? "";
+  if (brand && name && brand.toLowerCase() !== name.toLowerCase()) {
+    return `${brand} - ${name}`;
+  }
+  return brand || name || "Unknown store";
 }
 
 export async function listProductPriceHistory(
@@ -102,27 +170,43 @@ export async function listProductPriceHistory(
 
     return { data: points, error: null };
   }
+  const client = supabase;
 
-  const { data, error } = await supabase
-    .from("product_prices")
-    .select("id, product_id, price, observed_at")
-    .eq("product_id", productId)
-    .order("observed_at", { ascending: true })
-    .limit(60);
-
-  if (error) {
-    return { data: [], error: error.message };
+  async function fetchHistoryRows(selectClause: string, orderByValidFrom: boolean) {
+    let query = client
+      .from("product_prices")
+      .select(selectClause)
+      .eq("product_id", productId);
+    if (orderByValidFrom) {
+      query = query.order("valid_from", { ascending: true });
+    }
+    return query.order("observed_at", { ascending: true }).limit(60);
   }
 
-  const points = ((data ?? []) as PriceRow[])
+  let response = await fetchHistoryRows("id, product_id, price, observed_at, valid_from, valid_to", true);
+  if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
+    response = await fetchHistoryRows("id, product_id, price, observed_at, valid_from", true);
+  }
+  if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
+    response = await fetchHistoryRows("id, product_id, price, observed_at", false);
+  }
+
+  if (response.error) {
+    return { data: [], error: response.error.message };
+  }
+
+  const nowMs = Date.now();
+  const points = (((response.data ?? []) as unknown) as PriceRow[])
     .map((row) => {
       const parsedPrice = parseNumber(row.price);
       if (parsedPrice === null) return null;
+      const meta = rowToMeta(row);
+      if (!meta || sessionTime(meta.priceSession) > nowMs) return null;
       return {
         id: row.id,
         product_id: row.product_id,
         price: parsedPrice,
-        observed_at: row.observed_at,
+        observed_at: meta.priceSession,
       };
     })
     .filter((row): row is MarketPricePoint => row !== null);
@@ -201,19 +285,38 @@ export async function listProductPriceSummaries(): Promise<ServiceResult<Map<str
       error: null,
     };
   }
+  const client = supabase;
 
-  const { data, error } = await supabase
-    .from("product_prices")
-    .select("id, product_id, store_id, price, observed_at, valid_from, stores(name, area)")
-    .order("valid_from", { ascending: false })
-    .order("observed_at", { ascending: false })
-    .limit(5000);
-
-  if (error) {
-    return { data: new Map(), error: error.message };
+  async function fetchSummaryRows(selectClause: string, orderByValidFrom: boolean) {
+    let query = client.from("product_prices").select(selectClause);
+    if (orderByValidFrom) {
+      query = query.order("valid_from", { ascending: false });
+    }
+    return query.order("observed_at", { ascending: false }).limit(5000);
   }
 
-  const rows = ((data ?? []) as PriceRow[])
+  let response = await fetchSummaryRows(
+    "id, product_id, store_id, price, observed_at, valid_from, valid_to, stores(brand, name, area)",
+    true,
+  );
+  if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
+    response = await fetchSummaryRows(
+      "id, product_id, store_id, price, observed_at, valid_from, stores(name, area)",
+      true,
+    );
+  }
+  if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
+    response = await fetchSummaryRows(
+      "id, product_id, store_id, price, observed_at, stores(name, area)",
+      false,
+    );
+  }
+
+  if (response.error) {
+    return { data: new Map(), error: response.error.message };
+  }
+
+  const rows = (((response.data ?? []) as unknown) as PriceRow[])
     .map(rowToMeta)
     .filter((row): row is PriceRowWithMeta => row !== null);
 
@@ -230,34 +333,33 @@ export async function listProductPriceSummaries(): Promise<ServiceResult<Map<str
       continue;
     }
 
-    const sessionsInOrder: string[] = [];
-    const seenSessions = new Set<string>();
     const bestBySession = new Map<string, PriceRowWithMeta>();
 
     for (const row of productRows) {
-      if (!seenSessions.has(row.priceSession)) {
-        seenSessions.add(row.priceSession);
-        sessionsInOrder.push(row.priceSession);
-      }
-
       const existing = bestBySession.get(row.priceSession);
       if (!existing || row.price < existing.price) {
         bestBySession.set(row.priceSession, row);
       }
     }
 
-    const currentSession = sessionsInOrder[0] ?? null;
-    const previousSession = sessionsInOrder[1] ?? null;
+    const currentSession = getCurrentSaleSession(productRows);
+    const previousSession = getPreviousVisibleSession(productRows, currentSession);
 
-    const currentBest = currentSession ? bestBySession.get(currentSession) : null;
-    const previousBest = previousSession ? bestBySession.get(previousSession) : null;
+    if (!currentSession) {
+      continue;
+    }
+
+    const currentBest = bestBySession.get(currentSession);
+    const effectiveCurrentSession = currentSession;
+    const effectivePreviousSession = previousSession;
+    const previousBest = effectivePreviousSession ? bestBySession.get(effectivePreviousSession) : null;
 
     const currentPrice = currentBest?.price ?? null;
     const previousPrice = previousBest?.price ?? null;
     const delta = toPriceDelta(currentPrice, previousPrice);
 
-    const currentLabel = currentSession ? buildSessionLabel(currentSession) : null;
-    const previousLabel = previousSession ? buildSessionLabel(previousSession) : null;
+    const currentLabel = effectiveCurrentSession ? buildSessionLabel(effectiveCurrentSession) : null;
+    const previousLabel = effectivePreviousSession ? buildSessionLabel(effectivePreviousSession) : null;
     const comparisonLabel = formatComparisonLabel(currentLabel, previousLabel);
 
     summaries.set(productId, {
@@ -267,12 +369,12 @@ export async function listProductPriceSummaries(): Promise<ServiceResult<Map<str
       price_delta: delta.priceDelta,
       price_delta_percent: delta.percentDelta,
       price_compare_label: comparisonLabel.includes("vs")
-        ? `${comparisonLabel} (Current best: ${getStoreNameFromRow(currentBest)}, Previous best: ${getStoreNameFromRow(previousBest)})`
+        ? `${comparisonLabel} (Current lowest: ${getStoreNameFromRow(currentBest)}, Last lowest: ${getStoreNameFromRow(previousBest)})`
         : comparisonLabel,
       price_compare_current_batch: currentLabel,
       price_compare_previous_batch: previousLabel,
       best_store_id: currentBest?.store_id ?? null,
-      best_store_name: currentBest?.stores?.name ?? null,
+      best_store_name: currentBest ? storeDisplayName(currentBest.stores) : null,
       best_store_area: currentBest?.stores?.area ?? null,
       best_store_price: currentBest?.price ?? null,
     });
@@ -308,7 +410,7 @@ export async function listLatestStorePricesForProduct(
           previous_price: null,
           price_delta: null,
           price_delta_percent: null,
-          comparison_label: "Store sale-cycle: current batch only",
+          comparison_label: "First tracked sale price",
           comparison_session_previous: null,
           comparison_session_current: "unknown",
         },
@@ -323,7 +425,7 @@ export async function listLatestStorePricesForProduct(
           previous_price: null,
           price_delta: null,
           price_delta_percent: null,
-          comparison_label: "Store sale-cycle: current batch only",
+          comparison_label: "First tracked sale price",
           comparison_session_previous: null,
           comparison_session_current: "unknown",
         },
@@ -338,7 +440,7 @@ export async function listLatestStorePricesForProduct(
           previous_price: null,
           price_delta: null,
           price_delta_percent: null,
-          comparison_label: "Store sale-cycle: current batch only",
+          comparison_label: "First tracked sale price",
           comparison_session_previous: null,
           comparison_session_current: "unknown",
         },
@@ -346,17 +448,45 @@ export async function listLatestStorePricesForProduct(
       error: null,
     };
   }
+  const client = supabase;
 
-  const { data, error } = await supabase
-    .from("product_prices")
-    .select("id, product_id, store_id, price, observed_at, valid_from, stores(name, area)")
-    .eq("product_id", productId)
-    .order("valid_from", { ascending: false })
-    .order("observed_at", { ascending: false })
-    .limit(300);
+  async function fetchStorePriceRows(selectClause: string, orderByValidFrom: boolean) {
+    let query = client
+      .from("product_prices")
+      .select(selectClause)
+      .eq("product_id", productId);
+    if (orderByValidFrom) {
+      query = query.order("valid_from", { ascending: false });
+    }
+    return query.order("observed_at", { ascending: false }).limit(300);
+  }
 
-  if (error) {
-    return { data: [], error: error.message };
+  let response = await fetchStorePriceRows(
+    "id, product_id, store_id, price, observed_at, valid_from, valid_to, stores(brand, name, area)",
+    true,
+  );
+  if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
+    response = await fetchStorePriceRows(
+      "id, product_id, store_id, price, observed_at, valid_from, stores(name, area)",
+      true,
+    );
+  }
+  if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
+    response = await fetchStorePriceRows(
+      "id, product_id, store_id, price, observed_at, stores(name, area)",
+      false,
+    );
+  }
+
+  if (response.error) {
+    return { data: [], error: response.error.message };
+  }
+
+  const rows = (((response.data ?? []) as unknown) as PriceRow[]).map(rowToMeta).filter((row): row is PriceRowWithMeta => row !== null);
+  const currentSession = getCurrentSaleSession(rows);
+  const previousSession = getPreviousVisibleSession(rows, currentSession);
+  if (!currentSession) {
+    return { data: [], error: null };
   }
 
   const byStore = new Map<
@@ -370,17 +500,17 @@ export async function listLatestStorePricesForProduct(
     }
   >();
 
-  for (const row of ((data ?? []) as PriceRow[]).map(rowToMeta).filter((row): row is PriceRowWithMeta => row !== null)) {
+  for (const row of rows) {
     if (!row.store_id) continue;
 
     const storeState = byStore.get(row.store_id) ?? {};
 
-    if (!storeState.current) {
+    if (row.priceSession === currentSession) {
       storeState.current = row;
       storeState.latestSession = row.priceSession;
-      storeState.storeName = row.stores?.name ?? "Unknown store";
+      storeState.storeName = storeDisplayName(row.stores);
       storeState.storeArea = row.stores?.area ?? null;
-    } else if (!storeState.previous && row.priceSession !== storeState.latestSession) {
+    } else if (row.priceSession === previousSession) {
       storeState.previous = row;
     }
 
@@ -402,14 +532,14 @@ export async function listLatestStorePricesForProduct(
       : null;
 
     const comparisonLabel = state.previous
-      ? `Store sale-cycle: ${currentLabel} vs ${previousLabel}`
-      : `Store sale-cycle: ${currentLabel ?? "unknown"} (only one cycle available)`;
+      ? `Current sale ${currentLabel} vs last sale ${previousLabel}`
+      : `First tracked sale price${currentLabel ? ` (${currentLabel})` : ""}`;
 
     result.push({
       id: state.current.id,
       product_id: state.current.product_id,
       store_id: storeId,
-      store_name: state.storeName ?? state.current.stores?.name ?? "Unknown store",
+      store_name: state.storeName ?? storeDisplayName(state.current.stores),
       store_area: state.storeArea ?? state.current.stores?.area ?? null,
       price: state.current.price,
       observed_at: state.current.observed_at,

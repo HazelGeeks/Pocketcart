@@ -49,7 +49,7 @@ export async function listStores(params?: {
 
   const { data, error } = await supabase
     .from("stores")
-    .select("id, name, area, latitude, longitude, price_note, address, place_id")
+    .select("id, brand, name, area, latitude, longitude, price_note, address, place_id")
     .order("name", { ascending: true });
 
   if (error) {
@@ -74,6 +74,7 @@ export async function listStores(params?: {
 
       return {
         id: row.id,
+        brand: row.brand ?? null,
         name: row.name,
         area: row.area,
         latitude,
@@ -106,6 +107,7 @@ export async function listStores(params?: {
 
 export async function createStore(params: {
   name: string;
+  brand?: string;
   area: string;
   latitude: string;
   longitude: string;
@@ -125,6 +127,7 @@ export async function createStore(params: {
 
   const payload = {
     name: params.name.trim(),
+    brand: params.brand?.trim() ? params.brand.trim() : null,
     area: params.area.trim(),
     latitude,
     longitude,
@@ -134,7 +137,7 @@ export async function createStore(params: {
   const { data, error } = await supabase
     .from("stores")
     .insert(payload)
-    .select("id, name, area, latitude, longitude, price_note, address, place_id")
+    .select("id, brand, name, area, latitude, longitude, price_note, address, place_id")
     .single();
 
   if (error) {
@@ -145,6 +148,7 @@ export async function createStore(params: {
   return {
     data: {
       id: row.id,
+      brand: row.brand ?? null,
       name: row.name,
       area: row.area,
       latitude: parseNumber(row.latitude) ?? latitude,

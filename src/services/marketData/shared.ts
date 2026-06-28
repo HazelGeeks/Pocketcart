@@ -38,7 +38,7 @@ export function matchesProductFilter(
 export function matchesStoreFilter(store: MarketStore, search?: string): boolean {
   const q = search?.trim().toLowerCase() ?? "";
   if (!q) return true;
-  return `${store.name} ${store.area} ${store.price_note ?? ""}`
+  return `${store.brand ?? ""} ${store.name} ${store.area} ${store.price_note ?? ""}`
     .toLowerCase()
     .includes(q);
 }

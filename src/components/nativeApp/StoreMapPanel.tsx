@@ -32,6 +32,9 @@ export function StoreMapPanel({
   onFocusStore,
   onViewStoreInHome,
 }: StoreMapPanelProps) {
+  const getStoreDisplayName = (store: MarketStore) =>
+    store.brand ? `${store.brand} - ${store.name}` : store.name;
+
   return (
     <View style={st.sectionStack}>
       <Text style={st.sectionTitle}>Map</Text>
@@ -60,6 +63,7 @@ export function StoreMapPanel({
         <MapView ref={mapRef} initialRegion={region} style={st.mapView}>
           {stores.map((store) => {
             const active = store.id === focusedStoreId;
+            const displayName = getStoreDisplayName(store);
             return (
               <Marker
                 key={store.id}
@@ -67,7 +71,7 @@ export function StoreMapPanel({
                   latitude: store.latitude,
                   longitude: store.longitude,
                 }}
-                title={store.name}
+                title={displayName}
                 description={`${store.area} • ${store.price_note ?? ""}`}
                 pinColor={active ? C.primaryDeep : C.primary}
                 onPress={() => onFocusStoreId(store.id)}
@@ -89,6 +93,7 @@ export function StoreMapPanel({
       ) : (
         stores.map((store) => {
           const active = store.id === focusedStoreId;
+          const displayName = getStoreDisplayName(store);
           return (
             <Pressable
               key={store.id}
@@ -96,13 +101,15 @@ export function StoreMapPanel({
               onPress={() => onFocusStore(store)}
               style={[st.rowCard, active && st.rowCardActive]}
             >
-              <Text style={st.itemName}>{store.name}</Text>
-              <Text style={st.itemMeta}>{store.area}</Text>
+              <Text style={st.itemName}>{store.brand ?? store.name}</Text>
+              <Text style={st.itemMeta}>
+                {store.brand ? `${store.name} | ${store.area}` : store.area}
+              </Text>
               <Text style={st.storePrice}>{store.price_note ?? "Price note unavailable"}</Text>
               <View style={st.storeActionRow}>
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => onViewStoreInHome(store.id, store.name)}
+                  onPress={() => onViewStoreInHome(store.id, displayName)}
                   style={[st.authBtn, st.authBtnSecondary, st.storeActionBtn]}
                 >
                   <Text style={st.authBtnSecondaryText}>View deals</Text>

@@ -9,10 +9,11 @@ import {
 import type { AdminStore, ServiceResult, StoreRow } from "./types";
 
 const STORE_EXTENDED_FIELDS =
-  "id, name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active, created_at";
+  "id, brand, name, area, latitude, longitude, price_note, address, place_id, phone, website, hours, store_type, is_active, created_at";
 const STORE_BASE_FIELDS = "id, name, area, latitude, longitude, price_note, created_at";
 
 type StorePayloadParams = {
+  brand?: string;
   name: string;
   area: string;
   latitude: string;
@@ -45,6 +46,7 @@ function buildStorePayload(params: StorePayloadParams) {
   };
   const extendedPayload = {
     ...basePayload,
+    brand: params.brand?.trim() ? params.brand.trim() : null,
     address: params.address?.trim() ? params.address.trim() : null,
     place_id: params.placeId?.trim() ? params.placeId.trim() : null,
     phone: params.phone?.trim() ? params.phone.trim() : null,

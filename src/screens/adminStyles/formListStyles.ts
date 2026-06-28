@@ -48,18 +48,6 @@ export const adminFormListStyles = {
   filterInputInline: {
     width: 96,
   },
-  priceFormInputWide: {
-    minWidth: 220,
-    flexGrow: 1,
-  },
-  priceFormInputMedium: {
-    minWidth: 150,
-    flexGrow: 1,
-  },
-  priceFormInputSmall: {
-    minWidth: 96,
-    flexGrow: 1,
-  },
   storeFormInputWide: {
     minWidth: 220,
     flexGrow: 1,

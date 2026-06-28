@@ -13,6 +13,8 @@
     "src/routing/routeState.ts",
     "src/constants/palette.ts",
     "src/utils/authCallback.ts",
-    "src/utils/adminValidation.ts"
+    "src/utils/adminValidation.ts",
+    "src/utils/productIdentity.ts",
+    "src/utils/productStorePriceSets.ts"
   ]
 }

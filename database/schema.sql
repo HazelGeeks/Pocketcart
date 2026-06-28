@@ -164,6 +164,13 @@ alter table public.products
   add column if not exists unit text,
   add column if not exists english_name text;
 
+create unique index if not exists products_identity_key
+  on public.products (
+    lower(regexp_replace(trim(name), '\s+', ' ', 'g')),
+    lower(regexp_replace(trim(coalesce(unit, '')), '\s+', ' ', 'g')),
+    lower(regexp_replace(trim(category), '\s+', ' ', 'g'))
+  );
+
 alter table public.products enable row level security;
 
 drop policy if exists products_select_public on public.products;
@@ -201,6 +208,7 @@ using (public.is_admin());
 -- stores
 create table if not exists public.stores (
   id uuid primary key default gen_random_uuid(),
+  brand text,
   name text not null,
   area text not null,
   latitude numeric not null,
@@ -217,6 +225,7 @@ create table if not exists public.stores (
 );
 
 alter table public.stores
+  add column if not exists brand text,
   add column if not exists address text,
   add column if not exists place_id text,
   add column if not exists phone text,
@@ -336,6 +345,9 @@ create index if not exists product_prices_product_observed_idx
 
 create index if not exists product_prices_store_observed_idx
   on public.product_prices(store_id, observed_at desc);
+
+create unique index if not exists product_prices_product_store_valid_from_key
+  on public.product_prices(product_id, store_id, valid_from);
 
 alter table public.product_prices enable row level security;
 

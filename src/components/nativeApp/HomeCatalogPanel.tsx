@@ -7,11 +7,12 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Svg, { Circle, Path, Rect } from "react-native-svg";
 import type { MarketProduct } from "../../services/marketData";
-import type { SummaryCard } from "../../screens/nativeAppData";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { formatSignedPercent } from "./priceDisplay";
+import { marketingPalette as C } from "../../shared/design/palette";
 
 type HomeSortMode = "deals" | "lowestPrice" | "biggestDrop";
 
@@ -24,8 +25,6 @@ type HomeCatalogPanelProps = {
   loading: boolean;
   products: MarketProduct[];
   selectedProduct: MarketProduct | null;
-  targetPriceByProduct: Map<string, number>;
-  summaryCards: SummaryCard[];
   sortMode: HomeSortMode;
   watchedProductIds: Set<string>;
   storeFilterName: string | null;
@@ -65,6 +64,9 @@ const formatPriceLabel = (value: number | null): string => {
   return money.format(value);
 };
 
+const displayPriceForProduct = (product: MarketProduct): number | null =>
+  product.current_price ?? product.best_store_price ?? product.previous_price;
+
 export function HomeCatalogPanel({
   query,
   category,
@@ -74,8 +76,6 @@ export function HomeCatalogPanel({
   loading,
   products,
   selectedProduct,
-  targetPriceByProduct,
-  summaryCards,
   watchedProductIds,
   sortMode,
   storeFilterName,
@@ -85,94 +85,32 @@ export function HomeCatalogPanel({
   onChangeSort,
   onSelectProduct,
   onWatchProduct,
-  onOpenStoreOnMap,
 }: HomeCatalogPanelProps) {
-  const groupedProducts = React.useMemo(() => {
-    const groups = new Map<
-      string,
-      { name: string; products: MarketProduct[]; sortKey: number }
-    >();
-
-    for (const product of products) {
-      const id = product.best_store_id || "unlinked-store";
-      const name = product.best_store_name || "Other stores";
-      const existing = groups.get(id);
-
-      const sortKey =
-        sortMode === "biggestDrop"
-          ? byDrop(product)
-          : product.best_store_price !== null
-            ? product.best_store_price
-            : Number.MAX_VALUE;
-
-      if (existing) {
-        existing.products.push(product);
-      } else {
-        groups.set(id, {
-          name,
-          sortKey,
-          products: [product],
-        });
+  const sortedProducts = React.useMemo(() => {
+    return products.slice().sort((a, b) => {
+      if (sortMode === "biggestDrop") {
+        const aDrop = a.price_delta_percent ?? Number.MAX_VALUE;
+        const bDrop = b.price_delta_percent ?? Number.MAX_VALUE;
+        if (aDrop !== bDrop) return aDrop - bDrop;
       }
-    }
 
-    return Array.from(groups.entries())
-      .map(([storeId, group]) => {
-        const sorted = group.products.slice().sort((a, b) => {
-          if (sortMode === "biggestDrop") {
-            const aDrop = a.price_delta_percent;
-            const bDrop = b.price_delta_percent;
-            const aStable = aDrop === null ? Number.MAX_VALUE : aDrop;
-            const bStable = bDrop === null ? Number.MAX_VALUE : bDrop;
-            if (aStable === bStable) {
-              return byPrice(a) - byPrice(b);
-            }
-            return aStable - bStable;
-          }
+      if (sortMode === "lowestPrice" || sortMode === "deals") {
+        const aPrice = displayPriceForProduct(a) ?? Number.MAX_VALUE;
+        const bPrice = displayPriceForProduct(b) ?? Number.MAX_VALUE;
+        if (aPrice !== bPrice) return aPrice - bPrice;
+      }
 
-          return byPrice(a) - byPrice(b);
-        });
-
-        return {
-          storeId,
-          name: group.name,
-          products: sorted,
-          sortKey: group.sortKey,
-        };
-      })
-      .sort((left, right) => {
-        if (left.sortKey === right.sortKey) {
-          return left.name.localeCompare(right.name);
-        }
-
-        if (sortMode === "biggestDrop") {
-          return left.sortKey - right.sortKey;
-        }
-
-            return left.sortKey - right.sortKey;
-        });
+      return a.name.localeCompare(b.name);
+    });
   }, [products, sortMode]);
 
   return (
     <View style={st.sectionStack}>
-      <Text style={st.sectionTitle}>Deals</Text>
+      <Text style={st.sectionTitle}>Best Prices</Text>
       <View style={st.dealHeaderRow}>
-        <Text style={st.sectionSub}>Next update in 4h · All Deals</Text>
+        <Text style={st.sectionSub}>Search groceries and compare current sale prices.</Text>
         <Text style={st.badge}>Live</Text>
       </View>
-
-      {summaryCards.length > 0 ? (
-        <View style={st.summaryRowWrap}>
-          {summaryCards.map((card) => (
-            <View key={card.id} style={st.summaryCard}>
-              <Text style={st.summaryLabel}>
-                {card.label}
-              </Text>
-              <Text style={st.summaryValue}>{card.value}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
 
       {storeFilterName ? (
         <View style={st.dealFilterRow}>
@@ -272,163 +210,125 @@ export function HomeCatalogPanel({
         <View style={st.rowCard}>
           <Text style={st.itemMeta}>
             {storeFilterName
-              ? "No deals found for this store."
-              : "No products found for this filter."}
+              ? "No current sales at this store yet."
+              : "No current sales right now. Check back after the next weekly update."}
           </Text>
         </View>
       ) : (
-        groupedProducts.map((group) => (
-          <View key={group.storeId} style={st.dealSectionCard}>
-            <View style={st.dealSectionHeader}>
-              <Text style={st.itemName}>{group.name}</Text>
+        <View style={st.homeProductList}>
+          {sortedProducts.map((product) => {
+            const isDeal =
+              product.price_delta_percent !== null &&
+              product.price_delta !== null &&
+              product.price_delta < 0;
+            const isWatching = watchedProductIds.has(product.id);
+            const active = selectedProduct?.id === product.id;
+            const displayPrice = displayPriceForProduct(product);
+            const unitLabel = product.unit ? ` / ${product.unit}` : "";
+            const changeLabel = formatTrendLabel(product);
+            const previous = product.previous_price;
+
+            return (
               <Pressable
+                key={product.id}
                 accessibilityRole="button"
-                onPress={() => {
-                  if (group.storeId !== "unlinked-store") {
-                    onOpenStoreOnMap(group.storeId, group.name);
-                  }
-                }}
-                disabled={group.storeId === "unlinked-store"}
-                style={[
-                  st.inlinePill,
-                  group.storeId === "unlinked-store" && st.inlinePillDisabled,
-                ]}
+                onPress={() => onSelectProduct(product.id)}
+                style={[st.homeProductRow, active && st.dealFeedItemActive]}
               >
-                <Text
-                  style={[
-                    st.inlinePillText,
-                    group.storeId === "unlinked-store" && st.inlinePillTextDisabled,
-                  ]}
-                >
-                  Open map
-                </Text>
-              </Pressable>
-            </View>
+                {product.thumbnail_url ? (
+                  <Image
+                    source={{ uri: product.thumbnail_url }}
+                    style={st.homeProductThumb}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={st.homeProductThumbPlaceholder}>
+                    <ProductPlaceholderIcon />
+                  </View>
+                )}
 
-            <View style={st.dealFeedGrid}>
-              {group.products.map((product) => {
-                const targetPrice = targetPriceByProduct.get(product.id) ?? null;
-                const belowTarget =
-                  targetPrice !== null &&
-                  product.current_price !== null &&
-                  product.current_price <= targetPrice;
-                const isDeal =
-                  (product.price_delta_percent !== null &&
-                    product.price_delta !== null &&
-                    product.price_delta < 0) ||
-                  belowTarget;
-                const isWatching = watchedProductIds.has(product.id);
-                const active = selectedProduct?.id === product.id;
-                const unitLabel = product.unit ? ` / ${product.unit}` : "";
-                const changeLabel = formatTrendLabel(product);
-                const previous = product.previous_price;
-                const targetGap =
-                  targetPrice !== null && product.current_price !== null
-                    ? product.current_price - targetPrice
-                    : null;
-                const targetStatus =
-                  targetPrice !== null && targetGap !== null
-                    ? targetGap <= 0
-                      ? `Target beat by ${money.format(Math.abs(targetGap))}`
-                      : `${money.format(targetGap)} above target`
-                    : null;
+                <View style={st.homeProductMain}>
+                  <View style={st.homeProductTitleRow}>
+                    <Text style={[st.itemName, st.homeProductName]} numberOfLines={2}>
+                      {product.name}
+                    </Text>
+                    {isDeal ? <Text style={st.tag}>Deal</Text> : null}
+                  </View>
+                  <Text style={st.itemMeta} numberOfLines={1}>
+                    {product.category}{unitLabel}
+                  </Text>
+                  <Text style={st.homeStoreLine} numberOfLines={1}>
+                    {product.best_store_name
+                      ? `${product.best_store_name}${product.best_store_area ? ` · ${product.best_store_area}` : ""}`
+                      : "Store not linked yet"}
+                  </Text>
+                  <View style={st.homeProductMetaRow}>
+                    {changeLabel ? <Text style={st.homeDeltaText}>{changeLabel}</Text> : null}
+                    <Text style={st.itemMeta}>
+                      {previous !== null
+                        ? `Last ${money.format(previous)}`
+                        : displayPrice !== null
+                          ? "First tracked price"
+                          : "No price history"}
+                    </Text>
+                  </View>
+                </View>
 
-                return (
+                <View style={st.homeProductPriceCol}>
+                  <Text style={st.dealPrice} numberOfLines={1}>
+                    {formatPriceLabel(displayPrice)}
+                  </Text>
                   <Pressable
-                    key={product.id}
                     accessibilityRole="button"
-                    onPress={() => onSelectProduct(product.id)}
-                    style={[st.dealCard, active && st.dealFeedItemActive]}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      onWatchProduct(product.id);
+                    }}
+                    style={[
+                      st.homeNotifyBtn,
+                      isWatching && st.homeNotifyBtnActive,
+                    ]}
                   >
-                    {product.thumbnail_url ? (
-                      <Image
-                        source={{ uri: product.thumbnail_url }}
-                        style={st.dealCardImage}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={st.dealCardImagePlaceholder}>
-                        <Text style={st.productThumbPlaceholderText}>IMG</Text>
-                      </View>
-                    )}
-
-                    <View style={st.dealCardBody}>
-                      <Text style={st.itemName} numberOfLines={2}>
-                        {product.name}
-                      </Text>
-                      <Text style={st.dealPrice} numberOfLines={1}>
-                        {formatPriceLabel(product.current_price)}{unitLabel}
-                      </Text>
-                      <Text style={st.itemMeta} numberOfLines={1}>
-                        {product.category} {product.best_store_area ? ` · ${product.best_store_area}` : ""}
-                      </Text>
-                      <View style={st.tagRow}>
-                        {isDeal ? <Text style={st.tag}>Deal</Text> : null}
-                        {changeLabel ? (
-                          <Text style={st.tag}>{changeLabel}</Text>
-                        ) : null}
-                        {belowTarget ? <Text style={st.tag}>Target hit</Text> : null}
-                        {previous !== null && product.price_delta_percent !== null && product.price_delta_percent < 0 ? (
-                          <Text style={st.tag}>
-                            Best {product.best_store_name ?? "store"}
-                          </Text>
-                        ) : null}
-                        {isWatching ? <Text style={st.tag}>Watching</Text> : null}
-                        {product.best_store_name ? (
-                          <Text style={st.tag}>
-                            Best at {product.best_store_name}
-                          </Text>
-                        ) : null}
-                      </View>
-
-                      <View style={st.dealCardBottomRow}>
-                        <View>
-                          <Text style={st.itemMeta}>
-                            Last: {previous !== null ? money.format(previous) : "N/A"}
-                          </Text>
-                          {targetStatus ? (
-                            <Text
-                              style={[
-                                st.itemMeta,
-                                targetGap !== null && targetGap <= 0
-                                  ? st.targetBadge
-                                  : null,
-                              ]}
-                            >
-                              {targetStatus}
-                            </Text>
-                          ) : null}
-                        </View>
-                        <Pressable
-                          accessibilityRole="button"
-                          onPress={(event) => {
-                            event.stopPropagation();
-                            onWatchProduct(product.id);
-                          }}
-                          style={[
-                            st.productActionBtn,
-                            st.productActionPrimary,
-                            isWatching && st.productActionSecondary,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              st.productActionPrimaryText,
-                              isWatching && st.productActionSecondaryText,
-                            ]}
-                          >
-                            {isWatching ? "Watching" : "Watch"}
-                          </Text>
-                        </Pressable>
-                      </View>
-                    </View>
+                    <Text
+                      style={[
+                        st.homeNotifyText,
+                        isWatching && st.homeNotifyTextActive,
+                      ]}
+                    >
+                      {isWatching ? "Alert on" : "Notify"}
+                    </Text>
                   </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       )}
     </View>
+  );
+}
+
+function ProductPlaceholderIcon() {
+  return (
+    <Svg width={46} height={46} viewBox="0 0 46 46" fill="none">
+      <Rect
+        x={9}
+        y={10}
+        width={28}
+        height={26}
+        rx={7}
+        fill={C.primaryGhost}
+        stroke={C.primaryDeep}
+        strokeWidth={2}
+      />
+      <Path
+        d="M16 18h14M16 24h10M18 10l2-4h6l2 4"
+        stroke={C.primaryDeep}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Circle cx={31} cy={30} r={3} fill={C.primary} />
+    </Svg>
   );
 }

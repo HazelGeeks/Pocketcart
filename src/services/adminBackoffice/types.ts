@@ -20,6 +20,7 @@ export type AdminProduct = {
 
 export type AdminStore = {
   id: string;
+  brand: string | null;
   name: string;
   area: string;
   latitude: number;
@@ -70,6 +71,7 @@ export type ProductRow = AdminProduct;
 
 export type StoreRow = {
   id: string;
+  brand?: string | null;
   name: string;
   area: string;
   latitude: number | string;

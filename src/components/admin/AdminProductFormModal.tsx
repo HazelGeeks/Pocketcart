@@ -1,8 +1,8 @@
 import React from "react";
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { AdminStore } from "../../services/adminBackoffice";
-import type { StorePriceSetInput } from "../../utils/adminScreenHelpers";
+import { WEB_FILTER_SELECT_STYLE, type StorePriceSetInput } from "../../utils/adminScreenHelpers";
 
 type Props = {
   visible: boolean;
@@ -30,8 +30,7 @@ type Props = {
   onUploadImage: () => void;
   onAddStorePriceSet: () => void;
   onRemoveStorePriceSet: (id: string) => void;
-  onUpdateStorePriceSet: (id: string, field: "storeId" | "price", value: string) => void;
-  onPickPeriodDate: (type: "start" | "end") => void;
+  onUpdateStorePriceSet: (id: string, field: "brand" | "storeId" | "price", value: string) => void;
   onPeriodStartChange: (value: string) => void;
   onPeriodEndChange: (value: string) => void;
   onClose: () => void;
@@ -65,12 +64,54 @@ export default function AdminProductFormModal({
   onAddStorePriceSet,
   onRemoveStorePriceSet,
   onUpdateStorePriceSet,
-  onPickPeriodDate,
   onPeriodStartChange,
   onPeriodEndChange,
   onClose,
   onSave,
 }: Props) {
+  const [openStoreSetId, setOpenStoreSetId] = React.useState<string | null>(null);
+
+  const storeBrandLabel = React.useCallback((store: AdminStore) => store.brand?.trim() || "Other", []);
+
+  const storeDisplayName = React.useCallback((store: AdminStore) => {
+    const branchName = store.name.trim();
+    const brand = store.brand?.trim();
+    return brand ? `${brand} - ${branchName}` : branchName;
+  }, []);
+
+  const webDateInputStyle = React.useMemo<React.CSSProperties>(
+    () => ({
+      ...WEB_FILTER_SELECT_STYLE,
+      flex: 1,
+      minWidth: 180,
+      height: 44,
+      fontSize: 13,
+    }),
+    [],
+  );
+
+  const storeNameById = React.useMemo(() => {
+    const map = new Map<string, AdminStore>();
+    recentStoreOptions.forEach((store) => {
+      map.set(store.id, store);
+    });
+    return map;
+  }, [recentStoreOptions]);
+
+  const storeBrandOptions = React.useMemo(() => {
+    const brands = new Set<string>();
+    recentStoreOptions.forEach((store) => {
+      brands.add(storeBrandLabel(store));
+    });
+    return Array.from(brands).sort((a, b) => a.localeCompare(b));
+  }, [recentStoreOptions, storeBrandLabel]);
+
+  React.useEffect(() => {
+    if (!visible) {
+      setOpenStoreSetId(null);
+    }
+  }, [visible]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={st.modalBackdrop}>
@@ -80,8 +121,8 @@ export default function AdminProductFormModal({
               <Text style={st.modalTitle}>{editingProductId ? "Edit Product" : "Add Product"}</Text>
               <Text style={st.modalSub}>
                 {editingProductId
-                  ? "Update product details or add an image. Store price sets are optional."
-                  : "Register a catalog product. Image and Store | Price sets are optional."}
+                  ? "Update product details, image, and weekly sale price."
+                  : "Register a product, then optionally attach a weekly sale price by store."}
               </Text>
             </View>
             <Pressable accessibilityRole="button" onPress={onClose} style={[st.btn, st.btnGhost]}>
@@ -90,6 +131,28 @@ export default function AdminProductFormModal({
           </View>
 
           <ScrollView style={st.modalBody} contentContainerStyle={st.modalBodyContent}>
+            <View style={st.productImageTopSection}>
+              <View style={st.productImageTopCopy}>
+                <Text style={st.fieldLabel}>Product Image</Text>
+                <Text style={st.dataMuted}>
+                  Recommended: square JPG/PNG/WebP, 800 x 800 px or larger.
+                </Text>
+              </View>
+              <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]} disabled={imageUploading || submitting}>
+                {productThumb ? (
+                  <Image source={{ uri: productThumb }} style={st.modalImagePreview} resizeMode="cover" />
+                ) : (
+                  <View style={[st.modalImagePreview, st.modalImagePlaceholder]}>
+                    <Text style={st.dataMuted}>Tap to upload</Text>
+                  </View>
+                )}
+                <View style={st.imageUploadOverlay}>
+                  {imageUploading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
+                  <Text style={st.imageUploadOverlayText}>{imageUploading ? "Uploading..." : productThumb ? "Replace image" : "Upload image"}</Text>
+                </View>
+              </Pressable>
+            </View>
+
             <View style={st.modalTopGrid}>
               <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
                 <Text style={st.fieldLabel}>Product Name</Text>
@@ -150,79 +213,172 @@ export default function AdminProductFormModal({
               })}
             </View>
 
-            <View style={st.modalTopGrid}>
-              <View style={st.modalTopCell}>
-                <Text style={st.fieldLabel}>Product Image</Text>
-                <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]} disabled={imageUploading || submitting}>
-                  {productThumb ? (
-                    <Image source={{ uri: productThumb }} style={st.modalImagePreview} resizeMode="cover" />
-                  ) : (
-                    <View style={[st.modalImagePreview, st.modalImagePlaceholder]}>
-                      <Text style={st.dataMuted}>Tap to upload product image</Text>
-                    </View>
-                  )}
-                  <View style={st.imageUploadOverlay}>
-                    {imageUploading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
-                    <Text style={st.imageUploadOverlayText}>{imageUploading ? "Uploading..." : productThumb ? "Tap to replace image" : "Tap to upload image"}</Text>
-                  </View>
-                </Pressable>
-                <Text style={st.dataMuted}>Optional. Click image area to upload to Supabase Storage.</Text>
-              </View>
-            </View>
-
             <View style={st.storePriceHeaderRow}>
-              <Text style={st.fieldLabel}>Optional Store | Price Sets</Text>
+              <View>
+                <Text style={st.fieldLabel}>Store Prices</Text>
+                <Text style={st.dataMuted}>
+                  Same Product Name + Unit + Category reuses the existing product and adds or updates sale prices.
+                </Text>
+              </View>
               <Pressable accessibilityRole="button" onPress={onAddStorePriceSet} style={[st.btn, st.btnGhost]} disabled={submitting}>
                 <Text style={st.btnGhostText}>Add Set</Text>
               </Pressable>
             </View>
             <View style={st.storePriceGrid}>
-              {storePriceSets.map((set, index) => (
-                <View key={set.id} style={[st.storePriceCard, isLg ? st.storePriceCardThreeCol : st.storePriceCardTwoCol]}>
-                  <View style={st.storePriceCardHeader}>
-                    <Text style={st.storePriceCardTitle}>Set {index + 1}</Text>
-                    <Pressable accessibilityRole="button" onPress={() => onRemoveStorePriceSet(set.id)} style={[st.btn, st.btnDangerSoft]} disabled={submitting}>
-                      <Text style={st.btnDangerSoftText}>{storePriceSets.length === 1 ? "Clear" : "Remove"}</Text>
-                    </Pressable>
+              {storePriceSets.map((set, index) => {
+                const selectedStore = storeNameById.get(set.storeId);
+                const selectedBrand = selectedStore
+                  ? storeBrandLabel(selectedStore)
+                  : set.brand.trim();
+                const visibleStoreOptions = selectedBrand
+                  ? recentStoreOptions.filter((store) => storeBrandLabel(store) === selectedBrand)
+                  : [];
+                const isOpen = openStoreSetId === set.id;
+
+                return (
+                  <View key={set.id} style={[st.storePriceCard, st.storePriceCardTwoCol]}>
+                    <View style={st.storePriceCardHeader}>
+                      <Text style={st.storePriceCardTitle}>Price Set {index + 1}</Text>
+                      <Pressable accessibilityRole="button" onPress={() => onRemoveStorePriceSet(set.id)} style={[st.btn, st.btnDangerSoft]} disabled={submitting}>
+                        <Text style={st.btnDangerSoftText}>{storePriceSets.length === 1 ? "Clear" : "Remove"}</Text>
+                      </Pressable>
+                    </View>
+
+                    <View style={st.storePriceFieldGroup}>
+                      <Text style={st.fieldLabel}>Brand</Text>
+                      <View style={st.choiceRow}>
+                        {storeBrandOptions.length === 0 ? (
+                          <Text style={st.dataMuted}>No store brands loaded</Text>
+                        ) : (
+                          storeBrandOptions.map((brand) => {
+                            const active = selectedBrand === brand;
+                            return (
+                              <Pressable
+                                key={`${set.id}-brand-${brand}`}
+                                accessibilityRole="button"
+                                onPress={() => {
+                                  onUpdateStorePriceSet(set.id, "brand", brand);
+                                  if (set.storeId) {
+                                    onUpdateStorePriceSet(set.id, "storeId", "");
+                                  }
+                                  setOpenStoreSetId(set.id);
+                                }}
+                                style={[st.choiceChip, active && st.choiceChipActive]}
+                                disabled={submitting}
+                              >
+                                <Text style={[st.choiceChipText, active && st.choiceChipTextActive]}>{brand}</Text>
+                              </Pressable>
+                            );
+                          })
+                        )}
+                      </View>
+
+                      <Text style={st.fieldLabel}>Branch</Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setOpenStoreSetId(isOpen ? null : set.id)}
+                        style={st.storeDropdownButton}
+                        disabled={submitting || recentStoreOptions.length === 0 || !selectedBrand}
+                      >
+                        <View style={st.storeDropdownTextWrap}>
+                          <Text style={selectedStore ? st.storeDropdownSelectedText : st.storeDropdownPlaceholderText} numberOfLines={1}>
+                            {selectedStore ? storeDisplayName(selectedStore) : recentStoreOptions.length === 0 ? "No stores loaded" : selectedBrand ? "All branches included" : "Select brand first"}
+                          </Text>
+                          {selectedStore?.area ? (
+                            <Text style={st.storeDropdownMetaText} numberOfLines={1}>{selectedStore.area}</Text>
+                          ) : selectedBrand ? (
+                            <Text style={st.storeDropdownMetaText} numberOfLines={1}>{visibleStoreOptions.length} branches will be included</Text>
+                          ) : null}
+                        </View>
+                        <Text style={st.storeDropdownChevron}>{isOpen ? "Hide" : "Show"}</Text>
+                      </Pressable>
+
+                      {isOpen ? (
+                        <View style={st.storeDropdownMenu}>
+                          <ScrollView style={st.storeDropdownScroll} nestedScrollEnabled>
+                            <Pressable
+                              accessibilityRole="button"
+                              onPress={() => {
+                                onUpdateStorePriceSet(set.id, "storeId", "");
+                                setOpenStoreSetId(null);
+                              }}
+                              style={[st.storeDropdownOption, !set.storeId && st.storeDropdownOptionActive]}
+                            >
+                              <Text style={[st.storeDropdownOptionText, !set.storeId && st.storeDropdownOptionTextActive]} numberOfLines={1}>
+                                All branches
+                              </Text>
+                              <Text style={st.storeDropdownOptionMeta} numberOfLines={1}>
+                                Apply this price to every {selectedBrand} branch
+                              </Text>
+                            </Pressable>
+                            {visibleStoreOptions.map((store) => {
+                              const active = set.storeId === store.id;
+                              return (
+                                <Pressable
+                                  key={`${set.id}-${store.id}`}
+                                  accessibilityRole="button"
+                                  onPress={() => {
+                                    onUpdateStorePriceSet(set.id, "storeId", store.id);
+                                    setOpenStoreSetId(null);
+                                  }}
+                                  style={[st.storeDropdownOption, active && st.storeDropdownOptionActive]}
+                                >
+                                  <Text style={[st.storeDropdownOptionText, active && st.storeDropdownOptionTextActive]} numberOfLines={1}>
+                                    {store.name}
+                                  </Text>
+                                  <Text style={st.storeDropdownOptionMeta} numberOfLines={1}>{store.area}</Text>
+                                </Pressable>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <View style={st.storePriceFieldGroup}>
+                      <Text style={st.fieldLabel}>Current Sale Price</Text>
+                      <TextInput
+                        value={set.price}
+                        onChangeText={(value) => onUpdateStorePriceSet(set.id, "price", value)}
+                        placeholder="0.00"
+                        placeholderTextColor={C.textMuted}
+                        keyboardType="decimal-pad"
+                        style={st.input}
+                      />
+                    </View>
                   </View>
-
-                  <Text style={st.dataMuted}>Store</Text>
-                  <View style={st.storePillRow}>
-                    {recentStoreOptions.length === 0 ? (
-                      <Text style={st.dataMuted}>No stores loaded.</Text>
-                    ) : (
-                      recentStoreOptions.map((store) => {
-                        const active = set.storeId === store.id;
-                        return (
-                          <Pressable key={`${set.id}-${store.id}`} accessibilityRole="button" onPress={() => onUpdateStorePriceSet(set.id, "storeId", store.id)} style={[st.storePill, active && st.storePillActive]}>
-                            <Text style={[st.storePillText, active && st.storePillTextActive]}>{store.name}</Text>
-                          </Pressable>
-                        );
-                      })
-                    )}
-                  </View>
-
-                  <TextInput value={set.storeId} onChangeText={(value) => onUpdateStorePriceSet(set.id, "storeId", value)} placeholder="Store ID" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={st.input} />
-                  <TextInput value={set.price} onChangeText={(value) => onUpdateStorePriceSet(set.id, "price", value)} placeholder="Price" placeholderTextColor={C.textMuted} keyboardType="decimal-pad" style={st.input} />
-                </View>
-              ))}
+                );
+              })}
             </View>
-            <Text style={st.dataMuted}>Leave blank to save the product without price data. Multiple sets are supported.</Text>
+            <Text style={st.dataMuted}>Leave store and price blank to save only the product catalog item.</Text>
 
-            <Text style={st.fieldLabel}>Price Period</Text>
+            <Text style={st.fieldLabel}>Sale Period</Text>
             <View style={st.formRow}>
-              <Pressable accessibilityRole="button" onPress={() => onPickPeriodDate("start")} style={[st.btn, st.btnGhost, st.dateBtn]}>
-                <Text style={periodStartDate ? st.dateBtnText : st.dateBtnPlaceholder}>{periodStartDate || "Select start date"}</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => onPickPeriodDate("end")} style={[st.btn, st.btnGhost, st.dateBtn]}>
-                <Text style={periodEndDate ? st.dateBtnText : st.dateBtnPlaceholder}>{periodEndDate || "Select end date"}</Text>
-              </Pressable>
+              {Platform.OS === "web" ? (
+                <>
+                  <input
+                    aria-label="Sale period start date"
+                    type="date"
+                    value={periodStartDate}
+                    onChange={(event) => onPeriodStartChange((event.target as HTMLInputElement).value)}
+                    style={webDateInputStyle}
+                  />
+                  <input
+                    aria-label="Sale period end date"
+                    type="date"
+                    value={periodEndDate}
+                    onChange={(event) => onPeriodEndChange((event.target as HTMLInputElement).value)}
+                    style={webDateInputStyle}
+                  />
+                </>
+              ) : (
+                <>
+                  <TextInput value={periodStartDate} onChangeText={onPeriodStartChange} placeholder="Start date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
+                  <TextInput value={periodEndDate} onChangeText={onPeriodEndChange} placeholder="End date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
+                </>
+              )}
             </View>
-            <View style={st.formRow}>
-              <TextInput value={periodStartDate} onChangeText={onPeriodStartChange} placeholder="Start date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
-              <TextInput value={periodEndDate} onChangeText={onPeriodEndChange} placeholder="End date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
-            </View>
-            <Text style={st.dataMuted}>Date format: YYYY-MM-DD</Text>
+            <Text style={st.dataMuted}>Applies to every store price set above.</Text>
           </ScrollView>
 
           <View style={st.modalActionRow}>

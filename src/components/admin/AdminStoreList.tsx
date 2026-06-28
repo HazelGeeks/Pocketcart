@@ -59,15 +59,22 @@ export default function AdminStoreList({
           <Pressable
             key={store.id}
             accessibilityRole="button"
-            accessibilityLabel={`Select ${store.name} on map`}
+            accessibilityLabel={`Select ${store.brand ? `${store.brand} ` : ""}${store.name} on map`}
             onPress={() => onSelectStore(store.id)}
             style={[st.listRow, selectedOnMap && st.storeListRowActive]}
             disabled={deleting || submitting}
           >
             <View style={st.listMain}>
-              <Text style={st.listTitle}>{store.name}</Text>
-              <Text style={st.dataMuted}>{store.area}</Text>
+              <Text style={st.listTitle}>{store.brand ?? store.name}</Text>
+              <Text style={st.dataMuted}>
+                {store.brand ? `${store.name} | ${store.area}` : store.area}
+              </Text>
               <View style={st.storeInlineChipRow}>
+                {store.brand ? (
+                  <View style={st.storeMetaChip}>
+                    <Text style={st.storeMetaChipText}>Brand {store.brand}</Text>
+                  </View>
+                ) : null}
                 <View style={[st.storeMetaChip, !store.is_active && st.storeInactiveChip]}>
                   <Text style={[st.storeMetaChipText, !store.is_active && st.storeInactiveChipText]}>
                     {store.is_active ? "Active" : "Inactive"}
