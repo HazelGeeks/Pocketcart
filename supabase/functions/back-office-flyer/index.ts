@@ -4,6 +4,7 @@ type FlyerRow = {
   saleStartDate: string;
   saleEndDate: string;
   name: string;
+  englishName: string;
   mainCategory: string;
   subCategory: string;
   brand: string;
@@ -75,6 +76,7 @@ const schema = {
           saleStartDate: { type: "string" },
           saleEndDate: { type: "string" },
           name: { type: "string" },
+          englishName: { type: "string" },
           mainCategory: { type: "string" },
           subCategory: { type: "string" },
           brand: { type: "string" },
@@ -88,6 +90,7 @@ const schema = {
           "saleStartDate",
           "saleEndDate",
           "name",
+          "englishName",
           "mainCategory",
           "subCategory",
           "brand",
@@ -173,6 +176,7 @@ function normalizeRows(value: unknown): FlyerRow[] {
         saleStartDate: text("saleStartDate"),
         saleEndDate: text("saleEndDate"),
         name: text("name"),
+        englishName: text("englishName"),
         mainCategory: text("mainCategory"),
         subCategory: text("subCategory"),
         brand: text("brand"),
@@ -254,6 +258,7 @@ function parseFlyerTextRows(text: string): FlyerRow[] {
       saleStartDate: "",
       saleEndDate: "",
       name,
+      englishName: "",
       mainCategory: inferFlyerMainCategory(name),
       subCategory: "",
       brand: "",
@@ -432,35 +437,70 @@ Deno.serve(async (request: Request) => {
     "You are extracting grocery flyer data for a Korean back-office table.",
     "Create one row per actual sale product. Ignore logos, navigation, legal text, coupons without a concrete product, page numbers, decorative text, and unrelated OCR noise.",
     "The target table columns are exactly:",
-    "1. 마트명 -> martName",
-    "2. 지역/지점 -> regionBranch",
+    "1. 매장 브랜드 -> martName",
+    "2. 지점명 또는 매장명 -> regionBranch",
     "3. 세일 시작일 -> saleStartDate",
     "4. 세일 종료일 -> saleEndDate",
-    "5. 이름 -> name",
-    "6. 대분류 -> mainCategory",
-    "7. 중분류 -> subCategory",
-    "8. 브랜드 -> brand",
-    "9. 가격 -> price",
-    "10. 단위 -> unit",
-    "11. 메모 -> memo",
+    "5. 한국어 상품명 -> name",
+    "6. 영어 상품명 -> englishName",
+    "7. 카테고리 -> mainCategory",
+    "8. 호환용 빈 필드 -> subCategory",
+    "9. 상품 브랜드 -> brand",
+    "10. 가격 -> price",
+    "11. 단위 -> unit",
+    "12. 메모 -> memo",
     "Return JSON that matches the schema only. Use the camelCase field names, not the Korean labels.",
-    "마트명, 지역/지점, 세일 시작일, 세일 종료일 are optional. Fill them only when they are clearly visible in the flyer. Otherwise return an empty string.",
+    "Store brand means the grocery chain such as H Mart, Safeway, T&T, No Frills. Branch/store name means a specific location such as Robson, Davie Street, Downtown. Do not put product brand in martName or regionBranch.",
+    "Store brand, branch/store name, sale start date, and sale end date are optional. Fill them only when they are clearly visible in the flyer. Otherwise return an empty string.",
     "Dates must be YYYY-MM-DD only when clearly visible. Do not guess missing sale dates. If date text is visible but incomplete, leave saleStartDate and saleEndDate empty and write the visible date text in memo.",
     "Price must be numeric text without currency symbols when possible. Keep sale conditions like 2/$5, member price, limit, or after coupon in memo if they do not fit a single numeric price.",
     "Unit examples: each, ea, lb, kg, g, ml, L, pack, ct. If the unit is attached to the product size, use that value when clear.",
-    "Use Korean category text for Korean flyers. Example main categories: 신선식품, 정육, 수산, 유제품, 냉동식품, 가공식품, 음료, 생활용품. Use a more specific subCategory when visible or obvious.",
-    "Brand should contain only the product brand, not the store name. If brand is not visible, leave it empty.",
+    "Use one category only. Do not split products into main category and subcategory. Put the category in mainCategory and always return subCategory as an empty string.",
+    "Use Korean category text for Korean flyers. Example categories: 신선식품, 정육, 수산, 유제품, 냉동식품, 가공식품, 음료, 생활용품.",
+    "Product brand should contain only the product brand, not the store brand. If product brand is not visible, leave it empty.",
+    "If both Korean and English product names are visible, put Korean text in name and English text in englishName. If only one language is visible, fill the matching field and leave the other empty.",
     "Do not invent values. If a field is not visible or cannot be inferred confidently, return an empty string and put uncertainty or original OCR fragments in memo.",
   ].join("\n");
 
   try {
+    const fileContent = isPdf
+      ? { type: "input_file", filename: file.name || "flyer.pdf", file_data: dataUrl }
+      : { type: "input_image", image_url: dataUrl };
+
     if (googleVisionApiKey) {
-      const ocrText = await extractTextWithGoogleVision(file, base64, isPdf, googleVisionApiKey);
+      let ocrText = "";
+      let googleVisionError: Error | null = null;
+      try {
+        ocrText = await extractTextWithGoogleVision(file, base64, isPdf, googleVisionApiKey);
+      } catch (error) {
+        googleVisionError = error instanceof Error ? error : new Error("Google Vision OCR failed.");
+      }
+
       if (openAiApiKey && ocrText) {
         const rows = await extractRowsWithOpenAi(openAiApiKey, [
           { type: "input_text", text: `${prompt}\n\nOCR text:\n${ocrText}` },
         ]);
         return jsonResponse({ rows });
+      }
+
+      if (openAiApiKey && googleVisionError) {
+        const rows = await extractRowsWithOpenAi(openAiApiKey, [
+          {
+            type: "input_text",
+            text: `${prompt}\n\nGoogle Vision OCR was unavailable, so extract directly from the uploaded file.`,
+          },
+          fileContent,
+        ]);
+        return jsonResponse({
+          rows,
+          warning: `Google Vision OCR failed; used OpenAI fallback. ${googleVisionError.message}`,
+        });
+      }
+
+      if (googleVisionError) {
+        throw new Error(
+          `Google Vision OCR failed. Check that Cloud Vision API is enabled and the API key allows vision.googleapis.com. Original error: ${googleVisionError.message}`,
+        );
       }
 
       return jsonResponse({ rows: parseFlyerTextRows(ocrText) });
@@ -470,9 +510,6 @@ Deno.serve(async (request: Request) => {
       return jsonResponse({ rows: [] });
     }
 
-    const fileContent = isPdf
-      ? { type: "input_file", filename: file.name || "flyer.pdf", file_data: dataUrl }
-      : { type: "input_image", image_url: dataUrl };
     const rows = await extractRowsWithOpenAi(openAiApiKey, [
       { type: "input_text", text: prompt },
       fileContent,
