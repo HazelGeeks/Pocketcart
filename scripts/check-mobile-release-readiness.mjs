@@ -32,6 +32,8 @@ const requiredFiles = [
   "supabase/functions/delete-account/index.ts",
   "supabase/functions/delete-account-request/index.ts",
   "supabase/functions/delete-account-request/README.md",
+  "supabase/functions/send-sale-alert-push/index.ts",
+  "supabase/functions/sync-sale-alerts/index.ts",
 ];
 
 const findings = [];
@@ -475,6 +477,16 @@ includes(
   "Supabase delete-account-request function is configured",
 );
 includes(
+  "supabase/config.toml",
+  "[functions.send-sale-alert-push]",
+  "Supabase send-sale-alert-push function is configured",
+);
+includes(
+  "supabase/config.toml",
+  "[functions.sync-sale-alerts]",
+  "Supabase sync-sale-alerts function is configured",
+);
+includes(
   "supabase/functions/delete-account/index.ts",
   "auth.admin.deleteUser",
   "Supabase delete-account function deletes the authenticated user",
@@ -488,6 +500,16 @@ includes(
   "database/schema.sql",
   "create table if not exists public.account_deletion_requests",
   "Supabase schema includes account deletion request table",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.user_push_tokens",
+  "Supabase schema includes push token table",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.sale_alerts",
+  "Supabase schema includes sale alert table",
 );
 includes(
   "database/schema.sql",
@@ -646,8 +668,23 @@ includes(
 );
 includes(
   ".github/workflows/supabase-functions.yml",
+  "supabase functions deploy send-sale-alert-push",
+  "Supabase workflow deploys the sale alert push function",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "supabase functions deploy sync-sale-alerts",
+  "Supabase workflow deploys the sale alert sync function",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
   "SUPABASE_SERVICE_ROLE_KEY",
   "Supabase workflow sets the delete-account service role secret",
+);
+includes(
+  ".github/workflows/supabase-functions.yml",
+  "PUSH_FUNCTION_SECRET",
+  "Supabase workflow sets the push function secret",
 );
 includes(
   ".easignore",
