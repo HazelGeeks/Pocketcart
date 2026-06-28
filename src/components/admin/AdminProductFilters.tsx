@@ -16,13 +16,13 @@ type ProductSortOption = {
 
 type AdminProductFiltersProps = {
   searchQuery: string;
-  priceMin: string;
-  priceMax: string;
   categoryFilter: string;
+  brandFilter: string;
   storeFilter: string;
   saleDateFilter: string;
   sort: ProductSortKey;
   categoryOptions: string[];
+  brandOptions: string[];
   storeOptions: ProductStoreFilterOption[];
   sortOptions: ProductSortOption[];
   filteredCount: number;
@@ -30,9 +30,8 @@ type AdminProductFiltersProps = {
   activeFilterCount: number;
   styles: Record<string, any>;
   onSearchChange: (value: string) => void;
-  onPriceMinChange: (value: string) => void;
-  onPriceMaxChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
+  onBrandChange: (value: string) => void;
   onStoreChange: (value: string) => void;
   onSaleDateChange: (value: string) => void;
   onSortChange: (value: ProductSortKey) => void;
@@ -41,13 +40,13 @@ type AdminProductFiltersProps = {
 
 export default function AdminProductFilters({
   searchQuery,
-  priceMin,
-  priceMax,
   categoryFilter,
+  brandFilter,
   storeFilter,
   saleDateFilter,
   sort,
   categoryOptions,
+  brandOptions,
   storeOptions,
   sortOptions,
   filteredCount,
@@ -55,9 +54,8 @@ export default function AdminProductFilters({
   activeFilterCount,
   styles: st,
   onSearchChange,
-  onPriceMinChange,
-  onPriceMaxChange,
   onCategoryChange,
+  onBrandChange,
   onStoreChange,
   onSaleDateChange,
   onSortChange,
@@ -79,22 +77,6 @@ export default function AdminProductFilters({
           autoCorrect={false}
           style={[st.input, st.productSearchInputInline]}
         />
-        <TextInput
-          value={priceMin}
-          onChangeText={onPriceMinChange}
-          placeholder="Min"
-          placeholderTextColor={C.textMuted}
-          keyboardType="decimal-pad"
-          style={[st.input, st.filterInputInline]}
-        />
-        <TextInput
-          value={priceMax}
-          onChangeText={onPriceMaxChange}
-          placeholder="Max"
-          placeholderTextColor={C.textMuted}
-          keyboardType="decimal-pad"
-          style={[st.input, st.filterInputInline]}
-        />
         {Platform.OS === "web" ? (
           <>
             <select
@@ -106,6 +88,19 @@ export default function AdminProductFilters({
               {categoryOptions.map((category) => (
                 <option key={`filter-category-${category}`} value={category}>
                   {category}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={brandFilter}
+              onChange={(event) => onBrandChange((event.target as HTMLSelectElement).value)}
+              style={WEB_FILTER_SELECT_STYLE}
+            >
+              <option value="all">Brand: All</option>
+              {brandOptions.map((brand) => (
+                <option key={`filter-brand-${brand}`} value={brand}>
+                  {brand}
                 </option>
               ))}
             </select>

@@ -35,8 +35,6 @@ type UseAdminProductActionsParams = {
   productCategoryCustom: string;
   productThumb: string;
   productStorePriceSets: StorePriceSetInput[];
-  productPeriodStartDate: string;
-  productPeriodEndDate: string;
   editingProductId: string | null;
   products: AdminProduct[];
   filteredProducts: AdminProduct[];
@@ -50,8 +48,6 @@ type UseAdminProductActionsParams = {
   setProductCategoryCustom: (value: string) => void;
   setProductThumb: (value: string) => void;
   setProductStorePriceSets: React.Dispatch<React.SetStateAction<StorePriceSetInput[]>>;
-  setProductPeriodStartDate: (value: string) => void;
-  setProductPeriodEndDate: (value: string) => void;
   setProductModalOpen: (value: boolean) => void;
   setEditingProductId: (value: string | null) => void;
   setProductImageUploading: (value: boolean) => void;
@@ -64,6 +60,17 @@ type UseAdminProductActionsParams = {
     { name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
     AdminProduct | null
   >;
+  createStoreMutation: Mutation<{
+    brand?: string;
+    name: string;
+    area?: string;
+    latitude: string;
+    longitude: string;
+    address?: string;
+    placeId?: string;
+    storeType?: string;
+    isActive?: boolean;
+  }, AdminStore | null>;
   updateProductMutation: Mutation<
     { id: string; name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
     AdminProduct | null
@@ -94,8 +101,6 @@ export default function useAdminProductActions({
   productCategory,
   productThumb,
   productStorePriceSets,
-  productPeriodStartDate,
-  productPeriodEndDate,
   editingProductId,
   products,
   filteredProducts,
@@ -109,8 +114,6 @@ export default function useAdminProductActions({
   setProductCategoryCustom,
   setProductThumb,
   setProductStorePriceSets,
-  setProductPeriodStartDate,
-  setProductPeriodEndDate,
   setProductModalOpen,
   setEditingProductId,
   setProductImageUploading,
@@ -120,6 +123,7 @@ export default function useAdminProductActions({
   resetProductFilters,
   loadAll,
   createProductMutation,
+  createStoreMutation,
   updateProductMutation,
   deleteProductMutation,
   createPriceEntryMutation,
@@ -127,7 +131,7 @@ export default function useAdminProductActions({
   uploadProductImageMutation,
 }: UseAdminProductActionsParams) {
   const updateStorePriceSet = React.useCallback(
-    (id: string, field: "brand" | "storeId" | "price", value: string) => {
+    (id: string, field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate", value: string) => {
       setProductStorePriceSets((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
     },
     [setProductStorePriceSets],
@@ -141,7 +145,11 @@ export default function useAdminProductActions({
     (id: string) => {
       setProductStorePriceSets((prev) => {
         if (prev.length <= 1) {
-          return prev.map((item) => (item.id === id ? { ...item, brand: "", storeId: "", price: "" } : item));
+          return prev.map((item) =>
+            item.id === id
+              ? { ...item, brand: "", storeId: "", price: "", periodStartDate: "", periodEndDate: "" }
+              : item,
+          );
         }
         return prev.filter((item) => item.id !== id);
       });
@@ -158,8 +166,6 @@ export default function useAdminProductActions({
     setProductCategoryCustom("");
     setProductThumb("");
     setProductStorePriceSets([createStorePriceSet()]);
-    setProductPeriodStartDate("");
-    setProductPeriodEndDate("");
   }, [
     setEditingProductId,
     setProductEnglishName,
@@ -167,8 +173,6 @@ export default function useAdminProductActions({
     setProductCategoryCustom,
     setProductName,
     setProductUnit,
-    setProductPeriodEndDate,
-    setProductPeriodStartDate,
     setProductStorePriceSets,
     setProductThumb,
   ]);
@@ -187,20 +191,17 @@ export default function useAdminProductActions({
           const aTime = new Date(a.valid_from || a.observed_at).getTime();
           return bTime - aTime;
         });
-      const latestStartDate = dateInputValue(sortedProductPrices[0]?.valid_from || sortedProductPrices[0]?.observed_at);
-      const latestPriceRows = latestStartDate
-        ? sortedProductPrices.filter((price) => dateInputValue(price.valid_from || price.observed_at) === latestStartDate)
-        : [];
       const storeById = new Map(stores.map((store) => [store.id, store]));
-      const existingPriceSets = latestPriceRows.map((price) => {
+      const existingPriceSets = sortedProductPrices.map((price) => {
         const store = storeById.get(price.store_id);
         return createStorePriceSet({
           brand: store?.brand?.trim() || (store ? "Other" : ""),
           storeId: price.store_id,
           price: price.price.toFixed(2),
+          periodStartDate: dateInputValue(price.valid_from || price.observed_at),
+          periodEndDate: dateInputValue(price.valid_to),
         });
       });
-      const latestEndDate = dateInputValue(latestPriceRows[0]?.valid_to);
 
       setEditingProductId(product.id);
       setProductName(product.name);
@@ -210,8 +211,6 @@ export default function useAdminProductActions({
       setProductCategoryCustom(product.category);
       setProductThumb(product.thumbnail_url ?? "");
       setProductStorePriceSets(existingPriceSets.length > 0 ? existingPriceSets : [createStorePriceSet()]);
-      setProductPeriodStartDate(latestStartDate);
-      setProductPeriodEndDate(latestEndDate);
       setProductModalOpen(true);
     },
     [
@@ -223,8 +222,6 @@ export default function useAdminProductActions({
       setProductModalOpen,
       setProductName,
       setProductUnit,
-      setProductPeriodEndDate,
-      setProductPeriodStartDate,
       setProductStorePriceSets,
       setProductThumb,
       stores,
@@ -244,8 +241,6 @@ export default function useAdminProductActions({
     const preparedPriceSets = prepareProductPriceSets({
       sets: productStorePriceSets,
       stores,
-      periodStartDate: productPeriodStartDate,
-      periodEndDate: productPeriodEndDate,
     });
     if (!preparedPriceSets.ok) {
       setNotice(preparedPriceSets.error);
@@ -283,14 +278,14 @@ export default function useAdminProductActions({
             prices,
             productId: savedProduct.id,
             storeId: item.storeId,
-            periodStartDate: productPeriodStartDate,
+            periodStartDate: item.periodStartDate,
           });
           const payload = {
             productId: savedProduct.id,
             storeId: item.storeId,
             price: item.price,
-            observedAt: preparedPriceSets.periodStartIso ?? undefined,
-            periodEnd: preparedPriceSets.periodEndIso ?? undefined,
+            observedAt: item.periodStartIso,
+            periodEnd: item.periodEndIso,
           };
           if (existingPrice) {
             await updatePriceEntryMutation.mutateAsync({
@@ -347,8 +342,6 @@ export default function useAdminProductActions({
     productName,
     productEnglishName,
     productUnit,
-    productPeriodEndDate,
-    productPeriodStartDate,
     productStorePriceSets,
     productThumb,
     resetProductForm,
@@ -396,6 +389,34 @@ export default function useAdminProductActions({
     [deleteProductMutation, loadAll, setDeletingKey, setNotice],
   );
 
+  const handleDeleteProducts = React.useCallback(
+    async (ids: string[]) => {
+      const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+      if (uniqueIds.length === 0) return;
+      setDeletingKey("products:bulk");
+      const failed: string[] = [];
+      try {
+        for (const id of uniqueIds) {
+          try {
+            await deleteProductMutation.mutateAsync(id);
+          } catch (error) {
+            failed.push(error instanceof Error ? error.message : "Product delete failed.");
+          }
+        }
+      } finally {
+        setDeletingKey(null);
+      }
+
+      if (failed.length > 0) {
+        setNotice(`Deleted ${uniqueIds.length - failed.length} products. Failed ${failed.length}: ${failed[0]}`);
+      } else {
+        setNotice(`Deleted ${uniqueIds.length} products.`);
+      }
+      await loadAll(true);
+    },
+    [deleteProductMutation, loadAll, setDeletingKey, setNotice],
+  );
+
   const handleResetProductFilters = React.useCallback(() => {
     resetProductFilters();
   }, [resetProductFilters]);
@@ -404,6 +425,7 @@ export default function useAdminProductActions({
     addStorePriceSet,
     handleCreateProduct,
     handleDeleteProduct,
+    handleDeleteProducts,
     handleExportProductsCsv,
     handleImportProductsCsv,
     handleOpenAddProduct,

@@ -15,8 +15,9 @@ supabase secrets set FLYER_ADMIN_EMAILS=admin@example.com
 ```
 
 `GOOGLE_VISION_API_KEY` enables Google Vision OCR for images and PDFs.
-`OPENAI_API_KEY` enables prompt-based AI mapping into the Korean back-office columns:
-마트명, 지역/지점, 세일 시작일, 세일 종료일, 이름, 대분류, 중분류, 브랜드, 가격, 단위, 메모.
+`OPENAI_API_KEY` enables prompt-based AI mapping into the back-office columns:
+store brand, branch/store name, sale start date, sale end date, Korean product name,
+English product name, category, product brand, price, unit, and memo.
 Without OpenAI, the function only uses Google Vision OCR and falls back to a simple price-line parser.
 `GOOGLE_VISION_PDF_PAGES`, `OPENAI_MODEL`, and `FLYER_ADMIN_EMAILS` are optional.
 If `FLYER_ADMIN_EMAILS` is set, only those signed-in Supabase users can call the function.

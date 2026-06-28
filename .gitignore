@@ -34,6 +34,9 @@ pnpm-debug.log*
 # Cloudflare
 .wrangler/
 
+# Supabase local CLI state
+supabase/.temp/
+
 # IDE / Editor
 .idea/
 .vscode/

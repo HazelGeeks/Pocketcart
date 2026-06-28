@@ -73,7 +73,7 @@ export type StoreRow = {
   id: string;
   brand?: string | null;
   name: string;
-  area: string;
+  area?: string | null;
   latitude: number | string;
   longitude: number | string;
   price_note: string | null;

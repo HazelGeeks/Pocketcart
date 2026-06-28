@@ -5,7 +5,7 @@ import type { AdminMenuKey } from "../../state/adminStore";
 type AdminSidebarMenuItem = {
   key: AdminMenuKey;
   label: string;
-  badge: number;
+  badge?: number;
 };
 
 type AdminSidebarProps = {
@@ -50,11 +50,13 @@ export default function AdminSidebar({
                 style={[st.menuBtn, active && st.menuBtnActive]}
               >
                 <Text style={[st.menuText, active && st.menuTextActive]}>{item.label}</Text>
-                <View style={[st.menuBadge, active && st.menuBadgeActive]}>
-                  <Text style={[st.menuBadgeText, active && st.menuBadgeTextActive]}>
-                    {item.badge}
-                  </Text>
-                </View>
+                {typeof item.badge === "number" ? (
+                  <View style={[st.menuBadge, active && st.menuBadgeActive]}>
+                    <Text style={[st.menuBadgeText, active && st.menuBadgeTextActive]}>
+                      {item.badge}
+                    </Text>
+                  </View>
+                ) : null}
               </Pressable>
             );
           })}

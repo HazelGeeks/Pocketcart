@@ -136,7 +136,16 @@ Google service account JSON files, Android keystores, and API keys out of git.
     - `products`
     - `stores`
     - `product_prices`
+    - `sale_alerts`
+    - `user_push_tokens`
   - Keep schema/policy SQL out of README and manage it in Supabase Dashboard or migration files.
+  - Push sale alerts:
+    - Native builds use Expo Push Notifications through `expo-notifications`.
+    - Deploy `send-sale-alert-push` and `sync-sale-alerts` Supabase Edge Functions.
+    - Set `PUSH_FUNCTION_SECRET` as a Supabase function secret.
+    - After weekly sale uploads, call `sync-sale-alerts` with the `x-push-secret`
+      header so watched products can create and send push alerts while the app is
+      closed.
 - Web deploy:
   - Export a production build with `npm run build:web`
   - Upload the generated `dist/` directory to your hosting provider

@@ -5,6 +5,7 @@ import {
   Linking,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   View,
@@ -26,6 +27,11 @@ import {
   removeWatchlistItem,
   type WatchlistItem,
 } from "../services/watchlist";
+import {
+  markSaleAlertsRead,
+  syncSaleAlertsForWatchlist,
+  type SaleAlert,
+} from "../services/saleAlerts";
 import {
   completeAuthSessionFromUrl,
   deleteCurrentUserAccount,
@@ -51,7 +57,6 @@ import {
   buildPriceChart,
   DEFAULT_REGION,
   money,
-  type AlertRow,
   type HomeRoute,
   type NativeTabId,
 } from "./nativeAppData";
@@ -60,10 +65,14 @@ import {
 } from "../components/nativeApp/priceDisplay";
 import {
   buildLocationSearchPlaceholder,
-  requestAlertPermission,
   requestLocationPermissionAndPosition,
   type OnboardingLocationMode,
 } from "../services/nativePermissions";
+import {
+  configurePushNotificationHandler,
+  registerPushTokenForCurrentUser,
+  sendSaleAlertPushNotifications,
+} from "../services/pushNotifications";
 import { st } from "./nativeAppStyles";
 
 type OnboardingState = {
@@ -127,6 +136,10 @@ export default function NativeAppScreen() {
   const [watchLoading, setWatchLoading] = React.useState(false);
   const [watchRemovingId, setWatchRemovingId] = React.useState<string | null>(null);
   const [watchMessage, setWatchMessage] = React.useState<string | null>(null);
+  const [saleAlerts, setSaleAlerts] = React.useState<SaleAlert[]>([]);
+  const [alertsLoading, setAlertsLoading] = React.useState(false);
+  const [alertsMessage, setAlertsMessage] = React.useState<string | null>(null);
+  const [alertsMarkingRead, setAlertsMarkingRead] = React.useState(false);
 
   const [mapQuery, setMapQuery] = React.useState("");
   const [mapStores, setMapStores] = React.useState<MarketStore[]>([]);
@@ -249,52 +262,10 @@ export default function NativeAppScreen() {
     };
   }, [activeStore]);
 
-  const alertRows = React.useMemo(() => {
-    const rows: AlertRow[] = [];
-    const nowLabel = new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    watchlistItems.forEach((item) => {
-      const product = item.product_id ? productById.get(item.product_id) : null;
-      if (!product) return;
-      const price = product.current_price;
-      const previous = product.previous_price;
-      if (
-        product.price_delta_percent !== null &&
-        product.price_delta_percent < 0
-      ) {
-        rows.push({
-          id: `${item.id}-drop`,
-          title: "Sale started",
-          body: `${item.name} is ${formatSignedPercent(product.price_delta_percent)} from last cycle.`,
-          when: nowLabel,
-        });
-      } else if (previous !== null && price !== null) {
-        rows.push({
-          id: `${item.id}-progress`,
-          title: "Watching weekly update",
-          body: `${item.name}: ${money.format(price)} now vs ${money.format(previous)} last cycle.`,
-          when: nowLabel,
-        });
-      }
-    });
-
-    if (rows.length === 0) {
-      rows.push({
-        id: "watchlist-empty",
-        title: "No active alerts",
-        body:
-          watchlistItems.length === 0
-            ? "Save items from Home to start watching for drops."
-            : "No active alerts right now. Check again after prices update.",
-        when: nowLabel,
-      });
-    }
-
-    return rows.slice(0, 6);
-  }, [watchlistItems, productById]);
+  const unreadAlertCount = React.useMemo(
+    () => saleAlerts.filter((alert) => alert.read_at === null).length,
+    [saleAlerts],
+  );
 
   const detailBackPanResponder = React.useMemo(
     () =>
@@ -374,6 +345,15 @@ export default function NativeAppScreen() {
   }, [loadOnboardingState]);
 
   React.useEffect(() => {
+    configurePushNotificationHandler();
+  }, []);
+
+  React.useEffect(() => {
+    if (!profile || !onboardingState.alertsEnabled) return;
+    void registerPushTokenForCurrentUser();
+  }, [onboardingState.alertsEnabled, profile]);
+
+  React.useEffect(() => {
     if (homeRoute !== "detail") {
       return;
     }
@@ -447,9 +427,62 @@ export default function NativeAppScreen() {
     }
   }, []);
 
+  const notifyCreatedSaleAlerts = React.useCallback(
+    (createdAlerts: SaleAlert[]) => {
+      if (createdAlerts.length === 0) return;
+      if (onboardingState.alertsEnabled) {
+        void sendSaleAlertPushNotifications(createdAlerts);
+        const notification = (globalThis as { Notification?: any }).Notification;
+        if (
+          Platform.OS === "web" &&
+          notification &&
+          notification.permission === "granted"
+        ) {
+          createdAlerts.slice(0, 3).forEach((alert) => {
+            try {
+              new notification(alert.title, { body: alert.body });
+            } catch {
+              // Browser notification availability varies by runtime.
+            }
+          });
+        }
+      }
+      showToast(
+        createdAlerts.length === 1
+          ? "New sale alert."
+          : `${createdAlerts.length} new sale alerts.`,
+      );
+    },
+    [onboardingState.alertsEnabled, showToast],
+  );
+
+  const loadSaleAlerts = React.useCallback(
+    async (items: WatchlistItem[], keepMessage = false) => {
+      if (!hasSupabaseEnv) {
+        setSaleAlerts([]);
+        return;
+      }
+
+      setAlertsLoading(true);
+      const { data, error } = await syncSaleAlertsForWatchlist(items);
+      setSaleAlerts(data.alerts);
+      setAlertsLoading(false);
+      if (isSignInRequiredMessage(error)) {
+        setAlertsMessage(null);
+      } else if (error) {
+        setAlertsMessage(error);
+      } else if (!keepMessage) {
+        setAlertsMessage(null);
+      }
+      notifyCreatedSaleAlerts(data.created);
+    },
+    [notifyCreatedSaleAlerts],
+  );
+
   const loadWatchlist = React.useCallback(async (keepMessage = false) => {
     if (!hasSupabaseEnv) {
       setWatchlistItems([]);
+      setSaleAlerts([]);
       return;
     }
 
@@ -464,7 +497,10 @@ export default function NativeAppScreen() {
     } else if (!keepMessage) {
       setWatchMessage(null);
     }
-  }, []);
+    if (!error) {
+      await loadSaleAlerts(data, true);
+    }
+  }, [loadSaleAlerts]);
 
   const loadMapStores = React.useCallback(async () => {
     const searchText =
@@ -616,6 +652,11 @@ export default function NativeAppScreen() {
   }, [activeTab, loadWatchlist]);
 
   React.useEffect(() => {
+    if (activeTab !== "alerts") return;
+    void loadWatchlist(true);
+  }, [activeTab, loadWatchlist]);
+
+  React.useEffect(() => {
     if (activeTab !== "map") return;
     void loadMapStores();
   }, [activeTab, loadMapStores]);
@@ -758,7 +799,7 @@ export default function NativeAppScreen() {
 
   const handleAlertsStep = React.useCallback(async () => {
     if (onboardingAlertsEnabled) {
-      const permission = await requestAlertPermission();
+      const permission = await registerPushTokenForCurrentUser();
       setOnboardingMessage(permission.message ?? null);
 
       if (!permission.granted) {
@@ -811,6 +852,26 @@ export default function NativeAppScreen() {
     },
     [loadWatchlist, showToast],
   );
+
+  const handleMarkAlertsRead = React.useCallback(async () => {
+    setAlertsMarkingRead(true);
+    const { error } = await markSaleAlertsRead();
+    setAlertsMarkingRead(false);
+
+    if (error) {
+      setAlertsMessage(error);
+      return;
+    }
+
+    setAlertsMessage(null);
+    setSaleAlerts((current) =>
+      current.map((alert) => ({
+        ...alert,
+        read_at: alert.read_at ?? new Date().toISOString(),
+      })),
+    );
+    showToast("Alerts marked as read.");
+  }, [showToast]);
 
   const handleSignUp = React.useCallback(async () => {
     const name = signUpName.trim();
@@ -1088,14 +1149,68 @@ export default function NativeAppScreen() {
         {activeTab === "alerts" ? (
           <View style={st.sectionStack}>
             <Text style={st.sectionTitle}>Alert</Text>
-            <Text style={st.sectionSub}>Price alerts and watchlist highlights.</Text>
-            {alertRows.map((row) => (
-              <View key={row.id} style={st.rowCard}>
-                <Text style={st.alertTitle}>{row.title}</Text>
-                <Text style={st.itemMeta}>{row.body}</Text>
-                <Text style={st.alertTime}>{row.when}</Text>
+            <Text style={st.sectionSub}>
+              {unreadAlertCount > 0
+                ? `${unreadAlertCount} new sale ${unreadAlertCount === 1 ? "alert" : "alerts"}.`
+                : "Price alerts and watchlist highlights."}
+            </Text>
+            <View style={st.detailActionRow}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  void loadWatchlist(true);
+                }}
+                style={[st.authBtn, st.authBtnSecondary, st.detailActionBtn]}
+                disabled={alertsLoading}
+              >
+                <Text style={st.authBtnSecondaryText}>{alertsLoading ? "Checking..." : "Check alerts"}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  void handleMarkAlertsRead();
+                }}
+                style={[st.authBtn, st.authBtnSecondary, st.detailActionBtn, unreadAlertCount === 0 && st.removeBtnDisabled]}
+                disabled={unreadAlertCount === 0 || alertsMarkingRead}
+              >
+                <Text style={st.authBtnSecondaryText}>{alertsMarkingRead ? "Saving..." : "Mark read"}</Text>
+              </Pressable>
+            </View>
+            {alertsMessage ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>{alertsMessage}</Text>
               </View>
-            ))}
+            ) : null}
+            {alertsLoading && saleAlerts.length === 0 ? (
+              <View style={st.rowCard}>
+                <Text style={st.itemMeta}>Checking watchlist sales...</Text>
+              </View>
+            ) : saleAlerts.length === 0 ? (
+              <View style={st.rowCard}>
+                <Text style={st.alertTitle}>No active alerts</Text>
+                <Text style={st.itemMeta}>
+                  Save items from Home and we will create an alert when a weekly sale is active.
+                </Text>
+              </View>
+            ) : (
+              saleAlerts.map((alert) => (
+                <View key={alert.id} style={st.rowCard}>
+                  <View style={st.watchTargetSummary}>
+                    <Text style={st.alertTitle}>{alert.title}</Text>
+                    {alert.read_at === null ? <Text style={[st.tag, st.targetBadge]}>New</Text> : null}
+                  </View>
+                  <Text style={st.itemMeta}>{alert.body}</Text>
+                  <Text style={st.alertTime}>
+                    {new Date(alert.created_at).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         ) : null}
 

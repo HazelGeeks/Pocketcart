@@ -56,7 +56,7 @@ export default function AdminStoreImportPreviewModal({
 	                    Row {row.rowNumber}: {row.brand ? `${row.brand} - ` : ""}{row.name || "Unnamed store"}
 	                  </Text>
                   <Text style={st.dataMuted}>
-                    {row.area || "No area"} | {row.latitude || "No lat"}, {row.longitude || "No lng"}
+                    {row.address || "No address"} | {row.latitude || "No lat"}, {row.longitude || "No lng"}
                   </Text>
                 </View>
                 <Text style={row.status === "ready" ? st.importStatusReady : st.importStatusMuted}>{row.reason}</Text>

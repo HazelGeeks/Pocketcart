@@ -44,7 +44,7 @@ export function StoreMapPanel({
         <TextInput
           value={query}
           onChangeText={onChangeQuery}
-          placeholder="Search store or area"
+          placeholder="Search store or address"
           placeholderTextColor={C.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -72,7 +72,7 @@ export function StoreMapPanel({
                   longitude: store.longitude,
                 }}
                 title={displayName}
-                description={`${store.area} • ${store.price_note ?? ""}`}
+                description={`${store.address || store.area || "Address unavailable"} • ${store.price_note ?? ""}`}
                 pinColor={active ? C.primaryDeep : C.primary}
                 onPress={() => onFocusStoreId(store.id)}
               />
@@ -88,7 +88,7 @@ export function StoreMapPanel({
         </View>
       ) : stores.length === 0 ? (
         <View style={st.rowCard}>
-          <Text style={st.itemMeta}>No matches found. Try another store or area.</Text>
+          <Text style={st.itemMeta}>No matches found. Try another store or address.</Text>
         </View>
       ) : (
         stores.map((store) => {
@@ -103,8 +103,11 @@ export function StoreMapPanel({
             >
               <Text style={st.itemName}>{store.brand ?? store.name}</Text>
               <Text style={st.itemMeta}>
-                {store.brand ? `${store.name} | ${store.area}` : store.area}
+                {store.brand ? store.name : store.address || store.area || "Address unavailable"}
               </Text>
+              {store.brand && (store.address || store.area) ? (
+                <Text style={st.itemMeta}>{store.address || store.area}</Text>
+              ) : null}
               <Text style={st.storePrice}>{store.price_note ?? "Price note unavailable"}</Text>
               <View style={st.storeActionRow}>
                 <Pressable

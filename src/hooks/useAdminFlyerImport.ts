@@ -8,6 +8,8 @@ import type { FlyerRow } from "../state/adminStore";
 import {
   buildFlyerCsv,
   flyerRowsToProductCsv,
+} from "../utils/flyerCsv";
+import {
   normalizeOcrText,
   parseFlyerTextToRows,
 } from "../utils/adminScreenHelpers";
@@ -183,7 +185,9 @@ export default function useAdminFlyerImport({
           if (aiResult.rows.length > 0) {
             setFlyerRows(aiResult.rows);
             setFlyerProgress("");
-            setNotice(`AI extracted ${aiResult.rows.length} table rows. Review before saving.`);
+            setNotice(
+              `${aiResult.warning ? `${aiResult.warning} ` : ""}AI extracted ${aiResult.rows.length} table rows. Review before saving.`,
+            );
             return;
           }
           setFlyerProgress("AI found no rows. Running OCR fallback");

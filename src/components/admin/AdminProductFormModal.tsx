@@ -17,8 +17,6 @@ type Props = {
   productCategoryCustom: string;
   productThumb: string;
   storePriceSets: StorePriceSetInput[];
-  periodStartDate: string;
-  periodEndDate: string;
   categoryOptions: string[];
   recentStoreOptions: AdminStore[];
   styles: any;
@@ -30,9 +28,7 @@ type Props = {
   onUploadImage: () => void;
   onAddStorePriceSet: () => void;
   onRemoveStorePriceSet: (id: string) => void;
-  onUpdateStorePriceSet: (id: string, field: "brand" | "storeId" | "price", value: string) => void;
-  onPeriodStartChange: (value: string) => void;
-  onPeriodEndChange: (value: string) => void;
+  onUpdateStorePriceSet: (id: string, field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate", value: string) => void;
   onClose: () => void;
   onSave: () => void;
 };
@@ -50,8 +46,6 @@ export default function AdminProductFormModal({
   productCategoryCustom,
   productThumb,
   storePriceSets,
-  periodStartDate,
-  periodEndDate,
   categoryOptions,
   recentStoreOptions,
   styles: st,
@@ -64,8 +58,6 @@ export default function AdminProductFormModal({
   onAddStorePriceSet,
   onRemoveStorePriceSet,
   onUpdateStorePriceSet,
-  onPeriodStartChange,
-  onPeriodEndChange,
   onClose,
   onSave,
 }: Props) {
@@ -121,8 +113,8 @@ export default function AdminProductFormModal({
               <Text style={st.modalTitle}>{editingProductId ? "Edit Product" : "Add Product"}</Text>
               <Text style={st.modalSub}>
                 {editingProductId
-                  ? "Update product details, image, and weekly sale price."
-                  : "Register a product, then optionally attach a weekly sale price by store."}
+                  ? "Update product details, image, and dated sale price rows."
+                  : "Register a product, then optionally attach dated sale price rows by store."}
               </Text>
             </View>
             <Pressable accessibilityRole="button" onPress={onClose} style={[st.btn, st.btnGhost]}>
@@ -215,15 +207,16 @@ export default function AdminProductFormModal({
 
             <View style={st.storePriceHeaderRow}>
               <View>
-                <Text style={st.fieldLabel}>Store Prices</Text>
+                <Text style={st.fieldLabel}>Sale Price Rows</Text>
                 <Text style={st.dataMuted}>
-                  Same Product Name + Unit + Category reuses the existing product and adds or updates sale prices.
+                  Each row below saves one store price with its own sale period.
                 </Text>
               </View>
               <Pressable accessibilityRole="button" onPress={onAddStorePriceSet} style={[st.btn, st.btnGhost]} disabled={submitting}>
                 <Text style={st.btnGhostText}>Add Set</Text>
               </Pressable>
             </View>
+
             <View style={st.storePriceGrid}>
               {storePriceSets.map((set, index) => {
                 const selectedStore = storeNameById.get(set.storeId);
@@ -284,8 +277,8 @@ export default function AdminProductFormModal({
                           <Text style={selectedStore ? st.storeDropdownSelectedText : st.storeDropdownPlaceholderText} numberOfLines={1}>
                             {selectedStore ? storeDisplayName(selectedStore) : recentStoreOptions.length === 0 ? "No stores loaded" : selectedBrand ? "All branches included" : "Select brand first"}
                           </Text>
-                          {selectedStore?.area ? (
-                            <Text style={st.storeDropdownMetaText} numberOfLines={1}>{selectedStore.area}</Text>
+                          {selectedStore && (selectedStore.address || selectedStore.area) ? (
+                            <Text style={st.storeDropdownMetaText} numberOfLines={1}>{selectedStore.address || selectedStore.area}</Text>
                           ) : selectedBrand ? (
                             <Text style={st.storeDropdownMetaText} numberOfLines={1}>{visibleStoreOptions.length} branches will be included</Text>
                           ) : null}
@@ -326,13 +319,42 @@ export default function AdminProductFormModal({
                                   <Text style={[st.storeDropdownOptionText, active && st.storeDropdownOptionTextActive]} numberOfLines={1}>
                                     {store.name}
                                   </Text>
-                                  <Text style={st.storeDropdownOptionMeta} numberOfLines={1}>{store.area}</Text>
+                                  <Text style={st.storeDropdownOptionMeta} numberOfLines={1}>{store.address || store.area}</Text>
                                 </Pressable>
                               );
                             })}
                           </ScrollView>
                         </View>
                       ) : null}
+                    </View>
+
+                    <View style={st.storePriceFieldGroup}>
+                      <Text style={st.fieldLabel}>Sale Period</Text>
+                      <View style={st.formRow}>
+                        {Platform.OS === "web" ? (
+                          <>
+                            <input
+                              aria-label={`Sale period start date for price set ${index + 1}`}
+                              type="date"
+                              value={set.periodStartDate}
+                              onChange={(event) => onUpdateStorePriceSet(set.id, "periodStartDate", (event.target as HTMLInputElement).value)}
+                              style={webDateInputStyle}
+                            />
+                            <input
+                              aria-label={`Sale period end date for price set ${index + 1}`}
+                              type="date"
+                              value={set.periodEndDate}
+                              onChange={(event) => onUpdateStorePriceSet(set.id, "periodEndDate", (event.target as HTMLInputElement).value)}
+                              style={webDateInputStyle}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <TextInput value={set.periodStartDate} onChangeText={(value) => onUpdateStorePriceSet(set.id, "periodStartDate", value)} placeholder="Start date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
+                            <TextInput value={set.periodEndDate} onChangeText={(value) => onUpdateStorePriceSet(set.id, "periodEndDate", value)} placeholder="End date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
+                          </>
+                        )}
+                      </View>
                     </View>
 
                     <View style={st.storePriceFieldGroup}>
@@ -350,35 +372,7 @@ export default function AdminProductFormModal({
                 );
               })}
             </View>
-            <Text style={st.dataMuted}>Leave store and price blank to save only the product catalog item.</Text>
-
-            <Text style={st.fieldLabel}>Sale Period</Text>
-            <View style={st.formRow}>
-              {Platform.OS === "web" ? (
-                <>
-                  <input
-                    aria-label="Sale period start date"
-                    type="date"
-                    value={periodStartDate}
-                    onChange={(event) => onPeriodStartChange((event.target as HTMLInputElement).value)}
-                    style={webDateInputStyle}
-                  />
-                  <input
-                    aria-label="Sale period end date"
-                    type="date"
-                    value={periodEndDate}
-                    onChange={(event) => onPeriodEndChange((event.target as HTMLInputElement).value)}
-                    style={webDateInputStyle}
-                  />
-                </>
-              ) : (
-                <>
-                  <TextInput value={periodStartDate} onChangeText={onPeriodStartChange} placeholder="Start date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
-                  <TextInput value={periodEndDate} onChangeText={onPeriodEndChange} placeholder="End date (YYYY-MM-DD)" placeholderTextColor={C.textMuted} autoCapitalize="none" autoCorrect={false} style={[st.input, st.inputNarrow]} />
-                </>
-              )}
-            </View>
-            <Text style={st.dataMuted}>Applies to every store price set above.</Text>
+            <Text style={st.dataMuted}>Leave a row blank to save only the product catalog item. Add another set for next week's different price.</Text>
           </ScrollView>
 
           <View style={st.modalActionRow}>

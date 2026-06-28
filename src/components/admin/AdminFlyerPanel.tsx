@@ -92,14 +92,14 @@ export default function AdminFlyerPanel({
         <View style={st.flyerTable}>
           <View style={[st.flyerTableRow, st.flyerTableHeader]}>
             <Text style={[st.flyerHeaderCell, st.flyerCellSelect]}>Use</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Store</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Area / Branch</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Store Brand</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Branch / Store Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale Start</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale End</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Product Name</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Main Category</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Subcategory</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>Brand</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Korean Name</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>English Name</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Category</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>Product Brand</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>Price</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellUnit]}>Unit</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellMemo]}>Memo</Text>
@@ -125,14 +125,14 @@ export default function AdminFlyerPanel({
                 <TextInput
                   value={row.martName}
                   onChangeText={(value) => onUpdateRow(row.id, "martName", value)}
-                  placeholder="Store"
+                  placeholder="Store brand"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellMart, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.regionBranch}
                   onChangeText={(value) => onUpdateRow(row.id, "regionBranch", value)}
-                  placeholder="Area / Branch"
+                  placeholder="Branch / store name"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellBranch, row.selected && st.flyerInputCellSelected]}
                 />
@@ -157,28 +157,28 @@ export default function AdminFlyerPanel({
                 <TextInput
                   value={row.name}
                   onChangeText={(value) => onUpdateRow(row.id, "name", value)}
-                  placeholder="Product name"
+                  placeholder="Korean name"
+                  placeholderTextColor={C.textMuted}
+                  style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
+                />
+                <TextInput
+                  value={row.englishName}
+                  onChangeText={(value) => onUpdateRow(row.id, "englishName", value)}
+                  placeholder="English name"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.mainCategory}
                   onChangeText={(value) => onUpdateRow(row.id, "mainCategory", value)}
-                  placeholder="Main category"
-                  placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellCategory, row.selected && st.flyerInputCellSelected]}
-                />
-                <TextInput
-                  value={row.subCategory}
-                  onChangeText={(value) => onUpdateRow(row.id, "subCategory", value)}
-                  placeholder="Subcategory"
+                  placeholder="Category"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellCategory, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.brand}
                   onChangeText={(value) => onUpdateRow(row.id, "brand", value)}
-                  placeholder="Brand"
+                  placeholder="Product brand"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellBrand, row.selected && st.flyerInputCellSelected]}
                 />

@@ -12,7 +12,6 @@ import {
   STORE_TYPE_OPTIONS,
   looksLikeProductStoreRow,
   toNonNegativeCount,
-  toOptionalNumber,
   uniqueValues,
   type OverviewCard,
   type ProductPriceStats,
@@ -26,16 +25,14 @@ type AdminDashboardDataParams = {
   auditLogs: AdminAuditLog[];
   storeSearchQuery: string;
   storeBrandFilter: string;
-  storeAreaFilter: string;
   storeStatusFilter: string;
   storeTypeFilter: string;
   selectedStoreMapId: string | null;
   productSearchQuery: string;
   productCategoryFilter: string;
+  productBrandFilter: string;
   productStoreFilter: string;
   productSaleDateFilter: string;
-  productPriceMin: string;
-  productPriceMax: string;
   productSort: ProductSortKey;
   flyerSelectedRows: number;
 };
@@ -47,16 +44,14 @@ export default function useAdminDashboardData({
   auditLogs,
   storeSearchQuery,
   storeBrandFilter,
-  storeAreaFilter,
   storeStatusFilter,
   storeTypeFilter,
   selectedStoreMapId,
   productSearchQuery,
   productCategoryFilter,
+  productBrandFilter,
   productStoreFilter,
   productSaleDateFilter,
-  productPriceMin,
-  productPriceMax,
   productSort,
   flyerSelectedRows,
 }: AdminDashboardDataParams) {
@@ -104,7 +99,7 @@ export default function useAdminDashboardData({
     [displayStores.length, priceRowsMissingLink, products.length, stalePriceRows],
   );
 
-  const recentStoreOptions = React.useMemo(() => stores.slice(0, 16), [stores]);
+  const recentStoreOptions = React.useMemo(() => displayStores.slice(0, 16), [displayStores]);
   const categoryOptions = React.useMemo(
     () => uniqueValues([...DEFAULT_PRODUCT_CATEGORIES, ...products.map((item) => item.category)]),
     [products],
@@ -116,7 +111,7 @@ export default function useAdminDashboardData({
 
   const storeNameById = React.useMemo(() => {
     const map = new Map<string, string>();
-    stores.forEach((store) => {
+    displayStores.forEach((store) => {
       const storeId = store.id.trim();
       if (!storeId) return;
       const branchName = store.name.trim() || storeId;
@@ -128,7 +123,17 @@ export default function useAdminDashboardData({
       map.set(storeId, row.store_name?.trim() || storeId);
     });
     return map;
-  }, [prices, stores]);
+  }, [displayStores, prices]);
+
+  const storeBrandById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    displayStores.forEach((store) => {
+      const storeId = store.id.trim();
+      if (!storeId) return;
+      map.set(storeId, store.brand?.trim() || "Other");
+    });
+    return map;
+  }, [displayStores]);
 
   const productPriceStats = React.useMemo(() => {
     const stats = new Map<string, ProductPriceStats>();
@@ -136,24 +141,32 @@ export default function useAdminDashboardData({
       const productId = row.product_id.trim();
       if (!productId) return;
       const storeId = row.store_id.trim();
-      const observedAtMs = new Date(row.observed_at).getTime();
+      const latestDate = row.valid_from || row.observed_at;
+      const observedAtMs = new Date(latestDate).getTime();
       const parsedObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : -1;
       const storeName = row.store_name?.trim() || storeNameById.get(storeId) || storeId;
+      const storeBrand = storeBrandById.get(storeId) ?? "";
       const existing = stats.get(productId);
 
       if (!existing) {
         stats.set(productId, {
           latestPrice: row.price,
           latestObservedAtMs: parsedObservedAtMs,
+          latestValidFrom: row.valid_from || row.observed_at,
+          latestValidTo: row.valid_to,
           minPrice: row.price,
           maxPrice: row.price,
           storeIds: new Set(storeId ? [storeId] : []),
+          storeBrands: storeBrand ? [storeBrand] : [],
           storeNames: storeName ? [storeName] : [],
         });
         return;
       }
 
       if (storeId) existing.storeIds.add(storeId);
+      if (storeBrand && !existing.storeBrands.some((item) => item.toLowerCase() === storeBrand.toLowerCase())) {
+        existing.storeBrands.push(storeBrand);
+      }
       if (storeName && !existing.storeNames.some((item) => item.toLowerCase() === storeName.toLowerCase())) {
         existing.storeNames.push(storeName);
       }
@@ -162,16 +175,26 @@ export default function useAdminDashboardData({
       if (parsedObservedAtMs >= existing.latestObservedAtMs) {
         existing.latestObservedAtMs = parsedObservedAtMs;
         existing.latestPrice = row.price;
+        existing.latestValidFrom = row.valid_from || row.observed_at;
+        existing.latestValidTo = row.valid_to;
       }
     });
     return stats;
-  }, [prices, storeNameById]);
+  }, [prices, storeBrandById, storeNameById]);
 
   const productStoreFilterOptions = React.useMemo(() => {
     return Array.from(storeNameById.entries())
       .map(([id, name]) => ({ id, name: name.trim() || id }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [storeNameById]);
+
+  const productBrandFilterOptions = React.useMemo(() => {
+    const brands: string[] = [];
+    productPriceStats.forEach((stats) => {
+      brands.push(...stats.storeBrands);
+    });
+    return uniqueValues(brands).sort((a, b) => a.localeCompare(b));
+  }, [productPriceStats]);
 
   const storePriceStats = React.useMemo(() => {
     const stats = new Map<string, StorePriceStats>();
@@ -203,11 +226,6 @@ export default function useAdminDashboardData({
     [displayStores],
   );
 
-  const storeAreaOptions = React.useMemo(
-    () => uniqueValues(displayStores.map((store) => store.area)).sort((a, b) => a.localeCompare(b)),
-    [displayStores],
-  );
-
   const storeTypeOptions = React.useMemo(
     () =>
       uniqueValues([
@@ -220,12 +238,10 @@ export default function useAdminDashboardData({
   const filteredStores = React.useMemo(() => {
     const query = storeSearchQuery.trim().toLowerCase();
     const brandFilter = storeBrandFilter.trim().toLowerCase();
-    const areaFilter = storeAreaFilter.trim().toLowerCase();
     const statusFilter = storeStatusFilter.trim().toLowerCase();
     const typeFilter = storeTypeFilter.trim().toLowerCase();
     return displayStores.filter((store) => {
       if (brandFilter !== "all" && (store.brand ?? "").trim().toLowerCase() !== brandFilter) return false;
-      if (areaFilter !== "all" && store.area.trim().toLowerCase() !== areaFilter) return false;
       if (statusFilter === "active" && !store.is_active) return false;
       if (statusFilter === "inactive" && store.is_active) return false;
       if (typeFilter !== "all" && store.store_type.trim().toLowerCase() !== typeFilter) return false;
@@ -234,7 +250,7 @@ export default function useAdminDashboardData({
       const haystack = [
         store.name,
         store.brand ?? "",
-        store.area,
+        store.address ?? "",
         store.id,
         store.price_note ?? "",
         store.address ?? "",
@@ -250,17 +266,16 @@ export default function useAdminDashboardData({
       ].join(" ").toLowerCase();
       return haystack.includes(query);
     });
-  }, [displayStores, storeAreaFilter, storeBrandFilter, storePriceStats, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
+  }, [displayStores, storeBrandFilter, storePriceStats, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
 
   const storeActiveFilterCount = React.useMemo(() => {
     let count = 0;
     if (storeSearchQuery.trim()) count += 1;
     if (storeBrandFilter !== "all") count += 1;
-    if (storeAreaFilter !== "all") count += 1;
     if (storeStatusFilter !== "all") count += 1;
     if (storeTypeFilter !== "all") count += 1;
     return count;
-  }, [storeAreaFilter, storeBrandFilter, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
+  }, [storeBrandFilter, storeSearchQuery, storeStatusFilter, storeTypeFilter]);
 
   const selectedStoreForMap = React.useMemo(() => {
     if (!selectedStoreMapId) return null;
@@ -282,8 +297,6 @@ export default function useAdminDashboardData({
     [],
   );
 
-  const productMinPriceFilter = React.useMemo(() => toOptionalNumber(productPriceMin), [productPriceMin]);
-  const productMaxPriceFilter = React.useMemo(() => toOptionalNumber(productPriceMax), [productPriceMax]);
   const productSaleDateRangeMs = React.useMemo(() => {
     const startIso = dateOnlyToIso(productSaleDateFilter, false);
     const endIso = dateOnlyToIso(productSaleDateFilter, true);
@@ -296,6 +309,7 @@ export default function useAdminDashboardData({
   const filteredProducts = React.useMemo(() => {
     const query = productSearchQuery.trim().toLowerCase();
     const categoryFilter = productCategoryFilter.trim().toLowerCase();
+    const brandFilter = productBrandFilter.trim().toLowerCase();
     const storeFilter = productStoreFilter.trim();
 
     const filtered = products.filter((item) => {
@@ -304,11 +318,18 @@ export default function useAdminDashboardData({
 
       if (query) {
         const storeNames = stats?.storeNames.join(" ").toLowerCase() ?? "";
-      const englishName = item.english_name?.trim() || "";
-      const haystack = `${item.name} ${englishName} ${item.category} ${item.id} ${storeNames}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
+        const storeBrands = stats?.storeBrands.join(" ").toLowerCase() ?? "";
+        const englishName = item.english_name?.trim() || "";
+        const haystack = `${item.name} ${englishName} ${item.category} ${item.id} ${storeNames} ${storeBrands}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
       }
       if (categoryFilter !== "all" && category !== categoryFilter) return false;
+      if (
+        brandFilter !== "all" &&
+        !stats?.storeBrands.some((brand) => brand.trim().toLowerCase() === brandFilter)
+      ) {
+        return false;
+      }
       if (storeFilter.toLowerCase() !== "all" && !stats?.storeIds.has(storeFilter)) return false;
       if (productSaleDateRangeMs !== null) {
         const hasSaleOnDate = prices.some((row) => {
@@ -321,9 +342,6 @@ export default function useAdminDashboardData({
         if (!hasSaleOnDate) return false;
       }
 
-      const latestPrice = stats?.latestPrice ?? null;
-      if (productMinPriceFilter !== null && (latestPrice === null || latestPrice < productMinPriceFilter)) return false;
-      if (productMaxPriceFilter !== null && (latestPrice === null || latestPrice > productMaxPriceFilter)) return false;
       return true;
     });
 
@@ -342,8 +360,7 @@ export default function useAdminDashboardData({
     return filtered;
   }, [
     productCategoryFilter,
-    productMaxPriceFilter,
-    productMinPriceFilter,
+    productBrandFilter,
     productPriceStats,
     productSaleDateRangeMs,
     productSearchQuery,
@@ -357,12 +374,11 @@ export default function useAdminDashboardData({
     let count = 0;
     if (productSearchQuery.trim()) count += 1;
     if (productCategoryFilter !== "all") count += 1;
+    if (productBrandFilter !== "all") count += 1;
     if (productStoreFilter !== "all") count += 1;
     if (productSaleDateFilter.trim()) count += 1;
-    if (productPriceMin.trim()) count += 1;
-    if (productPriceMax.trim()) count += 1;
     return count;
-  }, [productCategoryFilter, productPriceMax, productPriceMin, productSaleDateFilter, productSearchQuery, productStoreFilter]);
+  }, [productBrandFilter, productCategoryFilter, productSaleDateFilter, productSearchQuery, productStoreFilter]);
 
   return {
     categoryOptions,
@@ -374,6 +390,7 @@ export default function useAdminDashboardData({
     priceRowsMissingLink,
     productActiveFilterCount,
     productFilterCategoryOptions,
+    productBrandFilterOptions,
     productPriceStats,
     productSortOptions,
     productStoreFilterOptions,
@@ -381,7 +398,6 @@ export default function useAdminDashboardData({
     selectedStoreForMap,
     stalePriceRows,
     storeActiveFilterCount,
-    storeAreaOptions,
     storeAuditLogs,
     storeBrandOptions,
     storeNameById,

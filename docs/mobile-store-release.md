@@ -42,11 +42,13 @@ Expected checks:
 - Supabase Auth redirect URLs include `pocketcart://auth/callback`.
 - Native app handles `pocketcart://auth/callback` email verification links and
   stores the Supabase session.
-- Supabase Edge Functions `delete-account`, `delete-account-request`, and
-  `back-office-flyer` are deployed.
+- Supabase Edge Functions `delete-account`, `delete-account-request`,
+  `back-office-flyer`, `send-sale-alert-push`, and `sync-sale-alerts` are
+  deployed.
 - `database/schema.sql` includes the required profile, watchlist, product price,
-  storage, and account deletion request schema.
+  sale alert, push token, storage, and account deletion request schema.
 - Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for account functions.
+- Supabase secret `PUSH_FUNCTION_SECRET` is set for sale alert push functions.
 - Supabase backend is live and reachable during review.
 
 Run this after logging into Expo and Supabase and setting release secrets:
@@ -83,8 +85,8 @@ The repository includes three release workflows:
   after store records and credentials are ready. It verifies the live legal,
   support, account deletion URLs, and EAS production environment before
   submission.
-- `Supabase Functions Deploy`: manually deploys the account functions and sets
-  their `SUPABASE_SERVICE_ROLE_KEY` secret.
+- `Supabase Functions Deploy`: manually deploys the account and back-office
+  functions and sets their required Supabase secrets.
 
 Required GitHub repository secrets:
 
@@ -93,6 +95,7 @@ Required GitHub repository secrets:
 - `SUPABASE_PROJECT_ID`: Supabase project reference.
 - `SUPABASE_SERVICE_ROLE_KEY`: service role key used only by Supabase Edge
   Functions.
+- `PUSH_FUNCTION_SECRET`: shared secret used to trigger sale alert push sync.
 
 Set and verify them with:
 
@@ -101,6 +104,7 @@ gh secret set EXPO_TOKEN
 gh secret set SUPABASE_ACCESS_TOKEN
 gh secret set SUPABASE_PROJECT_ID
 gh secret set SUPABASE_SERVICE_ROLE_KEY
+gh secret set PUSH_FUNCTION_SECRET
 gh secret list
 ```
 
@@ -299,8 +303,9 @@ records first, then update the policies and listing metadata in the same PR.
 
 ## Supabase Functions
 
-Apply the latest `database/schema.sql` before deploying account functions. The
-web deletion request form writes to `public.account_deletion_requests`.
+Apply the latest `database/schema.sql` before deploying account or sale alert
+functions. The web deletion request form writes to
+`public.account_deletion_requests`.
 
 Deploy account deletion functions before store review:
 
@@ -308,6 +313,22 @@ Deploy account deletion functions before store review:
 supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
 supabase functions deploy delete-account
 supabase functions deploy delete-account-request
+```
+
+Deploy sale alert push functions before relying on production notifications:
+
+```bash
+supabase secrets set PUSH_FUNCTION_SECRET=<long-random-secret>
+supabase functions deploy send-sale-alert-push
+supabase functions deploy sync-sale-alerts
+```
+
+After the weekly product price import finishes, trigger the sale alert sync:
+
+```bash
+curl -X POST \
+  https://YOUR_PROJECT_REF.supabase.co/functions/v1/sync-sale-alerts \
+  -H "x-push-secret: <long-random-secret>"
 ```
 
 Or use GitHub Actions > `Supabase Functions Deploy` after setting the required

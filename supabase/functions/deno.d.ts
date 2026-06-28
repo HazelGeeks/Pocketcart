@@ -9,6 +9,26 @@ declare namespace Deno {
 }
 
 declare module "https://esm.sh/@supabase/supabase-js@2.106.2" {
+  type SupabaseResult<T = { id?: string }> = {
+    data: T | null;
+    error: { message: string } | null;
+  };
+
+  type SupabaseQueryBuilder<T = { id?: string }> = PromiseLike<SupabaseResult<T>> & {
+    select(columns?: string): SupabaseQueryBuilder<T>;
+    insert(values: Record<string, unknown> | Array<Record<string, unknown>>): SupabaseQueryBuilder<T>;
+    update(values: Record<string, unknown>): SupabaseQueryBuilder<T>;
+    delete(): SupabaseQueryBuilder<T>;
+    eq(column: string, value: unknown): SupabaseQueryBuilder<T>;
+    in(column: string, values: unknown[]): SupabaseQueryBuilder<T>;
+    is(column: string, value: unknown): SupabaseQueryBuilder<T>;
+    not(column: string, operator: string, value: unknown): SupabaseQueryBuilder<T>;
+    order(column: string, options?: Record<string, unknown>): SupabaseQueryBuilder<T>;
+    limit(count: number): SupabaseQueryBuilder<T>;
+    single(): Promise<SupabaseResult<T>>;
+    maybeSingle(): Promise<SupabaseResult<T>>;
+  };
+
   export function createClient(
     supabaseUrl: string,
     supabaseKey: string,
@@ -25,15 +45,6 @@ declare module "https://esm.sh/@supabase/supabase-js@2.106.2" {
         }>;
       };
     };
-    from(table: string): {
-      insert(values: Record<string, unknown>): {
-        select(columns: string): {
-          single(): Promise<{
-            data: { id?: string } | null;
-            error: { message: string } | null;
-          }>;
-        };
-      };
-    };
+    from(table: string): SupabaseQueryBuilder;
   };
 }

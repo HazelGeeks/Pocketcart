@@ -84,6 +84,62 @@ export const adminFormListStyles = {
     alignItems: "center",
     gap: 8,
   },
+  storeGrid: {
+    gap: 10,
+    ...(Platform.OS === "web"
+      ? ({
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
+          alignItems: "stretch",
+        } as any)
+      : {
+          flexDirection: "row",
+          flexWrap: "wrap",
+        }),
+  },
+  storeGridCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e7f0",
+    backgroundColor: "#fafbfd",
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    gap: 10,
+    justifyContent: "space-between",
+    ...(Platform.OS === "web"
+      ? ({
+          minWidth: 0,
+        } as any)
+      : {
+          width: "100%",
+      }),
+  },
+  productCheckboxHitArea: {
+    minWidth: 32,
+    minHeight: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  productCheckboxBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#aeb9ca",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  productCheckboxBoxChecked: {
+    borderColor: C.primaryDark,
+    backgroundColor: C.primaryDark,
+  },
+  productCheckboxMark: {
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+    backgroundColor: "#ffffff",
+  },
   storeListRowActive: {
     borderColor: C.primaryLight,
     backgroundColor: C.primaryGhost,

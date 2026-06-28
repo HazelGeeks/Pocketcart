@@ -49,7 +49,7 @@ export function normalizeStoreRow(row: StoreRow, fallback?: { latitude: number; 
     id: row.id,
     brand: row.brand?.trim() || null,
     name: row.name,
-    area: row.area,
+    area: row.area?.trim() ?? "",
     latitude: lat,
     longitude: lng,
     price_note: row.price_note,

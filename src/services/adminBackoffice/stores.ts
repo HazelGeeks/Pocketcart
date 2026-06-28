@@ -15,7 +15,7 @@ const STORE_BASE_FIELDS = "id, name, area, latitude, longitude, price_note, crea
 type StorePayloadParams = {
   brand?: string;
   name: string;
-  area: string;
+  area?: string;
   latitude: string;
   longitude: string;
   priceNote?: string;
@@ -39,7 +39,7 @@ function buildStorePayload(params: StorePayloadParams) {
 
   const basePayload = {
     name: params.name.trim(),
-    area: params.area.trim(),
+    area: params.area?.trim() || params.address?.trim() || params.name.trim(),
     latitude: lat,
     longitude: lng,
     price_note: params.priceNote?.trim() ? params.priceNote.trim() : null,

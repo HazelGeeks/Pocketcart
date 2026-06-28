@@ -22,7 +22,7 @@ function storeLeafletMapSrcDoc(
     .map((store) => ({
       id: store.id,
       name: store.brand ? `${store.brand} - ${store.name}` : store.name,
-      area: store.area,
+      address: store.address || store.area,
       storeType: store.store_type,
       isActive: store.is_active,
       latitude: Number(store.latitude),
@@ -35,6 +35,7 @@ function storeLeafletMapSrcDoc(
   if (points.length === 0) return "";
 
   const selectedPoint = points.find((store) => store.selected) ?? points[0];
+  const hasSelectedPoint = points.some((store) => store.selected);
 
   return `<!doctype html>
 <html>
@@ -78,16 +79,11 @@ function storeLeafletMapSrcDoc(
       maxClusterRadius: 36
     });
     points.forEach((point) => {
-      const marker = L.circleMarker([point.latitude, point.longitude], {
-        radius: point.selected ? 9 : 6,
-        color: point.selected ? "#8BA300" : point.isActive ? "#50627d" : "#a3adbd",
-        weight: point.selected ? 3 : 2,
-        fillColor: point.selected ? "#ABC900" : point.isActive ? "#ffffff" : "#eef2f8",
-        fillOpacity: point.selected ? 0.85 : 0.95
-      });
+      const marker = L.marker([point.latitude, point.longitude]);
       marker.bindPopup(
         "<strong>" + escapeHtml(point.name) + "</strong><br />" +
-        escapeHtml(point.area) + "<br />" +
+        escapeHtml(point.address) + "<br />" +
+        point.latitude.toFixed(6) + ", " + point.longitude.toFixed(6) + "<br />" +
         escapeHtml(point.storeType) + " · " + (point.isActive ? "Active" : "Inactive")
       );
       if (point.selected) marker.openPopup();
@@ -95,7 +91,9 @@ function storeLeafletMapSrcDoc(
       bounds.push([point.latitude, point.longitude]);
     });
     map.addLayer(markerLayer);
-    if (bounds.length > 1) {
+    if (${hasSelectedPoint ? "true" : "false"}) {
+      map.setView([selectedPoint.latitude, selectedPoint.longitude], 16);
+    } else if (bounds.length > 1) {
       map.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
     }
   </script>
@@ -128,7 +126,7 @@ export default function StoreMapPanel({
           <Text style={st.fieldLabel}>Store Map</Text>
           <Text style={st.dataMuted}>
             {selectedStore
-              ? `${selectedStore.brand ? `${selectedStore.brand} - ` : ""}${selectedStore.name} | ${selectedStore.area}`
+              ? `${selectedStore.brand ? `${selectedStore.brand} - ` : ""}${selectedStore.name}${selectedStore.address || selectedStore.area ? ` | ${selectedStore.address || selectedStore.area}` : ""}`
               : "No store selected"}
           </Text>
         </View>
