@@ -259,6 +259,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     handleCreateProduct,
     handleDeleteProduct,
     handleDeleteProducts,
+    handleDownloadProductCsvTemplate,
     handleExportProductsCsv,
     handleImportProductsCsv,
     handleOpenAddProduct,
@@ -578,6 +579,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     productPriceStats={productPriceStats}
                     styles={st}
                     onImportProductsCsv={handleImportProductsCsv}
+                    onDownloadProductCsvTemplate={handleDownloadProductCsvTemplate}
                     onExportProductsCsv={handleExportProductsCsv}
                     onOpenAddProduct={handleOpenAddProduct}
                     onProductSearchChange={setProductSearchQuery}

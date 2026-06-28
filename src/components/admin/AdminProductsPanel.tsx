@@ -36,6 +36,7 @@ type Props = {
   productPriceStats: Map<string, ProductPriceStats>;
   styles: any;
   onImportProductsCsv: () => void;
+  onDownloadProductCsvTemplate: () => void;
   onExportProductsCsv: () => void;
   onOpenAddProduct: () => void;
   onProductSearchChange: (value: string) => void;
@@ -70,6 +71,7 @@ export default function AdminProductsPanel({
   productPriceStats,
   styles: st,
   onImportProductsCsv,
+  onDownloadProductCsvTemplate,
   onExportProductsCsv,
   onOpenAddProduct,
   onProductSearchChange,
@@ -135,6 +137,9 @@ export default function AdminProductsPanel({
             <Text style={st.dataMuted}>Create and remove catalog products.</Text>
             <Pressable accessibilityRole="button" onPress={onImportProductsCsv} style={[st.btn, st.btnGhost]} disabled={submitting}>
               <Text style={st.btnGhostText}>Import CSV</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={onDownloadProductCsvTemplate} style={[st.btn, st.btnGhost]} disabled={submitting}>
+              <Text style={st.btnGhostText}>CSV Template</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onExportProductsCsv} style={[st.btn, st.btnGhost, filteredProducts.length === 0 && st.btnDisabled]} disabled={filteredProducts.length === 0 || submitting}>
               <Text style={st.btnGhostText}>Export CSV</Text>

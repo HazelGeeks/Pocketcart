@@ -37,6 +37,8 @@ type AdminDashboardDataParams = {
   flyerSelectedRows: number;
 };
 
+const PRODUCT_STORE_UNASSIGNED_FILTER = "__unassigned";
+
 export default function useAdminDashboardData({
   products,
   stores,
@@ -144,6 +146,8 @@ export default function useAdminDashboardData({
       const latestDate = row.valid_from || row.observed_at;
       const observedAtMs = new Date(latestDate).getTime();
       const parsedObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : -1;
+      const updatedAtMs = new Date(row.created_at).getTime();
+      const parsedUpdatedAtMs = Number.isFinite(updatedAtMs) ? updatedAtMs : -1;
       const storeName = row.store_name?.trim() || storeNameById.get(storeId) || storeId;
       const storeBrand = storeBrandById.get(storeId) ?? "";
       const existing = stats.get(productId);
@@ -152,6 +156,7 @@ export default function useAdminDashboardData({
         stats.set(productId, {
           latestPrice: row.price,
           latestObservedAtMs: parsedObservedAtMs,
+          latestUpdatedAtMs: parsedUpdatedAtMs,
           latestValidFrom: row.valid_from || row.observed_at,
           latestValidTo: row.valid_to,
           minPrice: row.price,
@@ -172,6 +177,9 @@ export default function useAdminDashboardData({
       }
       if (existing.minPrice === null || row.price < existing.minPrice) existing.minPrice = row.price;
       if (existing.maxPrice === null || row.price > existing.maxPrice) existing.maxPrice = row.price;
+      if (parsedUpdatedAtMs > existing.latestUpdatedAtMs) {
+        existing.latestUpdatedAtMs = parsedUpdatedAtMs;
+      }
       if (parsedObservedAtMs >= existing.latestObservedAtMs) {
         existing.latestObservedAtMs = parsedObservedAtMs;
         existing.latestPrice = row.price;
@@ -183,9 +191,13 @@ export default function useAdminDashboardData({
   }, [prices, storeBrandById, storeNameById]);
 
   const productStoreFilterOptions = React.useMemo(() => {
-    return Array.from(storeNameById.entries())
+    const assignedStoreOptions = Array.from(storeNameById.entries())
       .map(([id, name]) => ({ id, name: name.trim() || id }))
       .sort((a, b) => a.name.localeCompare(b.name));
+    return [
+      { id: PRODUCT_STORE_UNASSIGNED_FILTER, name: "Store: Not assigned" },
+      ...assignedStoreOptions,
+    ];
   }, [storeNameById]);
 
   const productBrandFilterOptions = React.useMemo(() => {
@@ -289,7 +301,8 @@ export default function useAdminDashboardData({
 
   const productSortOptions = React.useMemo<Array<{ key: ProductSortKey; label: string }>>(
     () => [
-      { key: "latest", label: "Latest" },
+      { key: "latest", label: "Latest Updated" },
+      { key: "oldest", label: "Oldest Updated" },
       { key: "name", label: "Name" },
       { key: "priceLow", label: "Price Low" },
       { key: "priceHigh", label: "Price High" },
@@ -330,7 +343,11 @@ export default function useAdminDashboardData({
       ) {
         return false;
       }
-      if (storeFilter.toLowerCase() !== "all" && !stats?.storeIds.has(storeFilter)) return false;
+      if (storeFilter === PRODUCT_STORE_UNASSIGNED_FILTER) {
+        if ((stats?.storeIds.size ?? 0) > 0) return false;
+      } else if (storeFilter.toLowerCase() !== "all" && !stats?.storeIds.has(storeFilter)) {
+        return false;
+      }
       if (productSaleDateRangeMs !== null) {
         const hasSaleOnDate = prices.some((row) => {
           if (row.product_id !== item.id) return false;
@@ -352,8 +369,17 @@ export default function useAdminDashboardData({
         const bPrice = productPriceStats.get(b.id)?.latestPrice ?? Number.POSITIVE_INFINITY;
         if (aPrice !== bPrice) return productSort === "priceLow" ? aPrice - bPrice : bPrice - aPrice;
       }
-      const aTime = productPriceStats.get(a.id)?.latestObservedAtMs ?? -1;
-      const bTime = productPriceStats.get(b.id)?.latestObservedAtMs ?? -1;
+      const aCreatedAtMs = new Date(a.created_at).getTime();
+      const bCreatedAtMs = new Date(b.created_at).getTime();
+      const aTime = Math.max(
+        Number.isFinite(aCreatedAtMs) ? aCreatedAtMs : -1,
+        productPriceStats.get(a.id)?.latestUpdatedAtMs ?? -1,
+      );
+      const bTime = Math.max(
+        Number.isFinite(bCreatedAtMs) ? bCreatedAtMs : -1,
+        productPriceStats.get(b.id)?.latestUpdatedAtMs ?? -1,
+      );
+      if (productSort === "oldest") return aTime - bTime;
       return bTime - aTime;
     });
 

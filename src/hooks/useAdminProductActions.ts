@@ -360,7 +360,7 @@ export default function useAdminProductActions({
     uploadProductImageMutation,
   });
 
-  const { handleExportProductsCsv, handleImportProductsCsv } = useAdminProductCsvActions({
+  const { handleDownloadProductCsvTemplate, handleExportProductsCsv, handleImportProductsCsv } = useAdminProductCsvActions({
     products,
     filteredProducts,
     productPriceStats,
@@ -426,6 +426,7 @@ export default function useAdminProductActions({
     handleCreateProduct,
     handleDeleteProduct,
     handleDeleteProducts,
+    handleDownloadProductCsvTemplate,
     handleExportProductsCsv,
     handleImportProductsCsv,
     handleOpenAddProduct,

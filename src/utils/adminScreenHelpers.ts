@@ -26,6 +26,7 @@ export type StorePriceSetInput = {
 export type ProductPriceStats = {
   latestPrice: number | null;
   latestObservedAtMs: number;
+  latestUpdatedAtMs: number;
   latestValidFrom: string | null;
   latestValidTo: string | null;
   minPrice: number | null;
@@ -114,16 +115,62 @@ export const PRODUCT_IMPORT_HEADERS = {
   unit: ["unit", "size", "size_unit", "용량", "규격"],
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
   storeId: ["store_id", "storeid", "store id"],
-  storeName: ["store_name", "store", "stores", "store name", "매장", "마트"],
-  storeBrand: ["store_brand", "store brand", "mart_brand", "mart brand", "마트브랜드"],
+  storeName: ["store_name", "store", "stores", "summary_stores", "store name", "매장", "마트"],
+  storeBrand: ["store_brand", "store brand", "summary_store_brands", "mart_brand", "mart brand", "마트브랜드"],
   storeAddress: ["store_address", "address", "store address", "주소"],
   storePlaceId: ["store_place_id", "place_id", "placeid", "google_place_id", "google_place", "장소id"],
   storeLatitude: ["store_latitude", "latitude", "lat", "위도"],
   storeLongitude: ["store_longitude", "longitude", "lng", "lon", "경도"],
-  price: ["price", "current_price", "latest_price", "source_price", "price_value", "가격"],
-  observedAt: ["observed_at", "observedat", "valid_from", "sale_start_date", "date", "날짜", "시작일", "시작 날짜", "기준일"],
-  periodEnd: ["valid_to", "period_end", "sale_end_date", "valid to", "종료일", "종료 날짜"],
+  price: ["price", "current_price", "latest_price", "summary_latest_price", "source_price", "price_value", "가격"],
+  observedAt: ["observed_at", "observedat", "valid_from", "sale_start_date", "summary_sale_start_date", "date", "날짜", "시작일", "시작 날짜", "기준일"],
+  periodEnd: ["valid_to", "period_end", "sale_end_date", "summary_sale_end_date", "valid to", "종료일", "종료 날짜"],
 };
+
+export function productImportTemplateCsv(): string {
+  const header = [
+    "name",
+    "english_name",
+    "category",
+    "unit",
+    "thumbnail_url",
+    "store_brand",
+    "store_name",
+    "store_id",
+    "price",
+    "sale_start_date",
+    "sale_end_date",
+  ];
+  const rows = [
+    [
+      "Organic Eggs",
+      "Organic Eggs",
+      "Dairy",
+      "12 ct",
+      "",
+      "Safeway",
+      "Robson",
+      "",
+      "6.99",
+      "2026-06-28",
+      "2026-07-04",
+    ],
+    [
+      "Bananas",
+      "Bananas",
+      "Produce",
+      "1 lb",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ],
+  ];
+
+  return ["\uFEFF" + header.map(csvCell).join(","), ...rows.map((row) => row.map(csvCell).join(","))].join("\r\n") + "\r\n";
+}
 
 export const STORE_TYPE_OPTIONS = [
   { value: "grocery", label: "Grocery" },
