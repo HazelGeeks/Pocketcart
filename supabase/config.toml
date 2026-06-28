@@ -1,6 +1,12 @@
 [functions.back-office-flyer]
 verify_jwt = true
 
+[functions.send-sale-alert-push]
+verify_jwt = false
+
+[functions.sync-sale-alerts]
+verify_jwt = false
+
 [functions.delete-account]
 verify_jwt = true
 

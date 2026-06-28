@@ -296,6 +296,106 @@ alter table public.watchlist_items
 create index if not exists watchlist_items_user_product_idx
   on public.watchlist_items(user_id, product_id);
 
+-- user_push_tokens
+create table if not exists public.user_push_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  token text not null,
+  platform text,
+  enabled boolean not null default true,
+  last_seen_at timestamptz not null default now(),
+  last_error text,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists user_push_tokens_user_token_unique
+  on public.user_push_tokens(user_id, token);
+
+create index if not exists user_push_tokens_user_enabled_idx
+  on public.user_push_tokens(user_id, enabled);
+
+alter table public.user_push_tokens enable row level security;
+
+drop policy if exists user_push_tokens_select_own on public.user_push_tokens;
+create policy user_push_tokens_select_own
+on public.user_push_tokens
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists user_push_tokens_insert_own on public.user_push_tokens;
+create policy user_push_tokens_insert_own
+on public.user_push_tokens
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+drop policy if exists user_push_tokens_update_own on public.user_push_tokens;
+create policy user_push_tokens_update_own
+on public.user_push_tokens
+for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists user_push_tokens_delete_own on public.user_push_tokens;
+create policy user_push_tokens_delete_own
+on public.user_push_tokens
+for delete
+to authenticated
+using (auth.uid() = user_id);
+
+-- sale_alerts
+create table if not exists public.sale_alerts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  watchlist_item_id uuid references public.watchlist_items(id) on delete set null,
+  product_id uuid references public.products(id) on delete set null,
+  store_id uuid references public.stores(id) on delete set null,
+  alert_key text not null,
+  title text not null,
+  body text not null,
+  sale_price numeric(10, 2),
+  previous_price numeric(10, 2),
+  sale_started_at text,
+  push_sent_at timestamptz,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.sale_alerts
+  add column if not exists push_sent_at timestamptz;
+
+create unique index if not exists sale_alerts_user_alert_key_unique
+  on public.sale_alerts(user_id, alert_key);
+
+create index if not exists sale_alerts_user_created_idx
+  on public.sale_alerts(user_id, created_at desc);
+
+alter table public.sale_alerts enable row level security;
+
+drop policy if exists sale_alerts_select_own on public.sale_alerts;
+create policy sale_alerts_select_own
+on public.sale_alerts
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists sale_alerts_insert_own on public.sale_alerts;
+create policy sale_alerts_insert_own
+on public.sale_alerts
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+drop policy if exists sale_alerts_update_own on public.sale_alerts;
+create policy sale_alerts_update_own
+on public.sale_alerts
+for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
 -- admin_audit_logs
 create table if not exists public.admin_audit_logs (
   id uuid primary key default gen_random_uuid(),
