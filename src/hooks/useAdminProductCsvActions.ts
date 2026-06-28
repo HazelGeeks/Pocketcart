@@ -2,8 +2,18 @@ import React from "react";
 import { Platform } from "react-native";
 import type { AdminProduct, AdminStore } from "../services/adminBackoffice";
 import type { ProductPriceStats } from "../utils/adminScreenHelpers";
-import { PRODUCT_IMPORT_HEADERS, downloadCsvFile, productsToCsv } from "../utils/adminScreenHelpers";
-import { csvHeaderKey, csvRowValue, dateOnlyToIso, parseCsvRows } from "../utils/adminValidation";
+import {
+  PRODUCT_IMPORT_HEADERS,
+  downloadCsvFile,
+  productImportTemplateCsv,
+  productsToCsv,
+} from "../utils/adminScreenHelpers";
+import { csvHeaderKey, csvRowValue, parseCsvRows } from "../utils/adminValidation";
+import {
+  createProductCsvStoreResolver,
+  productCsvDateToIso,
+  productCsvRecordFromRow,
+} from "../utils/productCsvImport";
 import { productIdentityKey } from "../utils/productIdentity";
 
 type Mutation<TParams, TResult> = {
@@ -41,16 +51,6 @@ function normalizePrice(value: string): string {
   return matched[0];
 }
 
-function parseStoreIdCandidate(candidate: string): string | null {
-  const trimmed = candidate.trim();
-  if (!trimmed) return null;
-  return trimmed;
-}
-
-function storeIdentityKey(params: { brand?: string | null; name: string }): string {
-  return `${params.brand?.trim().toLowerCase() ?? ""}|${params.name.trim().toLowerCase()}`;
-}
-
 export default function useAdminProductCsvActions({
   products,
   filteredProducts,
@@ -75,6 +75,15 @@ export default function useAdminProductCsvActions({
     }
     setNotice(`Exported ${filteredProducts.length} products to CSV.`);
   }, [filteredProducts, productPriceStats, setNotice]);
+
+  const handleDownloadProductCsvTemplate = React.useCallback(() => {
+    const error = downloadCsvFile("product-import-template", productImportTemplateCsv());
+    if (error) {
+      setNotice(error);
+      return;
+    }
+    setNotice("Downloaded product CSV import template.");
+  }, [setNotice]);
 
   const handleImportProductsCsv = React.useCallback(() => {
     if (Platform.OS !== "web") {
@@ -113,44 +122,13 @@ export default function useAdminProductCsvActions({
           const priceImported: string[] = [];
           const priceSkipped: string[] = [];
 
-          const storeById = new Map(stores.map((store) => [store.id.trim().toLowerCase(), store.id]));
           const productByIdentity = new Map(
             products.map((product) => [productIdentityKey(product), product]),
           );
-          const storeIdByName = new Map<string, string>();
-          const storeIdByIdentity = new Map<string, string>();
-          stores.forEach((store) => {
-            storeIdByName.set(store.name.trim().toLowerCase(), store.id);
-            storeIdByIdentity.set(storeIdentityKey(store), store.id);
-            if (store.brand?.trim()) {
-              storeIdByName.set(`${store.brand.trim()} - ${store.name.trim()}`.toLowerCase(), store.id);
-            }
-          });
-
-          const resolveStoreId = (storeIdValue: string, storeNameValue: string, storeBrandValue: string): string | null => {
-            const directStoreId = parseStoreIdCandidate(storeIdValue);
-            if (directStoreId) {
-              return storeById.get(directStoreId.toLowerCase()) ?? directStoreId;
-            }
-
-            const candidates = storeNameValue
-              .split("|")
-              .map((value) => value.trim().toLowerCase())
-              .filter(Boolean);
-            for (const candidate of candidates) {
-              const identityMatch = storeIdByIdentity.get(storeIdentityKey({ brand: storeBrandValue, name: candidate }));
-              if (identityMatch) return identityMatch;
-              const match = storeIdByName.get(candidate);
-              if (match) return match;
-            }
-            return null;
-          };
+          const storeResolver = createProductCsvStoreResolver(stores);
 
           for (const [index, values] of dataRows.entries()) {
-            const record: Record<string, string> = {};
-            headers.forEach((header, headerIndex) => {
-              record[header] = values[headerIndex] ?? "";
-            });
+            const record = productCsvRecordFromRow(headers, values);
 
             const name = csvRowValue(record, PRODUCT_IMPORT_HEADERS.name);
             const englishName = csvRowValue(record, PRODUCT_IMPORT_HEADERS.englishName);
@@ -206,15 +184,15 @@ export default function useAdminProductCsvActions({
                 priceSkipped.push(`row ${index + 2}: price skipped (missing sale_start_date/sale_end_date)`);
                 continue;
               }
-              const observedAtIso = dateOnlyToIso(observedAt, false);
-              const periodEndIso = dateOnlyToIso(periodEnd, true);
+              const observedAtIso = productCsvDateToIso(observedAt, false);
+              const periodEndIso = productCsvDateToIso(periodEnd, true);
               if (!observedAtIso || !periodEndIso) {
                 priceSkipped.push(`row ${index + 2}: price skipped (invalid sale period dates)`);
                 continue;
               }
 
-              const storeId = resolveStoreId(rawStoreId, rawStoreName, rawStoreBrand);
-              if (!storeId) {
+              const storeIds = storeResolver.resolveStoreIds(rawStoreId, rawStoreName, rawStoreBrand);
+              if (storeIds.length === 0) {
                 if (!rawStoreName && !rawStoreId) {
                   priceSkipped.push(`row ${index + 2}: price skipped (missing store/store_id)`);
                 } else {
@@ -223,21 +201,23 @@ export default function useAdminProductCsvActions({
                 continue;
               }
 
-              try {
-                await createPriceEntryMutation.mutateAsync({
-                  productId: product.id,
-                  storeId,
-                  price: normalizedPrice,
-                  observedAt: observedAtIso,
-                  periodEnd: periodEndIso,
-                });
-                priceImported.push(`row ${index + 2}`);
-              } catch (priceError) {
-                skipped.push(
-                  `row ${index + 2}: price save failed - ${
-                    priceError instanceof Error ? priceError.message : "failed"
-                  }`,
-                );
+              for (const storeId of storeIds) {
+                try {
+                  await createPriceEntryMutation.mutateAsync({
+                    productId: product.id,
+                    storeId,
+                    price: normalizedPrice,
+                    observedAt: observedAtIso,
+                    periodEnd: periodEndIso,
+                  });
+                  priceImported.push(`row ${index + 2}`);
+                } catch (priceError) {
+                  skipped.push(
+                    `row ${index + 2}: price save failed - ${
+                      priceError instanceof Error ? priceError.message : "failed"
+                    }`,
+                  );
+                }
               }
             } catch (error) {
               skipped.push(`row ${index + 2}: ${error instanceof Error ? error.message : "failed"}`);
@@ -271,5 +251,5 @@ export default function useAdminProductCsvActions({
     input.click();
   }, [createPriceEntryMutation, createProductMutation, loadAll, products, setNotice, setSubmitting, stores]);
 
-  return { handleExportProductsCsv, handleImportProductsCsv };
+  return { handleDownloadProductCsvTemplate, handleExportProductsCsv, handleImportProductsCsv };
 }
