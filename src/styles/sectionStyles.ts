@@ -41,14 +41,14 @@ export const sectionStyles = {
     padding: 26,
     gap: 12,
     borderWidth: 1,
-    borderColor: "rgba(171,201,0,0.12)",
+    borderColor: "rgba(97,227,146,0.12)",
     minHeight: 200,
   },
   featIconWrap: {
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: "rgba(171,201,0,0.12)",
+    backgroundColor: "rgba(97,227,146,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -92,7 +92,7 @@ export const sectionStyles = {
     alignItems: "center",
     justifyContent: "center",
     ...(Platform.OS === "web"
-      ? ({ boxShadow: "0 6px 20px rgba(171,201,0,0.25)" } as any)
+      ? ({ boxShadow: "0 6px 20px rgba(97,227,146,0.25)" } as any)
       : {}),
   },
   stepNumText: {
@@ -106,7 +106,7 @@ export const sectionStyles = {
     right: -20,
     width: 40,
     height: 4,
-    backgroundColor: "rgba(171,201,0,0.2)",
+    backgroundColor: "rgba(97,227,146,0.2)",
     borderRadius: 2,
   },
   stepConnectorDot: {
@@ -144,7 +144,7 @@ export const sectionStyles = {
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: "rgba(171,201,0,0.14)",
+    borderColor: "rgba(97,227,146,0.14)",
   },
   statValue: {
     fontSize: 32,
@@ -172,7 +172,7 @@ export const sectionStyles = {
     backgroundColor: P.bg,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(171,201,0,0.15)",
+    borderColor: "rgba(97,227,146,0.15)",
     padding: 24,
     gap: 10,
     minHeight: 220,

@@ -91,7 +91,7 @@ export default function FaqSection() {
                 viewport={{ once: true, amount: 0.2 }}
                 whileHover={{
                   y: -6,
-                  boxShadow: "0 12px 40px rgba(171,201,0,0.14)",
+                  boxShadow: "0 12px 40px rgba(97,227,146,0.14)",
                   transition: { duration: 0.25 },
                 }}
                 style={{

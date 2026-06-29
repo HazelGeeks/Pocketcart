@@ -37,7 +37,7 @@ export default function HowItWorksSection() {
               width: 480,
               height: 480,
               borderRadius: 240,
-              backgroundColor: "rgba(171,201,0,0.06)",
+              backgroundColor: "rgba(97,227,146,0.06)",
               pointerEvents: "none" as const,
             }}
           />
@@ -65,7 +65,7 @@ export default function HowItWorksSection() {
         <>
           <Blob
             size={480}
-            color="rgba(171,201,0,0.06)"
+            color="rgba(97,227,146,0.06)"
             top={-120}
             right={isLg ? -80 : -120}
           />
@@ -206,7 +206,7 @@ export default function HowItWorksSection() {
                 viewport={{ once: true, amount: 0.3 }}
                 whileHover={{
                   scale: 1.05,
-                  boxShadow: "0 10px 36px rgba(171,201,0,0.15)",
+                  boxShadow: "0 10px 36px rgba(97,227,146,0.15)",
                 }}
                 style={{
                   flex: isMd ? 1 : undefined,
