@@ -30,9 +30,6 @@ export function NativeTopBar({ topInset, pad }: NativeTopBarProps) {
       ]}
     >
       <Text style={st.brand}>PocketCart</Text>
-      <View style={st.alphaPill}>
-        <Text style={st.alphaText}>Native Alpha</Text>
-      </View>
     </View>
   );
 }
