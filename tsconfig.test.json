@@ -14,6 +14,7 @@
     "src/constants/palette.ts",
     "src/utils/authCallback.ts",
     "src/utils/adminValidation.ts",
+    "src/utils/categoryIcon.ts",
     "src/utils/flyerCsv.ts",
     "src/utils/productCsvImport.ts",
     "src/utils/productIdentity.ts",
