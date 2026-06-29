@@ -1152,7 +1152,15 @@ export default function NativeAppScreen() {
 
   return (
     <View style={st.root}>
-      <NativeTopBar topInset={insets.top} pad={pad} />
+      <NativeTopBar
+        topInset={insets.top}
+        pad={pad}
+        unreadAlertCount={unreadAlertCount}
+        onOpenAlerts={() => {
+          setHomeRoute("catalog");
+          setActiveTab("alerts");
+        }}
+      />
 
       <ScrollView
         style={st.scroll}

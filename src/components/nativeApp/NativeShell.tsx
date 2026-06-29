@@ -8,6 +8,8 @@ import { marketingPalette as C } from "../../shared/design/palette";
 type NativeTopBarProps = {
   topInset: number;
   pad: number;
+  unreadAlertCount: number;
+  onOpenAlerts: () => void;
 };
 
 type NativeBottomTabsProps = {
@@ -17,7 +19,14 @@ type NativeBottomTabsProps = {
   onSelectTab: (tabId: NativeTabId) => void;
 };
 
-export function NativeTopBar({ topInset, pad }: NativeTopBarProps) {
+export function NativeTopBar({
+  topInset,
+  pad,
+  unreadAlertCount,
+  onOpenAlerts,
+}: NativeTopBarProps) {
+  const badgeLabel = unreadAlertCount > 99 ? "99+" : unreadAlertCount.toString();
+
   return (
     <View
       style={[
@@ -30,6 +39,37 @@ export function NativeTopBar({ topInset, pad }: NativeTopBarProps) {
       ]}
     >
       <Text style={st.brand}>PocketCart</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          unreadAlertCount > 0
+            ? `${unreadAlertCount} unread sale alerts`
+            : "Open sale alerts"
+        }
+        onPress={onOpenAlerts}
+        style={st.topAlertBtn}
+      >
+        <Svg width={25} height={25} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M6.5 10.4a5.5 5.5 0 0 1 11 0v3.45l1.6 2.55H4.9l1.6-2.55V10.4Z"
+            stroke={C.primaryDeep}
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Path
+            d="M10 19a2 2 0 0 0 4 0"
+            stroke={C.primaryDeep}
+            strokeWidth={2.2}
+            strokeLinecap="round"
+          />
+        </Svg>
+        {unreadAlertCount > 0 ? (
+          <View style={st.topAlertBadge}>
+            <Text style={st.topAlertBadgeText}>{badgeLabel}</Text>
+          </View>
+        ) : null}
+      </Pressable>
     </View>
   );
 }

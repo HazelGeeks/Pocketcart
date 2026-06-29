@@ -140,30 +140,30 @@ export function HomeCatalogPanel({
               style={st.searchInput}
             />
           </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={st.sortOptionsWrap}
-            style={st.sortOptionsScroll}
-          >
-            {SORT_OPTIONS.map((option) => {
-              const active = sortMode === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="button"
-                  onPress={() => onChangeSort(option.value)}
-                  style={[st.inlinePill, st.sortPill, active && st.sortPillActive]}
-                >
-                  <Text style={[st.inlinePillText, active && st.sortPillTextActive]}>
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={st.sortOptionsWrap}
+          style={st.sortOptionsScroll}
+        >
+          {SORT_OPTIONS.map((option) => {
+            const active = sortMode === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                onPress={() => onChangeSort(option.value)}
+                style={[st.inlinePill, st.sortPill, active && st.sortPillActive]}
+              >
+                <Text style={[st.inlinePillText, active && st.sortPillTextActive]}>
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         <ScrollView
           horizontal
