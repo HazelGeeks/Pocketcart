@@ -14,6 +14,15 @@ type MorePanelProps = {
   profile: UserProfile | null;
   loading: boolean;
   message: string | null;
+  locationLabel: string;
+  alertsEnabled: boolean;
+  settingsPostalCode: string;
+  onChangeSettingsPostalCode: (value: string) => void;
+  onShareLocation: () => void;
+  onSetPostalLocation: () => void;
+  onEnableAlerts: () => void;
+  onDisableAlerts: () => void;
+  onOpenAppSettings: () => void;
   authMode: "signIn" | "signUp";
   signInEmail: string;
   signInPassword: string;
@@ -43,6 +52,7 @@ export function MorePanel(props: MorePanelProps) {
       <Text style={st.sectionTitle}>More</Text>
       <Text style={st.sectionSub}>Create account and manage your profile/data.</Text>
 
+      <PermissionSettingsCard {...props} />
       <ProfileCard {...props} />
       <AccountDeletionCard {...props} />
       <LegalLinksCard />
@@ -52,6 +62,94 @@ export function MorePanel(props: MorePanelProps) {
           <Text style={st.itemMeta}>{props.message}</Text>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+function PermissionSettingsCard({
+  locationLabel,
+  alertsEnabled,
+  settingsPostalCode,
+  loading,
+  onChangeSettingsPostalCode,
+  onShareLocation,
+  onSetPostalLocation,
+  onEnableAlerts,
+  onDisableAlerts,
+  onOpenAppSettings,
+}: MorePanelProps) {
+  return (
+    <View style={st.rowCard}>
+      <Text style={st.itemName}>Permissions</Text>
+      <Text style={st.itemMeta}>
+        Location: {locationLabel}
+      </Text>
+      <Text style={st.itemMeta}>
+        Notifications: {alertsEnabled ? "Enabled" : "Off"}
+      </Text>
+
+      <View style={st.permissionGroup}>
+        <Text style={st.permissionGroupTitle}>Location setup</Text>
+        <TextInput
+          value={settingsPostalCode}
+          onChangeText={onChangeSettingsPostalCode}
+          placeholder="Postal code"
+          placeholderTextColor={C.textMuted}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          style={st.formInput}
+        />
+        <View style={st.authActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onShareLocation}
+            style={[st.authBtn, st.authBtnPrimary, st.permissionActionBtn]}
+            disabled={loading}
+          >
+            <Text style={st.authBtnPrimaryText}>Use Current Location</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onSetPostalLocation}
+            style={[st.authBtn, st.authBtnSecondary, st.permissionActionBtn]}
+            disabled={loading}
+          >
+            <Text style={st.authBtnSecondaryText}>Save Postal Code</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={st.permissionGroup}>
+        <Text style={st.permissionGroupTitle}>Notification alerts</Text>
+        <View style={st.authActionRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onEnableAlerts}
+            style={[st.authBtn, st.authBtnPrimary, st.permissionActionBtn]}
+            disabled={loading || alertsEnabled}
+          >
+            <Text style={st.authBtnPrimaryText}>
+              {alertsEnabled ? "Notifications On" : "Enable Notifications"}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onDisableAlerts}
+            style={[st.authBtn, st.authBtnSecondary, st.permissionActionBtn]}
+            disabled={loading || !alertsEnabled}
+          >
+            <Text style={st.authBtnSecondaryText}>Turn Off In App</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onOpenAppSettings}
+            style={[st.authBtn, st.authBtnSecondary, st.permissionActionBtn]}
+            disabled={loading}
+          >
+            <Text style={st.authBtnSecondaryText}>Open Settings</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }

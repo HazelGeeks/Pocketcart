@@ -29,20 +29,6 @@ export const st = StyleSheet.create({
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  alphaPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  alphaText: {
-    color: C.primaryDeep,
-    fontSize: 12,
-    fontWeight: "700",
-    fontFamily: F.bold,
-  },
   scroll: {
     flex: 1,
   },
@@ -569,6 +555,19 @@ export const st = StyleSheet.create({
   },
   legalActionBtn: {
     minWidth: 116,
+  },
+  permissionGroup: {
+    gap: 8,
+    marginTop: 8,
+  },
+  permissionGroupTitle: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "800",
+    fontFamily: F.extraBold,
+  },
+  permissionActionBtn: {
+    minWidth: 132,
   },
   authModeRow: {
     flexDirection: "row",

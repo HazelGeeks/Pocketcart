@@ -35,7 +35,7 @@ export default function HeroSection() {
               width: isLg ? 620 : 400,
               height: isLg ? 620 : 400,
               borderRadius: (isLg ? 620 : 400) / 2,
-              backgroundColor: "rgba(171,201,0,0.07)",
+              backgroundColor: "rgba(97,227,146,0.07)",
               pointerEvents: "none" as const,
             }}
           />
@@ -54,7 +54,7 @@ export default function HeroSection() {
               width: isLg ? 340 : 220,
               height: isLg ? 340 : 220,
               borderRadius: (isLg ? 340 : 220) / 2,
-              backgroundColor: "rgba(171,201,0,0.10)",
+              backgroundColor: "rgba(97,227,146,0.10)",
               pointerEvents: "none" as const,
             }}
           />
@@ -82,13 +82,13 @@ export default function HeroSection() {
         <>
           <Blob
             size={isLg ? 620 : 400}
-            color="rgba(171,201,0,0.07)"
+            color="rgba(97,227,146,0.07)"
             top={-80}
             right={isLg ? -120 : -60}
           />
           <Blob
             size={isLg ? 340 : 220}
-            color="rgba(171,201,0,0.10)"
+            color="rgba(97,227,146,0.10)"
             bottom={40}
             left={-60}
           />

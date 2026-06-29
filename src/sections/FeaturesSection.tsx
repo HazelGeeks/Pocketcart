@@ -38,7 +38,7 @@ export default function FeaturesSection() {
               width: 340,
               height: 340,
               borderRadius: 170,
-              backgroundColor: "rgba(171,201,0,0.05)",
+              backgroundColor: "rgba(97,227,146,0.05)",
               pointerEvents: "none" as const,
             }}
           />
@@ -57,7 +57,7 @@ export default function FeaturesSection() {
               width: 260,
               height: 260,
               borderRadius: 130,
-              backgroundColor: "rgba(171,201,0,0.06)",
+              backgroundColor: "rgba(97,227,146,0.06)",
               pointerEvents: "none" as const,
             }}
           />
@@ -66,13 +66,13 @@ export default function FeaturesSection() {
         <>
           <Blob
             size={340}
-            color="rgba(171,201,0,0.05)"
+            color="rgba(97,227,146,0.05)"
             top={-40}
             left={isLg ? 100 : -40}
           />
           <Blob
             size={260}
-            color="rgba(171,201,0,0.06)"
+            color="rgba(97,227,146,0.06)"
             bottom={-60}
             right={-40}
           />
@@ -178,7 +178,7 @@ export default function FeaturesSection() {
                 viewport={{ once: true, amount: 0.15 }}
                 whileHover={{
                   y: -8,
-                  boxShadow: "0 16px 48px rgba(171,201,0,0.12)",
+                  boxShadow: "0 16px 48px rgba(97,227,146,0.12)",
                   transition: { duration: 0.25 },
                 }}
                 style={{

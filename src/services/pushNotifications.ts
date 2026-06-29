@@ -89,7 +89,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
       name: "Sale alerts",
       importance: Notifications.AndroidImportance.DEFAULT,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#ABC900",
+      lightColor: "#61e392",
     });
   }
 

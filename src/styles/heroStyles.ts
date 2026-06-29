@@ -22,8 +22,8 @@ export const heroStyles = {
   heroPill: {
     borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: "rgba(171,201,0,0.35)",
-    backgroundColor: "rgba(171,201,0,0.08)",
+    borderColor: "rgba(97,227,146,0.35)",
+    backgroundColor: "rgba(97,227,146,0.08)",
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -103,7 +103,7 @@ export const heroStyles = {
     marginRight: 10,
   },
   heroCardDelta: {
-    backgroundColor: "rgba(171,201,0,0.18)",
+    backgroundColor: "rgba(97,227,146,0.18)",
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,

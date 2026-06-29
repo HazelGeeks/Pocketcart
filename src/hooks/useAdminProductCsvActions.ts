@@ -51,6 +51,27 @@ function normalizePrice(value: string): string {
   return matched[0];
 }
 
+function hasCsvHeader(headers: string[], aliases: string[]): boolean {
+  return aliases.some((alias) => headers.includes(csvHeaderKey(alias)));
+}
+
+function missingColumnErrorMessage(message: string): string | null {
+  const text = message.toLowerCase();
+  if (
+    text.includes("product_id") &&
+    (text.includes("column") || text.includes("could not find") || text.includes("schema cache"))
+  ) {
+    return "price skipped (database column product_id is missing; apply database/schema.sql)";
+  }
+  if (
+    text.includes("store_id") &&
+    (text.includes("column") || text.includes("could not find") || text.includes("schema cache"))
+  ) {
+    return "price skipped (database column store_id is missing; apply database/schema.sql)";
+  }
+  return null;
+}
+
 export default function useAdminProductCsvActions({
   products,
   filteredProducts,
@@ -116,11 +137,22 @@ export default function useAdminProductCsvActions({
           }
 
           const headers = headerRow.map(csvHeaderKey);
+          const missingRequiredColumns = [
+            !hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.name) ? "name" : "",
+            !hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.category) ? "category" : "",
+          ].filter(Boolean);
+          if (missingRequiredColumns.length > 0) {
+            setNotice(`CSV is missing required column(s): ${missingRequiredColumns.join(", ")}.`);
+            return;
+          }
+
+          const hasPriceColumn = hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.price);
           const created: string[] = [];
           const reused: string[] = [];
           const skipped: string[] = [];
           const priceImported: string[] = [];
           const priceSkipped: string[] = [];
+          const priceMissing: string[] = [];
 
           const productByIdentity = new Map(
             products.map((product) => [productIdentityKey(product), product]),
@@ -172,7 +204,10 @@ export default function useAdminProductCsvActions({
                 created.push(product.id);
               }
 
-              if (!rawPrice || !createPriceEntryMutation) continue;
+              if (!rawPrice || !createPriceEntryMutation) {
+                if (!rawPrice) priceMissing.push(`row ${index + 2}`);
+                continue;
+              }
 
               const normalizedPrice = normalizePrice(rawPrice);
               const price = Number(normalizedPrice);
@@ -212,10 +247,10 @@ export default function useAdminProductCsvActions({
                   });
                   priceImported.push(`row ${index + 2}`);
                 } catch (priceError) {
+                  const message = priceError instanceof Error ? priceError.message : "failed";
+                  const friendlyMessage = missingColumnErrorMessage(message);
                   skipped.push(
-                    `row ${index + 2}: price save failed - ${
-                      priceError instanceof Error ? priceError.message : "failed"
-                    }`,
+                    `row ${index + 2}: ${friendlyMessage ?? `price save failed - ${message}`}`,
                   );
                 }
               }
@@ -236,6 +271,9 @@ export default function useAdminProductCsvActions({
                 : "",
               priceSkipped.length > 0
                 ? `Price skipped ${priceSkipped.length}: ${priceSkipped.slice(0, 3).join(", ")}`
+                : "",
+              priceMissing.length > 0
+                ? `${hasPriceColumn ? "Missing price" : "Missing price column"} for ${priceMissing.length} row(s); imported products without price.`
                 : "",
             ]
               .filter(Boolean)

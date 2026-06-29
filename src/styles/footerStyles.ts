@@ -6,7 +6,7 @@ export const footerStyles = {
   footer: {
     backgroundColor: P.dark,
     borderTopWidth: 1,
-    borderTopColor: "rgba(171,201,0,0.10)",
+    borderTopColor: "rgba(97,227,146,0.10)",
     paddingTop: 28,
     paddingBottom: 18,
   },
@@ -164,7 +164,7 @@ export const footerStyles = {
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
-    backgroundColor: "rgba(171,201,0,0.12)",
+    backgroundColor: "rgba(97,227,146,0.12)",
   },
   footerSignupDoneText: {
     fontSize: 14,

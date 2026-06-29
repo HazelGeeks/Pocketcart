@@ -174,6 +174,7 @@ export default function NativeAppScreen() {
   const [onboardingPostalCode, setOnboardingPostalCode] = React.useState("");
   const [onboardingAlertsEnabled, setOnboardingAlertsEnabled] = React.useState(false);
   const [onboardingMessage, setOnboardingMessage] = React.useState<string | null>(null);
+  const [onboardingRequesting, setOnboardingRequesting] = React.useState(false);
 
   const showToast = React.useCallback((message: string) => {
     setToastMessage(message);
@@ -191,6 +192,24 @@ export default function NativeAppScreen() {
       null,
     [filteredHomeProducts, selectedHomeProductId],
   );
+
+  const locationSettingsLabel = React.useMemo(() => {
+    if (onboardingState.locationMode === "share") {
+      if (onboardingState.locationLatitude && onboardingState.locationLongitude) {
+        return `Current location (${onboardingState.locationLatitude.toFixed(3)}, ${onboardingState.locationLongitude.toFixed(3)})`;
+      }
+      return "Current location";
+    }
+    if (onboardingState.locationMode === "postal" && onboardingState.postalCode) {
+      return `Postal code ${onboardingState.postalCode}`;
+    }
+    return "Not set";
+  }, [
+    onboardingState.locationLatitude,
+    onboardingState.locationLongitude,
+    onboardingState.locationMode,
+    onboardingState.postalCode,
+  ]);
 
   const handleSetHomeStoreFilter = React.useCallback(
     (storeId: string, storeName: string) => {
@@ -728,38 +747,68 @@ export default function NativeAppScreen() {
     return () => clearTimeout(timeout);
   }, [toastMessage]);
 
-  const handleLocationShare = React.useCallback(async () => {
-    const permission = await requestLocationPermissionAndPosition();
-    if (!permission.granted) {
-      setHomeActionMessage(permission.message ?? "Location access not available.");
-    } else {
-      setHomeActionMessage(null);
+  const handleLocationShare = React.useCallback(async (source: "onboarding" | "settings" = "onboarding") => {
+    setOnboardingRequesting(true);
+    if (source === "settings") {
+      setMoreLoading(true);
     }
 
-    const nextState: OnboardingState = {
-      ...onboardingState,
-      locationCompleted: true,
-      locationMode: "share",
-      postalCode: permission.granted ? null : onboardingState.postalCode,
-      locationLatitude: permission.latitude ?? null,
-      locationLongitude: permission.longitude ?? null,
-      alertsCompleted: false,
-      alertsEnabled: onboardingState.alertsEnabled,
-    };
-    setOnboardingMessage(permission.message ?? null);
-    if (permission.granted) {
-      setMapQuery("");
-    }
+    try {
+      const permission = await requestLocationPermissionAndPosition();
+      if (!permission.granted) {
+        setHomeActionMessage(permission.message ?? "Location access not available.");
+      } else {
+        setHomeActionMessage(null);
+      }
 
-    await persistOnboardingState(nextState);
-    setOnboardingStep("alerts");
-    showToast(permission.granted ? "Using live location mode." : "Location not granted. Continue with alerts.");
+      const nextState: OnboardingState = {
+        ...onboardingState,
+        locationCompleted: true,
+        locationMode: "share",
+        postalCode: permission.granted ? null : onboardingState.postalCode,
+        locationLatitude: permission.latitude ?? null,
+        locationLongitude: permission.longitude ?? null,
+        alertsCompleted: false,
+        alertsEnabled: onboardingState.alertsEnabled,
+      };
+      setOnboardingMessage(permission.message ?? null);
+      if (source === "settings") {
+        setMoreMessage(permission.message ?? null);
+      }
+      if (permission.granted) {
+        setMapQuery("");
+      }
+
+      await persistOnboardingState(nextState);
+      if (source === "onboarding") {
+        setOnboardingStep("alerts");
+      }
+      showToast(permission.granted ? "Using live location mode." : "Location not granted. Continue with alerts.");
+    } catch {
+      const message = "Location permission could not be checked.";
+      setHomeActionMessage(message);
+      if (source === "settings") {
+        setMoreMessage(message);
+      } else {
+        setOnboardingMessage(message);
+      }
+      showToast(message);
+    } finally {
+      setOnboardingRequesting(false);
+      if (source === "settings") {
+        setMoreLoading(false);
+      }
+    }
   }, [onboardingState, persistOnboardingState, showToast]);
 
-  const handleLocationPostal = React.useCallback(async () => {
+  const handleLocationPostal = React.useCallback(async (source: "onboarding" | "settings" = "onboarding") => {
     const normalized = onboardingPostalCode.trim();
     if (!normalized) {
-      setHomeActionMessage("Please enter postal code.");
+      const message = "Please enter postal code.";
+      setHomeActionMessage(message);
+      if (source === "settings") {
+        setMoreMessage(message);
+      }
       return;
     }
 
@@ -774,11 +823,73 @@ export default function NativeAppScreen() {
       alertsEnabled: onboardingState.alertsEnabled,
     };
     setOnboardingMessage(null);
+    if (source === "settings") {
+      setMoreMessage(`Saved postal code ${normalized}.`);
+    }
     await persistOnboardingState(nextState);
     setMapQuery(normalized);
-    setOnboardingStep("alerts");
+    if (source === "onboarding") {
+      setOnboardingStep("alerts");
+    }
     showToast(`Saved postal code ${normalized}.`);
   }, [onboardingPostalCode, onboardingState, persistOnboardingState, showToast]);
+
+  const handleEnableAlerts = React.useCallback(async (source: "onboarding" | "settings" = "onboarding") => {
+    setOnboardingRequesting(true);
+    if (source === "settings") {
+      setMoreLoading(true);
+    }
+
+    try {
+      const permission = await registerPushTokenForCurrentUser();
+
+      if (source === "settings") {
+        setMoreMessage(permission.message ?? null);
+      } else {
+        setOnboardingMessage(permission.message ?? null);
+      }
+
+      if (!permission.granted) {
+        showToast(permission.message ?? "Alert permission not enabled.");
+      }
+
+      setOnboardingAlertsEnabled(permission.granted);
+      const nextState: OnboardingState = {
+        ...onboardingState,
+        alertsCompleted: true,
+        alertsEnabled: permission.granted,
+      };
+      await persistOnboardingState(nextState);
+      if (source === "onboarding") {
+        setOnboardingVisible(false);
+      }
+      showToast(permission.granted ? "Alerts enabled." : "Alerts disabled.");
+    } catch {
+      const message = "Notification permission could not be checked.";
+      if (source === "settings") {
+        setMoreMessage(message);
+      } else {
+        setOnboardingMessage(message);
+      }
+      showToast(message);
+    } finally {
+      setOnboardingRequesting(false);
+      if (source === "settings") {
+        setMoreLoading(false);
+      }
+    }
+  }, [onboardingState, persistOnboardingState, showToast]);
+
+  const handleDisableAlerts = React.useCallback(async () => {
+    const nextState: OnboardingState = {
+      ...onboardingState,
+      alertsCompleted: true,
+      alertsEnabled: false,
+    };
+    setMoreMessage("In-app alert prompts are off. You can also change OS notification access in Settings.");
+    await persistOnboardingState(nextState);
+    showToast("Alerts disabled.");
+  }, [onboardingState, persistOnboardingState, showToast]);
 
   const handleSkipLocation = React.useCallback(async () => {
     const nextState: OnboardingState = {
@@ -799,23 +910,7 @@ export default function NativeAppScreen() {
 
   const handleAlertsStep = React.useCallback(async () => {
     if (onboardingAlertsEnabled) {
-      const permission = await registerPushTokenForCurrentUser();
-      setOnboardingMessage(permission.message ?? null);
-
-      if (!permission.granted) {
-        showToast(permission.message ?? "Alert permission not enabled.");
-      }
-
-      setOnboardingAlertsEnabled(permission.granted);
-
-      const nextState: OnboardingState = {
-        ...onboardingState,
-        alertsCompleted: true,
-        alertsEnabled: permission.granted,
-      };
-      await persistOnboardingState(nextState);
-      setOnboardingVisible(false);
-      showToast(permission.granted ? "Alerts enabled." : "Alerts disabled.");
+      await handleEnableAlerts("onboarding");
       return;
     }
 
@@ -830,6 +925,7 @@ export default function NativeAppScreen() {
     return;
   }, [
     onboardingAlertsEnabled,
+    handleEnableAlerts,
     onboardingState,
     persistOnboardingState,
     showToast,
@@ -1219,6 +1315,25 @@ export default function NativeAppScreen() {
             profile={profile}
             loading={moreLoading}
             message={moreMessage}
+            locationLabel={locationSettingsLabel}
+            alertsEnabled={onboardingState.alertsEnabled}
+            settingsPostalCode={onboardingPostalCode}
+            onChangeSettingsPostalCode={setOnboardingPostalCode}
+            onShareLocation={() => {
+              void handleLocationShare("settings");
+            }}
+            onSetPostalLocation={() => {
+              void handleLocationPostal("settings");
+            }}
+            onEnableAlerts={() => {
+              void handleEnableAlerts("settings");
+            }}
+            onDisableAlerts={() => {
+              void handleDisableAlerts();
+            }}
+            onOpenAppSettings={() => {
+              void Linking.openSettings();
+            }}
             authMode={authMode}
             signInEmail={signInEmail}
             signInPassword={signInPassword}
@@ -1260,10 +1375,14 @@ export default function NativeAppScreen() {
         step={onboardingStep}
         locationPostalCode={onboardingPostalCode}
         alertsEnabled={onboardingAlertsEnabled}
+        requesting={onboardingRequesting}
+        message={onboardingMessage}
         onChangePostalCode={setOnboardingPostalCode}
-        onShareLocation={handleLocationShare}
+        onShareLocation={() => {
+          void handleLocationShare("onboarding");
+        }}
         onSetPostalLocation={() => {
-          void handleLocationPostal();
+          void handleLocationPostal("onboarding");
         }}
         onSkipLocation={handleSkipLocation}
         onSetAlerts={(enabled) => {
