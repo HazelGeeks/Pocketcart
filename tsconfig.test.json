@@ -16,6 +16,7 @@
     "src/utils/adminValidation.ts",
     "src/utils/categoryIcon.ts",
     "src/utils/flyerCsv.ts",
+    "src/utils/flyerAiRows.ts",
     "src/utils/productCsvImport.ts",
     "src/utils/productIdentity.ts",
     "src/utils/productStorePriceSets.ts",

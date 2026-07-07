@@ -25,7 +25,10 @@ type Props = {
   onUnitChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onCategoryCustomChange: (value: string) => void;
+  onThumbChange: (value: string) => void;
   onUploadImage: () => void;
+  onPasteImage: () => void;
+  onPasteImageEvent: (event: ClipboardEvent) => boolean;
   onAddStorePriceSet: () => void;
   onRemoveStorePriceSet: (id: string) => void;
   onUpdateStorePriceSet: (id: string, field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate", value: string) => void;
@@ -54,7 +57,10 @@ export default function AdminProductFormModal({
   onUnitChange,
   onCategoryChange,
   onCategoryCustomChange,
+  onThumbChange,
   onUploadImage,
+  onPasteImage,
+  onPasteImageEvent,
   onAddStorePriceSet,
   onRemoveStorePriceSet,
   onUpdateStorePriceSet,
@@ -104,6 +110,19 @@ export default function AdminProductFormModal({
     }
   }, [visible]);
 
+  React.useEffect(() => {
+    if (!visible || Platform.OS !== "web") return undefined;
+    const win = (globalThis as { window?: Window }).window;
+    if (!win) return undefined;
+    const handlePaste = (event: ClipboardEvent) => {
+      onPasteImageEvent(event);
+    };
+    win.addEventListener("paste", handlePaste);
+    return () => {
+      win.removeEventListener("paste", handlePaste);
+    };
+  }, [onPasteImageEvent, visible]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={st.modalBackdrop}>
@@ -127,7 +146,7 @@ export default function AdminProductFormModal({
               <View style={st.productImageTopCopy}>
                 <Text style={st.fieldLabel}>Product Image</Text>
                 <Text style={st.dataMuted}>
-                  Recommended: square JPG/PNG/WebP, 800 x 800 px or larger.
+                  Upload a file, paste an image URL, or copy an image and press Cmd/Ctrl+V while this modal is open.
                 </Text>
               </View>
               <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]} disabled={imageUploading || submitting}>
@@ -143,6 +162,23 @@ export default function AdminProductFormModal({
                   <Text style={st.imageUploadOverlayText}>{imageUploading ? "Uploading..." : productThumb ? "Replace image" : "Upload image"}</Text>
                 </View>
               </Pressable>
+              <View style={st.productImageActionRow}>
+                <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
+                  <Text style={st.btnGhostText}>Upload image</Text>
+                </Pressable>
+                <Pressable accessibilityRole="button" onPress={onPasteImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
+                  <Text style={st.btnGhostText}>Paste image</Text>
+                </Pressable>
+              </View>
+              <TextInput
+                value={productThumb}
+                onChangeText={onThumbChange}
+                placeholder="Paste image URL"
+                placeholderTextColor={C.textMuted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[st.input, st.productImageUrlInput]}
+              />
             </View>
 
             <View style={st.modalTopGrid}>

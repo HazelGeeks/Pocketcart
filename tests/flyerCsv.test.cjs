@@ -11,6 +11,11 @@ test("flyerRowsToProductCsv exports current product import columns", () => {
     {
       id: "row-1",
       selected: true,
+      imageSelected: true,
+      imageStatus: "saved",
+      imagePreviewUrl: "data:image/webp;base64,preview",
+      thumbnailUrl: "https://example.com/product-images/snack-mix.webp",
+      cropCandidate: null,
       martName: "Safeway",
       regionBranch: "Robson",
       saleStartDate: "2026-06-28",
@@ -33,7 +38,7 @@ test("flyerRowsToProductCsv exports current product import columns", () => {
   );
   assert.equal(
     row,
-    "Safeway,Robson,2026-06-28,2026-07-04,스낵믹스,Snack Mix,Snacks,,No Name,7.98,BOX,member price",
+    "Safeway,Robson,2026-06-28,2026-07-04,스낵믹스,Snack Mix,Snacks,https://example.com/product-images/snack-mix.webp,No Name,7.98,BOX,member price",
   );
 });
 

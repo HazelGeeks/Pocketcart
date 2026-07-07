@@ -1,6 +1,19 @@
 import type { FlyerRow } from "../state/adminStore";
 
-const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Omit<FlyerRow, "id" | "selected"> }> = [
+const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Pick<
+  FlyerRow,
+  | "martName"
+  | "regionBranch"
+  | "saleStartDate"
+  | "saleEndDate"
+  | "name"
+  | "englishName"
+  | "mainCategory"
+  | "brand"
+  | "price"
+  | "unit"
+  | "memo"
+> }> = [
   { label: "store_brand", key: "martName" },
   { label: "store_name", key: "regionBranch" },
   { label: "sale_start_date", key: "saleStartDate" },
@@ -54,7 +67,7 @@ export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
       row.name,
       row.englishName ?? "",
       row.mainCategory || row.subCategory || "Uncategorized",
-      "",
+      row.thumbnailUrl ?? "",
       row.brand,
       row.price,
       row.unit,

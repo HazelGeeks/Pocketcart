@@ -60,10 +60,7 @@ export default function AdminProductList({
           stats && stats.minPrice !== null && stats.maxPrice !== null
             ? `$${stats.minPrice.toFixed(2)} - $${stats.maxPrice.toFixed(2)}`
             : "N/A";
-        const latestObservedAt =
-          stats && stats.latestObservedAtMs >= 0
-            ? toDateOnlyLabel(new Date(stats.latestObservedAtMs).toISOString())
-            : toDateOnlyLabel(item.created_at);
+        const dateLabel = `Created: ${toDateOnlyLabel(item.created_at)}`;
         const salePeriodLabel = stats?.latestValidFrom
           ? `${dateInputValue(stats.latestValidFrom)} - ${stats.latestValidTo ? dateInputValue(stats.latestValidTo) : "No end date"}`
           : null;
@@ -110,7 +107,7 @@ export default function AdminProductList({
               {item.thumbnail_url ? (
                 <Image source={{ uri: item.thumbnail_url }} style={st.listThumb} resizeMode="cover" />
               ) : null}
-              <Text style={st.listDate}>{latestObservedAt}</Text>
+              <Text style={st.listDate}>{dateLabel}</Text>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => onEditProduct(item)}

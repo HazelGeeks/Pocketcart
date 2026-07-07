@@ -39,6 +39,14 @@ type AdminDashboardDataParams = {
 
 const PRODUCT_STORE_UNASSIGNED_FILTER = "__unassigned";
 
+function splitSaleDateFilter(value: string): { startDate: string; endDate: string } {
+  const [startDate = "", endDate = ""] = value.split("|");
+  return {
+    startDate: startDate.trim(),
+    endDate: endDate.trim(),
+  };
+}
+
 export default function useAdminDashboardData({
   products,
   stores,
@@ -311,8 +319,9 @@ export default function useAdminDashboardData({
   );
 
   const productSaleDateRangeMs = React.useMemo(() => {
-    const startIso = dateOnlyToIso(productSaleDateFilter, false);
-    const endIso = dateOnlyToIso(productSaleDateFilter, true);
+    const { startDate, endDate } = splitSaleDateFilter(productSaleDateFilter);
+    const startIso = dateOnlyToIso(startDate, false);
+    const endIso = dateOnlyToIso(endDate || startDate, true);
     if (!startIso || !endIso) return null;
     const start = new Date(startIso).getTime();
     const end = new Date(endIso).getTime();

@@ -4,9 +4,26 @@ export type AdminMenuKey = "overview" | "products" | "stores" | "flyer";
 
 export type ProductSortKey = "latest" | "oldest" | "name" | "priceLow" | "priceHigh";
 
+export type FlyerImageStatus = "none" | "candidate" | "ready" | "saving" | "saved" | "error";
+
+export type FlyerCropCandidate = {
+  pageIndex: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number | null;
+  sourceLabel: string;
+};
+
 export type FlyerRow = {
   id: string;
   selected: boolean;
+  imageSelected: boolean;
+  imageStatus: FlyerImageStatus;
+  imagePreviewUrl: string;
+  thumbnailUrl: string;
+  cropCandidate: FlyerCropCandidate | null;
   martName: string;
   regionBranch: string;
   saleStartDate: string;
@@ -27,6 +44,11 @@ export function createFlyerRow(seed?: Partial<FlyerRow>): FlyerRow {
   return {
     id: seed?.id ?? `flyer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     selected: seed?.selected ?? true,
+    imageSelected: seed?.imageSelected ?? false,
+    imageStatus: seed?.imageStatus ?? "none",
+    imagePreviewUrl: seed?.imagePreviewUrl ?? "",
+    thumbnailUrl: seed?.thumbnailUrl ?? "",
+    cropCandidate: seed?.cropCandidate ?? null,
     martName: seed?.martName ?? "",
     regionBranch: seed?.regionBranch ?? "",
     saleStartDate: seed?.saleStartDate ?? "",

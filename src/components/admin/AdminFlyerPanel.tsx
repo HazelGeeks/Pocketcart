@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { FlyerEditableField, FlyerRow } from "../../state/adminStore";
 import { WEB_FLYER_ACTION_BAR_STYLE } from "../../utils/adminScreenHelpers";
@@ -15,8 +15,18 @@ type AdminFlyerPanelProps = {
   onRemoveSelected: () => void;
   onExportCsv: () => void;
   onExportProductCsv: () => void;
+  onSaveSelectedImages: () => void;
   onClear: () => void;
   onUpdateRow: (id: string, field: FlyerEditableField, value: string | boolean) => void;
+};
+
+const IMAGE_STATUS_LABELS: Record<FlyerRow["imageStatus"], string> = {
+  none: "No image",
+  candidate: "Candidate",
+  ready: "Ready",
+  saving: "Saving",
+  saved: "Saved",
+  error: "Error",
 };
 
 export default function AdminFlyerPanel({
@@ -30,9 +40,12 @@ export default function AdminFlyerPanel({
   onRemoveSelected,
   onExportCsv,
   onExportProductCsv,
+  onSaveSelectedImages,
   onClear,
   onUpdateRow,
 }: AdminFlyerPanelProps) {
+  const unsavedImageCount = rows.filter((row) => row.imageSelected && row.imagePreviewUrl && !row.thumbnailUrl).length;
+
   return (
     <View style={st.flyerPanel}>
       <div style={WEB_FLYER_ACTION_BAR_STYLE}>
@@ -80,6 +93,14 @@ export default function AdminFlyerPanel({
         </Pressable>
         <Pressable
           accessibilityRole="button"
+          onPress={onSaveSelectedImages}
+          style={[st.btn, st.flyerToolbarBtn, unsavedImageCount === 0 && st.btnDisabled]}
+          disabled={unsavedImageCount === 0 || processing}
+        >
+          <Text style={st.flyerToolbarBtnText}>Save Selected Images</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
           onPress={onClear}
           style={[st.btn, st.flyerToolbarBtn]}
           disabled={processing}
@@ -92,6 +113,7 @@ export default function AdminFlyerPanel({
         <View style={st.flyerTable}>
           <View style={[st.flyerTableRow, st.flyerTableHeader]}>
             <Text style={[st.flyerHeaderCell, st.flyerCellSelect]}>Use</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellImage]}>Image</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Store Brand</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Branch / Store Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale Start</Text>
@@ -122,6 +144,38 @@ export default function AdminFlyerPanel({
                     {row.selected ? "Yes" : "No"}
                   </Text>
                 </Pressable>
+                <View style={[st.flyerImageCell, row.selected && st.flyerInputCellSelected]}>
+                  {row.imagePreviewUrl || row.thumbnailUrl ? (
+                    <Image
+                      source={{ uri: row.imagePreviewUrl || row.thumbnailUrl }}
+                      style={st.flyerPreviewImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={st.flyerPreviewEmpty}>
+                      <Text style={st.flyerImageStatusText}>No crop</Text>
+                    </View>
+                  )}
+                  <View style={st.flyerImageMeta}>
+                    <Text style={st.flyerImageStatusText} numberOfLines={1}>
+                      {IMAGE_STATUS_LABELS[row.imageStatus] ?? "No image"}
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => onUpdateRow(row.id, "imageSelected", !row.imageSelected)}
+                      style={[
+                        st.flyerImageToggle,
+                        row.imageSelected && st.flyerImageToggleActive,
+                        !row.imagePreviewUrl && !row.thumbnailUrl && st.btnDisabled,
+                      ]}
+                      disabled={!row.imagePreviewUrl && !row.thumbnailUrl}
+                    >
+                      <Text style={[st.flyerImageToggleText, row.imageSelected && st.flyerImageToggleTextActive]}>
+                        {row.imageSelected ? "Use image" : "Skip"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
                 <TextInput
                   value={row.martName}
                   onChangeText={(value) => onUpdateRow(row.id, "martName", value)}

@@ -61,6 +61,14 @@ export default function AdminProductFilters({
   onSortChange,
   onReset,
 }: AdminProductFiltersProps) {
+  const [saleStartDate = "", saleEndDate = ""] = saleDateFilter.split("|");
+  const updateSaleDateRange = React.useCallback(
+    (nextStart: string, nextEnd: string) => {
+      onSaleDateChange(nextStart || nextEnd ? `${nextStart}|${nextEnd}` : "");
+    },
+    [onSaleDateChange],
+  );
+
   return (
     <View style={st.productFilterCard}>
       <ScrollView
@@ -105,13 +113,27 @@ export default function AdminProductFilters({
               ))}
             </select>
 
-            <input
-              aria-label="Sale date filter"
-              type="date"
-              value={saleDateFilter}
-              onChange={(event) => onSaleDateChange((event.target as HTMLInputElement).value)}
-              style={WEB_FILTER_SELECT_STYLE}
-            />
+            <label style={{ ...WEB_FILTER_SELECT_STYLE, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ whiteSpace: "nowrap" }}>Sale from</span>
+              <input
+                aria-label="Sale start date filter"
+                type="date"
+                value={saleStartDate}
+                onChange={(event) => updateSaleDateRange((event.target as HTMLInputElement).value, saleEndDate)}
+                style={{ border: 0, outline: 0, background: "transparent", color: "inherit", font: "inherit", minWidth: 118 }}
+              />
+            </label>
+
+            <label style={{ ...WEB_FILTER_SELECT_STYLE, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ whiteSpace: "nowrap" }}>Sale to</span>
+              <input
+                aria-label="Sale end date filter"
+                type="date"
+                value={saleEndDate}
+                onChange={(event) => updateSaleDateRange(saleStartDate, (event.target as HTMLInputElement).value)}
+                style={{ border: 0, outline: 0, background: "transparent", color: "inherit", font: "inherit", minWidth: 118 }}
+              />
+            </label>
 
             <select
               value={storeFilter}

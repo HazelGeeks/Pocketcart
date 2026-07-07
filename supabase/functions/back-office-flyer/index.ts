@@ -1,4 +1,13 @@
 type FlyerRow = {
+  pageIndex?: number;
+  imageBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    confidence?: number;
+  } | null;
+  sourceLabel?: string;
   martName: string;
   regionBranch: string;
   saleStartDate: string;
@@ -83,6 +92,30 @@ const schema = {
           price: { type: "string" },
           unit: { type: "string" },
           memo: { type: "string" },
+          pageIndex: { type: "number" },
+          sourceLabel: { type: "string" },
+          imageBox: {
+            anyOf: [
+              {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  x: { type: "number" },
+                  y: { type: "number" },
+                  width: { type: "number" },
+                  height: { type: "number" },
+                  confidence: {
+                    anyOf: [
+                      { type: "number" },
+                      { type: "null" },
+                    ],
+                  },
+                },
+                required: ["x", "y", "width", "height", "confidence"],
+              },
+              { type: "null" },
+            ],
+          },
         },
         required: [
           "martName",
@@ -97,6 +130,9 @@ const schema = {
           "price",
           "unit",
           "memo",
+          "pageIndex",
+          "sourceLabel",
+          "imageBox",
         ],
       },
     },
@@ -170,7 +206,26 @@ function normalizeRows(value: unknown): FlyerRow[] {
       const item = row && typeof row === "object" ? row as Record<string, unknown> : {};
       const text = (key: keyof FlyerRow) =>
         typeof item[key] === "string" ? (item[key] as string).trim() : "";
+      const number = (key: string) => {
+        const value = item[key];
+        return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+      };
+      const boxValue = item.imageBox;
+      const imageBox = boxValue && typeof boxValue === "object"
+        ? boxValue as Record<string, unknown>
+        : null;
       return {
+        pageIndex: number("pageIndex") ?? 0,
+        sourceLabel: text("sourceLabel"),
+        imageBox: imageBox
+          ? {
+              x: typeof imageBox.x === "number" ? imageBox.x : 0,
+              y: typeof imageBox.y === "number" ? imageBox.y : 0,
+              width: typeof imageBox.width === "number" ? imageBox.width : 0,
+              height: typeof imageBox.height === "number" ? imageBox.height : 0,
+              confidence: typeof imageBox.confidence === "number" ? imageBox.confidence : undefined,
+            }
+          : null,
         martName: text("martName"),
         regionBranch: text("regionBranch"),
         saleStartDate: text("saleStartDate"),
@@ -449,6 +504,10 @@ Deno.serve(async (request: Request) => {
     "10. 가격 -> price",
     "11. 단위 -> unit",
     "12. 메모 -> memo",
+    "Also return pageIndex, sourceLabel, and imageBox for each row.",
+    "For imageBox, identify the visible flyer crop containing that product's actual product photo or product block. Use normalized coordinates from 0 to 1 relative to the rendered page/image: x, y, width, height. If no reliable product/image block is visible, return imageBox as null.",
+    "If imageBox is not null, include confidence from 0 to 1 for how well the crop matches the row. Use null only when unknown.",
+    "pageIndex is zero-based. sourceLabel should be a short label such as Page 1.",
     "Return JSON that matches the schema only. Use the camelCase field names, not the Korean labels.",
     "Store brand means the grocery chain such as H Mart, Safeway, T&T, No Frills. Branch/store name means a specific location such as Robson, Davie Street, Downtown. Do not put product brand in martName or regionBranch.",
     "Store brand, branch/store name, sale start date, and sale end date are optional. Fill them only when they are clearly visible in the flyer. Otherwise return an empty string.",

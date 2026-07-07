@@ -362,28 +362,31 @@ export default function useAdminStoreActions({
             isActive: storeIsActive,
           });
 
-      if (savedStore) {
-        await writeAuditLog({
-          action: editingStoreId ? "update" : "create",
-          entityType: "store",
-          entityId: savedStore.id,
-          summary: `${editingStoreId ? "Updated" : "Created"} store ${savedStore.name}`,
-          metadata: {
-            name,
-            brand,
-            area: areaFallback,
-            latitude,
-            longitude,
-            address,
-            placeId,
-            phone,
-            website,
-            hours,
-            storeType,
-            isActive: storeIsActive,
-          },
-        });
+      if (!savedStore) {
+        setNotice(editingStoreId ? "Store update returned no saved row." : "Store create returned no saved row.");
+        return;
       }
+
+      await writeAuditLog({
+        action: editingStoreId ? "update" : "create",
+        entityType: "store",
+        entityId: savedStore.id,
+        summary: `${editingStoreId ? "Updated" : "Created"} store ${savedStore.name}`,
+        metadata: {
+          name,
+          brand,
+          area: areaFallback,
+          latitude,
+          longitude,
+          address,
+          placeId,
+          phone,
+          website,
+          hours,
+          storeType,
+          isActive: storeIsActive,
+        },
+      });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Store was not saved.");
       return;

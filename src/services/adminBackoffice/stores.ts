@@ -103,6 +103,7 @@ export async function createAdminStore(params: StorePayloadParams): Promise<Serv
   }
 
   if (error) return { data: null, error: error.message };
+  if (!data) return { data: null, error: "Store insert returned no data." };
   return {
     data: normalizeStoreRow(data as StoreRow, { latitude: payload.latitude, longitude: payload.longitude }),
     error: null,
@@ -139,6 +140,7 @@ export async function updateAdminStore(params: StorePayloadParams & { id: string
   }
 
   if (error) return { data: null, error: error.message };
+  if (!data) return { data: null, error: "Store update returned no data." };
   return {
     data: normalizeStoreRow(data as StoreRow, { latitude: payload.latitude, longitude: payload.longitude }),
     error: null,

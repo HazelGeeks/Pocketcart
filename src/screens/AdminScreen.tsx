@@ -264,6 +264,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     handleImportProductsCsv,
     handleOpenAddProduct,
     handleOpenEditProduct,
+    handlePasteProductImage,
+    handleProductImagePasteEvent,
     handleResetProductFilters,
     handleUploadProductImage,
     removeStorePriceSet,
@@ -368,6 +370,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     handleExportFlyerProductCsv,
     handlePickFlyerFile,
     handleRemoveSelectedFlyerRows,
+    handleSaveSelectedFlyerImages,
   } = useAdminFlyerImport({
     flyerRows,
     setFlyerRows,
@@ -377,6 +380,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     removeSelectedFlyerRows,
     clearFlyerImport,
     setNotice,
+    uploadProductImageMutation,
   });
 
   const handleOpenMapUrl = React.useCallback((url: string) => {
@@ -650,6 +654,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onRemoveSelected={handleRemoveSelectedFlyerRows}
                     onExportCsv={handleExportFlyerCsv}
                     onExportProductCsv={handleExportFlyerProductCsv}
+                    onSaveSelectedImages={handleSaveSelectedFlyerImages}
                     onClear={handleClearFlyerImport}
                     onUpdateRow={updateFlyerRow}
                   />
@@ -744,9 +749,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         onUnitChange={setProductUnit}
         onCategoryChange={setProductCategory}
         onCategoryCustomChange={setProductCategoryCustom}
+        onThumbChange={setProductThumb}
         onUploadImage={() => {
           void handleUploadProductImage();
         }}
+        onPasteImage={() => {
+          void handlePasteProductImage();
+        }}
+        onPasteImageEvent={handleProductImagePasteEvent}
         onAddStorePriceSet={addStorePriceSet}
         onRemoveStorePriceSet={removeStorePriceSet}
         onUpdateStorePriceSet={updateStorePriceSet}

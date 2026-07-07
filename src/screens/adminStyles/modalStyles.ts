@@ -255,6 +255,21 @@ export const adminModalStyles = {
     overflow: "hidden",
     position: "relative",
   },
+  productImageActionRow: {
+    width: 180,
+    flexDirection: "row",
+    gap: 6,
+  },
+  productImageActionBtn: {
+    flex: 1,
+    minHeight: 32,
+    paddingHorizontal: 8,
+  },
+  productImageUrlInput: {
+    width: 180,
+    minHeight: 36,
+    fontSize: 11,
+  },
   imageUploadOverlay: {
     position: "absolute",
     left: 0,

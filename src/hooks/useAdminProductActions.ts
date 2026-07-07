@@ -5,7 +5,7 @@ import { createStorePriceSet, dateInputValue } from "../utils/adminScreenHelpers
 import { findMatchingProduct } from "../utils/productIdentity";
 import { prepareProductPriceSets } from "../utils/productStorePriceSets";
 import useAdminProductCsvActions from "./useAdminProductCsvActions";
-import useAdminProductImageUpload from "./useAdminProductImageUpload";
+import useAdminProductImageUpload, { extensionFromType } from "./useAdminProductImageUpload";
 
 type Mutation<TParams, TResult> = {
   mutateAsync: (params: TParams) => Promise<TResult>;
@@ -25,6 +25,25 @@ function findExistingPriceForPeriod(params: {
       return dateInputValue(price.valid_from || price.observed_at) === targetDate;
     }) ?? null
   );
+}
+
+function isLikelySupabaseStorageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.pathname.includes("/storage/v1/object/public/") && url.pathname.includes("/product-images/");
+  } catch (_error) {
+    return false;
+  }
+}
+
+function safeProductImageName(params: { name: string; contentType: string }): string {
+  const base = params.name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return `${base || "product-image"}-${Date.now()}.${extensionFromType(params.contentType)}`;
 }
 
 type UseAdminProductActionsParams = {
@@ -250,6 +269,40 @@ export default function useAdminProductActions({
     let reusedExistingProduct = false;
     try {
       setSubmitting(true);
+      let thumbnailUrl = productThumb.trim();
+      if (thumbnailUrl && !isLikelySupabaseStorageUrl(thumbnailUrl)) {
+        try {
+          setProductImageUploading(true);
+          setNotice("Saving product image to Supabase Storage...");
+          const response = await fetch(thumbnailUrl);
+          if (!response.ok) {
+            throw new Error(`Image URL returned ${response.status}.`);
+          }
+          const blob = await response.blob();
+          if (!blob.type.startsWith("image/")) {
+            throw new Error("The pasted URL did not return an image file.");
+          }
+          const uploaded = await uploadProductImageMutation.mutateAsync({
+            file: blob,
+            fileName: safeProductImageName({ name, contentType: blob.type }),
+            contentType: blob.type,
+          });
+          if (!uploaded?.publicUrl) {
+            throw new Error("Image upload returned no public URL.");
+          }
+          thumbnailUrl = uploaded.publicUrl;
+          setProductThumb(thumbnailUrl);
+        } catch (error) {
+          setNotice(
+            error instanceof Error
+              ? `Could not save image URL to Supabase Storage. Use Upload image or copy the image itself, then try again. ${error.message}`
+              : "Could not save image URL to Supabase Storage. Use Upload image or copy the image itself, then try again.",
+          );
+          return;
+        } finally {
+          setProductImageUploading(false);
+        }
+      }
       const matchingProduct = editingProductId
         ? null
         : findMatchingProduct(products, { name, unit, category });
@@ -262,9 +315,9 @@ export default function useAdminProductActions({
               englishName,
               unit,
               category,
-              thumbnailUrl: productThumb,
+              thumbnailUrl,
             })
-          : await createProductMutation.mutateAsync({ name, englishName, unit, category, thumbnailUrl: productThumb }));
+          : await createProductMutation.mutateAsync({ name, englishName, unit, category, thumbnailUrl }));
 
       if (!savedProduct) {
         setNotice(editingProductId ? "Product was not updated." : "Product was not created.");
@@ -346,14 +399,17 @@ export default function useAdminProductActions({
     productThumb,
     resetProductForm,
     setNotice,
+    setProductImageUploading,
     setProductModalOpen,
+    setProductThumb,
     setSubmitting,
     stores,
+    uploadProductImageMutation,
     updatePriceEntryMutation,
     updateProductMutation,
   ]);
 
-  const handleUploadProductImage = useAdminProductImageUpload({
+  const { handlePasteProductImage, handleProductImagePasteEvent, handleUploadProductImage } = useAdminProductImageUpload({
     setProductThumb,
     setProductImageUploading,
     setNotice,
@@ -431,6 +487,8 @@ export default function useAdminProductActions({
     handleImportProductsCsv,
     handleOpenAddProduct,
     handleOpenEditProduct,
+    handlePasteProductImage,
+    handleProductImagePasteEvent,
     handleResetProductFilters,
     handleUploadProductImage,
     removeStorePriceSet,

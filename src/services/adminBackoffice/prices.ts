@@ -60,6 +60,11 @@ function buildPricePayload(params: PricePayloadParams) {
   };
 }
 
+function isDuplicatePricePeriodError(error: { code?: string; message?: string } | null | undefined): boolean {
+  const text = error?.message?.toLowerCase() ?? "";
+  return error?.code === "23505" || text.includes("product_prices_product_store_valid_from_key");
+}
+
 export async function listAdminPriceEntries(limit = 5000): Promise<ServiceResult<AdminPriceEntry[]>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult([]);
   const client = supabase;
@@ -132,8 +137,27 @@ export async function createAdminPriceEntry(params: PricePayloadParams): Promise
 
   let row: PriceRow | null = null;
   if (withPeriod.error) {
-    if (!isMissingColumnError(withPeriod.error)) return { data: null, error: withPeriod.error.message };
-    return { data: null, error: PRICE_PERIOD_MIGRATION_ERROR };
+    if (isMissingColumnError(withPeriod.error)) {
+      return { data: null, error: PRICE_PERIOD_MIGRATION_ERROR };
+    }
+    if (!isDuplicatePricePeriodError(withPeriod.error)) {
+      return { data: null, error: withPeriod.error.message };
+    }
+
+    const updatedExisting = await supabase
+      .from("product_prices")
+      .update(payload.payload)
+      .eq("product_id", payload.payload.product_id)
+      .eq("store_id", payload.payload.store_id)
+      .eq("valid_from", payload.observedAt)
+      .select(PRICE_WITH_PERIOD_SELECT)
+      .single();
+
+    if (updatedExisting.error) {
+      if (isMissingColumnError(updatedExisting.error)) return { data: null, error: PRICE_PERIOD_MIGRATION_ERROR };
+      return { data: null, error: updatedExisting.error.message };
+    }
+    row = (updatedExisting.data as PriceRow) ?? null;
   } else {
     row = (withPeriod.data as PriceRow) ?? null;
   }

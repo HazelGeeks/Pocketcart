@@ -1,4 +1,5 @@
-import { createFlyerRow, type FlyerRow } from "../state/adminStore";
+import type { FlyerRow } from "../state/adminStore";
+import { normalizeFlyerAiRows } from "../utils/flyerAiRows";
 import { supabase, supabaseAnonKey } from "./supabaseClient";
 
 type FlyerAiResponse = {
@@ -28,38 +29,6 @@ function endpointLabel(): string {
   } catch (_error) {
     return FLYER_AI_ENDPOINT || "empty endpoint";
   }
-}
-
-function textValue(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number") return String(value);
-  return "";
-}
-
-function rowValue(row: Record<string, unknown>, ...keys: string[]): string {
-  for (const key of keys) {
-    const value = textValue(row[key]);
-    if (value) return value;
-  }
-  return "";
-}
-
-function normalizeAiRow(row: Partial<FlyerRow> & Record<string, unknown>): FlyerRow {
-  return createFlyerRow({
-    selected: typeof row.selected === "boolean" ? row.selected : true,
-    martName: rowValue(row, "martName", "mart_name", "storeBrand", "store_brand", "마트명", "마트브랜드", "marketName"),
-    regionBranch: rowValue(row, "regionBranch", "region_branch", "storeName", "store_name", "branchName", "branch_name", "지역/지점", "branch", "location"),
-    saleStartDate: rowValue(row, "saleStartDate", "sale_start_date", "세일 시작일", "startDate"),
-    saleEndDate: rowValue(row, "saleEndDate", "sale_end_date", "세일 종료일", "endDate"),
-    name: rowValue(row, "name", "koreanName", "korean_name", "한글명", "한국어명", "이름", "productName", "product_name"),
-    englishName: rowValue(row, "englishName", "english_name", "영문명", "영어명", "englishProductName", "english_product_name"),
-    mainCategory: rowValue(row, "mainCategory", "main_category", "category", "카테고리", "대분류"),
-    subCategory: rowValue(row, "subCategory", "sub_category", "중분류"),
-    brand: rowValue(row, "brand", "productBrand", "product_brand", "상품브랜드", "상품 브랜드", "브랜드"),
-    price: rowValue(row, "price", "가격"),
-    unit: rowValue(row, "unit", "단위"),
-    memo: rowValue(row, "memo", "메모", "note", "ocrNote"),
-  });
 }
 
 export async function extractFlyerRowsWithAi(file: File): Promise<FlyerAiResult> {
@@ -113,7 +82,7 @@ export async function extractFlyerRowsWithAi(file: File): Promise<FlyerAiResult>
 
   const rows = payload.rows ?? payload.data?.rows ?? [];
   return {
-    rows: rows.map((row) => normalizeAiRow(row)).filter((row) => row.name || row.price),
+    rows: normalizeFlyerAiRows(rows),
     warning: payload.warning,
   };
 }
