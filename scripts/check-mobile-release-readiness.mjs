@@ -293,6 +293,16 @@ if (eas.build?.production?.environment === "production") {
   fail("Production EAS builds must use the production environment");
 }
 
+if (
+  eas.build?.["preview-simulator"]?.environment === "production" &&
+  eas.build?.["preview-simulator"]?.distribution === "internal" &&
+  eas.build?.["preview-simulator"]?.ios?.simulator === true
+) {
+  pass("iOS simulator preview creates an internally distributed standalone artifact");
+} else {
+  fail("iOS simulator preview profile is not configured for internal testing");
+}
+
 if (eas.submit?.production) {
   pass("Production EAS submit profile is configured");
 } else {

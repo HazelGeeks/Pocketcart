@@ -21,6 +21,7 @@
     "build:ios:dev": "npx eas-cli build --platform ios --profile development-device",
     "build:android:dev": "npx eas-cli build --platform android --profile development-device",
     "build:ios:internal": "npx eas-cli build --platform ios --profile preview",
+    "build:ios:simulator": "npx eas-cli build --platform ios --profile preview-simulator",
     "build:android:internal": "npx eas-cli build --platform android --profile preview",
     "build:ios": "npx eas-cli build --platform ios --profile production",
     "build:android": "npx eas-cli build --platform android --profile production",

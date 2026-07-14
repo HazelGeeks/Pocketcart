@@ -139,6 +139,15 @@ npm run build:ios:internal
 npm run build:android:internal
 ```
 
+The iOS `preview` profile installs on registered physical devices and therefore
+requires Apple Developer login plus an Ad Hoc provisioning profile. For the
+currently booted iOS simulator, create a standalone internal test artifact
+without Apple signing:
+
+```bash
+npm run build:ios:simulator
+```
+
 ## EAS Build
 
 Initialize EAS once per Expo account/project if it has not been initialized:

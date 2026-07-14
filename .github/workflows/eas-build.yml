@@ -20,6 +20,7 @@ on:
         options:
           - production
           - preview
+          - preview-simulator
           - development
 
 permissions:
@@ -60,7 +61,7 @@ jobs:
         run: npm run release:native:check
 
       - name: Validate EAS production environment
-        if: ${{ inputs.profile == 'production' || inputs.profile == 'preview' }}
+        if: ${{ inputs.profile == 'production' || inputs.profile == 'preview' || inputs.profile == 'preview-simulator' }}
         run: |
           npx eas-cli env:list production --format long > /tmp/pocketcart-eas-env.txt
           grep -q "EXPO_PUBLIC_SUPABASE_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
