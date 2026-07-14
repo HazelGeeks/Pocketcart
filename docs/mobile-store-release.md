@@ -94,8 +94,8 @@ The repository includes seven release and verification workflows:
   login, profile, live data, watchlist, alert generation, public deletion
   request, authenticated deletion, cascade cleanup, and rejected re-login.
 - `Supabase Schema Deploy`: manually applies the account-deletion request table,
-  indexes, RLS policies, and PostgREST schema refresh through the authenticated
-  Supabase Management API.
+  its admin-policy dependencies, indexes, RLS policies, and PostgREST schema
+  refresh through the authenticated Supabase Management API.
 
 Required GitHub repository secrets:
 
