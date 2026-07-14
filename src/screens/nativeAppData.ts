@@ -4,13 +4,6 @@ import type { MarketPricePoint } from "../services/marketData";
 export type NativeTabId = "home" | "watchlist" | "map" | "alerts" | "more";
 export type HomeRoute = "catalog" | "detail";
 
-export type AlertRow = {
-  id: string;
-  title: string;
-  body: string;
-  when: string;
-};
-
 export type PriceChartPoint = {
   x: number;
   y: number;

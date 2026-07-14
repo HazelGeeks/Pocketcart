@@ -1,7 +1,7 @@
 import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { FALLBACK_PRODUCTS } from "./fallbacks";
 import { listProductPriceSummaries } from "./prices";
-import { matchesProductFilter, missingEnvResult } from "./shared";
+import { matchesProductFilter } from "./shared";
 import type { MarketProduct, ProductRow, ServiceResult } from "./types";
 
 const PRODUCT_SELECT_WITH_ENGLISH = "id, name, english_name, category, unit, thumbnail_url";
@@ -141,74 +141,5 @@ export async function listProductCategories(): Promise<ServiceResult<string[]>> 
   return {
     data: categories,
     error,
-  };
-}
-
-export async function createProduct(params: {
-  name: string;
-  englishName?: string;
-  category: string;
-  thumbnailUrl?: string;
-}): Promise<ServiceResult<MarketProduct | null>> {
-  if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
-
-  const withEnglishPayload = {
-    name: params.name.trim(),
-    english_name: params.englishName?.trim() ? params.englishName.trim() : null,
-    category: params.category.trim(),
-    thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
-  };
-  const withoutEnglishPayload = {
-    name: withEnglishPayload.name,
-    category: withEnglishPayload.category,
-    thumbnail_url: withEnglishPayload.thumbnail_url,
-  };
-
-  const insertedWithEnglish = await supabase
-    .from("products")
-    .insert(withEnglishPayload)
-    .select(PRODUCT_SELECT_WITH_ENGLISH)
-    .single();
-
-  let row: ProductRowWithOptionalEnglish | null = null;
-  if (insertedWithEnglish.error) {
-    if (hasEnglishNameColumnError(insertedWithEnglish.error.message)) {
-      const fallbackInsert = await supabase
-        .from("products")
-        .insert(withoutEnglishPayload)
-        .select(PRODUCT_SELECT_WITHOUT_ENGLISH)
-        .single();
-      if (fallbackInsert.error) {
-        return { data: null, error: fallbackInsert.error.message };
-      }
-      row = fallbackInsert.data as ProductRowWithOptionalEnglish | null;
-    } else {
-      return { data: null, error: insertedWithEnglish.error.message };
-    }
-  } else {
-    row = insertedWithEnglish.data as ProductRowWithOptionalEnglish | null;
-  }
-
-  if (!row) {
-    return { data: null, error: "Product insert returned no data." };
-  }
-
-  const base = normalizeProductRow(row);
-  return {
-    data: {
-      ...base,
-      current_price: null,
-      previous_price: null,
-      price_delta: null,
-      price_delta_percent: null,
-      price_compare_label: "First tracked sale price",
-      price_compare_current_batch: null,
-      price_compare_previous_batch: null,
-      best_store_id: null,
-      best_store_name: null,
-      best_store_area: null,
-      best_store_price: null,
-    },
-    error: null,
   };
 }

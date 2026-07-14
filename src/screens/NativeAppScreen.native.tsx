@@ -1,11 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import {
   BackHandler,
   Linking,
   PanResponder,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -16,9 +14,13 @@ import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeBottomTabs, NativeTopBar } from "../components/nativeApp/NativeShell";
 import { ProductDetailPanel } from "../components/nativeApp/ProductDetailPanel";
+import { SaleAlertsPanel } from "../components/nativeApp/SaleAlertsPanel";
 import { StoreMapPanel } from "../components/nativeApp/StoreMapPanel";
 import { WatchlistPanel } from "../components/nativeApp/WatchlistPanel";
 import useLayout from "../hooks/useLayout";
+import useNativeOnboarding, {
+  type NativeOnboardingState,
+} from "../hooks/useNativeOnboarding";
 import { hasSupabaseEnv } from "../services/supabaseClient";
 import { MorePanel } from "../components/nativeApp/MorePanel";
 import {
@@ -56,45 +58,16 @@ import {
   buildPreviousPriceRows,
   buildPriceChart,
   DEFAULT_REGION,
-  money,
   type HomeRoute,
   type NativeTabId,
 } from "./nativeAppData";
-import {
-  formatSignedPercent,
-} from "../components/nativeApp/priceDisplay";
-import {
-  requestLocationPermissionAndPosition,
-  type OnboardingLocationMode,
-} from "../services/nativePermissions";
+import { requestLocationPermissionAndPosition } from "../services/nativePermissions";
 import {
   configurePushNotificationHandler,
   registerPushTokenForCurrentUser,
   sendSaleAlertPushNotifications,
 } from "../services/pushNotifications";
 import { st } from "./nativeAppStyles";
-
-type OnboardingState = {
-  locationCompleted: boolean;
-  locationMode: OnboardingLocationMode;
-  postalCode: string | null;
-  locationLatitude: number | null;
-  locationLongitude: number | null;
-  alertsCompleted: boolean;
-  alertsEnabled: boolean;
-};
-
-const ONBOARDING_STORAGE_KEY = "pc-native-onboarding-v1";
-
-const INITIAL_ONBOARDING_STATE: OnboardingState = {
-  locationCompleted: false,
-  locationMode: "skip",
-  postalCode: null,
-  locationLatitude: null,
-  locationLongitude: null,
-  alertsCompleted: false,
-  alertsEnabled: false,
-};
 
 function isSignInRequiredMessage(message: string | null | undefined): boolean {
   return message?.trim().toLowerCase() === "please sign in first.";
@@ -166,14 +139,20 @@ export default function NativeAppScreen() {
 
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
-  const [onboardingState, setOnboardingState] = React.useState(INITIAL_ONBOARDING_STATE);
-  const [onboardingVisible, setOnboardingVisible] = React.useState(false);
-  const [onboardingStep, setOnboardingStep] = React.useState<"location" | "alerts">(
-    "location",
-  );
-  const [onboardingPostalCode, setOnboardingPostalCode] = React.useState("");
-  const [onboardingAlertsEnabled, setOnboardingAlertsEnabled] = React.useState(false);
-  const [onboardingMessage, setOnboardingMessage] = React.useState<string | null>(null);
+  const {
+    alertsEnabled: onboardingAlertsEnabled,
+    message: onboardingMessage,
+    persist: persistOnboardingState,
+    postalCode: onboardingPostalCode,
+    setAlertsEnabled: setOnboardingAlertsEnabled,
+    setMessage: setOnboardingMessage,
+    setPostalCode: setOnboardingPostalCode,
+    setStep: setOnboardingStep,
+    setVisible: setOnboardingVisible,
+    state: onboardingState,
+    step: onboardingStep,
+    visible: onboardingVisible,
+  } = useNativeOnboarding();
   const [onboardingRequesting, setOnboardingRequesting] = React.useState(false);
 
   const showToast = React.useCallback((message: string) => {
@@ -343,67 +322,19 @@ export default function NativeAppScreen() {
     [activeTab, homeRoute],
   );
 
-  const persistOnboardingState = React.useCallback(
-    async (nextState: OnboardingState) => {
-      setOnboardingState(nextState);
-      setOnboardingAlertsEnabled(nextState.alertsEnabled);
-      setOnboardingPostalCode(nextState.postalCode ?? "");
-      setOnboardingMessage(null);
-      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(nextState)).catch(
-        () => {},
-      );
-    },
-    [],
-  );
-
-  const loadOnboardingState = React.useCallback(async () => {
-    const raw = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) {
-      setOnboardingVisible(true);
-      setOnboardingStep("location");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<OnboardingState>;
-      const normalized: OnboardingState = {
-        locationCompleted: Boolean(parsed.locationCompleted),
-        locationMode: parsed.locationMode ?? "skip",
-        postalCode: parsed.postalCode ?? null,
-        locationLatitude: parsed.locationLatitude ?? null,
-        locationLongitude: parsed.locationLongitude ?? null,
-        alertsCompleted: Boolean(parsed.alertsCompleted),
-        alertsEnabled: Boolean(parsed.alertsEnabled),
-      };
-      setOnboardingState(normalized);
-      setOnboardingPostalCode(normalized.postalCode ?? "");
-      setOnboardingAlertsEnabled(normalized.alertsEnabled);
-      if (
-        normalized.locationMode === "share" &&
-        normalized.locationLatitude !== null &&
-        normalized.locationLongitude !== null
-      ) {
-        setMapFocusMode("user");
-      }
-      if (!normalized.locationCompleted) {
-        setOnboardingVisible(true);
-        setOnboardingStep("location");
-      } else if (!normalized.alertsCompleted) {
-        setOnboardingVisible(true);
-        setOnboardingStep("alerts");
-      } else {
-        setOnboardingVisible(false);
-      }
-    } catch {
-      setOnboardingVisible(true);
-      setOnboardingStep("location");
-      await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY).catch(() => {});
-    }
-  }, []);
-
   React.useEffect(() => {
-    void loadOnboardingState();
-  }, [loadOnboardingState]);
+    if (
+      onboardingState.locationMode === "share" &&
+      onboardingState.locationLatitude !== null &&
+      onboardingState.locationLongitude !== null
+    ) {
+      setMapFocusMode("user");
+    }
+  }, [
+    onboardingState.locationLatitude,
+    onboardingState.locationLongitude,
+    onboardingState.locationMode,
+  ]);
 
   React.useEffect(() => {
     configurePushNotificationHandler();
@@ -810,7 +741,7 @@ export default function NativeAppScreen() {
         }
       }
 
-      const nextState: OnboardingState = {
+      const nextState: NativeOnboardingState = {
         ...onboardingState,
         locationCompleted: true,
         locationMode: "share",
@@ -887,7 +818,7 @@ export default function NativeAppScreen() {
       return;
     }
 
-    const nextState: OnboardingState = {
+    const nextState: NativeOnboardingState = {
       ...onboardingState,
       locationCompleted: true,
       locationMode: "postal",
@@ -930,7 +861,7 @@ export default function NativeAppScreen() {
       }
 
       setOnboardingAlertsEnabled(permission.granted);
-      const nextState: OnboardingState = {
+      const nextState: NativeOnboardingState = {
         ...onboardingState,
         alertsCompleted: true,
         alertsEnabled: permission.granted,
@@ -957,7 +888,7 @@ export default function NativeAppScreen() {
   }, [onboardingState, persistOnboardingState, showToast]);
 
   const handleDisableAlerts = React.useCallback(async () => {
-    const nextState: OnboardingState = {
+    const nextState: NativeOnboardingState = {
       ...onboardingState,
       alertsCompleted: true,
       alertsEnabled: false,
@@ -968,7 +899,7 @@ export default function NativeAppScreen() {
   }, [onboardingState, persistOnboardingState, showToast]);
 
   const handleSkipLocation = React.useCallback(async () => {
-    const nextState: OnboardingState = {
+    const nextState: NativeOnboardingState = {
       ...onboardingState,
       locationCompleted: true,
       locationMode: "skip",
@@ -990,7 +921,7 @@ export default function NativeAppScreen() {
       return;
     }
 
-    const skippedState: OnboardingState = {
+    const skippedState: NativeOnboardingState = {
       ...onboardingState,
       alertsCompleted: true,
       alertsEnabled: false,
@@ -1285,7 +1216,6 @@ export default function NativeAppScreen() {
             onWatchProduct={(productId) => {
               void handleWatchProductFromHome(productId);
             }}
-            onOpenStoreOnMap={handleOpenStoreOnMap}
           />
         ) : null}
 
@@ -1347,71 +1277,19 @@ export default function NativeAppScreen() {
         ) : null}
 
         {activeTab === "alerts" ? (
-          <View style={st.sectionStack}>
-            <Text style={st.sectionTitle}>Alert</Text>
-            <Text style={st.sectionSub}>
-              {unreadAlertCount > 0
-                ? `${unreadAlertCount} new sale ${unreadAlertCount === 1 ? "alert" : "alerts"}.`
-                : "Price alerts and watchlist highlights."}
-            </Text>
-            <View style={st.detailActionRow}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  void loadWatchlist(true);
-                }}
-                style={[st.authBtn, st.authBtnSecondary, st.detailActionBtn]}
-                disabled={alertsLoading}
-              >
-                <Text style={st.authBtnSecondaryText}>{alertsLoading ? "Checking..." : "Check alerts"}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  void handleMarkAlertsRead();
-                }}
-                style={[st.authBtn, st.authBtnSecondary, st.detailActionBtn, unreadAlertCount === 0 && st.removeBtnDisabled]}
-                disabled={unreadAlertCount === 0 || alertsMarkingRead}
-              >
-                <Text style={st.authBtnSecondaryText}>{alertsMarkingRead ? "Saving..." : "Mark read"}</Text>
-              </Pressable>
-            </View>
-            {alertsMessage ? (
-              <View style={st.rowCard}>
-                <Text style={st.itemMeta}>{alertsMessage}</Text>
-              </View>
-            ) : null}
-            {alertsLoading && saleAlerts.length === 0 ? (
-              <View style={st.rowCard}>
-                <Text style={st.itemMeta}>Checking watchlist sales...</Text>
-              </View>
-            ) : saleAlerts.length === 0 ? (
-              <View style={st.rowCard}>
-                <Text style={st.alertTitle}>No active alerts</Text>
-                <Text style={st.itemMeta}>
-                  Save items from Home and we will create an alert when a weekly sale is active.
-                </Text>
-              </View>
-            ) : (
-              saleAlerts.map((alert) => (
-                <View key={alert.id} style={st.rowCard}>
-                  <View style={st.watchTargetSummary}>
-                    <Text style={st.alertTitle}>{alert.title}</Text>
-                    {alert.read_at === null ? <Text style={[st.tag, st.targetBadge]}>New</Text> : null}
-                  </View>
-                  <Text style={st.itemMeta}>{alert.body}</Text>
-                  <Text style={st.alertTime}>
-                    {new Date(alert.created_at).toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
+          <SaleAlertsPanel
+            alerts={saleAlerts}
+            loading={alertsLoading}
+            markingRead={alertsMarkingRead}
+            message={alertsMessage}
+            unreadCount={unreadAlertCount}
+            onCheck={() => {
+              void loadWatchlist(true);
+            }}
+            onMarkRead={() => {
+              void handleMarkAlertsRead();
+            }}
+          />
         ) : null}
 
         {activeTab === "more" ? (

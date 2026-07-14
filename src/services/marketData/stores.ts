@@ -3,7 +3,6 @@ import { FALLBACK_STORES } from "./fallbacks";
 import {
   calculateHaversineDistanceKm,
   matchesStoreFilter,
-  missingEnvResult,
   parseNumber,
 } from "./shared";
 import type { MarketStore, ServiceResult, StoreRow } from "./types";
@@ -103,60 +102,4 @@ export async function listStores(params?: {
   });
 
   return { data: sorted, error: null };
-}
-
-export async function createStore(params: {
-  name: string;
-  brand?: string;
-  area?: string;
-  latitude: string;
-  longitude: string;
-  priceNote?: string;
-}): Promise<ServiceResult<MarketStore | null>> {
-  if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
-
-  const latitude = parseNumber(params.latitude);
-  const longitude = parseNumber(params.longitude);
-
-  if (latitude === null || longitude === null) {
-    return {
-      data: null,
-      error: "Latitude and longitude must be valid numbers.",
-    };
-  }
-
-  const payload = {
-    name: params.name.trim(),
-    brand: params.brand?.trim() ? params.brand.trim() : null,
-    area: params.area?.trim() || params.name.trim(),
-    latitude,
-    longitude,
-    price_note: params.priceNote?.trim() ? params.priceNote.trim() : null,
-  };
-
-  const { data, error } = await supabase
-    .from("stores")
-    .insert(payload)
-    .select("id, brand, name, area, latitude, longitude, price_note, address, place_id")
-    .single();
-
-  if (error) {
-    return { data: null, error: error.message };
-  }
-
-  const row = data as StoreRow;
-  return {
-    data: {
-      id: row.id,
-      brand: row.brand ?? null,
-      name: row.name,
-      area: row.area?.trim() ?? "",
-      latitude: parseNumber(row.latitude) ?? latitude,
-      longitude: parseNumber(row.longitude) ?? longitude,
-      price_note: row.price_note,
-      address: row.address ?? null,
-      place_id: row.place_id ?? null,
-    },
-    error: null,
-  };
 }

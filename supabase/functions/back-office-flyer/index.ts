@@ -359,7 +359,6 @@ function googlePageText(
 }
 
 async function extractTextWithGoogleVision(
-  file: File,
   base64: string,
   isPdf: boolean,
   apiKey: string,
@@ -530,7 +529,7 @@ Deno.serve(async (request: Request) => {
       let ocrText = "";
       let googleVisionError: Error | null = null;
       try {
-        ocrText = await extractTextWithGoogleVision(file, base64, isPdf, googleVisionApiKey);
+        ocrText = await extractTextWithGoogleVision(base64, isPdf, googleVisionApiKey);
       } catch (error) {
         googleVisionError = error instanceof Error ? error : new Error("Google Vision OCR failed.");
       }

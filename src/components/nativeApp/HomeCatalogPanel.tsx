@@ -35,7 +35,6 @@ type HomeCatalogPanelProps = {
   onChangeSort: (mode: HomeSortMode) => void;
   onSelectProduct: (productId: string) => void;
   onWatchProduct: (productId: string) => void;
-  onOpenStoreOnMap: (storeId: string, storeName?: string) => void;
 };
 
 const SORT_OPTIONS: Array<{ value: HomeSortMode; label: string }> = [
@@ -43,9 +42,6 @@ const SORT_OPTIONS: Array<{ value: HomeSortMode; label: string }> = [
   { value: "lowestPrice", label: "Lowest price" },
   { value: "biggestDrop", label: "Biggest drop" },
 ];
-
-const byPrice = (product: MarketProduct) => product.current_price ?? Number.MAX_VALUE;
-const byDrop = (product: MarketProduct) => product.price_delta_percent ?? Number.MAX_VALUE;
 
 const formatTrendLabel = (product: MarketProduct) => {
   if (product.price_delta_percent === null) return null;
