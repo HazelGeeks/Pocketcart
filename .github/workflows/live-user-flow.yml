@@ -1,0 +1,206 @@
+name: Live User Flow E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-user-flow:
+    name: Sign up, watch, alert, and delete a test user
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      PUSH_FUNCTION_SECRET: ${{ secrets.PUSH_FUNCTION_SECRET }}
+
+    steps:
+      - name: Validate required secrets
+        run: |
+          test -n "$SUPABASE_PROJECT_ID" || { echo "Missing GitHub secret: SUPABASE_PROJECT_ID"; exit 1; }
+          test -n "$SUPABASE_SERVICE_ROLE_KEY" || { echo "Missing GitHub secret: SUPABASE_SERVICE_ROLE_KEY"; exit 1; }
+          test -n "$PUSH_FUNCTION_SECRET" || { echo "Missing GitHub secret: PUSH_FUNCTION_SECRET"; exit 1; }
+
+      - name: Run disposable live user journey
+        shell: bash
+        run: |
+          node <<'NODE'
+          const baseUrl = `https://${process.env.SUPABASE_PROJECT_ID}.supabase.co`;
+          const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          const pushSecret = process.env.PUSH_FUNCTION_SECRET;
+          const runId = process.env.GITHUB_RUN_ID ?? Date.now().toString();
+          const email = `pocketcart-e2e-${runId}@example.com`;
+          const password = `Pc!${crypto.randomUUID()}a9`;
+          let userId = null;
+          let deletionRequestId = null;
+
+          async function request(path, { method = "GET", token = serviceKey, body, headers = {} } = {}) {
+            const response = await fetch(`${baseUrl}${path}`, {
+              method,
+              headers: {
+                apikey: serviceKey,
+                Authorization: `Bearer ${token}`,
+                ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+                ...headers,
+              },
+              ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+            });
+            const text = await response.text();
+            let payload = null;
+            try {
+              payload = text ? JSON.parse(text) : null;
+            } catch {
+              payload = text;
+            }
+            return { response, payload };
+          }
+
+          function assertOk(result, label) {
+            if (!result.response.ok) {
+              throw new Error(`${label} failed (${result.response.status}): ${JSON.stringify(result.payload)}`);
+            }
+            console.log(`PASS: ${label}`);
+            return result.payload;
+          }
+
+          async function cleanup() {
+            if (deletionRequestId) {
+              await request(`/rest/v1/account_deletion_requests?id=eq.${encodeURIComponent(deletionRequestId)}`, {
+                method: "DELETE",
+                headers: { Prefer: "return=minimal" },
+              }).catch(() => undefined);
+            }
+            if (userId) {
+              await request(`/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+                method: "DELETE",
+              }).catch(() => undefined);
+            }
+          }
+
+          try {
+            const created = assertOk(await request("/auth/v1/admin/users", {
+              method: "POST",
+              body: {
+                email,
+                password,
+                email_confirm: true,
+                user_metadata: { full_name: "PocketCart E2E" },
+              },
+            }), "create confirmed disposable user");
+            userId = created.id;
+            if (!userId) throw new Error("Created user response did not include an id.");
+
+            const signedIn = assertOk(await request("/auth/v1/token?grant_type=password", {
+              method: "POST",
+              body: { email, password },
+            }), "sign in with email and password");
+            const accessToken = signedIn.access_token;
+            if (!accessToken) throw new Error("Sign-in response did not include an access token.");
+
+            const profiles = assertOk(await request(
+              `/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,email,full_name`,
+              { token: accessToken },
+            ), "load the signed-in user's profile through RLS");
+            if (!Array.isArray(profiles) || profiles.length !== 1) {
+              throw new Error("Expected exactly one profile for the disposable user.");
+            }
+
+            const prices = assertOk(await request(
+              "/rest/v1/product_prices?select=product_id,store_id,price,observed_at,valid_from,valid_to,products(name)&order=valid_from.desc.nullslast&limit=1000",
+              { token: accessToken },
+            ), "browse live product prices");
+            const now = Date.now();
+            const activePrice = prices.find((row) => {
+              const start = Date.parse(row.valid_from ?? row.observed_at);
+              const end = row.valid_to ? Date.parse(row.valid_to) : Number.POSITIVE_INFINITY;
+              return Number.isFinite(start) && start <= now && end >= now && row.product_id;
+            });
+            if (!activePrice) throw new Error("No currently active product price was available for E2E.");
+
+            const productName = activePrice.products?.name ?? "PocketCart E2E product";
+            const watchRows = assertOk(await request("/rest/v1/watchlist_items", {
+              method: "POST",
+              token: accessToken,
+              headers: { Prefer: "return=representation" },
+              body: {
+                user_id: userId,
+                product_id: activePrice.product_id,
+                store_id: activePrice.store_id,
+                name: productName,
+                store: "PocketCart E2E store",
+                target_price: String(activePrice.price),
+              },
+            }), "add a live product to the user's watchlist through RLS");
+            if (!Array.isArray(watchRows) || watchRows.length !== 1) {
+              throw new Error("Watchlist insert did not return exactly one row.");
+            }
+
+            const readWatchlist = assertOk(await request(
+              `/rest/v1/watchlist_items?user_id=eq.${encodeURIComponent(userId)}&select=id,product_id,store_id,name`,
+              { token: accessToken },
+            ), "read the user's watchlist through RLS");
+            if (!Array.isArray(readWatchlist) || readWatchlist.length !== 1) {
+              throw new Error("Expected exactly one watchlist item.");
+            }
+
+            const syncResult = assertOk(await request("/functions/v1/sync-sale-alerts", {
+              method: "POST",
+              body: {},
+              headers: { "x-push-secret": pushSecret },
+            }), "run the server sale-alert sync for the watched product");
+            if ((syncResult?.created ?? 0) < 1) {
+              throw new Error(`Expected at least one new alert, got: ${JSON.stringify(syncResult)}`);
+            }
+
+            const alerts = assertOk(await request(
+              `/rest/v1/sale_alerts?user_id=eq.${encodeURIComponent(userId)}&select=id,watchlist_item_id,product_id,title,body`,
+              { token: accessToken },
+            ), "read the generated sale alert through RLS");
+            if (!Array.isArray(alerts) || alerts.length < 1) {
+              throw new Error("Expected at least one sale alert for the watched product.");
+            }
+
+            const deletionRequest = assertOk(await request("/functions/v1/delete-account-request", {
+              method: "POST",
+              body: {
+                email,
+                platform: "ios",
+                details: "Automated disposable E2E verification",
+              },
+            }), "submit the public account deletion request form");
+            deletionRequestId = deletionRequest.id;
+            if (!deletionRequest.received || !deletionRequestId) {
+              throw new Error("Deletion request response was incomplete.");
+            }
+
+            const deleted = assertOk(await request("/functions/v1/delete-account", {
+              method: "POST",
+              token: accessToken,
+              body: {},
+            }), "delete the authenticated account through the deployed function");
+            if (deleted?.deleted !== true) throw new Error("Delete-account response did not confirm deletion.");
+            userId = null;
+
+            const rejectedSignIn = await request("/auth/v1/token?grant_type=password", {
+              method: "POST",
+              body: { email, password },
+            });
+            if (rejectedSignIn.response.ok) {
+              throw new Error("Deleted account was still able to sign in.");
+            }
+            console.log("PASS: deleted account can no longer sign in");
+
+            const orphanRows = assertOk(await request(
+              `/rest/v1/watchlist_items?user_id=eq.${encodeURIComponent(created.id)}&select=id`,
+            ), "verify account-owned watchlist data was cascade-deleted");
+            if (!Array.isArray(orphanRows) || orphanRows.length !== 0) {
+              throw new Error("Watchlist rows remained after account deletion.");
+            }
+
+            console.log("LIVE USER FLOW E2E PASSED");
+          } finally {
+            await cleanup();
+          }
+          NODE

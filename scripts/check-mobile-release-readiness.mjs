@@ -16,6 +16,7 @@ const requiredFiles = [
   ".github/workflows/eas-submit.yml",
   ".github/workflows/supabase-functions.yml",
   ".github/workflows/sale-alert-sync.yml",
+  ".github/workflows/live-user-flow.yml",
   "database/schema.sql",
   "docs/mobile-store-release.md",
   "scripts/print-mobile-release-setup-guide.mjs",
@@ -698,6 +699,16 @@ includes(
   "Sale alert workflow authenticates with the push function secret",
 );
 includes(
+  ".github/workflows/live-user-flow.yml",
+  "LIVE USER FLOW E2E PASSED",
+  "Live E2E workflow covers the disposable user journey",
+);
+includes(
+  ".github/workflows/live-user-flow.yml",
+  "/functions/v1/delete-account",
+  "Live E2E workflow verifies authenticated account deletion",
+);
+includes(
   ".easignore",
   "*.jks",
   "EAS ignore excludes local Android keystores",
@@ -795,6 +806,7 @@ if (checkExternal) {
     "EXPO_TOKEN",
     "SUPABASE_ACCESS_TOKEN",
     "SUPABASE_PROJECT_ID",
+    "SUPABASE_SERVICE_ROLE_KEY",
     "PUSH_FUNCTION_SECRET",
   ];
   if (!githubSecretNames) {

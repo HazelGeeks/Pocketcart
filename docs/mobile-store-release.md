@@ -74,7 +74,7 @@ The doctor checks repository release settings plus external readiness:
 
 ## GitHub Actions Release Automation
 
-The repository includes five release workflows:
+The repository includes six release and verification workflows:
 
 - `Mobile Release Check`: runs `npm run release:native:check` and
   `npm audit --audit-level=high` on PRs and `main`.
@@ -90,12 +90,17 @@ The repository includes five release workflows:
   functions and sets the sale-alert trigger secret.
 - `Sale Alert Sync`: runs every six hours and can also be started manually to
   create and send eligible watchlist price alerts.
+- `Live User Flow E2E`: manually creates a disposable confirmed user, verifies
+  login, profile, live data, watchlist, alert generation, public deletion
+  request, authenticated deletion, cascade cleanup, and rejected re-login.
 
 Required GitHub repository secrets:
 
 - `EXPO_TOKEN`: Expo token used by the EAS build workflow.
 - `SUPABASE_ACCESS_TOKEN`: Supabase access token used by function deployment.
 - `SUPABASE_PROJECT_ID`: Supabase project reference.
+- `SUPABASE_SERVICE_ROLE_KEY`: used only by the manual disposable-user E2E
+  workflow; Supabase still injects its own copy into Edge Functions.
 - `PUSH_FUNCTION_SECRET`: shared secret used to trigger sale alert push sync.
 
 Set and verify them with:
@@ -104,6 +109,7 @@ Set and verify them with:
 gh secret set EXPO_TOKEN
 gh secret set SUPABASE_ACCESS_TOKEN
 gh secret set SUPABASE_PROJECT_ID
+gh secret set SUPABASE_SERVICE_ROLE_KEY
 gh secret set PUSH_FUNCTION_SECRET
 gh secret list
 ```
