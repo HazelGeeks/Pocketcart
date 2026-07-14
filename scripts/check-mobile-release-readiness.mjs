@@ -15,6 +15,7 @@ const requiredFiles = [
   ".github/workflows/eas-build.yml",
   ".github/workflows/eas-submit.yml",
   ".github/workflows/supabase-functions.yml",
+  ".github/workflows/sale-alert-sync.yml",
   "database/schema.sql",
   "docs/mobile-store-release.md",
   "scripts/print-mobile-release-setup-guide.mjs",
@@ -678,13 +679,23 @@ includes(
 );
 includes(
   ".github/workflows/supabase-functions.yml",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "Supabase workflow sets the delete-account service role secret",
-);
-includes(
-  ".github/workflows/supabase-functions.yml",
   "PUSH_FUNCTION_SECRET",
   "Supabase workflow sets the push function secret",
+);
+includes(
+  ".github/workflows/sale-alert-sync.yml",
+  "schedule:",
+  "Sale alert workflow runs on a schedule",
+);
+includes(
+  ".github/workflows/sale-alert-sync.yml",
+  "sync-sale-alerts",
+  "Sale alert workflow invokes the sync function",
+);
+includes(
+  ".github/workflows/sale-alert-sync.yml",
+  "PUSH_FUNCTION_SECRET",
+  "Sale alert workflow authenticates with the push function secret",
 );
 includes(
   ".easignore",
@@ -784,7 +795,7 @@ if (checkExternal) {
     "EXPO_TOKEN",
     "SUPABASE_ACCESS_TOKEN",
     "SUPABASE_PROJECT_ID",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "PUSH_FUNCTION_SECRET",
   ];
   if (!githubSecretNames) {
     fail("Unable to verify GitHub repository secrets. Run: gh auth login");
@@ -808,12 +819,6 @@ if (checkExternal) {
     pass("Android Google Maps API key is present for production builds");
   } else {
     fail("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY is not set");
-  }
-
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY || githubSecretNames?.has("SUPABASE_SERVICE_ROLE_KEY")) {
-    pass("SUPABASE_SERVICE_ROLE_KEY is present in the environment");
-  } else {
-    fail("SUPABASE_SERVICE_ROLE_KEY is not set");
   }
 
   const requiredEasPublicEnv = [

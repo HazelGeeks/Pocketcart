@@ -1,0 +1,42 @@
+name: Sale Alert Sync
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync-sale-alerts:
+    name: Sync and send sale alerts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      PUSH_FUNCTION_SECRET: ${{ secrets.PUSH_FUNCTION_SECRET }}
+
+    steps:
+      - name: Validate required secrets
+        run: |
+          test -n "$SUPABASE_PROJECT_ID" || { echo "Missing GitHub secret: SUPABASE_PROJECT_ID"; exit 1; }
+          test -n "$PUSH_FUNCTION_SECRET" || { echo "Missing GitHub secret: PUSH_FUNCTION_SECRET"; exit 1; }
+
+      - name: Invoke sale alert sync
+        run: |
+          response_file="${RUNNER_TEMP}/pocketcart-sale-alert-sync.json"
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "x-push-secret: $PUSH_FUNCTION_SECRET" \
+            --data '{}' \
+            "https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/sync-sale-alerts")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Sale alert sync failed with HTTP $status"
+            exit 1
+          }

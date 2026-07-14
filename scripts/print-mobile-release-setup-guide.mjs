@@ -5,7 +5,7 @@ const githubSecrets = [
   "EXPO_TOKEN",
   "SUPABASE_ACCESS_TOKEN",
   "SUPABASE_PROJECT_ID",
-  "SUPABASE_SERVICE_ROLE_KEY",
+  "PUSH_FUNCTION_SECRET",
 ];
 
 const easProductionEnv = [

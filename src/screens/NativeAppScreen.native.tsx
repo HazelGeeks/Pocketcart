@@ -64,7 +64,6 @@ import {
   formatSignedPercent,
 } from "../components/nativeApp/priceDisplay";
 import {
-  buildLocationSearchPlaceholder,
   requestLocationPermissionAndPosition,
   type OnboardingLocationMode,
 } from "../services/nativePermissions";
@@ -144,6 +143,7 @@ export default function NativeAppScreen() {
   const [mapQuery, setMapQuery] = React.useState("");
   const [mapStores, setMapStores] = React.useState<MarketStore[]>([]);
   const [focusedStoreId, setFocusedStoreId] = React.useState("");
+  const [mapFocusMode, setMapFocusMode] = React.useState<"store" | "user">("store");
   const [mapLoading, setMapLoading] = React.useState(false);
   const [mapMessage, setMapMessage] = React.useState<string | null>(null);
   const [pendingStoreIdFromHome, setPendingStoreIdFromHome] = React.useState<string | null>(
@@ -271,15 +271,50 @@ export default function NativeAppScreen() {
     [filteredStores, focusedStoreId],
   );
 
+  const userMapLocation = React.useMemo(() => {
+    if (
+      onboardingState.locationMode !== "share" ||
+      onboardingState.locationLatitude === null ||
+      onboardingState.locationLongitude === null
+    ) {
+      return null;
+    }
+
+    return {
+      latitude: onboardingState.locationLatitude,
+      longitude: onboardingState.locationLongitude,
+    };
+  }, [
+    onboardingState.locationLatitude,
+    onboardingState.locationLongitude,
+    onboardingState.locationMode,
+  ]);
+
   const mapRegion = React.useMemo<Region>(() => {
-    if (!activeStore) return DEFAULT_REGION;
+    if (mapFocusMode === "user" && userMapLocation) {
+      return {
+        ...userMapLocation,
+        latitudeDelta: 0.04,
+        longitudeDelta: 0.04,
+      };
+    }
+    if (!activeStore) {
+      if (userMapLocation) {
+        return {
+          ...userMapLocation,
+          latitudeDelta: 0.04,
+          longitudeDelta: 0.04,
+        };
+      }
+      return DEFAULT_REGION;
+    }
     return {
       latitude: activeStore.latitude,
       longitude: activeStore.longitude,
       latitudeDelta: 0.045,
       longitudeDelta: 0.045,
     };
-  }, [activeStore]);
+  }, [activeStore, mapFocusMode, userMapLocation]);
 
   const unreadAlertCount = React.useMemo(
     () => saleAlerts.filter((alert) => alert.read_at === null).length,
@@ -343,6 +378,13 @@ export default function NativeAppScreen() {
       setOnboardingState(normalized);
       setOnboardingPostalCode(normalized.postalCode ?? "");
       setOnboardingAlertsEnabled(normalized.alertsEnabled);
+      if (
+        normalized.locationMode === "share" &&
+        normalized.locationLatitude !== null &&
+        normalized.locationLongitude !== null
+      ) {
+        setMapFocusMode("user");
+      }
       if (!normalized.locationCompleted) {
         setOnboardingVisible(true);
         setOnboardingStep("location");
@@ -525,12 +567,9 @@ export default function NativeAppScreen() {
     const searchText =
       mapQuery.trim().length > 0
         ? mapQuery.trim()
-        : buildLocationSearchPlaceholder({
-            locationMode: onboardingState.locationMode,
-            postalCode: onboardingState.postalCode,
-            latitude: onboardingState.locationLatitude,
-            longitude: onboardingState.locationLongitude,
-          });
+        : onboardingState.locationMode === "postal"
+          ? onboardingState.postalCode ?? ""
+          : "";
 
     setMapLoading(true);
     const { data, error } = await listStores({
@@ -716,9 +755,9 @@ export default function NativeAppScreen() {
   }, [filteredStores, focusedStoreId]);
 
   React.useEffect(() => {
-    if (!activeStore) return;
+    if (!activeStore || mapFocusMode !== "store") return;
     mapRef.current?.animateToRegion(mapRegion, 220);
-  }, [activeStore, mapRegion]);
+  }, [activeStore, mapFocusMode, mapRegion]);
 
   React.useEffect(() => {
     if (activeTab !== "more") return;
@@ -747,7 +786,9 @@ export default function NativeAppScreen() {
     return () => clearTimeout(timeout);
   }, [toastMessage]);
 
-  const handleLocationShare = React.useCallback(async (source: "onboarding" | "settings" = "onboarding") => {
+  const handleLocationShare = React.useCallback(async (
+    source: "onboarding" | "settings" | "map" = "onboarding",
+  ) => {
     setOnboardingRequesting(true);
     if (source === "settings") {
       setMoreLoading(true);
@@ -756,9 +797,17 @@ export default function NativeAppScreen() {
     try {
       const permission = await requestLocationPermissionAndPosition();
       if (!permission.granted) {
-        setHomeActionMessage(permission.message ?? "Location access not available.");
+        const message = permission.message ?? "Location access not available.";
+        if (source === "map") {
+          setMapMessage(message);
+        } else {
+          setHomeActionMessage(message);
+        }
       } else {
         setHomeActionMessage(null);
+        if (source === "map") {
+          setMapMessage(null);
+        }
       }
 
       const nextState: OnboardingState = {
@@ -768,7 +817,8 @@ export default function NativeAppScreen() {
         postalCode: permission.granted ? null : onboardingState.postalCode,
         locationLatitude: permission.latitude ?? null,
         locationLongitude: permission.longitude ?? null,
-        alertsCompleted: false,
+        alertsCompleted:
+          source === "onboarding" ? false : onboardingState.alertsCompleted,
         alertsEnabled: onboardingState.alertsEnabled,
       };
       setOnboardingMessage(permission.message ?? null);
@@ -777,18 +827,43 @@ export default function NativeAppScreen() {
       }
       if (permission.granted) {
         setMapQuery("");
+        if (
+          source === "map" &&
+          permission.latitude !== undefined &&
+          permission.longitude !== undefined
+        ) {
+          setMapFocusMode("user");
+          setFocusedStoreId("");
+          mapRef.current?.animateToRegion(
+            {
+              latitude: permission.latitude,
+              longitude: permission.longitude,
+              latitudeDelta: 0.04,
+              longitudeDelta: 0.04,
+            },
+            260,
+          );
+        }
       }
 
       await persistOnboardingState(nextState);
       if (source === "onboarding") {
         setOnboardingStep("alerts");
       }
-      showToast(permission.granted ? "Using live location mode." : "Location not granted. Continue with alerts.");
+      showToast(
+        permission.granted
+          ? source === "map"
+            ? "Map centered on your location."
+            : "Using live location mode."
+          : "Location not granted. Continue with alerts.",
+      );
     } catch {
       const message = "Location permission could not be checked.";
       setHomeActionMessage(message);
       if (source === "settings") {
         setMoreMessage(message);
+      } else if (source === "map") {
+        setMapMessage(message);
       } else {
         setOnboardingMessage(message);
       }
@@ -819,7 +894,8 @@ export default function NativeAppScreen() {
       postalCode: normalized,
       locationLatitude: null,
       locationLongitude: null,
-      alertsCompleted: false,
+      alertsCompleted:
+        source === "onboarding" ? false : onboardingState.alertsCompleted,
       alertsEnabled: onboardingState.alertsEnabled,
     };
     setOnboardingMessage(null);
@@ -1127,6 +1203,7 @@ export default function NativeAppScreen() {
         return;
       }
       setPendingStoreIdFromHome(storeId);
+      setMapFocusMode("store");
       setActiveTab("map");
       setMapQuery(storeName ?? "");
       setOnboardingVisible(false);
@@ -1136,6 +1213,7 @@ export default function NativeAppScreen() {
 
   const focusStore = React.useCallback(
     (store: MarketStore) => {
+      setMapFocusMode("store");
       setFocusedStoreId(store.id);
       mapRef.current?.animateToRegion(
         {
@@ -1148,6 +1226,16 @@ export default function NativeAppScreen() {
       );
     },
     [],
+  );
+
+  const handleSelectTab = React.useCallback(
+    (tabId: NativeTabId) => {
+      if (tabId === "map" && userMapLocation) {
+        setMapFocusMode("user");
+      }
+      setActiveTab(tabId);
+    },
+    [userMapLocation],
   );
 
   return (
@@ -1243,9 +1331,17 @@ export default function NativeAppScreen() {
             stores={filteredStores}
             focusedStoreId={focusedStoreId}
             region={mapRegion}
+            userLocation={userMapLocation}
+            locatingUser={onboardingRequesting}
             onChangeQuery={setMapQuery}
-            onFocusStoreId={setFocusedStoreId}
+            onFocusStoreId={(storeId) => {
+              setMapFocusMode("store");
+              setFocusedStoreId(storeId);
+            }}
             onFocusStore={focusStore}
+            onUseCurrentLocation={() => {
+              void handleLocationShare("map");
+            }}
             onViewStoreInHome={handleSetHomeStoreFilter}
           />
         ) : null}
@@ -1375,7 +1471,7 @@ export default function NativeAppScreen() {
         activeTab={activeTab}
         bottomInset={insets.bottom}
         pad={pad}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
       />
 
       <NativeAppOnboarding

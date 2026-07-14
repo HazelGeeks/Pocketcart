@@ -47,7 +47,8 @@ Expected checks:
   deployed.
 - `database/schema.sql` includes the required profile, watchlist, product price,
   sale alert, push token, storage, and account deletion request schema.
-- Supabase secret `SUPABASE_SERVICE_ROLE_KEY` is set for account functions.
+- Supabase automatically provides `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions;
+  do not add or duplicate it as a custom secret.
 - Supabase secret `PUSH_FUNCTION_SECRET` is set for sale alert push functions.
 - Supabase backend is live and reachable during review.
 
@@ -66,14 +67,14 @@ The doctor checks repository release settings plus external readiness:
 - GitHub repository secrets are present, verified by `gh secret list`
 - `SUPABASE_PROJECT_ID` for CI function deploys
 - Android Google Maps API key in the EAS `production` environment
-- Supabase service role key for the account-deletion function
+- `PUSH_FUNCTION_SECRET` for authenticated sale-alert sync calls
 - Production EAS public client env:
   `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, and
   `EXPO_PUBLIC_AUTH_REDIRECT_URL`
 
 ## GitHub Actions Release Automation
 
-The repository includes three release workflows:
+The repository includes five release workflows:
 
 - `Mobile Release Check`: runs `npm run release:native:check` and
   `npm audit --audit-level=high` on PRs and `main`.
@@ -86,15 +87,15 @@ The repository includes three release workflows:
   support, account deletion URLs, and EAS production environment before
   submission.
 - `Supabase Functions Deploy`: manually deploys the account and back-office
-  functions and sets their required Supabase secrets.
+  functions and sets the sale-alert trigger secret.
+- `Sale Alert Sync`: runs every six hours and can also be started manually to
+  create and send eligible watchlist price alerts.
 
 Required GitHub repository secrets:
 
 - `EXPO_TOKEN`: Expo token used by the EAS build workflow.
 - `SUPABASE_ACCESS_TOKEN`: Supabase access token used by function deployment.
 - `SUPABASE_PROJECT_ID`: Supabase project reference.
-- `SUPABASE_SERVICE_ROLE_KEY`: service role key used only by Supabase Edge
-  Functions.
 - `PUSH_FUNCTION_SECRET`: shared secret used to trigger sale alert push sync.
 
 Set and verify them with:
@@ -103,7 +104,6 @@ Set and verify them with:
 gh secret set EXPO_TOKEN
 gh secret set SUPABASE_ACCESS_TOKEN
 gh secret set SUPABASE_PROJECT_ID
-gh secret set SUPABASE_SERVICE_ROLE_KEY
 gh secret set PUSH_FUNCTION_SECRET
 gh secret list
 ```
@@ -121,6 +121,14 @@ Required EAS `production` environment variables:
 
 Restrict the Android maps key to package `com.pocketcart.app` and the release
 upload certificate SHA-1 before store submission.
+
+The `preview` profile also uses these production client variables but produces
+internally distributed test artifacts (iOS ad hoc build and Android APK):
+
+```bash
+npm run build:ios:internal
+npm run build:android:internal
+```
 
 ## EAS Build
 
@@ -310,10 +318,13 @@ functions. The web deletion request form writes to
 Deploy account deletion functions before store review:
 
 ```bash
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<supabase-service-role-key>
 supabase functions deploy delete-account
 supabase functions deploy delete-account-request
 ```
+
+Supabase injects its project URL, anon key, and service-role key into Edge
+Functions automatically. The CLI rejects custom secret names that start with
+`SUPABASE_`, so no separate service-role secret setup is required.
 
 Deploy sale alert push functions before relying on production notifications:
 
@@ -323,7 +334,9 @@ supabase functions deploy send-sale-alert-push
 supabase functions deploy sync-sale-alerts
 ```
 
-After the weekly product price import finishes, trigger the sale alert sync:
+The `Sale Alert Sync` GitHub Actions workflow calls the sync endpoint every six
+hours. To run it immediately after a price import, start that workflow manually
+or call the endpoint directly:
 
 ```bash
 curl -X POST \
@@ -331,8 +344,8 @@ curl -X POST \
   -H "x-push-secret: <long-random-secret>"
 ```
 
-Or use GitHub Actions > `Supabase Functions Deploy` after setting the required
-Supabase repository secrets.
+Use GitHub Actions > `Supabase Functions Deploy` to deploy the functions after
+setting the required repository secrets.
 
 The native app calls `https://YOUR_PROJECT_REF.supabase.co/functions/v1/delete-account`
 with the current Supabase session token. Keep JWT verification enabled in

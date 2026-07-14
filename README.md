@@ -24,7 +24,10 @@ Web-first development:
 Native development:
 
 - `npm run dev:native`: start Expo for native targets
-- `npm run ios`
+- `npm run dev:ios`: use the currently booted iPhone simulator; install the
+  PocketCart development build automatically when it is missing
+- `npm run ios`: rebuild and install PocketCart on the currently booted iPhone
+  simulator
 - `npm run android`
 
 Recommended Node runtime:
@@ -143,9 +146,9 @@ Google service account JSON files, Android keystores, and API keys out of git.
     - Native builds use Expo Push Notifications through `expo-notifications`.
     - Deploy `send-sale-alert-push` and `sync-sale-alerts` Supabase Edge Functions.
     - Set `PUSH_FUNCTION_SECRET` as a Supabase function secret.
-    - After weekly sale uploads, call `sync-sale-alerts` with the `x-push-secret`
-      header so watched products can create and send push alerts while the app is
-      closed.
+    - `.github/workflows/sale-alert-sync.yml` calls `sync-sale-alerts` every six
+      hours. It can also be run manually after a price import so watched products
+      create and send push alerts while the app is closed.
 - Web deploy:
   - Export a production build with `npm run build:web`
   - Upload the generated `dist/` directory to your hosting provider

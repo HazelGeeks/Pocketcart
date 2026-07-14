@@ -46,8 +46,8 @@ export const TABS: Array<{ id: NativeTabId; label: string }> = [
 ];
 
 export const DEFAULT_REGION: Region = {
-  latitude: 37.5326,
-  longitude: 126.991,
+  latitude: 49.2827,
+  longitude: -123.1207,
   latitudeDelta: 0.18,
   longitudeDelta: 0.18,
 };

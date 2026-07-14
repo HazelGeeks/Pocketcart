@@ -14,7 +14,6 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       PUSH_FUNCTION_SECRET: ${{ secrets.PUSH_FUNCTION_SECRET }}
 
     steps:
@@ -34,11 +33,7 @@ jobs:
         run: |
           test -n "$SUPABASE_ACCESS_TOKEN"
           test -n "$SUPABASE_PROJECT_ID"
-          test -n "$SUPABASE_SERVICE_ROLE_KEY"
           test -n "$PUSH_FUNCTION_SECRET"
-
-      - name: Set function secrets
-        run: npx supabase secrets set SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Set push function secrets
         run: npx supabase secrets set PUSH_FUNCTION_SECRET="$PUSH_FUNCTION_SECRET" --project-ref "$SUPABASE_PROJECT_ID"

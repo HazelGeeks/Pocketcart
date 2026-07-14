@@ -25,6 +25,7 @@
       }
     },
     "preview": {
+      "environment": "production",
       "distribution": "internal",
       "ios": {
         "simulator": false

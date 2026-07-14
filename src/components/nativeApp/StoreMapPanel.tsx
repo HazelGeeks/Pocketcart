@@ -13,9 +13,12 @@ type StoreMapPanelProps = {
   stores: MarketStore[];
   focusedStoreId: string;
   region: Region;
+  userLocation: { latitude: number; longitude: number } | null;
+  locatingUser: boolean;
   onChangeQuery: (value: string) => void;
   onFocusStoreId: (storeId: string) => void;
   onFocusStore: (store: MarketStore) => void;
+  onUseCurrentLocation: () => void;
   onViewStoreInHome: (storeId: string, storeName: string) => void;
 };
 
@@ -27,9 +30,12 @@ export function StoreMapPanel({
   stores,
   focusedStoreId,
   region,
+  userLocation,
+  locatingUser,
   onChangeQuery,
   onFocusStoreId,
   onFocusStore,
+  onUseCurrentLocation,
   onViewStoreInHome,
 }: StoreMapPanelProps) {
   const getStoreDisplayName = (store: MarketStore) =>
@@ -38,7 +44,26 @@ export function StoreMapPanel({
   return (
     <View style={st.sectionStack}>
       <Text style={st.sectionTitle}>Map</Text>
-      <Text style={st.sectionSub}>Search stores and jump directly to their location.</Text>
+      <Text style={st.sectionSub}>
+        Find nearby stores from your location or search by store and address.
+      </Text>
+
+      <View style={st.storeActionRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Center map on my current location"
+          disabled={locatingUser}
+          onPress={onUseCurrentLocation}
+          style={[st.authBtn, st.storeActionBtn, st.authBtnPrimary]}
+        >
+          <Text style={st.authBtnPrimaryText}>
+            {locatingUser ? "Finding location..." : "My location"}
+          </Text>
+        </Pressable>
+        <Text style={st.itemMeta}>
+          {userLocation ? "Nearest stores are sorted by distance." : "Location is not set yet."}
+        </Text>
+      </View>
 
       <View style={st.searchCard}>
         <TextInput
@@ -60,7 +85,13 @@ export function StoreMapPanel({
       ) : null}
 
       <View style={st.mapCard}>
-        <MapView ref={mapRef} initialRegion={region} style={st.mapView}>
+        <MapView
+          ref={mapRef}
+          initialRegion={region}
+          showsUserLocation={Boolean(userLocation)}
+          showsMyLocationButton={false}
+          style={st.mapView}
+        >
           {stores.map((store) => {
             const active = store.id === focusedStoreId;
             const displayName = getStoreDisplayName(store);
@@ -107,6 +138,13 @@ export function StoreMapPanel({
               </Text>
               {store.brand && (store.address || store.area) ? (
                 <Text style={st.itemMeta}>{store.address || store.area}</Text>
+              ) : null}
+              {store.distance_km != null ? (
+                <Text style={st.itemMeta}>
+                  {store.distance_km < 1
+                    ? `${Math.round(store.distance_km * 1000)} m away`
+                    : `${store.distance_km.toFixed(1)} km away`}
+                </Text>
               ) : null}
               <Text style={st.storePrice}>{store.price_note ?? "Price note unavailable"}</Text>
               <View style={st.storeActionRow}>
