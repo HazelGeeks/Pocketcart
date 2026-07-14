@@ -74,7 +74,7 @@ The doctor checks repository release settings plus external readiness:
 
 ## GitHub Actions Release Automation
 
-The repository includes six release and verification workflows:
+The repository includes seven release and verification workflows:
 
 - `Mobile Release Check`: runs `npm run release:native:check` and
   `npm audit --audit-level=high` on PRs and `main`.
@@ -93,6 +93,9 @@ The repository includes six release and verification workflows:
 - `Live User Flow E2E`: manually creates a disposable confirmed user, verifies
   login, profile, live data, watchlist, alert generation, public deletion
   request, authenticated deletion, cascade cleanup, and rejected re-login.
+- `Supabase Schema Deploy`: manually applies the account-deletion request table,
+  indexes, RLS policies, and PostgREST schema refresh through the authenticated
+  Supabase Management API.
 
 Required GitHub repository secrets:
 
@@ -320,6 +323,10 @@ records first, then update the policies and listing metadata in the same PR.
 Apply the latest `database/schema.sql` before deploying account or sale alert
 functions. The web deletion request form writes to
 `public.account_deletion_requests`.
+
+For the account-deletion request migration included in this repository, run
+GitHub Actions > `Supabase Schema Deploy`, then run `Live User Flow E2E` to
+verify the live schema and both deletion endpoints.
 
 Deploy account deletion functions before store review:
 

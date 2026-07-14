@@ -17,6 +17,7 @@ const requiredFiles = [
   ".github/workflows/supabase-functions.yml",
   ".github/workflows/sale-alert-sync.yml",
   ".github/workflows/live-user-flow.yml",
+  ".github/workflows/supabase-schema.yml",
   "database/schema.sql",
   "docs/mobile-store-release.md",
   "scripts/print-mobile-release-setup-guide.mjs",
@@ -36,6 +37,7 @@ const requiredFiles = [
   "supabase/functions/delete-account-request/README.md",
   "supabase/functions/send-sale-alert-push/index.ts",
   "supabase/functions/sync-sale-alerts/index.ts",
+  "supabase/migrations/20260714055500_account_deletion_requests.sql",
 ];
 
 const findings = [];
@@ -707,6 +709,11 @@ includes(
   ".github/workflows/live-user-flow.yml",
   "/functions/v1/delete-account",
   "Live E2E workflow verifies authenticated account deletion",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "/database/query",
+  "Supabase schema workflow applies the account deletion migration",
 );
 includes(
   ".easignore",

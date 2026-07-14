@@ -1,0 +1,48 @@
+name: Supabase Schema Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-account-deletion-schema:
+    name: Apply account deletion request schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Validate required secrets
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "Missing GitHub secret: SUPABASE_ACCESS_TOKEN"; exit 1; }
+          test -n "$SUPABASE_PROJECT_ID" || { echo "Missing GitHub secret: SUPABASE_PROJECT_ID"; exit 1; }
+
+      - name: Apply account deletion request migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-schema-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-schema-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260714055500_account_deletion_requests.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
