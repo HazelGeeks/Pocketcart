@@ -26,6 +26,7 @@
     "src/utils/profilePreferenceNormalization.ts",
     "src/utils/socialAuth.ts",
     "src/utils/nativeOnboardingState.ts",
-    "src/utils/asyncRequestResults.ts"
+    "src/utils/asyncRequestResults.ts",
+    "src/utils/storeVisibility.ts"
   ]
 }

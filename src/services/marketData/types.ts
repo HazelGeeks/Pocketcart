@@ -90,4 +90,5 @@ export type StoreRow = {
   address?: string | null;
   place_id?: string | null;
   distance_km?: number | null;
+  is_active?: boolean | null;
 };
