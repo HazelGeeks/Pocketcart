@@ -107,13 +107,13 @@ export default function Navbar({
                 }}
               >
                 <Image
-                  source={require("../../assets/favicon.svg")}
+                  source={require("../../assets/web-logo.png")}
                   style={s.brandMark}
                 />
               </motion.div>
             ) : (
               <Image
-                source={require("../../assets/favicon.svg")}
+                source={require("../../assets/web-logo.png")}
                 style={s.brandMark}
               />
             )}

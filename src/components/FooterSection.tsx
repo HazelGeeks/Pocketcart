@@ -72,7 +72,7 @@ export default function FooterSection({
           <WebLink href="/" onPress={() => navigate("home")}>
             <View style={s.footerBrandRow}>
               <Image
-                source={require("../../assets/favicon.svg")}
+                source={require("../../assets/web-logo.png")}
                 style={s.footerMark}
               />
               <Text style={s.footerBrandName}>PocketCart</Text>
