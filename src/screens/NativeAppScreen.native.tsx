@@ -1463,28 +1463,58 @@ export default function NativeAppScreen() {
     };
   })();
 
+  const storeMapPanel = (
+    <StoreMapPanel
+      mapRef={mapRef}
+      query={mapQuery}
+      message={mapMessage}
+      loading={mapLoading}
+      stores={filteredStores}
+      focusedStoreId={focusedStoreId}
+      region={mapRegion}
+      userLocation={userMapLocation}
+      locatingUser={onboardingRequesting}
+      topInset={insets.top}
+      bottomInset={insets.bottom}
+      horizontalPad={pad}
+      onChangeQuery={setMapQuery}
+      onFocusStoreId={(storeId) => {
+        setMapFocusMode("store");
+        setFocusedStoreId(storeId);
+      }}
+      onFocusStore={focusStore}
+      onUseCurrentLocation={() => {
+        void handleLocationShare("map");
+      }}
+      onViewStoreInHome={handleSetHomeStoreFilter}
+    />
+  );
+
   return (
     <View style={st.root}>
-      <NativeContextHeader
-        title={headerContent.title}
-        status={headerContent.status}
-        topInset={insets.top}
-        pad={pad}
-        onBack={activeTab === "more" && accountRoute !== "settings" ? handleCloseAccountSubpage : undefined}
-      />
-      <ScrollView
-        style={st.scroll}
-        contentContainerStyle={[
-          st.scrollContent,
-          {
+      {activeTab !== "map" ? (
+        <NativeContextHeader
+          title={headerContent.title}
+          status={headerContent.status}
+          topInset={insets.top}
+          pad={pad}
+          onBack={activeTab === "more" && accountRoute !== "settings" ? handleCloseAccountSubpage : undefined}
+        />
+      ) : null}
+      {activeTab === "map" ? storeMapPanel : (
+        <ScrollView
+          style={st.scroll}
+          contentContainerStyle={[
+            st.scrollContent,
+            {
             paddingHorizontal: pad,
             paddingBottom: activeTab === "more" && accountRoute !== "settings"
               ? 24 + Math.max(insets.bottom, 10)
               : 112 + Math.max(insets.bottom, 10),
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
         {activeTab === "home" && homeRoute === "catalog" ? (
           <HomeCatalogPanel
             query={homeQuery}
@@ -1551,30 +1581,6 @@ export default function NativeAppScreen() {
             }}
             onRemove={removeShoppingProduct}
             onOpenStore={handleOpenStoreOnMap}
-          />
-        ) : null}
-
-        {activeTab === "map" ? (
-          <StoreMapPanel
-            mapRef={mapRef}
-            query={mapQuery}
-            message={mapMessage}
-            loading={mapLoading}
-            stores={filteredStores}
-            focusedStoreId={focusedStoreId}
-            region={mapRegion}
-            userLocation={userMapLocation}
-            locatingUser={onboardingRequesting}
-            onChangeQuery={setMapQuery}
-            onFocusStoreId={(storeId) => {
-              setMapFocusMode("store");
-              setFocusedStoreId(storeId);
-            }}
-            onFocusStore={focusStore}
-            onUseCurrentLocation={() => {
-              void handleLocationShare("map");
-            }}
-            onViewStoreInHome={handleSetHomeStoreFilter}
           />
         ) : null}
 
@@ -1740,7 +1746,8 @@ export default function NativeAppScreen() {
             }}
           />
         ) : null}
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {activeTab !== "more" || accountRoute === "settings" ? (
         <NativeBottomTabs

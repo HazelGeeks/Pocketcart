@@ -5,6 +5,7 @@ import { commonStyles } from "./nativeAppStyles/commonStyles";
 import { onboardingStyles } from "./nativeAppStyles/onboardingStyles";
 import { productDetailStyles } from "./nativeAppStyles/productDetailStyles";
 import { shoppingListStyles } from "./nativeAppStyles/shoppingListStyles";
+import { storeMapStyles } from "./nativeAppStyles/storeMapStyles";
 
 export { F } from "./nativeAppStyles/fonts";
 
@@ -16,4 +17,5 @@ export const st = {
   ...catalogStyles,
   ...onboardingStyles,
   ...shoppingListStyles,
+  ...storeMapStyles,
 };

@@ -6,6 +6,7 @@ import type {
 } from "../services/adminBackoffice";
 import { createFlyerRow } from "../state/adminStore";
 import type { FlyerRow } from "../state/adminStore";
+import { looksLikeProductStoreRecord } from "./storeVisibility";
 
 export type OverviewCard = {
   id: string;
@@ -308,14 +309,7 @@ export function storesToCsv(stores: AdminStore[]): string {
 }
 
 export function looksLikeProductStoreRow(store: AdminStore): boolean {
-  const joined = `${store.name} ${store.area} ${store.price_note ?? ""}`.toLowerCase();
-  if (/\$\s*\d|\b\d+(?:\.\d{1,2})?\s*(?:ea|each|lb|kg|g|ml|l|pk|pack|ct)\b/i.test(joined)) {
-    return true;
-  }
-  if (/^(eggs?|milk|bread|apple|banana|chicken|beef|pork|rice|ramen)\b/i.test(store.name.trim())) {
-    return true;
-  }
-  return false;
+  return looksLikeProductStoreRecord(store);
 }
 
 export function dateInputValue(value: string | null | undefined): string {

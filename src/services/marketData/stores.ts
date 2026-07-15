@@ -6,6 +6,7 @@ import {
   parseNumber,
 } from "./shared";
 import type { MarketStore, ServiceResult, StoreRow } from "./types";
+import { isCustomerVisibleStore } from "../../utils/storeVisibility";
 
 export async function listStores(params?: {
   search?: string;
@@ -48,7 +49,8 @@ export async function listStores(params?: {
 
   const { data, error } = await supabase
     .from("stores")
-    .select("id, brand, name, area, latitude, longitude, price_note, address, place_id")
+    .select("id, brand, name, area, latitude, longitude, price_note, address, place_id, is_active")
+    .eq("is_active", true)
     .order("name", { ascending: true });
 
   if (error) {
@@ -56,6 +58,7 @@ export async function listStores(params?: {
   }
 
   const stores = ((data ?? []) as StoreRow[])
+    .filter(isCustomerVisibleStore)
     .map((row) => {
       const latitude = parseNumber(row.latitude);
       const longitude = parseNumber(row.longitude);
