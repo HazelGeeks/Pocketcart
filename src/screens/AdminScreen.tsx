@@ -49,10 +49,7 @@ import {
   useUpdateAdminPriceEntryMutation,
   useUploadAdminProductImageMutation,
 } from "../hooks/useAdminBackofficeQueries";
-import {
-  useAdminStore,
-  type AdminMenuKey,
-} from "../state/adminStore";
+import { useAdminStore } from "../state/adminStore";
 import { type StoreImportPreviewRow } from "../utils/adminValidation";
 import {
   ADMIN_EMAIL_ALLOWLIST,
@@ -301,7 +298,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     resetProductFilters,
     loadAll,
     createProductMutation,
-    createStoreMutation,
     updateProductMutation,
     deleteProductMutation,
     createPriceEntryMutation,

@@ -27,15 +27,16 @@ type HomeCatalogPanelProps = {
   products: MarketProduct[];
   selectedProduct: MarketProduct | null;
   sortMode: HomeSortMode;
-  watchedProductIds: Set<string>;
+  shoppingProductIds: Set<string>;
+  unreadAlertCount: number;
   storeFilterName: string | null;
   onClearStoreFilter: () => void;
   onChangeQuery: (value: string) => void;
   onChangeCategory: (value: string) => void;
   onChangeSort: (mode: HomeSortMode) => void;
   onSelectProduct: (productId: string) => void;
-  onWatchProduct: (productId: string) => void;
-  onOpenStoreOnMap: (storeId: string, storeName?: string) => void;
+  onAddToShoppingList: (productId: string) => void;
+  onOpenAlerts: () => void;
 };
 
 const SORT_OPTIONS: Array<{ value: HomeSortMode; label: string }> = [
@@ -43,9 +44,6 @@ const SORT_OPTIONS: Array<{ value: HomeSortMode; label: string }> = [
   { value: "lowestPrice", label: "Lowest price" },
   { value: "biggestDrop", label: "Biggest drop" },
 ];
-
-const byPrice = (product: MarketProduct) => product.current_price ?? Number.MAX_VALUE;
-const byDrop = (product: MarketProduct) => product.price_delta_percent ?? Number.MAX_VALUE;
 
 const formatTrendLabel = (product: MarketProduct) => {
   if (product.price_delta_percent === null) return null;
@@ -77,7 +75,8 @@ export function HomeCatalogPanel({
   loading,
   products,
   selectedProduct,
-  watchedProductIds,
+  shoppingProductIds,
+  unreadAlertCount,
   sortMode,
   storeFilterName,
   onClearStoreFilter,
@@ -85,8 +84,10 @@ export function HomeCatalogPanel({
   onChangeCategory,
   onChangeSort,
   onSelectProduct,
-  onWatchProduct,
+  onAddToShoppingList,
+  onOpenAlerts,
 }: HomeCatalogPanelProps) {
+  const [visibleCount, setVisibleCount] = React.useState(6);
   const sortedProducts = React.useMemo(() => {
     return products.slice().sort((a, b) => {
       if (sortMode === "biggestDrop") {
@@ -105,13 +106,15 @@ export function HomeCatalogPanel({
     });
   }, [products, sortMode]);
 
+  const visibleProducts = sortedProducts.slice(0, visibleCount);
+
+  React.useEffect(() => {
+    setVisibleCount(6);
+  }, [category, query, sortMode, storeFilterName]);
+
   return (
     <View style={st.sectionStack}>
-      <Text style={st.sectionTitle}>Best Prices</Text>
-      <View style={st.dealHeaderRow}>
-        <Text style={st.sectionSub}>Search groceries and compare current sale prices.</Text>
-        <Text style={st.badge}>Live</Text>
-      </View>
+      <Text style={st.sectionSub}>Search groceries and compare current sale prices.</Text>
 
       {storeFilterName ? (
         <View style={st.dealFilterRow}>
@@ -127,7 +130,7 @@ export function HomeCatalogPanel({
       ) : null}
 
       <View style={st.dealSearchRow}>
-        <View style={st.searchAndSortRow}>
+        <View style={st.searchAndAlertRow}>
           <View style={[st.searchCard, st.homeSearchCard]}>
             <TextInput
               value={query}
@@ -140,6 +143,28 @@ export function HomeCatalogPanel({
               style={st.searchInput}
             />
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={unreadAlertCount > 0 ? `${unreadAlertCount} unread price alerts` : "Open price alerts"}
+            onPress={onOpenAlerts}
+            style={st.searchAlertBtn}
+          >
+            <Svg width={25} height={25} viewBox="0 0 24 24" fill="none">
+              <Path
+                d="M6.5 10.4a5.5 5.5 0 0 1 11 0v3.45l1.6 2.55H4.9l1.6-2.55V10.4Z"
+                stroke={C.primaryDeep}
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Path d="M10 19a2 2 0 0 0 4 0" stroke={C.primaryDeep} strokeWidth={2.2} strokeLinecap="round" />
+            </Svg>
+            {unreadAlertCount > 0 ? (
+              <View style={st.searchAlertBadge}>
+                <Text style={st.searchAlertBadgeText}>{unreadAlertCount > 9 ? "9+" : unreadAlertCount}</Text>
+              </View>
+            ) : null}
+          </Pressable>
         </View>
 
         <ScrollView
@@ -217,12 +242,17 @@ export function HomeCatalogPanel({
         </View>
       ) : (
         <View style={st.homeProductList}>
-          {sortedProducts.map((product) => {
+          <View style={st.homeResultsRow}>
+            <Text style={st.itemMeta}>
+              Showing {Math.min(visibleCount, sortedProducts.length)} of {sortedProducts.length}
+            </Text>
+          </View>
+          {visibleProducts.map((product) => {
             const isDeal =
               product.price_delta_percent !== null &&
               product.price_delta !== null &&
               product.price_delta < 0;
-            const isWatching = watchedProductIds.has(product.id);
+            const isInShoppingList = shoppingProductIds.has(product.id);
             const active = selectedProduct?.id === product.id;
             const displayPrice = displayPriceForProduct(product);
             const unitLabel = product.unit ? ` / ${product.unit}` : "";
@@ -283,26 +313,35 @@ export function HomeCatalogPanel({
                     accessibilityRole="button"
                     onPress={(event) => {
                       event.stopPropagation();
-                      onWatchProduct(product.id);
+                      onAddToShoppingList(product.id);
                     }}
-                    style={[
-                      st.homeNotifyBtn,
-                      isWatching && st.homeNotifyBtnActive,
-                    ]}
+                    style={[st.homeListBtn, isInShoppingList && st.homeListBtnActive]}
                   >
-                    <Text
-                      style={[
-                        st.homeNotifyText,
-                        isWatching && st.homeNotifyTextActive,
-                      ]}
-                    >
-                      {isWatching ? "Alert on" : "Notify"}
+                    <Text style={[st.homeListBtnText, isInShoppingList && st.homeListBtnTextActive]}>
+                      {isInShoppingList ? "In list" : "Add to list"}
                     </Text>
                   </Pressable>
                 </View>
               </Pressable>
             );
           })}
+          {visibleCount < sortedProducts.length ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setVisibleCount((count) => count + 6)}
+              style={st.homeShowMoreBtn}
+            >
+              <Text style={st.homeShowMoreText}>Show 6 more</Text>
+            </Pressable>
+          ) : sortedProducts.length > 6 ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setVisibleCount(6)}
+              style={st.homeShowMoreBtn}
+            >
+              <Text style={st.homeShowMoreText}>Show less</Text>
+            </Pressable>
+          ) : null}
         </View>
       )}
     </View>

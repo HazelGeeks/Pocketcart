@@ -4,13 +4,6 @@ import type { MarketPricePoint } from "../services/marketData";
 export type NativeTabId = "home" | "watchlist" | "map" | "alerts" | "more";
 export type HomeRoute = "catalog" | "detail";
 
-export type AlertRow = {
-  id: string;
-  title: string;
-  body: string;
-  when: string;
-};
-
 export type PriceChartPoint = {
   x: number;
   y: number;
@@ -38,10 +31,10 @@ export type PreviousPriceRow = {
 };
 
 export const TABS: Array<{ id: NativeTabId; label: string }> = [
-  { id: "home", label: "Home" },
-  { id: "watchlist", label: "Watchlist" },
+  { id: "watchlist", label: "List" },
   { id: "map", label: "Map" },
-  { id: "alerts", label: "Alert" },
+  { id: "home", label: "Home" },
+  { id: "alerts", label: "Alerts" },
   { id: "more", label: "More" },
 ];
 

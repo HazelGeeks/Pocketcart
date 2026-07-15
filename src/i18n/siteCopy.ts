@@ -1,6 +1,6 @@
 import { enSiteCopy } from "./siteCopy.en";
 import { frSiteCopy } from "./siteCopy.fr";
-import type { SiteCopy, SiteCopyMap } from "./siteCopyTypes";
+import type { SiteCopyMap } from "./siteCopyTypes";
 
 export type { SiteCopy } from "./siteCopyTypes";
 

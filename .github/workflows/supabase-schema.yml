@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 jobs:
-  deploy-account-deletion-schema:
-    name: Apply account deletion request schema
+  deploy-schema-migrations:
+    name: Apply PocketCart schema migrations
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -30,6 +30,29 @@ jobs:
           response_file="${RUNNER_TEMP}/pocketcart-schema-response.json"
           jq -Rs '{ query: ., read_only: false }' \
             supabase/migrations/20260714055500_account_deletion_requests.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply profile preferences migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-profile-preferences-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-profile-preferences-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260714162000_profile_preferences.sql \
             > "$request_file"
 
           status=$(curl --silent --show-error \

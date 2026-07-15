@@ -16,7 +16,7 @@ export type UserProfile = {
   created_at: string;
 };
 
-type ServiceResult<T> = {
+export type ServiceResult<T> = {
   data: T;
   error: string | null;
 };
@@ -24,6 +24,7 @@ type ServiceResult<T> = {
 type AuthCallbackResult = {
   handled: boolean;
   profile: UserProfile | null;
+  type: string | null;
 };
 
 function isAuthSessionMissing(message?: string | null): boolean {
@@ -64,6 +65,14 @@ async function upsertProfileFromUser(user: User): Promise<string | null> {
     .upsert(payload, { onConflict: "id" });
 
   return error ? error.message : null;
+}
+
+export async function syncAuthenticatedUserProfile(
+  user: User,
+): Promise<ServiceResult<UserProfile>> {
+  const profile = profileFromUser(user);
+  const error = await upsertProfileFromUser(user);
+  return { data: profile, error };
 }
 
 export async function signUpUser(params: {
@@ -129,17 +138,61 @@ export async function signInUser(params: {
     };
   }
 
-  const profileError = await upsertProfileFromUser(data.user);
-  if (profileError) {
+  return syncAuthenticatedUserProfile(data.user);
+}
+
+export async function requestPasswordReset(email: string): Promise<ServiceResult<null>> {
+  if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    ...(authRedirectUrl ? { redirectTo: authRedirectUrl } : {}),
+  });
+  return { data: null, error: error?.message ?? null };
+}
+
+export async function updatePassword(password: string): Promise<ServiceResult<null>> {
+  if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
+  const { error } = await supabase.auth.updateUser({ password });
+  return { data: null, error: error?.message ?? null };
+}
+
+export async function updateUserProfile(params: {
+  name: string;
+  email: string;
+}): Promise<ServiceResult<{ profile: UserProfile | null; emailChangeRequested: boolean }>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return missingEnvResult({ profile: null, emailChangeRequested: false });
+  }
+
+  const { data: current, error: currentError } = await supabase.auth.getUser();
+  if (currentError || !current.user) {
     return {
-      data: profileFromUser(data.user),
-      error: profileError,
+      data: { profile: null, emailChangeRequested: false },
+      error: currentError?.message ?? "Please sign in first.",
     };
   }
 
+  const nextEmail = params.email.trim();
+  const emailChangeRequested = nextEmail.toLowerCase() !== (current.user.email ?? "").toLowerCase();
+  const { data, error } = await supabase.auth.updateUser(
+    {
+      ...(emailChangeRequested ? { email: nextEmail } : {}),
+      data: { full_name: params.name.trim() },
+    },
+    authRedirectUrl ? { emailRedirectTo: authRedirectUrl } : undefined,
+  );
+
+  if (error || !data.user) {
+    return {
+      data: { profile: profileFromUser(current.user), emailChangeRequested: false },
+      error: error?.message ?? "Unable to update profile.",
+    };
+  }
+
+  const profileError = await upsertProfileFromUser(data.user);
   return {
-    data: profileFromUser(data.user),
-    error: null,
+    data: { profile: profileFromUser(data.user), emailChangeRequested },
+    error: profileError,
   };
 }
 
@@ -214,18 +267,18 @@ export async function completeAuthSessionFromUrl(
   const params = parseAuthCallbackUrl(url);
   if (!params.hasAuthParams) {
     return {
-      data: { handled: false, profile: null },
+      data: { handled: false, profile: null, type: null },
       error: null,
     };
   }
 
   if (!hasSupabaseEnv || !supabase) {
-    return missingEnvResult({ handled: true, profile: null });
+    return missingEnvResult({ handled: true, profile: null, type: params.type });
   }
 
   if (params.error) {
     return {
-      data: { handled: true, profile: null },
+      data: { handled: true, profile: null, type: params.type },
       error: params.errorDescription ?? params.error,
     };
   }
@@ -238,7 +291,7 @@ export async function completeAuthSessionFromUrl(
 
     if (error) {
       return {
-        data: { handled: true, profile: null },
+        data: { handled: true, profile: null, type: params.type },
         error: error.message,
       };
     }
@@ -247,13 +300,13 @@ export async function completeAuthSessionFromUrl(
 
     if (error) {
       return {
-        data: { handled: true, profile: null },
+        data: { handled: true, profile: null, type: params.type },
         error: error.message,
       };
     }
   } else {
     return {
-      data: { handled: true, profile: null },
+      data: { handled: true, profile: null, type: params.type },
       error: "Email verification link did not include a usable auth session.",
     };
   }
@@ -263,6 +316,7 @@ export async function completeAuthSessionFromUrl(
     data: {
       handled: true,
       profile: profileResult.data,
+      type: params.type,
     },
     error: profileResult.error,
   };

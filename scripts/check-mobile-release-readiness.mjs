@@ -28,6 +28,7 @@ const requiredFiles = [
   "store-assets/google-play/feature-graphic.jpg",
   "store-assets/screenshots/README.md",
   "ios/PocketCart/Info.plist",
+  "ios/PocketCart/PocketCart.entitlements",
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "android/app/build.gradle",
   "android/app/src/main/AndroidManifest.xml",
@@ -38,6 +39,7 @@ const requiredFiles = [
   "supabase/functions/send-sale-alert-push/index.ts",
   "supabase/functions/sync-sale-alerts/index.ts",
   "supabase/migrations/20260714055500_account_deletion_requests.sql",
+  "supabase/migrations/20260714162000_profile_preferences.sql",
 ];
 
 const findings = [];
@@ -233,6 +235,13 @@ if (app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption === false) {
   fail("iOS Expo config should set ITSAppUsesNonExemptEncryption to false");
 }
 
+const defaultIosKeychainGroup = "$(AppIdentifierPrefix)$(CFBundleIdentifier)";
+if (app.ios?.entitlements?.["keychain-access-groups"]?.includes(defaultIosKeychainGroup)) {
+  pass("iOS Expo config preserves the default Keychain access group");
+} else {
+  fail("iOS Expo config must preserve the default Keychain access group");
+}
+
 if (app.android?.package === "com.pocketcart.app") {
   pass("Android package is com.pocketcart.app");
 } else {
@@ -345,6 +354,16 @@ includes(
 );
 includes("ios/PocketCart/Info.plist", "<string>pocketcart</string>", "iOS pocketcart URL scheme is present");
 includes(
+  "ios/PocketCart/PocketCart.entitlements",
+  "<key>keychain-access-groups</key>",
+  "iOS native entitlements declare Keychain access groups",
+);
+includes(
+  "ios/PocketCart/PocketCart.entitlements",
+  defaultIosKeychainGroup,
+  "iOS native entitlements preserve the default Keychain access group",
+);
+includes(
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "NSPrivacyCollectedDataTypeEmailAddress",
   "iOS privacy manifest declares email address collection",
@@ -452,7 +471,7 @@ includes(
 );
 includes(
   "src/components/nativeApp/MorePanel.tsx",
-  "Confirm Delete",
+  "Delete your account?",
   "Native More tab includes in-app account deletion confirmation",
 );
 includes(
@@ -724,6 +743,11 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "/database/query",
   "Supabase schema workflow applies the account deletion migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260714162000_profile_preferences.sql",
+  "Supabase schema workflow applies the profile preferences migration",
 );
 includes(
   ".easignore",

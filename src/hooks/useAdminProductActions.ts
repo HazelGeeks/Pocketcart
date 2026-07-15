@@ -79,17 +79,6 @@ type UseAdminProductActionsParams = {
     { name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
     AdminProduct | null
   >;
-  createStoreMutation: Mutation<{
-    brand?: string;
-    name: string;
-    area?: string;
-    latitude: string;
-    longitude: string;
-    address?: string;
-    placeId?: string;
-    storeType?: string;
-    isActive?: boolean;
-  }, AdminStore | null>;
   updateProductMutation: Mutation<
     { id: string; name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
     AdminProduct | null
@@ -142,7 +131,6 @@ export default function useAdminProductActions({
   resetProductFilters,
   loadAll,
   createProductMutation,
-  createStoreMutation,
   updateProductMutation,
   deleteProductMutation,
   createPriceEntryMutation,

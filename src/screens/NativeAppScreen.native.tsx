@@ -1,25 +1,45 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import {
   BackHandler,
   Linking,
   PanResponder,
   Platform,
-  Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
 import MapView, { type Region } from "react-native-maps";
 import { HomeCatalogPanel } from "../components/nativeApp/HomeCatalogPanel";
+import { AccountAuthPanel } from "../components/nativeApp/AccountAuthPanel";
+import {
+  EditProfilePanel,
+  EmailVerificationPanel,
+  ResetPasswordPanel,
+} from "../components/nativeApp/AccountFlowPanels";
 import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding";
+import { PersonalizationPanel } from "../components/nativeApp/PersonalizationPanel";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { NativeBottomTabs, NativeTopBar } from "../components/nativeApp/NativeShell";
+import {
+  NativeBottomTabs,
+  NativeContextHeader,
+} from "../components/nativeApp/NativeShell";
 import { ProductDetailPanel } from "../components/nativeApp/ProductDetailPanel";
+import { SaleAlertsPanel } from "../components/nativeApp/SaleAlertsPanel";
+import { ShoppingListPanel } from "../components/nativeApp/ShoppingListPanel";
 import { StoreMapPanel } from "../components/nativeApp/StoreMapPanel";
 import { WatchlistPanel } from "../components/nativeApp/WatchlistPanel";
 import useLayout from "../hooks/useLayout";
+import useNativeOnboarding, {
+  type NativeOnboardingState,
+} from "../hooks/useNativeOnboarding";
+import useShoppingList from "../hooks/useShoppingList";
+import useProfilePreferences from "../hooks/useProfilePreferences";
+import type { ProfilePreferences } from "../services/profilePreferences";
 import { hasSupabaseEnv } from "../services/supabaseClient";
+import {
+  signInWithApple,
+  signInWithGoogle,
+} from "../services/nativeSocialAuth";
 import { MorePanel } from "../components/nativeApp/MorePanel";
 import {
   addWatchlistItem,
@@ -36,9 +56,12 @@ import {
   completeAuthSessionFromUrl,
   deleteCurrentUserAccount,
   getCurrentUserProfile,
+  requestPasswordReset,
   signInUser,
   signOutUser,
   signUpUser,
+  updatePassword,
+  updateUserProfile,
   type UserProfile,
 } from "../services/userProfile";
 import {
@@ -56,45 +79,22 @@ import {
   buildPreviousPriceRows,
   buildPriceChart,
   DEFAULT_REGION,
-  money,
   type HomeRoute,
   type NativeTabId,
 } from "./nativeAppData";
-import {
-  formatSignedPercent,
-} from "../components/nativeApp/priceDisplay";
-import {
-  requestLocationPermissionAndPosition,
-  type OnboardingLocationMode,
-} from "../services/nativePermissions";
+import { requestLocationPermissionAndPosition } from "../services/nativePermissions";
 import {
   configurePushNotificationHandler,
   registerPushTokenForCurrentUser,
   sendSaleAlertPushNotifications,
 } from "../services/pushNotifications";
 import { st } from "./nativeAppStyles";
-
-type OnboardingState = {
-  locationCompleted: boolean;
-  locationMode: OnboardingLocationMode;
-  postalCode: string | null;
-  locationLatitude: number | null;
-  locationLongitude: number | null;
-  alertsCompleted: boolean;
-  alertsEnabled: boolean;
-};
-
-const ONBOARDING_STORAGE_KEY = "pc-native-onboarding-v1";
-
-const INITIAL_ONBOARDING_STATE: OnboardingState = {
-  locationCompleted: false,
-  locationMode: "skip",
-  postalCode: null,
-  locationLatitude: null,
-  locationLongitude: null,
-  alertsCompleted: false,
-  alertsEnabled: false,
-};
+import { buildShoppingRecommendation } from "../utils/shoppingOptimizer";
+import { settleLatestListResults } from "../utils/asyncRequestResults";
+import {
+  classifyAuthCallbackType,
+  isAuthCallbackUrl,
+} from "../utils/authCallback";
 
 function isSignInRequiredMessage(message: string | null | undefined): boolean {
   return message?.trim().toLowerCase() === "please sign in first.";
@@ -108,6 +108,9 @@ export default function NativeAppScreen() {
 
   const [activeTab, setActiveTab] = React.useState<NativeTabId>("home");
   const [homeRoute, setHomeRoute] = React.useState<HomeRoute>("catalog");
+  const [accountRoute, setAccountRoute] = React.useState<
+    "settings" | "auth" | "verify" | "personalize" | "editProfile" | "resetPassword"
+  >("settings");
   const [homeSortMode, setHomeSortMode] = React.useState<
     "deals" | "lowestPrice" | "biggestDrop"
   >("deals");
@@ -139,6 +142,10 @@ export default function NativeAppScreen() {
   const [alertsLoading, setAlertsLoading] = React.useState(false);
   const [alertsMessage, setAlertsMessage] = React.useState<string | null>(null);
   const [alertsMarkingRead, setAlertsMarkingRead] = React.useState(false);
+  const [shoppingPrices, setShoppingPrices] = React.useState<MarketStorePrice[]>([]);
+  const [shoppingPricesLoading, setShoppingPricesLoading] = React.useState(false);
+  const [shoppingMessage, setShoppingMessage] = React.useState<string | null>(null);
+  const shoppingRequestIdRef = React.useRef(0);
 
   const [mapQuery, setMapQuery] = React.useState("");
   const [mapStores, setMapStores] = React.useState<MarketStore[]>([]);
@@ -154,6 +161,9 @@ export default function NativeAppScreen() {
 
   const [profile, setProfile] = React.useState<UserProfile | null>(null);
   const [moreLoading, setMoreLoading] = React.useState(false);
+  const [socialAuthLoading, setSocialAuthLoading] = React.useState<
+    "apple" | "google" | null
+  >(null);
   const [moreMessage, setMoreMessage] = React.useState<string | null>(null);
   const [authMode, setAuthMode] = React.useState<"signIn" | "signUp">("signIn");
   const [signInEmail, setSignInEmail] = React.useState("");
@@ -163,18 +173,43 @@ export default function NativeAppScreen() {
   const [signUpPassword, setSignUpPassword] = React.useState("");
   const [deleteConfirming, setDeleteConfirming] = React.useState(false);
   const [deletingAccount, setDeletingAccount] = React.useState(false);
+  const [preferencesSaving, setPreferencesSaving] = React.useState(false);
+  const [pendingEmailVerification, setPendingEmailVerification] = React.useState(false);
 
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
-  const [onboardingState, setOnboardingState] = React.useState(INITIAL_ONBOARDING_STATE);
-  const [onboardingVisible, setOnboardingVisible] = React.useState(false);
-  const [onboardingStep, setOnboardingStep] = React.useState<"location" | "alerts">(
-    "location",
-  );
-  const [onboardingPostalCode, setOnboardingPostalCode] = React.useState("");
-  const [onboardingAlertsEnabled, setOnboardingAlertsEnabled] = React.useState(false);
-  const [onboardingMessage, setOnboardingMessage] = React.useState<string | null>(null);
+  const {
+    alertsEnabled: onboardingAlertsEnabled,
+    message: onboardingMessage,
+    persist: persistOnboardingState,
+    postalCode: onboardingPostalCode,
+    setAlertsEnabled: setOnboardingAlertsEnabled,
+    setMessage: setOnboardingMessage,
+    setPostalCode: setOnboardingPostalCode,
+    setStep: setOnboardingStep,
+    setVisible: setOnboardingVisible,
+    state: onboardingState,
+    step: onboardingStep,
+    visible: onboardingVisible,
+  } = useNativeOnboarding();
   const [onboardingRequesting, setOnboardingRequesting] = React.useState(false);
+  const {
+    addProduct: addShoppingProduct,
+    changeQuantity: changeShoppingQuantity,
+    clear: clearShoppingList,
+    items: shoppingItems,
+    loaded: shoppingListLoaded,
+    removeProduct: removeShoppingProduct,
+  } = useShoppingList();
+  const {
+    loaded: profilePreferencesLoaded,
+    preferences: profilePreferences,
+    save: savePreferences,
+    saveDraft: savePreferencesDraft,
+  } = useProfilePreferences(
+    profile?.id ?? null,
+    profile?.email ?? (pendingEmailVerification ? signUpEmail : null),
+  );
 
   const showToast = React.useCallback((message: string) => {
     setToastMessage(message);
@@ -236,15 +271,27 @@ export default function NativeAppScreen() {
     return map;
   }, [homeProducts]);
 
-  const watchedProductIds = React.useMemo(() => {
-    const productIds = new Set<string>();
-    for (const item of watchlistItems) {
-      if (item.product_id) {
-        productIds.add(item.product_id);
-      }
-    }
-    return productIds;
-  }, [watchlistItems]);
+  const shoppingProductIds = React.useMemo(
+    () => new Set(shoppingItems.map((item) => item.productId)),
+    [shoppingItems],
+  );
+  const shoppingProductKey = React.useMemo(
+    () => [...shoppingProductIds].sort().join("|"),
+    [shoppingProductIds],
+  );
+  const shoppingRecommendation = React.useMemo(
+    () => buildShoppingRecommendation(
+      shoppingItems,
+      shoppingPrices.map((price) => ({
+        productId: price.product_id,
+        storeId: price.store_id,
+        storeName: price.store_name,
+        storeArea: price.store_area,
+        price: price.price,
+      })),
+    ),
+    [shoppingItems, shoppingPrices],
+  );
 
   const filteredStores = React.useMemo(() => {
     const q = mapQuery.trim().toLowerCase();
@@ -255,6 +302,16 @@ export default function NativeAppScreen() {
         .includes(q),
     );
   }, [mapQuery, mapStores]);
+
+  const personalizationStoreOptions = React.useMemo(() => {
+    const names = mapStores
+      .map((store) => (store.brand ?? store.name).trim())
+      .filter(Boolean);
+    const uniqueNames = [...new Set(names)].slice(0, 10);
+    return uniqueNames.length > 0
+      ? uniqueNames
+      : ["Costco", "Walmart", "No Frills", "Save-On-Foods", "T&T", "H Mart"];
+  }, [mapStores]);
 
   const homeChart = React.useMemo(() => {
     if (!selectedHomeProduct || homePriceHistory.length === 0) return null;
@@ -343,67 +400,19 @@ export default function NativeAppScreen() {
     [activeTab, homeRoute],
   );
 
-  const persistOnboardingState = React.useCallback(
-    async (nextState: OnboardingState) => {
-      setOnboardingState(nextState);
-      setOnboardingAlertsEnabled(nextState.alertsEnabled);
-      setOnboardingPostalCode(nextState.postalCode ?? "");
-      setOnboardingMessage(null);
-      await AsyncStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(nextState)).catch(
-        () => {},
-      );
-    },
-    [],
-  );
-
-  const loadOnboardingState = React.useCallback(async () => {
-    const raw = await AsyncStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) {
-      setOnboardingVisible(true);
-      setOnboardingStep("location");
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Partial<OnboardingState>;
-      const normalized: OnboardingState = {
-        locationCompleted: Boolean(parsed.locationCompleted),
-        locationMode: parsed.locationMode ?? "skip",
-        postalCode: parsed.postalCode ?? null,
-        locationLatitude: parsed.locationLatitude ?? null,
-        locationLongitude: parsed.locationLongitude ?? null,
-        alertsCompleted: Boolean(parsed.alertsCompleted),
-        alertsEnabled: Boolean(parsed.alertsEnabled),
-      };
-      setOnboardingState(normalized);
-      setOnboardingPostalCode(normalized.postalCode ?? "");
-      setOnboardingAlertsEnabled(normalized.alertsEnabled);
-      if (
-        normalized.locationMode === "share" &&
-        normalized.locationLatitude !== null &&
-        normalized.locationLongitude !== null
-      ) {
-        setMapFocusMode("user");
-      }
-      if (!normalized.locationCompleted) {
-        setOnboardingVisible(true);
-        setOnboardingStep("location");
-      } else if (!normalized.alertsCompleted) {
-        setOnboardingVisible(true);
-        setOnboardingStep("alerts");
-      } else {
-        setOnboardingVisible(false);
-      }
-    } catch {
-      setOnboardingVisible(true);
-      setOnboardingStep("location");
-      await AsyncStorage.removeItem(ONBOARDING_STORAGE_KEY).catch(() => {});
-    }
-  }, []);
-
   React.useEffect(() => {
-    void loadOnboardingState();
-  }, [loadOnboardingState]);
+    if (
+      onboardingState.locationMode === "share" &&
+      onboardingState.locationLatitude !== null &&
+      onboardingState.locationLongitude !== null
+    ) {
+      setMapFocusMode("user");
+    }
+  }, [
+    onboardingState.locationLatitude,
+    onboardingState.locationLongitude,
+    onboardingState.locationMode,
+  ]);
 
   React.useEffect(() => {
     configurePushNotificationHandler();
@@ -415,20 +424,24 @@ export default function NativeAppScreen() {
   }, [onboardingState.alertsEnabled, profile]);
 
   React.useEffect(() => {
-    if (homeRoute !== "detail") {
-      return;
-    }
-
     if (Platform.OS === "android") {
       const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-        setHomeRoute("catalog");
-        return true;
+        if (activeTab === "more" && accountRoute !== "settings") {
+          setAccountRoute("settings");
+          setMoreMessage(null);
+          return true;
+        }
+        if (homeRoute === "detail") {
+          setHomeRoute("catalog");
+          return true;
+        }
+        return false;
       });
       return () => subscription.remove();
     }
 
     return;
-  }, [homeRoute]);
+  }, [accountRoute, activeTab, homeRoute]);
 
   const loadHomeProducts = React.useCallback(async () => {
     setHomeLoading(true);
@@ -487,6 +500,34 @@ export default function NativeAppScreen() {
       setHomeHistoryMessage(error);
     }
   }, []);
+
+  const loadShoppingPrices = React.useCallback(async () => {
+    const productIds = shoppingProductKey ? shoppingProductKey.split("|") : [];
+    const requestId = shoppingRequestIdRef.current + 1;
+    shoppingRequestIdRef.current = requestId;
+
+    if (productIds.length === 0) {
+      setShoppingPrices([]);
+      setShoppingMessage(null);
+      setShoppingPricesLoading(false);
+      return;
+    }
+
+    setShoppingPricesLoading(true);
+    const results = await Promise.all(
+      productIds.map((productId) => listLatestStorePricesForProduct(productId)),
+    );
+    const settled = settleLatestListResults(
+      requestId,
+      shoppingRequestIdRef.current,
+      results,
+    );
+    if (!settled) return;
+
+    setShoppingPrices(settled.data);
+    setShoppingMessage(settled.message);
+    setShoppingPricesLoading(false);
+  }, [shoppingProductKey]);
 
   const notifyCreatedSaleAlerts = React.useCallback(
     (createdAlerts: SaleAlert[]) => {
@@ -614,12 +655,7 @@ export default function NativeAppScreen() {
       if (!url) return;
       if (handledAuthCallbackUrlsRef.current.has(url)) return;
 
-      const looksLikeAuthCallback =
-        url.startsWith("pocketcart://auth/callback") ||
-        url.startsWith("com.pocketcart.app://auth/callback") ||
-        url.includes("access_token=") ||
-        url.includes("error=");
-      if (!looksLikeAuthCallback) return;
+      if (!isAuthCallbackUrl(url)) return;
 
       handledAuthCallbackUrlsRef.current.add(url);
       setMoreLoading(true);
@@ -632,14 +668,27 @@ export default function NativeAppScreen() {
       setAuthMode("signIn");
 
       if (error) {
+        setAccountRoute("settings");
         setMoreMessage(error);
-        showToast("Unable to verify email.");
+        showToast("Unable to complete sign in.");
         return;
       }
 
       setProfile(data.profile);
-      setMoreMessage("Email verified. You're signed in.");
-      showToast("Email verified.");
+      setPendingEmailVerification(false);
+      const callbackKind = classifyAuthCallbackType(data.type);
+      if (callbackKind === "passwordRecovery") {
+        setAccountRoute("resetPassword");
+        setMoreMessage(null);
+        showToast("Choose a new password.");
+        return;
+      }
+      setAccountRoute("settings");
+      const verifiedEmail = callbackKind === "emailVerification";
+      setMoreMessage(
+        verifiedEmail ? "Email verified. You're signed in." : "Signed in successfully.",
+      );
+      showToast(verifiedEmail ? "Email verified." : "Signed in.");
       await loadWatchlist(true);
     },
     [loadWatchlist, showToast],
@@ -705,9 +754,9 @@ export default function NativeAppScreen() {
   }, [activeTab, homeRoute, loadHomePriceHistory, loadHomeStorePrices, selectedHomeProductId]);
 
   React.useEffect(() => {
-    if (activeTab !== "watchlist") return;
-    void loadWatchlist();
-  }, [activeTab, loadWatchlist]);
+    if (!shoppingListLoaded || activeTab !== "watchlist") return;
+    void loadShoppingPrices();
+  }, [activeTab, loadShoppingPrices, shoppingListLoaded]);
 
   React.useEffect(() => {
     if (activeTab !== "alerts") return;
@@ -810,7 +859,7 @@ export default function NativeAppScreen() {
         }
       }
 
-      const nextState: OnboardingState = {
+      const nextState: NativeOnboardingState = {
         ...onboardingState,
         locationCompleted: true,
         locationMode: "share",
@@ -887,7 +936,7 @@ export default function NativeAppScreen() {
       return;
     }
 
-    const nextState: OnboardingState = {
+    const nextState: NativeOnboardingState = {
       ...onboardingState,
       locationCompleted: true,
       locationMode: "postal",
@@ -930,7 +979,7 @@ export default function NativeAppScreen() {
       }
 
       setOnboardingAlertsEnabled(permission.granted);
-      const nextState: OnboardingState = {
+      const nextState: NativeOnboardingState = {
         ...onboardingState,
         alertsCompleted: true,
         alertsEnabled: permission.granted,
@@ -957,7 +1006,7 @@ export default function NativeAppScreen() {
   }, [onboardingState, persistOnboardingState, showToast]);
 
   const handleDisableAlerts = React.useCallback(async () => {
-    const nextState: OnboardingState = {
+    const nextState: NativeOnboardingState = {
       ...onboardingState,
       alertsCompleted: true,
       alertsEnabled: false,
@@ -968,7 +1017,7 @@ export default function NativeAppScreen() {
   }, [onboardingState, persistOnboardingState, showToast]);
 
   const handleSkipLocation = React.useCallback(async () => {
-    const nextState: OnboardingState = {
+    const nextState: NativeOnboardingState = {
       ...onboardingState,
       locationCompleted: true,
       locationMode: "skip",
@@ -990,7 +1039,7 @@ export default function NativeAppScreen() {
       return;
     }
 
-    const skippedState: OnboardingState = {
+    const skippedState: NativeOnboardingState = {
       ...onboardingState,
       alertsCompleted: true,
       alertsEnabled: false,
@@ -1077,9 +1126,11 @@ export default function NativeAppScreen() {
         ? "Account created. Check your email to verify your account."
         : "Account created successfully.",
     );
+    setPendingEmailVerification(data.awaitingVerification);
     showToast(data.awaitingVerification ? "Account created. Verify your email." : "Account created.");
     setSignUpPassword("");
     await loadProfile(true);
+    setAccountRoute(data.awaitingVerification ? "verify" : "personalize");
   }, [
     loadProfile,
     showToast,
@@ -1111,11 +1162,90 @@ export default function NativeAppScreen() {
     }
 
     setProfile(data);
+    setPendingEmailVerification(false);
     setMoreMessage(null);
     setSignInPassword("");
+    setAccountRoute("settings");
     showToast("Signed in.");
     await loadWatchlist(true);
   }, [loadWatchlist, showToast, signInEmail, signInPassword]);
+
+  const handleSocialSignIn = React.useCallback(async (
+    provider: "apple" | "google",
+  ) => {
+    setMoreMessage(null);
+    setSocialAuthLoading(provider);
+    const result = provider === "apple"
+      ? await signInWithApple()
+      : await signInWithGoogle();
+    setSocialAuthLoading(null);
+
+    if (result.data.cancelled) return;
+    if (!result.data.profile) {
+      setMoreMessage(result.error ?? `Unable to sign in with ${provider}.`);
+      return;
+    }
+
+    setProfile(result.data.profile);
+    setPendingEmailVerification(false);
+    setMoreMessage(result.error
+      ? `Signed in, but some profile details could not sync: ${result.error}`
+      : null);
+    setAccountRoute(result.data.isNewUser ? "personalize" : "settings");
+    showToast(`Signed in with ${provider === "apple" ? "Apple" : "Google"}.`);
+    await loadWatchlist(true);
+  }, [loadWatchlist, showToast]);
+
+  const handleForgotPassword = React.useCallback(async (emailValue: string) => {
+    const email = emailValue.trim();
+    if (!email) {
+      setMoreMessage("Enter your email first, then tap Forgot password.");
+      return;
+    }
+    setMoreLoading(true);
+    const { error } = await requestPasswordReset(email);
+    setMoreLoading(false);
+    setMoreMessage(error ?? "Password reset email sent. Open the link on this device.");
+  }, []);
+
+  const handleUpdateProfile = React.useCallback(async (nameValue: string, emailValue: string) => {
+    const name = nameValue.trim();
+    const email = emailValue.trim();
+    if (!name || !email) {
+      setMoreMessage("Name and email are required.");
+      return;
+    }
+    setMoreLoading(true);
+    const { data, error } = await updateUserProfile({ name, email });
+    setMoreLoading(false);
+    if (error) {
+      setMoreMessage(error);
+      return;
+    }
+    if (data.profile) setProfile(data.profile);
+    setAccountRoute("settings");
+    setMoreMessage(data.emailChangeRequested
+      ? "Profile updated. Check your email to confirm the new address."
+      : "Profile updated.");
+    showToast("Profile updated.");
+  }, [showToast]);
+
+  const handleUpdatePassword = React.useCallback(async (password: string) => {
+    if (password.length < 8) {
+      setMoreMessage("Password must be at least 8 characters.");
+      return;
+    }
+    setMoreLoading(true);
+    const { error } = await updatePassword(password);
+    setMoreLoading(false);
+    if (error) {
+      setMoreMessage(error);
+      return;
+    }
+    setAccountRoute("settings");
+    setMoreMessage("Password updated successfully.");
+    showToast("Password updated.");
+  }, [showToast]);
 
   const handleAddProductToWatchlist = React.useCallback(
     async (product: MarketProduct) => {
@@ -1134,6 +1264,8 @@ export default function NativeAppScreen() {
         if (isSignInRequiredMessage(error)) {
           setHomeActionMessage(null);
           setActiveTab("more");
+          setAuthMode("signIn");
+          setAccountRoute("auth");
           setHomeRoute("catalog");
           showToast("Sign in to enable sale alerts.");
           return;
@@ -1154,13 +1286,21 @@ export default function NativeAppScreen() {
     await handleAddProductToWatchlist(selectedHomeProduct);
   }, [handleAddProductToWatchlist, selectedHomeProduct]);
 
-  const handleWatchProductFromHome = React.useCallback(
+  const handleAddProductToShoppingList = React.useCallback(
+    (product: MarketProduct) => {
+      const alreadyAdded = shoppingProductIds.has(product.id);
+      addShoppingProduct(product);
+      showToast(alreadyAdded ? "Shopping list quantity increased." : "Added to shopping list.");
+    },
+    [addShoppingProduct, shoppingProductIds, showToast],
+  );
+
+  const handleAddShoppingProductFromHome = React.useCallback(
     (productId: string) => {
       const product = filteredHomeProducts.find((item) => item.id === productId);
-      if (!product) return;
-      void handleAddProductToWatchlist(product);
+      if (product) handleAddProductToShoppingList(product);
     },
-    [filteredHomeProducts, handleAddProductToWatchlist],
+    [filteredHomeProducts, handleAddProductToShoppingList],
   );
 
   const handleSignOut = React.useCallback(async () => {
@@ -1176,6 +1316,8 @@ export default function NativeAppScreen() {
     setProfile(null);
     setWatchlistItems([]);
     setDeleteConfirming(false);
+    setPendingEmailVerification(false);
+    setAccountRoute("settings");
     setMoreMessage("Signed out.");
     showToast("Signed out.");
   }, [showToast]);
@@ -1192,6 +1334,7 @@ export default function NativeAppScreen() {
 
     setDeleteConfirming(false);
     setProfile(null);
+    setPendingEmailVerification(false);
     setWatchlistItems([]);
     setMoreMessage("Account deleted.");
     showToast("Account deleted.");
@@ -1233,30 +1376,111 @@ export default function NativeAppScreen() {
       if (tabId === "map" && userMapLocation) {
         setMapFocusMode("user");
       }
+      if (tabId === "more") {
+        setAccountRoute("settings");
+        if (!pendingEmailVerification) setMoreMessage(null);
+      }
       setActiveTab(tabId);
     },
-    [userMapLocation],
+    [pendingEmailVerification, userMapLocation],
   );
+
+  const handleCloseAccountSubpage = React.useCallback(() => {
+    setAccountRoute("settings");
+    if (accountRoute === "auth") setMoreMessage(null);
+  }, [accountRoute]);
+
+  const handleSavePersonalization = React.useCallback(async (next: ProfilePreferences) => {
+    setPreferencesSaving(true);
+    const error = await savePreferences(next);
+    setPreferencesSaving(false);
+    setAccountRoute("settings");
+    setMoreMessage(
+      pendingEmailVerification
+        ? "Preferences saved. Check your email to verify your account."
+        : error
+          ? "Preferences were saved on this device. Account sync will retry later."
+          : "Shopping profile updated.",
+    );
+    showToast("Shopping profile updated.");
+  }, [pendingEmailVerification, savePreferences, showToast]);
+
+  const handleSkipPersonalization = React.useCallback(() => {
+    void handleSavePersonalization({
+      ...profilePreferences,
+      completed: true,
+    });
+  }, [handleSavePersonalization, profilePreferences]);
+
+  const handlePersonalizationDraft = React.useCallback((next: ProfilePreferences) => {
+    savePreferencesDraft(next);
+  }, [savePreferencesDraft]);
+
+  const headerContent = (() => {
+    if (activeTab === "home") {
+      return homeRoute === "detail"
+        ? { title: "Product Details", status: selectedHomeProduct?.category ?? "Price history" }
+        : { title: "Discover", status: "Live prices" };
+    }
+    if (activeTab === "watchlist") {
+      return {
+        title: "Shopping List",
+        status: `${shoppingItems.length} ${shoppingItems.length === 1 ? "item" : "items"}`,
+      };
+    }
+    if (activeTab === "map") {
+      return {
+        title: "Nearby Stores",
+        status: `${filteredStores.length} ${filteredStores.length === 1 ? "store" : "stores"}`,
+      };
+    }
+    if (activeTab === "alerts") {
+      return {
+        title: "Price Alerts",
+        status: unreadAlertCount > 0 ? `${unreadAlertCount} new` : "Up to date",
+      };
+    }
+    if (accountRoute === "auth") {
+      return authMode === "signIn"
+        ? { title: "Sign In", status: "Account" }
+        : { title: "Create Account", status: "Account" };
+    }
+    if (accountRoute === "verify") {
+      return { title: "Verify Email", status: "Email sent" };
+    }
+    if (accountRoute === "personalize") {
+      return { title: "Shopping Profile", status: "Optional" };
+    }
+    if (accountRoute === "editProfile") {
+      return { title: "Edit Profile", status: "Account" };
+    }
+    if (accountRoute === "resetPassword") {
+      return { title: "New Password", status: "Secure" };
+    }
+    return {
+      title: "Account & Settings",
+      status: profile ? "Signed in" : "Guest",
+    };
+  })();
 
   return (
     <View style={st.root}>
-      <NativeTopBar
+      <NativeContextHeader
+        title={headerContent.title}
+        status={headerContent.status}
         topInset={insets.top}
         pad={pad}
-        unreadAlertCount={unreadAlertCount}
-        onOpenAlerts={() => {
-          setHomeRoute("catalog");
-          setActiveTab("alerts");
-        }}
+        onBack={activeTab === "more" && accountRoute !== "settings" ? handleCloseAccountSubpage : undefined}
       />
-
       <ScrollView
         style={st.scroll}
         contentContainerStyle={[
           st.scrollContent,
           {
             paddingHorizontal: pad,
-            paddingBottom: 92 + Math.max(insets.bottom, 10),
+            paddingBottom: activeTab === "more" && accountRoute !== "settings"
+              ? 24 + Math.max(insets.bottom, 10)
+              : 112 + Math.max(insets.bottom, 10),
           },
         ]}
         showsVerticalScrollIndicator={false}
@@ -1270,7 +1494,8 @@ export default function NativeAppScreen() {
             actionMessage={homeActionMessage}
             loading={homeLoading}
             products={filteredHomeProducts}
-            watchedProductIds={watchedProductIds}
+            shoppingProductIds={shoppingProductIds}
+            unreadAlertCount={unreadAlertCount}
             sortMode={homeSortMode}
             storeFilterName={homeStoreFilterName}
             onClearStoreFilter={clearHomeStoreFilter}
@@ -1282,10 +1507,11 @@ export default function NativeAppScreen() {
               setSelectedHomeProductId(productId);
               setHomeRoute("detail");
             }}
-            onWatchProduct={(productId) => {
-              void handleWatchProductFromHome(productId);
+            onAddToShoppingList={handleAddShoppingProductFromHome}
+            onOpenAlerts={() => {
+              setHomeRoute("catalog");
+              setActiveTab("alerts");
             }}
-            onOpenStoreOnMap={handleOpenStoreOnMap}
           />
         ) : null}
 
@@ -1301,24 +1527,30 @@ export default function NativeAppScreen() {
               storePrices={homeStorePrices}
               storePricesLoading={homeStorePricesLoading}
               addSubmitting={homeAddSubmitting}
+              isInShoppingList={Boolean(selectedHomeProduct && shoppingProductIds.has(selectedHomeProduct.id))}
               onBack={() => setHomeRoute("catalog")}
               onAddToWatchlist={handleAddSelectedToWatchlist}
+              onAddToShoppingList={() => {
+                if (selectedHomeProduct) handleAddProductToShoppingList(selectedHomeProduct);
+              }}
               onOpenStoreOnMap={handleOpenStoreOnMap}
             />
           </View>
         ) : null}
 
         {activeTab === "watchlist" ? (
-          <WatchlistPanel
-            hasSupabaseEnv={hasSupabaseEnv}
-            items={watchlistItems}
-            productById={productById}
-            loading={watchLoading}
-            removingId={watchRemovingId}
-            message={watchMessage}
-            onRemoveItem={(itemId) => {
-              void handleRemoveWatchlistItem(itemId);
+          <ShoppingListPanel
+            items={shoppingItems}
+            loading={shoppingPricesLoading}
+            message={shoppingMessage}
+            recommendation={shoppingRecommendation}
+            onChangeQuantity={changeShoppingQuantity}
+            onClear={clearShoppingList}
+            onRefresh={() => {
+              void loadShoppingPrices();
             }}
+            onRemove={removeShoppingProduct}
+            onOpenStore={handleOpenStoreOnMap}
           />
         ) : null}
 
@@ -1347,74 +1579,36 @@ export default function NativeAppScreen() {
         ) : null}
 
         {activeTab === "alerts" ? (
-          <View style={st.sectionStack}>
-            <Text style={st.sectionTitle}>Alert</Text>
-            <Text style={st.sectionSub}>
-              {unreadAlertCount > 0
-                ? `${unreadAlertCount} new sale ${unreadAlertCount === 1 ? "alert" : "alerts"}.`
-                : "Price alerts and watchlist highlights."}
-            </Text>
-            <View style={st.detailActionRow}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  void loadWatchlist(true);
-                }}
-                style={[st.authBtn, st.authBtnSecondary, st.detailActionBtn]}
-                disabled={alertsLoading}
-              >
-                <Text style={st.authBtnSecondaryText}>{alertsLoading ? "Checking..." : "Check alerts"}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  void handleMarkAlertsRead();
-                }}
-                style={[st.authBtn, st.authBtnSecondary, st.detailActionBtn, unreadAlertCount === 0 && st.removeBtnDisabled]}
-                disabled={unreadAlertCount === 0 || alertsMarkingRead}
-              >
-                <Text style={st.authBtnSecondaryText}>{alertsMarkingRead ? "Saving..." : "Mark read"}</Text>
-              </Pressable>
-            </View>
-            {alertsMessage ? (
-              <View style={st.rowCard}>
-                <Text style={st.itemMeta}>{alertsMessage}</Text>
-              </View>
-            ) : null}
-            {alertsLoading && saleAlerts.length === 0 ? (
-              <View style={st.rowCard}>
-                <Text style={st.itemMeta}>Checking watchlist sales...</Text>
-              </View>
-            ) : saleAlerts.length === 0 ? (
-              <View style={st.rowCard}>
-                <Text style={st.alertTitle}>No active alerts</Text>
-                <Text style={st.itemMeta}>
-                  Save items from Home and we will create an alert when a weekly sale is active.
-                </Text>
-              </View>
-            ) : (
-              saleAlerts.map((alert) => (
-                <View key={alert.id} style={st.rowCard}>
-                  <View style={st.watchTargetSummary}>
-                    <Text style={st.alertTitle}>{alert.title}</Text>
-                    {alert.read_at === null ? <Text style={[st.tag, st.targetBadge]}>New</Text> : null}
-                  </View>
-                  <Text style={st.itemMeta}>{alert.body}</Text>
-                  <Text style={st.alertTime}>
-                    {new Date(alert.created_at).toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                </View>
-              ))
-            )}
+          <View style={st.listPageStack}>
+            <SaleAlertsPanel
+              alerts={saleAlerts}
+              loading={alertsLoading}
+              markingRead={alertsMarkingRead}
+              message={alertsMessage}
+              unreadCount={unreadAlertCount}
+              onCheck={() => {
+                void loadWatchlist(true);
+              }}
+              onMarkRead={() => {
+                void handleMarkAlertsRead();
+              }}
+            />
+            <View style={st.listSectionDivider} />
+            <WatchlistPanel
+              hasSupabaseEnv={hasSupabaseEnv}
+              items={watchlistItems}
+              productById={productById}
+              loading={watchLoading}
+              removingId={watchRemovingId}
+              message={watchMessage}
+              onRemoveItem={(itemId) => {
+                void handleRemoveWatchlistItem(itemId);
+              }}
+            />
           </View>
         ) : null}
 
-        {activeTab === "more" ? (
+        {activeTab === "more" && accountRoute === "settings" ? (
           <MorePanel
             profile={profile}
             loading={moreLoading}
@@ -1438,25 +1632,58 @@ export default function NativeAppScreen() {
             onOpenAppSettings={() => {
               void Linking.openSettings();
             }}
-            authMode={authMode}
+            preferences={profilePreferences}
+            deleteConfirming={deleteConfirming}
+            deletingAccount={deletingAccount}
+            onOpenSignIn={() => {
+              setAuthMode("signIn");
+              setMoreMessage(null);
+              setAccountRoute("auth");
+            }}
+            onOpenSignUp={() => {
+              setAuthMode("signUp");
+              setMoreMessage(null);
+              setAccountRoute("auth");
+            }}
+            onEditPreferences={() => setAccountRoute("personalize")}
+            onEditProfile={() => {
+              setMoreMessage(null);
+              setAccountRoute("editProfile");
+            }}
+            onSignOut={handleSignOut}
+            onStartDeleteAccount={() => setDeleteConfirming(true)}
+            onCancelDeleteAccount={() => setDeleteConfirming(false)}
+            onConfirmDeleteAccount={() => {
+              void handleDeleteAccount();
+            }}
+          />
+        ) : null}
+
+        {activeTab === "more" && accountRoute === "auth" ? (
+          <AccountAuthPanel
+            mode={authMode}
+            loading={moreLoading}
+            socialLoading={socialAuthLoading}
+            message={moreMessage}
             signInEmail={signInEmail}
             signInPassword={signInPassword}
             signUpName={signUpName}
             signUpEmail={signUpEmail}
             signUpPassword={signUpPassword}
-            deleteConfirming={deleteConfirming}
-            deletingAccount={deletingAccount}
-            onRefreshProfile={() => {
-              void loadProfile();
+            onChangeMode={(mode) => {
+              setAuthMode(mode);
+              setMoreMessage(null);
             }}
-            onChangeAuthMode={setAuthMode}
             onSignIn={handleSignIn}
-            onSignOut={handleSignOut}
             onSignUp={handleSignUp}
-            onStartDeleteAccount={() => setDeleteConfirming(true)}
-            onCancelDeleteAccount={() => setDeleteConfirming(false)}
-            onConfirmDeleteAccount={() => {
-              void handleDeleteAccount();
+            onSignInWithApple={() => {
+              void handleSocialSignIn("apple");
+            }}
+            onSignInWithGoogle={() => {
+              void handleSocialSignIn("google");
+            }}
+            onForgotPassword={(email) => {
+              void handleForgotPassword(email);
             }}
             onChangeSignInEmail={setSignInEmail}
             onChangeSignInPassword={setSignInPassword}
@@ -1465,14 +1692,65 @@ export default function NativeAppScreen() {
             onChangeSignUpPassword={setSignUpPassword}
           />
         ) : null}
+
+        {activeTab === "more" && accountRoute === "verify" ? (
+          <EmailVerificationPanel
+            email={signUpEmail}
+            onContinue={() => setAccountRoute("personalize")}
+            onLater={() => setAccountRoute("settings")}
+          />
+        ) : null}
+
+        {activeTab === "more" && accountRoute === "personalize" && !profilePreferencesLoaded ? (
+          <View style={st.authCard}>
+            <Text style={st.authDescription}>Loading your shopping profile...</Text>
+          </View>
+        ) : null}
+
+        {activeTab === "more" && accountRoute === "personalize" && profilePreferencesLoaded ? (
+          <PersonalizationPanel
+            initialPreferences={profilePreferences}
+            storeOptions={personalizationStoreOptions}
+            saving={preferencesSaving}
+            onSave={(next) => {
+              void handleSavePersonalization(next);
+            }}
+            onDraftChange={handlePersonalizationDraft}
+            onSkip={handleSkipPersonalization}
+          />
+        ) : null}
+
+        {activeTab === "more" && accountRoute === "editProfile" && profile ? (
+          <EditProfilePanel
+            profile={profile}
+            loading={moreLoading}
+            message={moreMessage}
+            onSave={(name, email) => {
+              void handleUpdateProfile(name, email);
+            }}
+          />
+        ) : null}
+
+        {activeTab === "more" && accountRoute === "resetPassword" ? (
+          <ResetPasswordPanel
+            loading={moreLoading}
+            message={moreMessage}
+            onSave={(password) => {
+              void handleUpdatePassword(password);
+            }}
+          />
+        ) : null}
       </ScrollView>
 
-      <NativeBottomTabs
-        activeTab={activeTab}
-        bottomInset={insets.bottom}
-        pad={pad}
-        onSelectTab={handleSelectTab}
-      />
+      {activeTab !== "more" || accountRoute === "settings" ? (
+        <NativeBottomTabs
+          activeTab={activeTab}
+          bottomInset={insets.bottom}
+          pad={pad}
+          unreadAlertCount={unreadAlertCount}
+          onSelectTab={handleSelectTab}
+        />
+      ) : null}
 
       <NativeAppOnboarding
         visible={onboardingVisible}
@@ -1505,7 +1783,9 @@ export default function NativeAppScreen() {
             {
               left: pad,
               right: pad,
-              bottom: 76 + Math.max(insets.bottom, 10),
+              bottom: activeTab === "more" && accountRoute !== "settings"
+                ? 18 + Math.max(insets.bottom, 10)
+                : 94 + Math.max(insets.bottom, 10),
             },
           ]}
         >

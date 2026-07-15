@@ -1,14 +1,18 @@
 import React from "react";
-import { Linking, Pressable, Text, TextInput, View } from "react-native";
+import { Linking, Pressable, Switch, Text, TextInput, View } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 import type { UserProfile } from "../../services/userProfile";
 import { hasSupabaseEnv } from "../../services/supabaseClient";
+import {
+  SHOPPING_FREQUENCY_LABELS,
+  type ProfilePreferences,
+} from "../../services/profilePreferences";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
 
 const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
 const TERMS_URL = "https://pocketcart.pages.dev/terms";
 const SUPPORT_URL = "https://pocketcart.pages.dev/support";
-const DELETE_ACCOUNT_URL = "https://pocketcart.pages.dev/delete-account";
 
 type MorePanelProps = {
   profile: UserProfile | null;
@@ -23,50 +27,48 @@ type MorePanelProps = {
   onEnableAlerts: () => void;
   onDisableAlerts: () => void;
   onOpenAppSettings: () => void;
-  authMode: "signIn" | "signUp";
-  signInEmail: string;
-  signInPassword: string;
-  signUpName: string;
-  signUpEmail: string;
-  signUpPassword: string;
+  preferences: ProfilePreferences;
   deleteConfirming: boolean;
   deletingAccount: boolean;
-  onRefreshProfile: () => void;
-  onChangeAuthMode: (mode: "signIn" | "signUp") => void;
-  onSignIn: () => void;
+  onOpenSignIn: () => void;
+  onOpenSignUp: () => void;
+  onEditPreferences: () => void;
+  onEditProfile: () => void;
   onSignOut: () => void;
-  onSignUp: () => void;
   onStartDeleteAccount: () => void;
   onCancelDeleteAccount: () => void;
   onConfirmDeleteAccount: () => void;
-  onChangeSignInEmail: (value: string) => void;
-  onChangeSignInPassword: (value: string) => void;
-  onChangeSignUpName: (value: string) => void;
-  onChangeSignUpEmail: (value: string) => void;
-  onChangeSignUpPassword: (value: string) => void;
 };
 
 export function MorePanel(props: MorePanelProps) {
   return (
-    <View style={st.sectionStack}>
-      <Text style={st.sectionTitle}>More</Text>
-      <Text style={st.sectionSub}>Create account and manage your profile/data.</Text>
-
-      <PermissionSettingsCard {...props} />
+    <View style={st.settingsPage}>
       <ProfileCard {...props} />
-      <AccountDeletionCard {...props} />
-      <LegalLinksCard />
 
       {props.message ? (
-        <View style={st.rowCard}>
-          <Text style={st.itemMeta}>{props.message}</Text>
+        <View style={st.settingsMessage} accessibilityRole="alert">
+          <Text style={st.settingsMessageText}>{props.message}</Text>
         </View>
       ) : null}
+
+      <ShoppingProfileSection {...props} />
+      <PreferencesSection {...props} />
+      <SupportSection />
+      <AccountSection {...props} />
     </View>
   );
 }
 
-function PermissionSettingsCard({
+function SettingsSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <View style={st.settingsSection}>
+      <Text style={st.settingsSectionLabel}>{label}</Text>
+      <View style={st.settingsGroup}>{children}</View>
+    </View>
+  );
+}
+
+function PreferencesSection({
   locationLabel,
   alertsEnabled,
   settingsPostalCode,
@@ -79,86 +81,111 @@ function PermissionSettingsCard({
   onOpenAppSettings,
 }: MorePanelProps) {
   return (
-    <View style={st.rowCard}>
-      <Text style={st.itemName}>Permissions</Text>
-      <Text style={st.itemMeta}>
-        Location: {locationLabel}
-      </Text>
-      <Text style={st.itemMeta}>
-        Notifications: {alertsEnabled ? "Enabled" : "Off"}
-      </Text>
-
-      <View style={st.permissionGroup}>
-        <Text style={st.permissionGroupTitle}>Location setup</Text>
+    <SettingsSection label="Preferences">
+      <View style={st.settingsBlock}>
+        <View style={st.settingsKeyRow}>
+          <Text style={st.settingsRowTitle}>Location</Text>
+          <Text style={st.settingsRowValue} numberOfLines={1}>{locationLabel}</Text>
+        </View>
+        <Text style={st.settingsHelp}>Use your location or save a postal code to find nearby stores.</Text>
         <TextInput
+          accessibilityLabel="Postal code"
           value={settingsPostalCode}
           onChangeText={onChangeSettingsPostalCode}
           placeholder="Postal code"
           placeholderTextColor={C.textMuted}
           autoCapitalize="characters"
           autoCorrect={false}
-          style={st.formInput}
+          style={st.settingsInput}
         />
-        <View style={st.authActionRow}>
+        <View style={st.settingsButtonRow}>
           <Pressable
             accessibilityRole="button"
             onPress={onShareLocation}
-            style={[st.authBtn, st.authBtnPrimary, st.permissionActionBtn]}
+            style={[st.settingsButton, st.settingsButtonSecondary]}
             disabled={loading}
           >
-            <Text style={st.authBtnPrimaryText}>Use Current Location</Text>
+            <Text style={st.settingsButtonSecondaryText}>Use Current Location</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
             onPress={onSetPostalLocation}
-            style={[st.authBtn, st.authBtnSecondary, st.permissionActionBtn]}
+            style={[st.settingsButton, st.settingsButtonPrimary]}
             disabled={loading}
           >
-            <Text style={st.authBtnSecondaryText}>Save Postal Code</Text>
+            <Text style={st.settingsButtonPrimaryText}>Save Postal Code</Text>
           </Pressable>
         </View>
       </View>
 
-      <View style={st.permissionGroup}>
-        <Text style={st.permissionGroupTitle}>Notification alerts</Text>
-        <View style={st.authActionRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onEnableAlerts}
-            style={[st.authBtn, st.authBtnPrimary, st.permissionActionBtn]}
-            disabled={loading || alertsEnabled}
-          >
-            <Text style={st.authBtnPrimaryText}>
-              {alertsEnabled ? "Notifications On" : "Enable Notifications"}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onDisableAlerts}
-            style={[st.authBtn, st.authBtnSecondary, st.permissionActionBtn]}
-            disabled={loading || !alertsEnabled}
-          >
-            <Text style={st.authBtnSecondaryText}>Turn Off In App</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onOpenAppSettings}
-            style={[st.authBtn, st.authBtnSecondary, st.permissionActionBtn]}
-            disabled={loading}
-          >
-            <Text style={st.authBtnSecondaryText}>Open Settings</Text>
-          </Pressable>
+      <View style={st.settingsDivider} />
+
+      <View style={st.settingsToggleRow}>
+        <View style={st.settingsRowCopy}>
+          <Text style={st.settingsRowTitle}>Price notifications</Text>
+          <Text style={st.settingsHelp}>Receive alerts when watched products go on sale.</Text>
         </View>
+        <Switch
+          accessibilityLabel="Price notifications"
+          value={alertsEnabled}
+          onValueChange={(enabled) => {
+            if (enabled) onEnableAlerts();
+            else onDisableAlerts();
+          }}
+          disabled={loading}
+          trackColor={{ false: "#D7E2DA", true: C.primaryLight }}
+          thumbColor={alertsEnabled ? C.primaryDeep : C.white}
+          ios_backgroundColor="#D7E2DA"
+        />
       </View>
-    </View>
+
+      <View style={st.settingsDivider} />
+
+      <SettingsLinkRow label="Open App Settings" value="Permissions" onPress={onOpenAppSettings} />
+    </SettingsSection>
   );
 }
 
-function openExternalUrl(url: string) {
-  void Linking.openURL(url);
+function SupportSection() {
+  return (
+    <SettingsSection label="Support">
+      <SettingsLinkRow label="Help & Support" onPress={() => openExternalUrl(SUPPORT_URL)} />
+      <View style={st.settingsDivider} />
+      <SettingsLinkRow label="Privacy Policy" onPress={() => openExternalUrl(PRIVACY_URL)} />
+      <View style={st.settingsDivider} />
+      <SettingsLinkRow label="Terms of Service" onPress={() => openExternalUrl(TERMS_URL)} />
+    </SettingsSection>
+  );
 }
 
-function AccountDeletionCard({
+function SettingsLinkRow({
+  label,
+  value,
+  destructive = false,
+  onPress,
+}: {
+  label: string;
+  value?: string;
+  destructive?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={value ? `${label}, ${value}` : label}
+      onPress={onPress}
+      style={({ pressed }) => [st.settingsLinkRow, pressed && st.settingsRowPressed]}
+    >
+      <Text style={[st.settingsRowTitle, destructive && st.settingsDangerText]}>{label}</Text>
+      <View style={st.settingsLinkMeta}>
+        {value ? <Text style={st.settingsRowValue}>{value}</Text> : null}
+        <Text style={[st.settingsChevron, destructive && st.settingsDangerText]}>›</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function AccountSection({
   profile,
   deleteConfirming,
   deletingAccount,
@@ -166,98 +193,87 @@ function AccountDeletionCard({
   onCancelDeleteAccount,
   onConfirmDeleteAccount,
 }: MorePanelProps) {
-  const signedInEmail = profile?.email ?? null;
+  if (!profile) return null;
 
   return (
-    <View style={st.rowCard}>
-      <Text style={st.itemName}>Account deletion</Text>
-      <Text style={st.itemMeta}>
-        {signedInEmail
-          ? `Request deletion for ${signedInEmail}. We delete account-linked data unless retention is required for security or legal reasons.`
-          : "Sign in first if you want your request matched to your account email."}
-      </Text>
-      {signedInEmail ? (
-        deleteConfirming ? (
-          <>
-            <Text style={st.destructiveWarning}>
-              This permanently deletes your account profile and saved watchlist data.
-            </Text>
-            <View style={st.authActionRow}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onCancelDeleteAccount}
-                style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
-                disabled={deletingAccount}
-              >
-                <Text style={st.authBtnSecondaryText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onConfirmDeleteAccount}
-                style={[st.authBtn, st.authBtnDanger, st.legalActionBtn]}
-                disabled={deletingAccount}
-              >
-                <Text style={st.authBtnDangerText}>
-                  {deletingAccount ? "Deleting..." : "Confirm Delete"}
-                </Text>
-              </Pressable>
-            </View>
-          </>
-        ) : (
-          <View style={st.authActionRow}>
+    <SettingsSection label="Account">
+      {deleteConfirming ? (
+        <View style={st.settingsDangerBlock}>
+          <Text style={st.settingsRowTitle}>Delete your account?</Text>
+          <Text style={st.settingsHelp}>
+            This permanently deletes your profile, shopping preferences, and saved price alert subscriptions.
+          </Text>
+          <View style={st.settingsButtonRow}>
             <Pressable
               accessibilityRole="button"
-              onPress={onStartDeleteAccount}
-              style={[st.authBtn, st.authBtnDanger, st.legalActionBtn]}
+              onPress={onCancelDeleteAccount}
+              style={[st.settingsButton, st.settingsButtonSecondary]}
               disabled={deletingAccount}
             >
-              <Text style={st.authBtnDangerText}>Delete Account</Text>
+              <Text style={st.settingsButtonSecondaryText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onConfirmDeleteAccount}
+              style={[st.settingsButton, st.settingsButtonDanger]}
+              disabled={deletingAccount}
+            >
+              <Text style={st.settingsButtonPrimaryText}>
+                {deletingAccount ? "Deleting..." : "Delete Account"}
+              </Text>
             </Pressable>
           </View>
-        )
-      ) : (
-        <View style={st.authActionRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => openExternalUrl(DELETE_ACCOUNT_URL)}
-            style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
-          >
-            <Text style={st.authBtnSecondaryText}>Open Deletion Portal</Text>
-          </Pressable>
         </View>
+      ) : (
+        <SettingsLinkRow label="Delete Account" destructive onPress={onStartDeleteAccount} />
       )}
-    </View>
+    </SettingsSection>
   );
 }
 
-function LegalLinksCard() {
+function ShoppingProfileSection({ profile, preferences, onEditPreferences }: MorePanelProps) {
+  if (!profile && !preferences.completed) return null;
+
+  if (!preferences.completed) {
+    return (
+      <SettingsSection label="Shopping Profile">
+        <SettingsLinkRow
+          label="Personalize your deals"
+          value="Optional"
+          onPress={onEditPreferences}
+        />
+      </SettingsSection>
+    );
+  }
+
+  const interestText = preferences.interestedCategories.length > 0
+    ? preferences.interestedCategories.join(", ")
+    : "Not selected";
+  const frequencyText = preferences.shoppingFrequency
+    ? SHOPPING_FREQUENCY_LABELS[preferences.shoppingFrequency]
+    : "Not selected";
+  const storeText = preferences.favoriteStores.length > 0
+    ? preferences.favoriteStores.join(", ")
+    : "Not selected";
+
   return (
-    <View style={st.rowCard}>
-      <Text style={st.itemName}>Legal</Text>
-      <Text style={st.itemMeta}>Privacy, terms, and data deletion resources.</Text>
-      <View style={st.legalLinkRow}>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => openExternalUrl(PRIVACY_URL)}
-          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
-        >
-          <Text style={st.authBtnSecondaryText}>Privacy</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => openExternalUrl(TERMS_URL)}
-          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
-        >
-          <Text style={st.authBtnSecondaryText}>Terms</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => openExternalUrl(SUPPORT_URL)}
-          style={[st.authBtn, st.authBtnSecondary, st.legalActionBtn]}
-        >
-          <Text style={st.authBtnSecondaryText}>Support</Text>
-        </Pressable>
+    <SettingsSection label="Shopping Profile">
+      <View style={st.settingsSummaryBlock}>
+        <PreferenceSummary label="Interested in" value={interestText} />
+        <PreferenceSummary label="Shopping frequency" value={frequencyText} />
+        <PreferenceSummary label="Favorite stores" value={storeText} />
       </View>
+      <View style={st.settingsDivider} />
+      <SettingsLinkRow label="Edit Shopping Profile" onPress={onEditPreferences} />
+    </SettingsSection>
+  );
+}
+
+function PreferenceSummary({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={st.settingsSummaryRow}>
+      <Text style={st.settingsHelp}>{label}</Text>
+      <Text style={st.settingsSummaryValue}>{value}</Text>
     </View>
   );
 }
@@ -265,59 +281,32 @@ function LegalLinksCard() {
 function ProfileCard({
   profile,
   loading,
-  authMode,
-  signInEmail,
-  signInPassword,
-  signUpName,
-  signUpEmail,
-  signUpPassword,
-  onRefreshProfile,
-  onChangeAuthMode,
-  onSignIn,
+  onOpenSignIn,
+  onOpenSignUp,
+  onEditProfile,
   onSignOut,
-  onSignUp,
-  onChangeSignInEmail,
-  onChangeSignInPassword,
-  onChangeSignUpName,
-  onChangeSignUpEmail,
-  onChangeSignUpPassword,
 }: MorePanelProps) {
   if (!hasSupabaseEnv) {
     return (
-      <View style={st.rowCard}>
-        <Text style={st.itemName}>Supabase configuration required</Text>
-        <Text style={st.itemMeta}>
-          Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.
-        </Text>
+      <View style={st.settingsProfileCard}>
+        <ProfileIdentity title="Account unavailable" subtitle="Account services are not configured." />
       </View>
     );
   }
 
   if (profile) {
     return (
-      <View style={st.rowCard}>
-        <Text style={st.itemName}>Profile</Text>
-        <Text style={st.itemMeta}>Name: {profile.full_name ?? "-"}</Text>
-        <Text style={st.itemMeta}>Email: {profile.email || "-"}</Text>
-        <Text style={st.itemMeta}>User ID: {profile.id}</Text>
-        <View style={st.authActionRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onRefreshProfile}
-            style={[st.authBtn, st.authBtnSecondary]}
-            disabled={loading}
-          >
-            <Text style={st.authBtnSecondaryText}>
-              {loading ? "Loading..." : "Refresh"}
-            </Text>
+      <View style={st.settingsProfileCard}>
+        <ProfileIdentity
+          title={profile.full_name?.trim() || "PocketCart member"}
+          subtitle={profile.email || "Signed in"}
+        />
+        <View style={st.settingsButtonRow}>
+          <Pressable accessibilityRole="button" onPress={onEditProfile} style={[st.settingsButton, st.settingsButtonPrimary]} disabled={loading}>
+            <Text style={st.settingsButtonPrimaryText}>Edit Profile</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onSignOut}
-            style={[st.authBtn, st.authBtnPrimary]}
-            disabled={loading}
-          >
-            <Text style={st.authBtnPrimaryText}>Sign Out</Text>
+          <Pressable accessibilityRole="button" onPress={onSignOut} style={[st.settingsButton, st.settingsButtonSecondary]} disabled={loading}>
+            <Text style={st.settingsButtonSecondaryText}>{loading ? "Please wait..." : "Sign Out"}</Text>
           </Pressable>
         </View>
       </View>
@@ -325,112 +314,53 @@ function ProfileCard({
   }
 
   return (
-    <View style={st.rowCard}>
-      <Text style={st.itemName}>{authMode === "signIn" ? "Sign In" : "Sign Up"}</Text>
-      <Text style={st.itemMeta}>
-        {authMode === "signIn"
-          ? "Sign in to manage your watchlist and profile."
-          : "Create your account with email and password."}
-      </Text>
-
-      <View style={st.authModeRow}>
+    <View style={st.settingsProfileCard}>
+      <ProfileIdentity
+        title="Your PocketCart account"
+        subtitle="Sign in to sync your shopping profile and price alerts."
+      />
+      <View style={st.settingsButtonRow}>
         <Pressable
           accessibilityRole="button"
-          onPress={() => onChangeAuthMode("signIn")}
-          style={[st.authModeBtn, authMode === "signIn" && st.authModeBtnActive]}
+          onPress={onOpenSignIn}
+          style={[st.settingsButton, st.settingsButtonPrimary]}
         >
-          <Text style={[st.authModeText, authMode === "signIn" && st.authModeTextActive]}>
-            Sign In
-          </Text>
+          <Text style={st.settingsButtonPrimaryText}>Sign In</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={() => onChangeAuthMode("signUp")}
-          style={[st.authModeBtn, authMode === "signUp" && st.authModeBtnActive]}
+          onPress={onOpenSignUp}
+          style={[st.settingsButton, st.settingsButtonSecondary]}
         >
-          <Text style={[st.authModeText, authMode === "signUp" && st.authModeTextActive]}>
-            Sign Up
-          </Text>
+          <Text style={st.settingsButtonSecondaryText}>Create Account</Text>
         </Pressable>
       </View>
-
-      {authMode === "signIn" ? (
-        <>
-          <TextInput
-            value={signInEmail}
-            onChangeText={onChangeSignInEmail}
-            placeholder="Email"
-            placeholderTextColor={C.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={st.formInput}
-          />
-          <TextInput
-            value={signInPassword}
-            onChangeText={onChangeSignInPassword}
-            placeholder="Password"
-            placeholderTextColor={C.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={st.formInput}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={onSignIn}
-            style={[st.authBtn, st.authBtnPrimary]}
-            disabled={loading}
-          >
-            <Text style={st.authBtnPrimaryText}>
-              {loading ? "Signing in..." : "Sign In"}
-            </Text>
-          </Pressable>
-        </>
-      ) : (
-        <>
-
-          <TextInput
-            value={signUpName}
-            onChangeText={onChangeSignUpName}
-            placeholder="Name"
-            placeholderTextColor={C.textMuted}
-            autoCapitalize="words"
-            autoCorrect={false}
-            style={st.formInput}
-          />
-          <TextInput
-            value={signUpEmail}
-            onChangeText={onChangeSignUpEmail}
-            placeholder="Email"
-            placeholderTextColor={C.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={st.formInput}
-          />
-          <TextInput
-            value={signUpPassword}
-            onChangeText={onChangeSignUpPassword}
-            placeholder="Password (min 8)"
-            placeholderTextColor={C.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={st.formInput}
-          />
-          <Pressable
-            accessibilityRole="button"
-            onPress={onSignUp}
-            style={[st.authBtn, st.authBtnPrimary]}
-            disabled={loading}
-          >
-            <Text style={st.authBtnPrimaryText}>
-              {loading ? "Creating..." : "Create Account"}
-            </Text>
-          </Pressable>
-        </>
-      )}
     </View>
   );
+}
+
+function ProfileIdentity({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <View style={st.settingsProfileIdentity}>
+      <View style={st.settingsAvatar} accessibilityElementsHidden>
+        <Svg width={27} height={27} viewBox="0 0 24 24" fill="none">
+          <Circle cx={12} cy={8} r={3.5} stroke={C.primaryDeep} strokeWidth={2} />
+          <Path
+            d="M5.5 19c.7-4 3-6 6.5-6s5.8 2 6.5 6"
+            stroke={C.primaryDeep}
+            strokeWidth={2}
+            strokeLinecap="round"
+          />
+        </Svg>
+      </View>
+      <View style={st.settingsProfileCopy}>
+        <Text style={st.settingsProfileTitle} numberOfLines={1}>{title}</Text>
+        <Text style={st.settingsProfileSubtitle}>{subtitle}</Text>
+      </View>
+    </View>
+  );
+}
+
+function openExternalUrl(url: string) {
+  void Linking.openURL(url);
 }

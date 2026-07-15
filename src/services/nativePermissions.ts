@@ -12,17 +12,9 @@ export type GeoPermissionResult = {
   source?: string;
 };
 
-export type NotificationPermissionResult = {
-  granted: boolean;
-  status: PermissionStatus;
-  message?: string;
-  source?: string;
-};
-
 const fallbackMessage = {
   locationUnsupported: "Location is not available in this build. Use postal code instead.",
   locationDenied: "Location access was denied. Use postal code instead.",
-  notificationUnsupported: "Notification permission control is managed by the OS in this build.",
 };
 
 function getNavigator(): any {
@@ -196,73 +188,6 @@ export async function requestLocationPermissionAndPosition(): Promise<GeoPermiss
   }
 
   return requestCurrentPosition();
-}
-
-export async function requestAlertPermission(): Promise<NotificationPermissionResult> {
-  const notification = (globalThis as any).Notification;
-  if (!notification) {
-    if (Platform.OS !== "web") {
-      return {
-        granted: false,
-        status: "unsupported",
-        source: Platform.OS,
-        message: fallbackMessage.notificationUnsupported,
-      };
-    }
-
-    return {
-      granted: false,
-      status: "denied",
-      source: "web",
-      message: "Notifications are unavailable. Browser blocking might be applied.",
-    };
-  }
-
-  if (Platform.OS === "web" && typeof notification.requestPermission === "function") {
-    const permissions = await notification.requestPermission();
-    if (permissions === "granted") {
-      return {
-        granted: true,
-        status: "granted",
-        source: "web",
-        message: "Price alerts notifications are enabled.",
-      };
-    }
-
-    return {
-      granted: false,
-      status: permissions === "denied" ? "denied" : "unsupported",
-      source: "web",
-      message:
-        permissions === "denied"
-          ? "Notification permission denied. You can enable it later in browser settings."
-          : "Notification permission not granted yet.",
-    };
-  }
-
-  return {
-    granted: false,
-    status: "unsupported",
-    source: Platform.OS,
-    message: fallbackMessage.notificationUnsupported,
-  };
-}
-
-export function buildLocationSearchPlaceholder(state: {
-  locationMode: OnboardingLocationMode;
-  postalCode: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-}): string {
-  if (state.locationMode === "share" && state.latitude && state.longitude) {
-    return `${state.latitude.toFixed(3)}, ${state.longitude.toFixed(3)}`;
-  }
-
-  if (state.locationMode === "postal" && state.postalCode) {
-    return state.postalCode;
-  }
-
-  return "";
 }
 
 export type OnboardingLocationMode = "share" | "postal" | "skip";

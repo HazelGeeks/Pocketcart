@@ -43,7 +43,6 @@ export function StoreMapPanel({
 
   return (
     <View style={st.sectionStack}>
-      <Text style={st.sectionTitle}>Map</Text>
       <Text style={st.sectionSub}>
         Find nearby stores from your location or search by store and address.
       </Text>

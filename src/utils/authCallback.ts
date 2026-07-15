@@ -17,6 +17,21 @@ const AUTH_PARAM_KEYS = [
   "type",
 ];
 
+export type AuthCallbackKind = "passwordRecovery" | "emailVerification" | "signIn";
+
+export function isAuthCallbackUrl(url: string): boolean {
+  return url.startsWith("pocketcart://auth/callback") ||
+    url.startsWith("com.pocketcart.app://auth/callback") ||
+    url.includes("access_token=") ||
+    url.includes("error=");
+}
+
+export function classifyAuthCallbackType(type: string | null): AuthCallbackKind {
+  if (type === "recovery") return "passwordRecovery";
+  if (type === "signup" || type === "email_change") return "emailVerification";
+  return "signIn";
+}
+
 function appendParams(rawParams: string, target: URLSearchParams) {
   if (!rawParams) return;
 
