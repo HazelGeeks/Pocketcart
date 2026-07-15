@@ -21,7 +21,9 @@ type ProductDetailPanelProps = {
   storePrices: MarketStorePrice[];
   storePricesLoading: boolean;
   addSubmitting: boolean;
+  isInShoppingList: boolean;
   onBack: () => void;
+  onAddToShoppingList: () => void;
   onAddToWatchlist: () => void;
   onOpenStoreOnMap?: (storeId: string, storeName?: string) => void;
 };
@@ -124,7 +126,9 @@ export function ProductDetailPanel({
   storePrices,
   storePricesLoading,
   addSubmitting,
+  isInShoppingList,
   onBack,
+  onAddToShoppingList,
   onAddToWatchlist,
   onOpenStoreOnMap,
 }: ProductDetailPanelProps) {
@@ -310,6 +314,16 @@ export function ProductDetailPanel({
 
               <Text style={st.productDecisionText}>{decisionText}</Text>
 
+              <Pressable
+                accessibilityRole="button"
+                onPress={onAddToShoppingList}
+                style={[st.shoppingDetailAddBtn, isInShoppingList && st.shoppingDetailAddBtnActive]}
+              >
+                <Text style={[st.shoppingDetailAddText, isInShoppingList && st.shoppingDetailAddTextActive]}>
+                  {isInShoppingList ? "Add another to Shopping List" : "Add to Shopping List"}
+                </Text>
+              </Pressable>
+
               <View style={st.productHeroActions}>
                 <Pressable
                   accessibilityRole="button"
@@ -327,7 +341,7 @@ export function ProductDetailPanel({
                     />
                   </Svg>
                   <Text style={st.watchlistCtaText}>
-                    {addSubmitting ? "Adding..." : "Add to Watchlist"}
+                    {addSubmitting ? "Enabling..." : "Enable Price Alert"}
                   </Text>
                 </Pressable>
                 {canOpenStore ? (
@@ -341,7 +355,7 @@ export function ProductDetailPanel({
                 ) : null}
               </View>
               <Text style={st.watchlistCtaHelp}>
-                Save this product to your watchlist and get sale alerts when the price drops.
+                Price alerts are separate from your one-time shopping list and stay active for future sales.
               </Text>
             </View>
           </View>

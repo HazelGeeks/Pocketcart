@@ -39,6 +39,7 @@ const requiredFiles = [
   "supabase/functions/send-sale-alert-push/index.ts",
   "supabase/functions/sync-sale-alerts/index.ts",
   "supabase/migrations/20260714055500_account_deletion_requests.sql",
+  "supabase/migrations/20260714162000_profile_preferences.sql",
 ];
 
 const findings = [];
@@ -470,7 +471,7 @@ includes(
 );
 includes(
   "src/components/nativeApp/MorePanel.tsx",
-  "Confirm Delete",
+  "Delete your account?",
   "Native More tab includes in-app account deletion confirmation",
 );
 includes(
@@ -742,6 +743,11 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "/database/query",
   "Supabase schema workflow applies the account deletion migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260714162000_profile_preferences.sql",
+  "Supabase schema workflow applies the profile preferences migration",
 );
 includes(
   ".easignore",

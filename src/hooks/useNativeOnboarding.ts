@@ -1,16 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
-import type { OnboardingLocationMode } from "../services/nativePermissions";
+import {
+  normalizeStoredOnboardingState,
+  type NativeOnboardingState,
+} from "../utils/nativeOnboardingState";
 
-export type NativeOnboardingState = {
-  locationCompleted: boolean;
-  locationMode: OnboardingLocationMode;
-  postalCode: string | null;
-  locationLatitude: number | null;
-  locationLongitude: number | null;
-  alertsCompleted: boolean;
-  alertsEnabled: boolean;
-};
+export type { NativeOnboardingState } from "../utils/nativeOnboardingState";
 
 type OnboardingStep = "location" | "alerts";
 
@@ -25,20 +20,6 @@ const INITIAL_STATE: NativeOnboardingState = {
   alertsCompleted: false,
   alertsEnabled: false,
 };
-
-function normalizeStoredState(
-  stored: Partial<NativeOnboardingState>,
-): NativeOnboardingState {
-  return {
-    locationCompleted: Boolean(stored.locationCompleted),
-    locationMode: stored.locationMode ?? "skip",
-    postalCode: stored.postalCode ?? null,
-    locationLatitude: stored.locationLatitude ?? null,
-    locationLongitude: stored.locationLongitude ?? null,
-    alertsCompleted: Boolean(stored.alertsCompleted),
-    alertsEnabled: Boolean(stored.alertsEnabled),
-  };
-}
 
 export default function useNativeOnboarding() {
   const [state, setState] = React.useState(INITIAL_STATE);
@@ -70,7 +51,7 @@ export default function useNativeOnboarding() {
           return;
         }
 
-        const normalized = normalizeStoredState(
+        const normalized = normalizeStoredOnboardingState(
           JSON.parse(raw) as Partial<NativeOnboardingState>,
         );
         setState(normalized);

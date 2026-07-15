@@ -31,10 +31,10 @@ export type PreviousPriceRow = {
 };
 
 export const TABS: Array<{ id: NativeTabId; label: string }> = [
-  { id: "home", label: "Home" },
-  { id: "watchlist", label: "Watchlist" },
+  { id: "watchlist", label: "List" },
   { id: "map", label: "Map" },
-  { id: "alerts", label: "Alert" },
+  { id: "home", label: "Home" },
+  { id: "alerts", label: "Alerts" },
   { id: "more", label: "More" },
 ];
 

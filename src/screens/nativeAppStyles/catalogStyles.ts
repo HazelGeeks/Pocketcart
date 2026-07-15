@@ -110,6 +110,12 @@ export const catalogStyles = StyleSheet.create({
   homeProductList: {
     gap: 8,
   },
+  homeResultsRow: {
+    minHeight: 28,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   homeProductRow: {
     minHeight: 112,
     borderRadius: 14,
@@ -177,28 +183,44 @@ export const catalogStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
   },
-  homeNotifyBtn: {
+  homeListBtn: {
     minHeight: 30,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: C.primary,
-    backgroundColor: C.primary,
+    backgroundColor: C.primaryGhost,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 9,
   },
-  homeNotifyBtnActive: {
-    borderColor: C.line,
+  homeListBtnActive: {
+    borderColor: C.primaryDeep,
     backgroundColor: C.white,
   },
-  homeNotifyText: {
-    color: C.white,
+  homeListBtnText: {
+    color: C.primaryDeep,
     fontSize: 11,
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  homeNotifyTextActive: {
+  homeListBtnTextActive: {
     color: C.text,
+  },
+  homeShowMoreBtn: {
+    minHeight: 46,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: C.primary,
+    backgroundColor: C.primaryGhost,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  homeShowMoreText: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+    fontFamily: F.extraBold,
   },
   dealCard: {
     width: "48.5%",

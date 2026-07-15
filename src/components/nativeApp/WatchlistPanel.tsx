@@ -57,8 +57,8 @@ export function WatchlistPanel({
 
   return (
     <View style={st.sectionStack}>
-      <Text style={st.sectionTitle}>Watchlist</Text>
-      <Text style={st.sectionSub}>Saved products for weekly sale alerts.</Text>
+      <Text style={st.sectionTitle}>Price Alert Subscriptions</Text>
+      <Text style={st.sectionSub}>Products you want PocketCart to monitor across future weekly sales.</Text>
 
       {!hasSupabaseEnv ? (
         <View style={st.rowCard}>
@@ -77,11 +77,11 @@ export function WatchlistPanel({
 
       {loading ? (
         <View style={st.rowCard}>
-          <Text style={st.itemMeta}>Loading watchlist...</Text>
+          <Text style={st.itemMeta}>Loading price alert subscriptions...</Text>
         </View>
       ) : normalized.length === 0 ? (
         <View style={st.rowCard}>
-          <Text style={st.itemMeta}>No sale alerts yet. Save a product from Home.</Text>
+          <Text style={st.itemMeta}>No subscriptions yet. Enable a price alert from a product detail page.</Text>
         </View>
       ) : (
         normalized.map((entry) => {

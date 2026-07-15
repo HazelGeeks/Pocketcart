@@ -24,11 +24,10 @@ export function SaleAlertsPanel({
 }: SaleAlertsPanelProps) {
   return (
     <View style={st.sectionStack}>
-      <Text style={st.sectionTitle}>Alert</Text>
       <Text style={st.sectionSub}>
         {unreadCount > 0
           ? `${unreadCount} new sale ${unreadCount === 1 ? "alert" : "alerts"}.`
-          : "Price alerts and watchlist highlights."}
+          : "Price changes from products you chose to monitor."}
       </Text>
       <View style={st.detailActionRow}>
         <Pressable
@@ -66,13 +65,13 @@ export function SaleAlertsPanel({
 
       {loading && alerts.length === 0 ? (
         <View style={st.rowCard}>
-          <Text style={st.itemMeta}>Checking watchlist sales...</Text>
+          <Text style={st.itemMeta}>Checking subscribed product prices...</Text>
         </View>
       ) : alerts.length === 0 ? (
         <View style={st.rowCard}>
           <Text style={st.alertTitle}>No active alerts</Text>
           <Text style={st.itemMeta}>
-            Save items from Home and we will create an alert when a weekly sale is active.
+            Enable a price alert from a product detail page and we will notify you when a weekly sale is active.
           </Text>
         </View>
       ) : (

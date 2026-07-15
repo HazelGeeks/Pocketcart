@@ -17,6 +17,7 @@
     ],
     "ios": {
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.pocketcart.app",
       "buildNumber": "1",
       "entitlements": {
@@ -58,6 +59,7 @@
       "backgroundColor": "#f9fffb"
     },
     "plugins": [
+      "expo-apple-authentication",
       "expo-font",
       "expo-notifications",
       [
