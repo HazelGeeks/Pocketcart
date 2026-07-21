@@ -12,7 +12,6 @@ import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "../components/WebLink";
 import Navbar, { type SectionId } from "../components/Navbar";
 import FooterSection from "../components/FooterSection";
-import EmailSignupForm from "../components/EmailSignupForm";
 import P from "../constants/palette";
 import type { Route } from "../constants/palette";
 
@@ -136,19 +135,6 @@ export default function BlogScreen({
                     ))}
                   </View>
                 ))}
-              </View>
-
-              <View style={st.signupCard}>
-                <EmailSignupForm
-                  title={copy.footer.signupTitle}
-                  subtitle={copy.footer.signupSub}
-                  emailPlaceholder={copy.footer.emailPlaceholder}
-                  submitLabel={copy.footer.notify}
-                  successLabel={copy.footer.signupDone}
-                  tone="light"
-                  stackOnDesktop={!isMd}
-                  containerStyle={st.signupCardInner}
-                />
               </View>
 
               <View style={st.relatedWrap}>
@@ -425,19 +411,6 @@ const st = StyleSheet.create({
     backgroundColor: P.white,
     borderWidth: 1,
     borderColor: P.line,
-  },
-  signupCard: {
-    borderRadius: 28,
-    padding: 28,
-    backgroundColor: "rgba(255,255,255,0.76)",
-    borderWidth: 1,
-    borderColor: P.line,
-  },
-  signupCardInner: {
-    alignSelf: "center",
-    width: "100%",
-    maxWidth: 640,
-    paddingVertical: 2,
   },
   articleSection: {
     gap: 12,

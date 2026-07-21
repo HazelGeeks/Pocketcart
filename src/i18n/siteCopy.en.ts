@@ -133,13 +133,6 @@ export const enSiteCopy: SiteCopy = {
     },
     footer: {
       tagline: "Smart shopping habits, simplified.",
-      signupTitle: "Get Launch Updates",
-      signupSub:
-        "Enter your email below to be the first to know when " +
-        "PocketCart is available.",
-      signupDone: "You are on the list. We will keep you posted.",
-      emailPlaceholder: "Enter your email",
-      notify: "Notify Me",
       copyright: "© 2026 PocketCart. All rights reserved.",
       groups: [
         {

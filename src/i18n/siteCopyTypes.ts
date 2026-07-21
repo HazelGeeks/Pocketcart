@@ -88,11 +88,6 @@ export type SiteCopy = {
   };
   footer: {
     tagline: string;
-    signupTitle: string;
-    signupSub: string;
-    signupDone: string;
-    emailPlaceholder: string;
-    notify: string;
     copyright: string;
     groups: FooterGroup[];
   };

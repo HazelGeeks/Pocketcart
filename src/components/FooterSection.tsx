@@ -15,7 +15,6 @@ import {
 } from "./icons/SocialIcons";
 import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "./WebLink";
-import EmailSignupForm from "./EmailSignupForm";
 
 export default function FooterSection({
   navigate,
@@ -79,26 +78,6 @@ export default function FooterSection({
             </View>
           </WebLink>
           <Text style={s.footerTagline}>{copy.footer.tagline}</Text>
-        </View>
-
-        {/* Email signup */}
-        <View
-          style={[
-            s.footerSignup,
-            isXl && s.footerCol,
-            isXl && s.footerSignupDesktop,
-          ]}
-        >
-          <EmailSignupForm
-            title={copy.footer.signupTitle}
-            subtitle={copy.footer.signupSub}
-            emailPlaceholder={copy.footer.emailPlaceholder}
-            submitLabel={copy.footer.notify}
-            successLabel={copy.footer.signupDone}
-            tone="dark"
-            compact
-            stackOnDesktop={!isXl}
-          />
         </View>
 
         {/* Link columns */}
