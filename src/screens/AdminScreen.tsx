@@ -563,7 +563,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   />
                 ) : null}
 
-                <Text style={st.panelTitle}>{panelTitle}</Text>
+                {activeMenu !== "overview" ? (
+                  <Text style={st.panelTitle}>{panelTitle}</Text>
+                ) : null}
 
                 {activeMenu === "overview" ? (
                   <AdminOverviewPanel

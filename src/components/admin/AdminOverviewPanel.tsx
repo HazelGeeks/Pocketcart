@@ -22,7 +22,7 @@ export default function AdminOverviewPanel({
   onManageProducts,
 }: AdminOverviewPanelProps) {
   return (
-    <>
+    <View style={st.overviewContent}>
       <View style={st.statGrid}>
         {cards.map((card) => (
           <View key={card.id} style={st.statCard}>
@@ -33,36 +33,36 @@ export default function AdminOverviewPanel({
         ))}
       </View>
 
-      <View style={st.dualColumnGrid}>
-        <View style={st.dataCard}>
-          <View style={st.dataCardHeader}>
-            <Text style={st.dataCardTitle}>Recent Products</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onManageProducts}
-              style={[st.btn, st.btnLink]}
-            >
-              <Text style={st.btnLinkText}>Manage</Text>
-            </Pressable>
-          </View>
+      <View style={st.dataCard}>
+        <View style={st.dataCardHeader}>
+          <Text style={st.dataCardTitle}>Recent Products</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onManageProducts}
+            style={[st.btn, st.btnLink]}
+          >
+            <Text style={st.btnLinkText}>Manage</Text>
+          </Pressable>
+        </View>
 
-          {productsLoading ? (
-            <Text style={st.dataMuted}>Loading products...</Text>
-          ) : products.length === 0 ? (
-            <Text style={st.dataMuted}>No products yet.</Text>
-          ) : (
-            products.slice(0, 6).map((item) => (
-              <View key={item.id} style={st.dataRow}>
+        {productsLoading ? (
+          <Text style={st.dataMuted}>Loading products...</Text>
+        ) : products.length === 0 ? (
+          <Text style={st.dataMuted}>No products yet.</Text>
+        ) : (
+          <View style={st.recentProductGrid}>
+            {products.slice(0, 6).map((item) => (
+              <View key={item.id} style={[st.dataRow, st.recentProductRow]}>
                 <View style={st.dataRowMain}>
                   <Text style={st.dataRowTitle}>{item.name}</Text>
                   <Text style={st.dataMuted}>{item.category}</Text>
                 </View>
                 <Text style={st.dataMeta}>{toDateOnlyLabel(item.created_at)}</Text>
               </View>
-            ))
-          )}
-        </View>
+            ))}
+          </View>
+        )}
       </View>
-    </>
+    </View>
   );
 }

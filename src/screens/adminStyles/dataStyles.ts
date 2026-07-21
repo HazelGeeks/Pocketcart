@@ -6,6 +6,12 @@ export const adminDataStyles = {
     flexWrap: "wrap",
     gap: 6,
   },
+  overviewContent: {
+    width: "100%",
+    maxWidth: 1000,
+    alignSelf: "center",
+    gap: 12,
+  },
   statCard: {
     minWidth: 140,
     flexGrow: 1,
@@ -40,10 +46,15 @@ export const adminDataStyles = {
     fontWeight: "800",
     marginTop: 2,
   },
-  dualColumnGrid: {
+  recentProductGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 8,
+  },
+  recentProductRow: {
+    minWidth: 280,
+    flexBasis: "48%",
+    flexGrow: 1,
   },
   productAdminStack: {
     gap: 12,
