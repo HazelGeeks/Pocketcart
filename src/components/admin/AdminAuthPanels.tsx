@@ -30,39 +30,77 @@ export function AdminSignInPanel({
   onPasswordChange,
   onSignIn,
 }: AdminSignInPanelProps) {
+  const passwordInputRef = React.useRef<TextInput>(null);
+  const [passwordVisible, setPasswordVisible] = React.useState(false);
+
   return (
     <View style={st.authCard}>
-      <Text style={st.infoTitle}>Admin Sign In</Text>
-      <Text style={st.infoBody}>Sign in with your Supabase email/password account.</Text>
+      <Text accessibilityRole="header" aria-level={2} style={st.infoTitle}>
+        Admin Sign In
+      </Text>
+      <Text style={st.infoBody}>Use your authorized PocketCart admin account.</Text>
 
-      <TextInput
-        value={email}
-        onChangeText={onEmailChange}
-        placeholder="Email"
-        placeholderTextColor={C.textMuted}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.input}
-      />
-      <TextInput
-        value={password}
-        onChangeText={onPasswordChange}
-        placeholder="Password"
-        placeholderTextColor={C.textMuted}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={st.input}
-      />
+      <View style={st.authField}>
+        <Text style={st.authFieldLabel}>Email</Text>
+        <TextInput
+          value={email}
+          onChangeText={onEmailChange}
+          accessibilityLabel="Admin email"
+          placeholder="name@example.com"
+          placeholderTextColor={C.textMuted}
+          keyboardType="email-address"
+          autoComplete="email"
+          textContentType="username"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!loading}
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
+          style={[st.input, st.authInput]}
+        />
+      </View>
+
+      <View style={st.authField}>
+        <Text style={st.authFieldLabel}>Password</Text>
+        <View style={st.authPasswordField}>
+          <TextInput
+            ref={passwordInputRef}
+            value={password}
+            onChangeText={onPasswordChange}
+            accessibilityLabel="Admin password"
+            placeholder="Enter your password"
+            placeholderTextColor={C.textMuted}
+            secureTextEntry={!passwordVisible}
+            autoComplete="current-password"
+            textContentType="password"
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!loading}
+            returnKeyType="go"
+            onSubmitEditing={onSignIn}
+            style={[st.input, st.authInput, st.authPasswordInput]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
+            accessibilityState={{ expanded: passwordVisible }}
+            onPress={() => setPasswordVisible((visible) => !visible)}
+            style={st.authPasswordToggle}
+            disabled={loading}
+          >
+            <Text style={st.authPasswordToggleText}>{passwordVisible ? "Hide" : "Show"}</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <Pressable
         accessibilityRole="button"
+        accessibilityState={{ disabled: loading, busy: loading }}
         onPress={onSignIn}
-        style={[st.btn, st.btnPrimary]}
+        style={[st.btn, st.btnPrimary, st.authSubmitButton, loading && st.btnDisabled]}
         disabled={loading}
       >
-        <Text style={st.btnPrimaryText}>{loading ? "Signing in..." : "Sign In"}</Text>
+        <Text style={st.btnPrimaryText}>{loading ? "Signing in…" : "Sign In"}</Text>
       </Pressable>
     </View>
   );

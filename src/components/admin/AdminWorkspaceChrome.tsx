@@ -32,7 +32,9 @@ export function AdminHeader({
   return (
     <View style={st.headerRow}>
       <View>
-        <Text style={st.pageTitle}>Admin Dashboard</Text>
+        <Text accessibilityRole="header" aria-level={1} style={st.pageTitle}>
+          Admin Dashboard
+        </Text>
         <Text style={st.pageSub}>Manage product catalog and active price sets.</Text>
       </View>
 

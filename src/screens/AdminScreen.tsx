@@ -497,7 +497,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           <ScrollView
             role="main"
             style={st.scroll}
-            contentContainerStyle={st.scrollContent}
+            contentContainerStyle={[st.scrollContent, !authUser && st.scrollContentAuth]}
             showsVerticalScrollIndicator={false}
           >
             <AdminHeader
@@ -518,15 +518,17 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             ) : null}
 
             {!authUser ? (
-              <AdminSignInPanel
-                email={authEmail}
-                password={authPassword}
-                loading={authLoading}
-                styles={st}
-                onEmailChange={setAuthEmail}
-                onPasswordChange={setAuthPassword}
-                onSignIn={handleSignIn}
-              />
+              <View style={st.authStage}>
+                <AdminSignInPanel
+                  email={authEmail}
+                  password={authPassword}
+                  loading={authLoading}
+                  styles={st}
+                  onEmailChange={setAuthEmail}
+                  onPasswordChange={setAuthPassword}
+                  onSignIn={handleSignIn}
+                />
+              </View>
             ) : !hasAdminAccess ? (
               <AdminNoAccessPanel
                 styles={st}
