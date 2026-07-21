@@ -1,8 +1,9 @@
 import React from "react";
-import { Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Image, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { FlyerEditableField, FlyerRow } from "../../state/adminStore";
 import { WEB_FLYER_ACTION_BAR_STYLE } from "../../utils/adminScreenHelpers";
+import WebLink from "../WebLink";
 
 type AdminFlyerPanelProps = {
   rows: FlyerRow[];
@@ -28,6 +29,13 @@ const IMAGE_STATUS_LABELS: Record<FlyerRow["imageStatus"], string> = {
   saved: "Saved",
   error: "Error",
 };
+
+const STORE_FLYER_LINKS = [
+  { name: "Hmart", url: "https://hmart.ca/" },
+  { name: "PriceSmart", url: "https://www.pricesmartfoods.com" },
+  { name: "Hannan", url: "https://hannamsm.com/weekly-special/7days" },
+  { name: "MarketRibbon", url: "https://marketribbon.ca/" },
+] as const;
 
 export default function AdminFlyerPanel({
   rows,
@@ -263,6 +271,32 @@ export default function AdminFlyerPanel({
           )}
         </View>
       </ScrollView>
+
+      <View style={st.flyerStoreLinksSection}>
+        <View style={st.flyerStoreLinksHeader}>
+          <Text style={st.flyerStoreLinksTitle}>Store Flyer Links</Text>
+          <Text style={st.dataMuted}>Open each store’s current flyer in a new tab.</Text>
+        </View>
+        <View style={st.flyerStoreLinksRow}>
+          {STORE_FLYER_LINKS.map((store) => (
+            <WebLink
+              key={store.name}
+              href={store.url}
+              accessibilityLabel={`Open ${store.name} flyer in a new tab`}
+              onPress={Platform.OS === "web" ? undefined : () => {
+                void Linking.openURL(store.url);
+              }}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <View style={st.flyerStoreLink}>
+                <Text style={st.flyerStoreLinkText}>{store.name}</Text>
+                <Text style={st.flyerStoreLinkIcon}>↗</Text>
+              </View>
+            </WebLink>
+          ))}
+        </View>
+      </View>
     </View>
   );
 }

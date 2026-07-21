@@ -87,6 +87,48 @@ export const adminDataStyles = {
     fontSize: 11,
     fontWeight: "700",
   },
+  flyerStoreLinksSection: {
+    borderTopWidth: 1,
+    borderTopColor: "#e2e7f0",
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    gap: 10,
+  },
+  flyerStoreLinksHeader: {
+    gap: 2,
+  },
+  flyerStoreLinksTitle: {
+    color: "#2f3747",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  flyerStoreLinksRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  flyerStoreLink: {
+    minHeight: 44,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#d5dce8",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  flyerStoreLinkText: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  flyerStoreLinkIcon: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
   emptyStateCard: {
     borderRadius: 12,
     borderWidth: 1,
