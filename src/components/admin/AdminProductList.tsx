@@ -6,6 +6,7 @@ import {
   toDateOnlyLabel,
   type ProductPriceStats,
 } from "../../utils/adminScreenHelpers";
+import AdminTechnicalDetails from "./AdminTechnicalDetails";
 
 type AdminProductListProps = {
   products: AdminProduct[];
@@ -101,7 +102,11 @@ export default function AdminProductList({
                   </View>
                 ) : null}
               </View>
-              <Text style={st.dataMuted}>{item.id}</Text>
+              <AdminTechnicalDetails
+                accessibilityContext={item.name}
+                items={[{ key: "product-id", label: "Product ID", value: item.id }]}
+                styles={st}
+              />
             </View>
             <View style={st.listRight}>
               {item.thumbnail_url ? (

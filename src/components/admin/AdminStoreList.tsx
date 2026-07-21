@@ -5,6 +5,7 @@ import {
   toDateOnlyLabel,
   type StorePriceStats,
 } from "../../utils/adminScreenHelpers";
+import AdminTechnicalDetails from "./AdminTechnicalDetails";
 
 type AdminStoreListProps = {
   stores: AdminStore[];
@@ -93,14 +94,8 @@ export default function AdminStoreList({
                   <Text style={st.storeMetaChipText}>Latest {latestObserved}</Text>
                 </View>
               </View>
-              <Text style={st.dataMuted}>
-                {store.latitude}, {store.longitude}
-              </Text>
               {store.address && store.brand ? (
                 <Text style={st.dataMuted}>{store.address}</Text>
-              ) : null}
-              {store.place_id ? (
-                <Text style={st.dataMuted}>Place ID {store.place_id}</Text>
               ) : null}
               {store.phone || store.website || store.hours ? (
                 <Text style={st.dataMuted}>
@@ -110,7 +105,21 @@ export default function AdminStoreList({
               {store.price_note ? (
                 <Text style={st.dataMuted}>{store.price_note}</Text>
               ) : null}
-              <Text style={st.dataMuted}>{store.id}</Text>
+              <AdminTechnicalDetails
+                accessibilityContext={`${store.brand ? `${store.brand} ` : ""}${store.name}`}
+                items={[
+                  { key: "store-id", label: "Store ID", value: store.id },
+                  ...(store.place_id
+                    ? [{ key: "place-id", label: "Google Place ID", value: store.place_id }]
+                    : []),
+                  {
+                    key: "coordinates",
+                    label: "Coordinates",
+                    value: `${store.latitude}, ${store.longitude}`,
+                  },
+                ]}
+                styles={st}
+              />
             </View>
             <View style={st.storeListRight}>
               <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
