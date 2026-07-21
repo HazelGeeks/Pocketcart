@@ -28,6 +28,28 @@ export const adminModalStyles = {
     padding: 16,
     gap: 10,
   },
+  productDeleteSummary: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e1e6ef",
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    gap: 5,
+  },
+  productDeleteCount: {
+    color: "#2f3748",
+    fontSize: 13,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+  productDeleteName: {
+    color: "#4d5a70",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  confirmActionButton: {
+    minHeight: 44,
+  },
   modalHeader: {
     paddingHorizontal: 14,
     paddingVertical: 12,

@@ -3,6 +3,12 @@ import { Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import type { ProductSortKey } from "../../state/adminStore";
 import type { ProductPriceStats } from "../../utils/adminScreenHelpers";
+import {
+  buildProductDeleteConfirmation,
+  removeDeletedProductIds,
+  type ProductDeleteConfirmation,
+} from "../../utils/productDeleteConfirmation";
+import AdminProductDeleteModal from "./AdminProductDeleteModal";
 import AdminProductFilters from "./AdminProductFilters";
 import AdminProductList from "./AdminProductList";
 
@@ -47,8 +53,8 @@ type Props = {
   onProductSortChange: (value: ProductSortKey) => void;
   onResetProductFilters: () => void;
   onEditProduct: (product: AdminProduct) => void;
-  onDeleteProduct: (productId: string) => void;
-  onDeleteProducts: (productIds: string[]) => void;
+  onDeleteProduct: (productId: string) => Promise<boolean>;
+  onDeleteProducts: (productIds: string[]) => Promise<string[]>;
 };
 
 export default function AdminProductsPanel({
@@ -87,6 +93,9 @@ export default function AdminProductsPanel({
 }: Props) {
   const [selectedProductIds, setSelectedProductIds] = React.useState<Set<string>>(new Set());
   const [csvActionsOpen, setCsvActionsOpen] = React.useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = React.useState<ProductDeleteConfirmation | null>(null);
+  const [deleteConfirming, setDeleteConfirming] = React.useState(false);
+  const deleteConfirmingRef = React.useRef(false);
   const filteredProductIds = React.useMemo(() => filteredProducts.map((product) => product.id), [filteredProducts]);
   const selectedVisibleCount = filteredProductIds.filter((id) => selectedProductIds.has(id)).length;
   const allVisibleSelected = filteredProductIds.length > 0 && selectedVisibleCount === filteredProductIds.length;
@@ -128,12 +137,40 @@ export default function AdminProductsPanel({
     setSelectedProductIds(new Set());
   }, []);
 
-  const handleDeleteSelected = React.useCallback(() => {
-    const ids = Array.from(selectedProductIds);
-    if (ids.length === 0) return;
-    onDeleteProducts(ids);
-    setSelectedProductIds(new Set());
-  }, [onDeleteProducts, selectedProductIds]);
+  const handleRequestDeleteProduct = React.useCallback((productId: string) => {
+    const product = products.find((item) => item.id === productId);
+    if (!product) return;
+    setDeleteConfirmation(buildProductDeleteConfirmation([product], "single"));
+  }, [products]);
+
+  const handleRequestDeleteSelected = React.useCallback(() => {
+    const selectedProducts = products.filter((product) => selectedProductIds.has(product.id));
+    setDeleteConfirmation(buildProductDeleteConfirmation(selectedProducts, "bulk"));
+  }, [products, selectedProductIds]);
+
+  const handleConfirmDelete = React.useCallback(async () => {
+    if (!deleteConfirmation || deleteConfirmingRef.current) return;
+    deleteConfirmingRef.current = true;
+    setDeleteConfirming(true);
+
+    try {
+      let deletedIds: string[] = [];
+      if (deleteConfirmation.mode === "single") {
+        const deleted = await onDeleteProduct(deleteConfirmation.ids[0]);
+        if (deleted) deletedIds = deleteConfirmation.ids;
+      } else {
+        deletedIds = await onDeleteProducts(deleteConfirmation.ids);
+      }
+
+      if (deletedIds.length > 0) {
+        setSelectedProductIds((current) => removeDeletedProductIds(current, deletedIds));
+      }
+    } finally {
+      deleteConfirmingRef.current = false;
+      setDeleteConfirming(false);
+      setDeleteConfirmation(null);
+    }
+  }, [deleteConfirmation, onDeleteProduct, onDeleteProducts]);
 
   const runCsvAction = React.useCallback((action: () => void) => {
     setCsvActionsOpen(false);
@@ -233,7 +270,7 @@ export default function AdminProductsPanel({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={handleDeleteSelected}
+                onPress={handleRequestDeleteSelected}
                 style={[st.btn, st.btnDanger]}
                 disabled={submitting || bulkDeleting}
               >
@@ -261,9 +298,19 @@ export default function AdminProductsPanel({
           onToggleAllVisible={handleToggleAllVisible}
           onToggleProduct={handleToggleProduct}
           onEditProduct={onEditProduct}
-          onDeleteProduct={onDeleteProduct}
+          onDeleteProduct={handleRequestDeleteProduct}
         />
       </View>
+
+      <AdminProductDeleteModal
+        confirmation={deleteConfirmation}
+        deleting={deleteConfirming}
+        styles={st}
+        onClose={() => setDeleteConfirmation(null)}
+        onConfirm={() => {
+          void handleConfirmDelete();
+        }}
+      />
     </View>
   );
 }

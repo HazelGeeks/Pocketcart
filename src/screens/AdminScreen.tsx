@@ -607,12 +607,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onProductSortChange={setProductSort}
                     onResetProductFilters={handleResetProductFilters}
                     onEditProduct={handleOpenEditProduct}
-                    onDeleteProduct={(productId) => {
-                      void handleDeleteProduct(productId);
-                    }}
-                    onDeleteProducts={(productIds) => {
-                      void handleDeleteProducts(productIds);
-                    }}
+                    onDeleteProduct={handleDeleteProduct}
+                    onDeleteProducts={handleDeleteProducts}
                   />
                 ) : null}
 
