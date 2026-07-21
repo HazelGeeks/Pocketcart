@@ -19,6 +19,8 @@ type AdminProductListProps = {
   allVisibleSelected: boolean;
   selectedVisibleCount: number;
   styles: Record<string, any>;
+  onAddProduct: () => void;
+  onImportProductsCsv: () => void;
   onToggleAllVisible: () => void;
   onToggleProduct: (productId: string) => void;
   onEditProduct: (product: AdminProduct) => void;
@@ -36,6 +38,8 @@ export default function AdminProductList({
   allVisibleSelected,
   selectedVisibleCount,
   styles: st,
+  onAddProduct,
+  onImportProductsCsv,
   onToggleAllVisible,
   onToggleProduct,
   onEditProduct,
@@ -46,10 +50,35 @@ export default function AdminProductList({
   }
 
   if (products.length === 0) {
+    if (totalProducts === 0) {
+      return (
+        <View style={st.emptyStateCard}>
+          <Text style={st.emptyStateTitle}>No products yet</Text>
+          <Text style={st.dataMuted}>Add your first product or import a catalog from CSV.</Text>
+          <View style={st.emptyStateActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onAddProduct}
+              style={[st.btn, st.btnPrimary, st.emptyStateAction]}
+              disabled={submitting}
+            >
+              <Text style={st.btnPrimaryText}>Add Product</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onImportProductsCsv}
+              style={[st.btn, st.btnGhost, st.emptyStateAction]}
+              disabled={submitting}
+            >
+              <Text style={st.btnGhostText}>Import CSV</Text>
+            </Pressable>
+          </View>
+        </View>
+      );
+    }
+
     return (
-      <Text style={st.dataMuted}>
-        {totalProducts === 0 ? "No products yet." : "No products match current filters."}
-      </Text>
+      <Text style={st.dataMuted}>No products match current filters.</Text>
     );
   }
 
@@ -156,7 +185,7 @@ export default function AdminProductList({
                 style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
                 disabled={deleting || bulkDeleting}
               >
-                <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                <Text style={st.btnDangerText}>{deleting ? "Deleting…" : "Delete"}</Text>
               </Pressable>
             </View>
           </View>

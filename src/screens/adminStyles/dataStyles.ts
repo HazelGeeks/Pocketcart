@@ -84,6 +84,21 @@ export const adminDataStyles = {
     padding: 16,
     gap: 6,
   },
+  emptyStateTitle: {
+    color: "#2f3747",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  emptyStateActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  emptyStateAction: {
+    minHeight: 44,
+  },
   flyerTable: {
     borderWidth: 1,
     borderColor: "#cfd7e3",

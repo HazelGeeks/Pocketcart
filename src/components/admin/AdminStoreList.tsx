@@ -155,7 +155,7 @@ export default function AdminStoreList({
                   style={[st.btn, st.btnDanger, st.storeActionBtn, deleting && st.btnDisabled]}
                   disabled={deleting || submitting}
                 >
-                  <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                  <Text style={st.btnDangerText}>{deleting ? "Deleting…" : "Delete"}</Text>
                 </Pressable>
               </View>
             </View>

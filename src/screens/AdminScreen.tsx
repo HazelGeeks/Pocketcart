@@ -104,6 +104,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const activeMenu = useAdminStore((state) => state.activeMenu);
   const setActiveMenu = useAdminStore((state) => state.setActiveMenu);
@@ -229,6 +230,16 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     },
     [auditLogsQuery, pricesQuery, productsQuery, storesQuery],
   );
+
+  const handleRefresh = React.useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadAll(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadAll, refreshing]);
 
   React.useEffect(() => {
     const errors = [
@@ -484,8 +495,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             {isLg && sidebarCollapsed ? (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Expand sidebar"
+                accessibilityHint="Opens the admin navigation"
                 onPress={() => setSidebarCollapsed(false)}
                 style={st.sidebarCollapsedToggle}
+                {...({ title: "Expand sidebar" } as any)}
               >
                 <Text style={st.sidebarCollapsedToggleIcon}>›</Text>
               </Pressable>
@@ -502,10 +516,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           >
             <AdminHeader
               hasAdminAccess={Boolean(authUser && hasAdminAccess)}
+              refreshing={refreshing}
               styles={st}
               onBack={onBack}
               onRefresh={() => {
-                void loadAll(true);
+                void handleRefresh();
               }}
             />
 

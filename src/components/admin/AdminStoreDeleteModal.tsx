@@ -32,7 +32,7 @@ export default function AdminStoreDeleteModal({
               <Text style={st.btnGhostText}>Cancel</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onConfirm} style={[st.btn, st.btnDanger]} disabled={submitting}>
-              <Text style={st.btnDangerText}>Delete Store</Text>
+              <Text style={st.btnDangerText}>{submitting ? "Deleting…" : "Delete Store"}</Text>
             </Pressable>
           </View>
         </View>

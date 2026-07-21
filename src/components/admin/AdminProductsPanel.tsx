@@ -256,6 +256,8 @@ export default function AdminProductsPanel({
           allVisibleSelected={allVisibleSelected}
           selectedVisibleCount={selectedVisibleCount}
           styles={st}
+          onAddProduct={onOpenAddProduct}
+          onImportProductsCsv={onImportProductsCsv}
           onToggleAllVisible={handleToggleAllVisible}
           onToggleProduct={handleToggleProduct}
           onEditProduct={onEditProduct}

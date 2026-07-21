@@ -288,12 +288,16 @@ export const adminLayoutStyles = {
     gap: 8,
   },
   mobileMenuBtn: {
+    minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#dde3ee",
     backgroundColor: "#ffffff",
     paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   mobileMenuBtnActive: {
     borderColor: C.primaryLight,
@@ -306,5 +310,19 @@ export const adminLayoutStyles = {
   },
   mobileMenuTextActive: {
     color: C.primaryDeep,
+  },
+  mobileMenuBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: "#eceff4",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  mobileMenuBadgeText: {
+    color: "#4e5c74",
+    fontSize: 10,
+    fontWeight: "800",
   },
 } as const;

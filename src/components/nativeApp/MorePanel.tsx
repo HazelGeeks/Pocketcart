@@ -219,7 +219,7 @@ function AccountSection({
               disabled={deletingAccount}
             >
               <Text style={st.settingsButtonPrimaryText}>
-                {deletingAccount ? "Deleting..." : "Delete Account"}
+                {deletingAccount ? "Deleting…" : "Delete Account"}
               </Text>
             </Pressable>
           </View>
