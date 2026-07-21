@@ -16,7 +16,10 @@ type AdminProductListProps = {
   deletingKey: string | null;
   submitting: boolean;
   selectedProductIds: Set<string>;
+  allVisibleSelected: boolean;
+  selectedVisibleCount: number;
   styles: Record<string, any>;
+  onToggleAllVisible: () => void;
   onToggleProduct: (productId: string) => void;
   onEditProduct: (product: AdminProduct) => void;
   onDeleteProduct: (productId: string) => void;
@@ -30,7 +33,10 @@ export default function AdminProductList({
   deletingKey,
   submitting,
   selectedProductIds,
+  allVisibleSelected,
+  selectedVisibleCount,
   styles: st,
+  onToggleAllVisible,
   onToggleProduct,
   onEditProduct,
   onDeleteProduct,
@@ -49,6 +55,29 @@ export default function AdminProductList({
 
   return (
     <>
+      <View style={st.productListHeader}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={allVisibleSelected ? "Clear all visible products" : "Select all visible products"}
+          accessibilityState={{
+            checked: allVisibleSelected ? true : selectedVisibleCount > 0 ? "mixed" : false,
+          }}
+          onPress={onToggleAllVisible}
+          style={st.productListHeaderSelect}
+          disabled={submitting || deletingKey === "products:bulk"}
+        >
+          <View style={[st.productCheckboxBox, (allVisibleSelected || selectedVisibleCount > 0) && st.productCheckboxBoxChecked]}>
+            {allVisibleSelected ? (
+              <View style={st.productCheckboxMark} />
+            ) : selectedVisibleCount > 0 ? (
+              <View style={st.productCheckboxMixedMark} />
+            ) : null}
+          </View>
+          <Text style={st.productListHeaderText}>Select all visible</Text>
+        </Pressable>
+        <Text style={st.dataMuted}>{products.length} products</Text>
+      </View>
+
       {products.map((item) => {
         const deleteKey = `product:${item.id}`;
         const deleting = deletingKey === deleteKey;

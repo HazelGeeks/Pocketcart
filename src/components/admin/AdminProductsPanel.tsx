@@ -86,6 +86,7 @@ export default function AdminProductsPanel({
   onDeleteProducts,
 }: Props) {
   const [selectedProductIds, setSelectedProductIds] = React.useState<Set<string>>(new Set());
+  const [csvActionsOpen, setCsvActionsOpen] = React.useState(false);
   const filteredProductIds = React.useMemo(() => filteredProducts.map((product) => product.id), [filteredProducts]);
   const selectedVisibleCount = filteredProductIds.filter((id) => selectedProductIds.has(id)).length;
   const allVisibleSelected = filteredProductIds.length > 0 && selectedVisibleCount === filteredProductIds.length;
@@ -111,11 +112,17 @@ export default function AdminProductsPanel({
     });
   }, []);
 
-  const handleSelectAllVisible = React.useCallback(() => {
+  const handleToggleAllVisible = React.useCallback(() => {
     setSelectedProductIds((current) => {
-      return new Set([...Array.from(current), ...filteredProductIds]);
+      const next = new Set(current);
+      if (allVisibleSelected) {
+        filteredProductIds.forEach((id) => next.delete(id));
+      } else {
+        filteredProductIds.forEach((id) => next.add(id));
+      }
+      return next;
     });
-  }, [filteredProductIds]);
+  }, [allVisibleSelected, filteredProductIds]);
 
   const handleClearSelection = React.useCallback(() => {
     setSelectedProductIds(new Set());
@@ -128,31 +135,58 @@ export default function AdminProductsPanel({
     setSelectedProductIds(new Set());
   }, [onDeleteProducts, selectedProductIds]);
 
+  const runCsvAction = React.useCallback((action: () => void) => {
+    setCsvActionsOpen(false);
+    action();
+  }, []);
+
   return (
     <View style={st.productAdminStack}>
       <View style={st.dataCard}>
         <View style={st.dataCardHeader}>
-          <Text style={st.dataCardTitle}>Product Management</Text>
-          <View style={st.inlineRow}>
+          <View style={st.productHeaderCopy}>
+            <Text style={st.dataCardTitle}>Product Management</Text>
             <Text style={st.dataMuted}>Create and remove catalog products.</Text>
-            <Pressable accessibilityRole="button" onPress={onImportProductsCsv} style={[st.btn, st.btnGhost]} disabled={submitting}>
-              <Text style={st.btnGhostText}>Import CSV</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={onDownloadProductCsvTemplate} style={[st.btn, st.btnGhost]} disabled={submitting}>
-              <Text style={st.btnGhostText}>CSV Template</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={onExportProductsCsv} style={[st.btn, st.btnGhost, filteredProducts.length === 0 && st.btnDisabled]} disabled={filteredProducts.length === 0 || submitting}>
-              <Text style={st.btnGhostText}>Export CSV</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={handleSelectAllVisible} style={[st.btn, st.btnGhost, (filteredProducts.length === 0 || allVisibleSelected) && st.btnDisabled]} disabled={filteredProducts.length === 0 || allVisibleSelected || submitting || bulkDeleting}>
-              <Text style={st.btnGhostText}>Select all</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={handleDeleteSelected} style={[st.btn, st.btnDanger, selectedProductIds.size === 0 && st.btnDisabled]} disabled={selectedProductIds.size === 0 || submitting || bulkDeleting}>
-              <Text style={st.btnDangerText}>{bulkDeleting ? "Deleting..." : `Delete selected ${selectedProductIds.size}`}</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={handleClearSelection} style={[st.btn, st.btnGhost, selectedProductIds.size === 0 && st.btnDisabled]} disabled={selectedProductIds.size === 0 || submitting || bulkDeleting}>
-              <Text style={st.btnGhostText}>Clear selection</Text>
-            </Pressable>
+          </View>
+          <View style={st.productHeaderActions}>
+            <View style={st.csvActionsMenu}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="CSV actions"
+                accessibilityState={{ expanded: csvActionsOpen }}
+                onPress={() => setCsvActionsOpen((open) => !open)}
+                style={[st.btn, st.btnGhost, st.csvActionsTrigger, submitting && st.btnDisabled]}
+                disabled={submitting}
+              >
+                <Text style={st.btnGhostText}>CSV Actions {csvActionsOpen ? "▴" : "▾"}</Text>
+              </Pressable>
+              {csvActionsOpen ? (
+                <View style={st.csvActionsMenuPanel}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => runCsvAction(onImportProductsCsv)}
+                    style={st.csvActionsMenuItem}
+                  >
+                    <Text style={st.csvActionsMenuItemText}>Import CSV</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => runCsvAction(onDownloadProductCsvTemplate)}
+                    style={st.csvActionsMenuItem}
+                  >
+                    <Text style={st.csvActionsMenuItemText}>Download Template</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => runCsvAction(onExportProductsCsv)}
+                    style={[st.csvActionsMenuItem, filteredProducts.length === 0 && st.btnDisabled]}
+                    disabled={filteredProducts.length === 0}
+                  >
+                    <Text style={st.csvActionsMenuItemText}>Export Filtered CSV</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
             <Pressable accessibilityRole="button" onPress={onOpenAddProduct} style={[st.btn, st.btnPrimary]} disabled={submitting}>
               <Text style={st.btnPrimaryText}>Add Product</Text>
             </Pressable>
@@ -183,6 +217,34 @@ export default function AdminProductsPanel({
           onReset={onResetProductFilters}
         />
 
+        {selectedProductIds.size > 0 ? (
+          <View style={st.productSelectionToolbar}>
+            <Text accessibilityLiveRegion="polite" style={st.productSelectionCount}>
+              {selectedProductIds.size} selected
+            </Text>
+            <View style={st.productSelectionActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleClearSelection}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting || bulkDeleting}
+              >
+                <Text style={st.btnGhostText}>Clear</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleDeleteSelected}
+                style={[st.btn, st.btnDanger]}
+                disabled={submitting || bulkDeleting}
+              >
+                <Text style={st.btnDangerText}>
+                  {bulkDeleting ? "Deleting…" : `Delete ${selectedProductIds.size}`}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         <AdminProductList
           products={filteredProducts}
           totalProducts={products.length}
@@ -191,7 +253,10 @@ export default function AdminProductsPanel({
           deletingKey={deletingKey}
           submitting={submitting}
           selectedProductIds={selectedProductIds}
+          allVisibleSelected={allVisibleSelected}
+          selectedVisibleCount={selectedVisibleCount}
           styles={st}
+          onToggleAllVisible={handleToggleAllVisible}
           onToggleProduct={handleToggleProduct}
           onEditProduct={onEditProduct}
           onDeleteProduct={onDeleteProduct}
