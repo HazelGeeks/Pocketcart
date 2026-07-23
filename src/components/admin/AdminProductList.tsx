@@ -6,6 +6,7 @@ import {
   toDateOnlyLabel,
   type ProductPriceStats,
 } from "../../utils/adminScreenHelpers";
+import AdminTechnicalDetails from "./AdminTechnicalDetails";
 
 type AdminProductListProps = {
   products: AdminProduct[];
@@ -15,7 +16,12 @@ type AdminProductListProps = {
   deletingKey: string | null;
   submitting: boolean;
   selectedProductIds: Set<string>;
+  allVisibleSelected: boolean;
+  selectedVisibleCount: number;
   styles: Record<string, any>;
+  onAddProduct: () => void;
+  onImportProductsCsv: () => void;
+  onToggleAllVisible: () => void;
   onToggleProduct: (productId: string) => void;
   onEditProduct: (product: AdminProduct) => void;
   onDeleteProduct: (productId: string) => void;
@@ -29,7 +35,12 @@ export default function AdminProductList({
   deletingKey,
   submitting,
   selectedProductIds,
+  allVisibleSelected,
+  selectedVisibleCount,
   styles: st,
+  onAddProduct,
+  onImportProductsCsv,
+  onToggleAllVisible,
   onToggleProduct,
   onEditProduct,
   onDeleteProduct,
@@ -39,15 +50,63 @@ export default function AdminProductList({
   }
 
   if (products.length === 0) {
+    if (totalProducts === 0) {
+      return (
+        <View style={st.emptyStateCard}>
+          <Text style={st.emptyStateTitle}>No products yet</Text>
+          <Text style={st.dataMuted}>Add your first product or import a catalog from CSV.</Text>
+          <View style={st.emptyStateActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onAddProduct}
+              style={[st.btn, st.btnPrimary, st.emptyStateAction]}
+              disabled={submitting}
+            >
+              <Text style={st.btnPrimaryText}>Add Product</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onImportProductsCsv}
+              style={[st.btn, st.btnGhost, st.emptyStateAction]}
+              disabled={submitting}
+            >
+              <Text style={st.btnGhostText}>Import CSV</Text>
+            </Pressable>
+          </View>
+        </View>
+      );
+    }
+
     return (
-      <Text style={st.dataMuted}>
-        {totalProducts === 0 ? "No products yet." : "No products match current filters."}
-      </Text>
+      <Text style={st.dataMuted}>No products match current filters.</Text>
     );
   }
 
   return (
     <>
+      <View style={st.productListHeader}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={allVisibleSelected ? "Clear all visible products" : "Select all visible products"}
+          accessibilityState={{
+            checked: allVisibleSelected ? true : selectedVisibleCount > 0 ? "mixed" : false,
+          }}
+          onPress={onToggleAllVisible}
+          style={st.productListHeaderSelect}
+          disabled={submitting || deletingKey === "products:bulk"}
+        >
+          <View style={[st.productCheckboxBox, (allVisibleSelected || selectedVisibleCount > 0) && st.productCheckboxBoxChecked]}>
+            {allVisibleSelected ? (
+              <View style={st.productCheckboxMark} />
+            ) : selectedVisibleCount > 0 ? (
+              <View style={st.productCheckboxMixedMark} />
+            ) : null}
+          </View>
+          <Text style={st.productListHeaderText}>Select all visible</Text>
+        </Pressable>
+        <Text style={st.dataMuted}>{products.length} products</Text>
+      </View>
+
       {products.map((item) => {
         const deleteKey = `product:${item.id}`;
         const deleting = deletingKey === deleteKey;
@@ -101,7 +160,11 @@ export default function AdminProductList({
                   </View>
                 ) : null}
               </View>
-              <Text style={st.dataMuted}>{item.id}</Text>
+              <AdminTechnicalDetails
+                accessibilityContext={item.name}
+                items={[{ key: "product-id", label: "Product ID", value: item.id }]}
+                styles={st}
+              />
             </View>
             <View style={st.listRight}>
               {item.thumbnail_url ? (
@@ -122,7 +185,7 @@ export default function AdminProductList({
                 style={[st.btn, st.btnDanger, deleting && st.btnDisabled]}
                 disabled={deleting || bulkDeleting}
               >
-                <Text style={st.btnDangerText}>{deleting ? "..." : "Delete"}</Text>
+                <Text style={st.btnDangerText}>{deleting ? "Deleting…" : "Delete"}</Text>
               </Pressable>
             </View>
           </View>

@@ -6,6 +6,12 @@ export const adminDataStyles = {
     flexWrap: "wrap",
     gap: 6,
   },
+  overviewContent: {
+    width: "100%",
+    maxWidth: 1000,
+    alignSelf: "center",
+    gap: 12,
+  },
   statCard: {
     minWidth: 140,
     flexGrow: 1,
@@ -40,10 +46,15 @@ export const adminDataStyles = {
     fontWeight: "800",
     marginTop: 2,
   },
-  dualColumnGrid: {
+  recentProductGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 8,
+  },
+  recentProductRow: {
+    minWidth: 280,
+    flexBasis: "48%",
+    flexGrow: 1,
   },
   productAdminStack: {
     gap: 12,
@@ -76,6 +87,48 @@ export const adminDataStyles = {
     fontSize: 11,
     fontWeight: "700",
   },
+  flyerStoreLinksSection: {
+    borderTopWidth: 1,
+    borderTopColor: "#e2e7f0",
+    backgroundColor: "#f8fafc",
+    padding: 12,
+    gap: 10,
+  },
+  flyerStoreLinksHeader: {
+    gap: 2,
+  },
+  flyerStoreLinksTitle: {
+    color: "#2f3747",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  flyerStoreLinksRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  flyerStoreLink: {
+    minHeight: 44,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#d5dce8",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  flyerStoreLinkText: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  flyerStoreLinkIcon: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
   emptyStateCard: {
     borderRadius: 12,
     borderWidth: 1,
@@ -83,6 +136,21 @@ export const adminDataStyles = {
     backgroundColor: "#f8fafc",
     padding: 16,
     gap: 6,
+  },
+  emptyStateTitle: {
+    color: "#2f3747",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  emptyStateActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  emptyStateAction: {
+    minHeight: 44,
   },
   flyerTable: {
     borderWidth: 1,
@@ -265,6 +333,70 @@ export const adminDataStyles = {
     alignItems: "center",
     gap: 10,
     flexWrap: "wrap",
+  },
+  productHeaderCopy: {
+    gap: 3,
+  },
+  productHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  csvActionsMenu: {
+    position: "relative",
+    zIndex: 30,
+  },
+  csvActionsTrigger: {
+    minHeight: 44,
+  },
+  csvActionsMenuPanel: {
+    position: "absolute",
+    right: 0,
+    top: 48,
+    minWidth: 210,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#d8dee8",
+    backgroundColor: "#ffffff",
+    padding: 6,
+    gap: 2,
+    zIndex: 40,
+  },
+  csvActionsMenuItem: {
+    minHeight: 44,
+    borderRadius: 8,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  csvActionsMenuItemText: {
+    color: "#35435d",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  productSelectionToolbar: {
+    minHeight: 52,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.primaryLight,
+    backgroundColor: C.primaryGhost,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  productSelectionCount: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  productSelectionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   dataCardTitle: {
     color: "#2f3747",

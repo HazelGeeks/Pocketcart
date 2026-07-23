@@ -417,32 +417,35 @@ export default function useAdminProductActions({
   });
 
   const handleDeleteProduct = React.useCallback(
-    async (id: string) => {
+    async (id: string): Promise<boolean> => {
       setDeletingKey(`product:${id}`);
       try {
         await deleteProductMutation.mutateAsync(id);
       } catch (error) {
         setNotice(error instanceof Error ? error.message : "Product delete failed.");
-        return;
+        return false;
       } finally {
         setDeletingKey(null);
       }
       setNotice("Product deleted.");
       await loadAll(true);
+      return true;
     },
     [deleteProductMutation, loadAll, setDeletingKey, setNotice],
   );
 
   const handleDeleteProducts = React.useCallback(
-    async (ids: string[]) => {
+    async (ids: string[]): Promise<string[]> => {
       const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
-      if (uniqueIds.length === 0) return;
+      if (uniqueIds.length === 0) return [];
       setDeletingKey("products:bulk");
       const failed: string[] = [];
+      const deletedIds: string[] = [];
       try {
         for (const id of uniqueIds) {
           try {
             await deleteProductMutation.mutateAsync(id);
+            deletedIds.push(id);
           } catch (error) {
             failed.push(error instanceof Error ? error.message : "Product delete failed.");
           }
@@ -457,6 +460,7 @@ export default function useAdminProductActions({
         setNotice(`Deleted ${uniqueIds.length} products.`);
       }
       await loadAll(true);
+      return deletedIds;
     },
     [deleteProductMutation, loadAll, setDeletingKey, setNotice],
   );

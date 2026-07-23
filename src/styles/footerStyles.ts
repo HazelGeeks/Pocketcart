@@ -1,6 +1,4 @@
-import { Platform } from "react-native";
 import P from "../constants/palette";
-import { semanticPalette } from "../shared/design/palette";
 
 export const footerStyles = {
   footer: {
@@ -93,83 +91,6 @@ export const footerStyles = {
     width: "100%",
     alignSelf: "center",
     marginTop: 0,
-  },
-  footerSignup: {
-    alignItems: "center",
-    gap: 6,
-    width: "100%",
-    paddingVertical: 0,
-  },
-  footerSignupDesktop: {
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
-    paddingVertical: 0,
-  },
-  footerSignupTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: P.white,
-    textAlign: "center",
-  },
-  footerSignupSub: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: "rgba(255,255,255,0.55)",
-    textAlign: "center",
-    maxWidth: 420,
-  },
-  footerSignupRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 6,
-    width: "100%",
-    maxWidth: 420,
-  },
-  footerSignupRowStack: {
-    flexDirection: "column",
-    alignItems: "stretch",
-  },
-  footerSignupInput: {
-    flex: 1,
-    height: 46,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    color: P.white,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    ...(Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : {}),
-  },
-  footerSignupBtn: {
-    height: 46,
-    paddingHorizontal: 22,
-    borderRadius: 10,
-    backgroundColor: semanticPalette.success,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  footerSignupBtnBlock: {
-    width: "100%",
-  },
-  footerSignupBtnText: {
-    color: P.white,
-    fontSize: 14,
-    fontWeight: "700",
-    ...(Platform.OS === "web" ? ({ whiteSpace: "nowrap" } as any) : {}),
-  },
-  footerSignupDone: {
-    marginTop: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(97,227,146,0.12)",
-  },
-  footerSignupDoneText: {
-    fontSize: 14,
-    color: P.primary,
-    fontWeight: "600",
   },
   footerDivider: {
     width: "100%",

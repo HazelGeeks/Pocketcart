@@ -131,13 +131,6 @@ export const frSiteCopy: SiteCopy = {
     },
     footer: {
       tagline: "De meilleures habitudes d achat, simplifiees.",
-      signupTitle: "Recevez le lancement",
-      signupSub:
-        "Entrez votre e-mail pour etre informe en premier quand " +
-        "PocketCart sera disponible.",
-      signupDone: "Inscription validee. Nous vous informerons bientot.",
-      emailPlaceholder: "Entrez votre e-mail",
-      notify: "Me notifier",
       copyright: "© 2026 PocketCart. Tous droits reserves.",
       groups: [
         {

@@ -11,6 +11,7 @@ type SectionMenuItem = {
 
 type AdminHeaderProps = {
   hasAdminAccess: boolean;
+  refreshing: boolean;
   styles: Record<string, any>;
   onBack: () => void;
   onRefresh: () => void;
@@ -25,6 +26,7 @@ type AdminMobileMenuProps = {
 
 export function AdminHeader({
   hasAdminAccess,
+  refreshing,
   styles: st,
   onBack,
   onRefresh,
@@ -32,13 +34,21 @@ export function AdminHeader({
   return (
     <View style={st.headerRow}>
       <View>
-        <Text style={st.pageTitle}>Admin Dashboard</Text>
+        <Text accessibilityRole="header" aria-level={1} style={st.pageTitle}>
+          Admin Dashboard
+        </Text>
         <Text style={st.pageSub}>Manage product catalog and active price sets.</Text>
       </View>
 
       {hasAdminAccess ? (
-        <Pressable accessibilityRole="button" onPress={onRefresh} style={[st.btn, st.btnGhost]}>
-          <Text style={st.btnGhostText}>Refresh Data</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ busy: refreshing, disabled: refreshing }}
+          onPress={onRefresh}
+          style={[st.btn, st.btnGhost, refreshing && st.btnDisabled]}
+          disabled={refreshing}
+        >
+          <Text style={st.btnGhostText}>{refreshing ? "Refreshing…" : "Refresh Data"}</Text>
         </Pressable>
       ) : (
         <WebLink href="/" onPress={onBack}>
@@ -71,6 +81,13 @@ export function AdminMobileMenu({
             <Text style={[st.mobileMenuText, active && st.mobileMenuTextActive]}>
               {item.label}
             </Text>
+            {typeof item.badge === "number" ? (
+              <View style={[st.mobileMenuBadge, active && st.menuBadgeActive]}>
+                <Text style={[st.mobileMenuBadgeText, active && st.menuBadgeTextActive]}>
+                  {item.badge}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}

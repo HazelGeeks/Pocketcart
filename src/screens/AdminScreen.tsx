@@ -104,6 +104,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   const activeMenu = useAdminStore((state) => state.activeMenu);
   const setActiveMenu = useAdminStore((state) => state.setActiveMenu);
@@ -229,6 +230,16 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     },
     [auditLogsQuery, pricesQuery, productsQuery, storesQuery],
   );
+
+  const handleRefresh = React.useCallback(async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await loadAll(true);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadAll, refreshing]);
 
   React.useEffect(() => {
     const errors = [
@@ -484,8 +495,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             {isLg && sidebarCollapsed ? (
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel="Expand sidebar"
+                accessibilityHint="Opens the admin navigation"
                 onPress={() => setSidebarCollapsed(false)}
                 style={st.sidebarCollapsedToggle}
+                {...({ title: "Expand sidebar" } as any)}
               >
                 <Text style={st.sidebarCollapsedToggleIcon}>›</Text>
               </Pressable>
@@ -497,15 +511,16 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           <ScrollView
             role="main"
             style={st.scroll}
-            contentContainerStyle={st.scrollContent}
+            contentContainerStyle={[st.scrollContent, !authUser && st.scrollContentAuth]}
             showsVerticalScrollIndicator={false}
           >
             <AdminHeader
               hasAdminAccess={Boolean(authUser && hasAdminAccess)}
+              refreshing={refreshing}
               styles={st}
               onBack={onBack}
               onRefresh={() => {
-                void loadAll(true);
+                void handleRefresh();
               }}
             />
 
@@ -518,15 +533,17 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             ) : null}
 
             {!authUser ? (
-              <AdminSignInPanel
-                email={authEmail}
-                password={authPassword}
-                loading={authLoading}
-                styles={st}
-                onEmailChange={setAuthEmail}
-                onPasswordChange={setAuthPassword}
-                onSignIn={handleSignIn}
-              />
+              <View style={st.authStage}>
+                <AdminSignInPanel
+                  email={authEmail}
+                  password={authPassword}
+                  loading={authLoading}
+                  styles={st}
+                  onEmailChange={setAuthEmail}
+                  onPasswordChange={setAuthPassword}
+                  onSignIn={handleSignIn}
+                />
+              </View>
             ) : !hasAdminAccess ? (
               <AdminNoAccessPanel
                 styles={st}
@@ -546,7 +563,9 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   />
                 ) : null}
 
-                <Text style={st.panelTitle}>{panelTitle}</Text>
+                {activeMenu !== "overview" ? (
+                  <Text style={st.panelTitle}>{panelTitle}</Text>
+                ) : null}
 
                 {activeMenu === "overview" ? (
                   <AdminOverviewPanel
@@ -590,12 +609,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onProductSortChange={setProductSort}
                     onResetProductFilters={handleResetProductFilters}
                     onEditProduct={handleOpenEditProduct}
-                    onDeleteProduct={(productId) => {
-                      void handleDeleteProduct(productId);
-                    }}
-                    onDeleteProducts={(productIds) => {
-                      void handleDeleteProducts(productIds);
-                    }}
+                    onDeleteProduct={handleDeleteProduct}
+                    onDeleteProducts={handleDeleteProducts}
                   />
                 ) : null}
 

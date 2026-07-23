@@ -174,6 +174,9 @@ export const adminLayoutStyles = {
     paddingBottom: 56,
     gap: 12,
   },
+  scrollContentAuth: {
+    flexGrow: 1,
+  },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -211,13 +214,60 @@ export const adminLayoutStyles = {
     lineHeight: 19,
   },
   authCard: {
+    width: "100%",
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#d8dee8",
     backgroundColor: "#ffffff",
-    padding: 18,
-    gap: 9,
-    maxWidth: 520,
+    padding: 24,
+    gap: 14,
+    maxWidth: 460,
+    ...(Platform.OS === "web" ? ({ boxShadow: "0 14px 36px rgba(34, 44, 66, 0.08)" } as any) : {}),
+  },
+  authStage: {
+    flexGrow: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+  },
+  authField: {
+    gap: 6,
+  },
+  authFieldLabel: {
+    color: "#344158",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  authInput: {
+    minHeight: 48,
+    backgroundColor: "#ffffff",
+    fontSize: 15,
+  },
+  authPasswordField: {
+    position: "relative",
+  },
+  authPasswordInput: {
+    paddingRight: 72,
+  },
+  authPasswordToggle: {
+    position: "absolute",
+    right: 2,
+    top: 2,
+    minWidth: 60,
+    minHeight: 44,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  authPasswordToggleText: {
+    color: C.primaryDeep,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  authSubmitButton: {
+    minHeight: 48,
+    marginTop: 2,
   },
   noticeCard: {
     borderRadius: 12,
@@ -238,12 +288,16 @@ export const adminLayoutStyles = {
     gap: 8,
   },
   mobileMenuBtn: {
+    minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: "#dde3ee",
     backgroundColor: "#ffffff",
     paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   mobileMenuBtnActive: {
     borderColor: C.primaryLight,
@@ -256,5 +310,19 @@ export const adminLayoutStyles = {
   },
   mobileMenuTextActive: {
     color: C.primaryDeep,
+  },
+  mobileMenuBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: "#eceff4",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  mobileMenuBadgeText: {
+    color: "#4e5c74",
+    fontSize: 10,
+    fontWeight: "800",
   },
 } as const;
