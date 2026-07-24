@@ -7,6 +7,7 @@ import {
   deleteAdminProduct,
   deleteAdminStore,
   getAdminUser,
+  listAdminUsers,
   listAdminPriceEntries,
   listAdminAuditLogs,
   listAdminProducts,
@@ -22,6 +23,7 @@ import {
   type AdminProduct,
   type AdminStore,
   type AdminUploadedImage,
+  type AdminDirectoryUser,
   type AdminUser,
 } from "../services/adminBackoffice";
 import { hasSupabaseEnv } from "../services/supabaseClient";
@@ -33,6 +35,7 @@ type ServiceResult<T> = {
 
 const adminQueryKeys = {
   user: ["admin", "user"] as const,
+  users: ["admin", "users"] as const,
   products: ["admin", "products"] as const,
   stores: ["admin", "stores"] as const,
   prices: ["admin", "prices"] as const,
@@ -59,6 +62,14 @@ export function useAdminProductsQuery(enabled: boolean) {
   return useQuery<AdminProduct[]>({
     queryKey: adminQueryKeys.products,
     queryFn: async () => unwrap(await listAdminProducts()),
+    enabled,
+  });
+}
+
+export function useAdminUsersQuery(enabled: boolean) {
+  return useQuery<AdminDirectoryUser[]>({
+    queryKey: adminQueryKeys.users,
+    queryFn: async () => unwrap(await listAdminUsers()),
     enabled,
   });
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 type AdminStatusPanelsProps = {
   styles: Record<string, any>;
@@ -19,10 +19,22 @@ export function AdminSupabaseSetupNotice({ styles: st }: AdminStatusPanelsProps)
 export function AdminNoticePanel({
   notice,
   styles: st,
-}: AdminStatusPanelsProps & { notice: string }) {
+  onDismiss,
+}: AdminStatusPanelsProps & { notice: string; onDismiss: () => void }) {
   return (
     <View style={st.noticeCard}>
       <Text style={st.noticeText}>{notice}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss admin message"
+        hitSlop={8}
+        onPress={onDismiss}
+        style={st.noticeDismissButton}
+      >
+        <Text aria-hidden style={st.noticeDismissText}>
+          ×
+        </Text>
+      </Pressable>
     </View>
   );
 }

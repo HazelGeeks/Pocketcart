@@ -24,6 +24,35 @@ export default function AdminTechnicalDetails({
   styles: st,
 }: Props) {
   const [expanded, setExpanded] = React.useState(false);
+
+  return (
+    <View style={st.technicalDetails}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${expanded ? "Hide" : "Show"} technical details for ${accessibilityContext}`}
+        accessibilityState={{ expanded }}
+        onPress={(event) => {
+          event.stopPropagation();
+          setExpanded((current) => !current);
+        }}
+        style={st.technicalDetailsToggle}
+      >
+        <Text style={st.technicalDetailsToggleText}>
+          {expanded ? "Hide details" : "Details"}
+        </Text>
+      </Pressable>
+
+      {expanded ? (
+        <AdminTechnicalDetailsPanel items={items} styles={st} />
+      ) : null}
+    </View>
+  );
+}
+
+export function AdminTechnicalDetailsPanel({
+  items,
+  styles: st,
+}: Pick<Props, "items" | "styles">) {
   const [copyState, setCopyState] = React.useState<CopyState | null>(null);
   const resetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -55,59 +84,41 @@ export default function AdminTechnicalDetails({
   );
 
   return (
-    <View style={st.technicalDetails}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${expanded ? "Hide" : "Show"} technical details for ${accessibilityContext}`}
-        accessibilityState={{ expanded }}
-        onPress={(event) => {
-          event.stopPropagation();
-          setExpanded((current) => !current);
-        }}
-        style={st.technicalDetailsToggle}
-      >
-        <Text style={st.technicalDetailsToggleText}>
-          {expanded ? "Hide details" : "Details"}
-        </Text>
-      </Pressable>
-
-      {expanded ? (
-        <View style={st.technicalDetailsPanel}>
-          {items.map((item) => {
-            const itemCopyState = copyState?.key === item.key ? copyState.status : null;
-            return (
-              <View key={item.key} style={st.technicalDetailsRow}>
-                <View style={st.technicalDetailsTextGroup}>
-                  <Text style={st.technicalDetailsLabel}>{item.label}</Text>
-                  <Text selectable style={st.technicalDetailsValue}>
-                    {item.value}
-                  </Text>
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Copy ${item.label}`}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    void handleCopy(item.key, item.value);
-                  }}
-                  style={st.technicalDetailsCopyButton}
-                >
-                  <Text
-                    accessibilityLiveRegion="polite"
-                    style={st.technicalDetailsCopyButtonText}
-                  >
-                    {itemCopyState === "copied"
-                      ? "Copied"
-                      : itemCopyState === "failed"
-                        ? "Try again"
-                        : "Copy"}
-                  </Text>
-                </Pressable>
-              </View>
-            );
-          })}
-        </View>
-      ) : null}
+    <View style={st.technicalDetailsPanel}>
+      {items.map((item) => {
+        const itemCopyState =
+          copyState?.key === item.key ? copyState.status : null;
+        return (
+          <View key={item.key} style={st.technicalDetailsRow}>
+            <View style={st.technicalDetailsTextGroup}>
+              <Text style={st.technicalDetailsLabel}>{item.label}</Text>
+              <Text selectable style={st.technicalDetailsValue}>
+                {item.value}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Copy ${item.label}`}
+              onPress={(event) => {
+                event.stopPropagation();
+                void handleCopy(item.key, item.value);
+              }}
+              style={st.technicalDetailsCopyButton}
+            >
+              <Text
+                accessibilityLiveRegion="polite"
+                style={st.technicalDetailsCopyButtonText}
+              >
+                {itemCopyState === "copied"
+                  ? "Copied"
+                  : itemCopyState === "failed"
+                    ? "Try again"
+                    : "Copy"}
+              </Text>
+            </Pressable>
+          </View>
+        );
+      })}
     </View>
   );
 }

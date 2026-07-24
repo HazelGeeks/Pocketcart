@@ -343,25 +343,8 @@ export const adminDataStyles = {
     gap: 8,
     flexWrap: "wrap",
   },
-  csvActionsMenu: {
-    position: "relative",
-    zIndex: 30,
-  },
   csvActionsTrigger: {
     minHeight: 44,
-  },
-  csvActionsMenuPanel: {
-    position: "absolute",
-    right: 0,
-    top: 48,
-    minWidth: 210,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#d8dee8",
-    backgroundColor: "#ffffff",
-    padding: 6,
-    gap: 2,
-    zIndex: 40,
   },
   csvActionsMenuItem: {
     minHeight: 44,

@@ -1,5 +1,6 @@
 export * from "./adminBackoffice/types";
 export * from "./adminBackoffice/auth";
+export * from "./adminBackoffice/users";
 export * from "./adminBackoffice/products";
 export * from "./adminBackoffice/stores";
 export * from "./adminBackoffice/prices";
