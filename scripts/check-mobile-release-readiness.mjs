@@ -20,6 +20,22 @@ const requiredFiles = [
   ".github/workflows/supabase-schema.yml",
   "database/schema.sql",
   "docs/mobile-store-release.md",
+  "src/components/nativeApp/NativeAccountTab.tsx",
+  "src/components/nativeApp/NativeHomeTab.tsx",
+  "src/components/nativeApp/NativeListTabs.tsx",
+  "src/components/nativeApp/NativeMapTab.tsx",
+  "src/hooks/useNativeAccount.ts",
+  "src/hooks/useNativeAccountLinks.ts",
+  "src/hooks/useNativeAuthActions.ts",
+  "src/hooks/useNativeBackNavigation.ts",
+  "src/hooks/useNativeCatalog.ts",
+  "src/hooks/useNativePermissions.ts",
+  "src/hooks/useNativeProductActions.ts",
+  "src/hooks/useNativeProfileActions.ts",
+  "src/hooks/useNativeSaleAlerts.ts",
+  "src/hooks/useNativeShellState.ts",
+  "src/hooks/useNativeShoppingPlan.ts",
+  "src/hooks/useNativeStoreMap.ts",
   "scripts/print-mobile-release-setup-guide.mjs",
   "scripts/check-store-submission-assets.mjs",
   "store-assets/README.md",
@@ -28,6 +44,7 @@ const requiredFiles = [
   "store-assets/google-play/feature-graphic.jpg",
   "store-assets/screenshots/README.md",
   "ios/PocketCart/Info.plist",
+  "ios/PocketCart/PocketCartDebug.entitlements",
   "ios/PocketCart/PocketCart.entitlements",
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "android/app/build.gradle",
@@ -38,8 +55,12 @@ const requiredFiles = [
   "supabase/functions/delete-account-request/README.md",
   "supabase/functions/send-sale-alert-push/index.ts",
   "supabase/functions/sync-sale-alerts/index.ts",
+  "supabase/functions/_shared/pushDelivery.ts",
+  "supabase/functions/_shared/pushTickets.ts",
   "supabase/migrations/20260714055500_account_deletion_requests.sql",
   "supabase/migrations/20260714162000_profile_preferences.sql",
+  "supabase/migrations/20260715043000_shopping_list_items.sql",
+  "supabase/migrations/20260715130000_push_delivery_tickets.sql",
 ];
 
 const findings = [];
@@ -354,6 +375,41 @@ includes(
 );
 includes("ios/PocketCart/Info.plist", "<string>pocketcart</string>", "iOS pocketcart URL scheme is present");
 includes(
+  "ios/PocketCart/PocketCartDebug.entitlements",
+  "<key>aps-environment</key>",
+  "iOS Debug entitlements declare APNs access",
+);
+includes(
+  "ios/PocketCart/PocketCartDebug.entitlements",
+  "$(APS_ENVIRONMENT)",
+  "iOS Debug APNs entitlement follows its build configuration",
+);
+includes(
+  "ios/PocketCart/PocketCartDebug.entitlements",
+  "<key>keychain-access-groups</key>",
+  "iOS Debug entitlements declare Keychain access groups",
+);
+includes(
+  "ios/PocketCart/PocketCartDebug.entitlements",
+  defaultIosKeychainGroup,
+  "iOS Debug entitlements preserve the default Keychain access group",
+);
+if (read("ios/PocketCart/PocketCartDebug.entitlements").includes("com.apple.developer.applesignin")) {
+  fail("iOS Debug entitlements must omit Sign in with Apple for email-auth device testing");
+} else {
+  pass("iOS Debug entitlements omit Sign in with Apple for email-auth device testing");
+}
+includes(
+  "ios/PocketCart/PocketCart.entitlements",
+  "<key>aps-environment</key>",
+  "iOS Release entitlements declare APNs access",
+);
+includes(
+  "ios/PocketCart/PocketCart.entitlements",
+  "$(APS_ENVIRONMENT)",
+  "iOS Release APNs entitlement follows its build configuration",
+);
+includes(
   "ios/PocketCart/PocketCart.entitlements",
   "<key>keychain-access-groups</key>",
   "iOS native entitlements declare Keychain access groups",
@@ -363,6 +419,38 @@ includes(
   defaultIosKeychainGroup,
   "iOS native entitlements preserve the default Keychain access group",
 );
+includes(
+  "ios/PocketCart/PocketCart.entitlements",
+  "com.apple.developer.applesignin",
+  "iOS Release entitlements preserve Sign in with Apple",
+);
+const xcodeProject = read("ios/PocketCart.xcodeproj/project.pbxproj");
+const targetDebugConfiguration = xcodeProject.match(
+  /\/\* Debug \*\/ = \{[\s\S]*?PRODUCT_BUNDLE_IDENTIFIER = com\.pocketcart\.app;[\s\S]*?name = Debug;/,
+)?.[0] ?? "";
+const targetReleaseConfiguration = xcodeProject.match(
+  /\/\* Release \*\/ = \{[\s\S]*?PRODUCT_BUNDLE_IDENTIFIER = com\.pocketcart\.app;[\s\S]*?name = Release;/,
+)?.[0] ?? "";
+if (targetDebugConfiguration.includes("CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCartDebug.entitlements;")) {
+  pass("iOS Debug builds use the development entitlement set");
+} else {
+  fail("iOS Debug builds must use PocketCartDebug.entitlements");
+}
+if (targetDebugConfiguration.includes("APS_ENVIRONMENT = development;")) {
+  pass("iOS Debug builds request the APNs development environment");
+} else {
+  fail("iOS Debug builds must set APS_ENVIRONMENT to development");
+}
+if (targetReleaseConfiguration.includes("CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCart.entitlements;")) {
+  pass("iOS Release builds use the store entitlement set");
+} else {
+  fail("iOS Release builds must use PocketCart.entitlements");
+}
+if (targetReleaseConfiguration.includes("APS_ENVIRONMENT = production;")) {
+  pass("iOS Release builds request the APNs production environment");
+} else {
+  fail("iOS Release builds must set APS_ENVIRONMENT to production");
+}
 includes(
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "NSPrivacyCollectedDataTypeEmailAddress",
@@ -490,12 +578,12 @@ includes(
   "Native auth service supports implicit email callback tokens",
 );
 includes(
-  "src/screens/NativeAppScreen.native.tsx",
+  "src/hooks/useNativeAccountLinks.ts",
   "Linking.getInitialURL",
   "Native app handles auth callback cold starts",
 );
 includes(
-  "src/screens/NativeAppScreen.native.tsx",
+  "src/hooks/useNativeAccountLinks.ts",
   'Linking.addEventListener("url"',
   "Native app handles auth callback while running",
 );
@@ -543,6 +631,16 @@ includes(
   "database/schema.sql",
   "create table if not exists public.sale_alerts",
   "Supabase schema includes sale alert table",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.push_delivery_tickets",
+  "Supabase schema includes push delivery receipt tracking",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.shopping_list_items",
+  "Supabase schema includes shopping list sync table",
 );
 includes(
   "database/schema.sql",
@@ -730,6 +828,26 @@ includes(
   "Sale alert workflow authenticates with the push function secret",
 );
 includes(
+  "supabase/functions/send-sale-alert-push/index.ts",
+  "deliverPushAlerts",
+  "Sale alert push function uses shared Expo delivery",
+);
+includes(
+  "supabase/functions/sync-sale-alerts/index.ts",
+  "reconcilePushReceipts",
+  "Sale alert sync function uses shared receipt reconciliation",
+);
+includes(
+  "supabase/functions/_shared/pushDelivery.ts",
+  "push_delivery_tickets",
+  "Shared Expo delivery stores receipt tickets",
+);
+includes(
+  "supabase/functions/_shared/pushDelivery.ts",
+  "push/getReceipts",
+  "Shared Expo delivery checks delivery receipts",
+);
+includes(
   ".github/workflows/live-user-flow.yml",
   "LIVE USER FLOW E2E PASSED",
   "Live E2E workflow covers the disposable user journey",
@@ -740,6 +858,11 @@ includes(
   "Live E2E workflow verifies authenticated account deletion",
 );
 includes(
+  ".github/workflows/live-user-flow.yml",
+  "/rest/v1/shopping_list_items",
+  "Live E2E workflow verifies shopping list account sync",
+);
+includes(
   ".github/workflows/supabase-schema.yml",
   "/database/query",
   "Supabase schema workflow applies the account deletion migration",
@@ -748,6 +871,16 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "20260714162000_profile_preferences.sql",
   "Supabase schema workflow applies the profile preferences migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260715043000_shopping_list_items.sql",
+  "Supabase schema workflow applies the shopping list migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260715130000_push_delivery_tickets.sql",
+  "Supabase schema workflow applies the push delivery receipt migration",
 );
 includes(
   ".easignore",

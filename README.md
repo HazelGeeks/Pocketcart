@@ -135,12 +135,15 @@ Google service account JSON files, Android keystores, and API keys out of git.
   - Schema source: `database/schema.sql`
   - Required tables and RLS policies:
     - `profiles`
+    - `profile_preferences`
     - `watchlist_items`
+    - `shopping_list_items`
     - `products`
     - `stores`
     - `product_prices`
     - `sale_alerts`
     - `user_push_tokens`
+    - `push_delivery_tickets`
   - Keep schema/policy SQL out of README and manage it in Supabase Dashboard or migration files.
   - Push sale alerts:
     - Native builds use Expo Push Notifications through `expo-notifications`.
@@ -149,6 +152,9 @@ Google service account JSON files, Android keystores, and API keys out of git.
     - `.github/workflows/sale-alert-sync.yml` calls `sync-sale-alerts` every six
       hours. It can also be run manually after a price import so watched products
       create and send push alerts while the app is closed.
+    - Expo sends are batched in groups of at most 100. Receipt tickets are stored
+      and checked after the provider handoff so invalid device tokens are disabled
+      instead of being recorded as successful deliveries.
 - Web deploy:
   - Export a production build with `npm run build:web`
   - Upload the generated `dist/` directory to your hosting provider
@@ -164,7 +170,9 @@ Google service account JSON files, Android keystores, and API keys out of git.
   - `Home` tab supports product search, detail page transition, `Add to Watchlist`, and 7-day price trend with previous-price list.
   - `Map` tab is wired to in-app map + store search and pulls from Supabase `stores` (fallback sample data if env is missing).
   - `More` tab is wired to Supabase sign-up/profile and includes manual admin data entry for products/stores/prices.
-  - `Watchlist` tab shows only user-added items from Supabase and supports remove.
+  - `Shopping List` supports one- or two-store price plans, keeps guest items on-device,
+    and syncs signed-in users through Supabase.
+  - `Price Alerts` shows only user-added subscriptions from Supabase and supports remove.
 - Backoffice:
   - Web admin page is available at `/admin`.
   - Sign in with Supabase auth, then manage `products`, `stores`, and `product_prices`.

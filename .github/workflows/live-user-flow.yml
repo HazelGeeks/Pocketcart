@@ -120,6 +120,30 @@ jobs:
             if (!activePrice) throw new Error("No currently active product price was available for E2E.");
 
             const productName = activePrice.products?.name ?? "PocketCart E2E product";
+            const shoppingRows = assertOk(await request("/rest/v1/shopping_list_items", {
+              method: "POST",
+              token: accessToken,
+              headers: { Prefer: "return=representation" },
+              body: {
+                user_id: userId,
+                product_id: activePrice.product_id,
+                name: productName,
+                unit: null,
+                quantity: 2,
+              },
+            }), "sync a shopping-list item through RLS");
+            if (!Array.isArray(shoppingRows) || shoppingRows.length !== 1) {
+              throw new Error("Shopping-list insert did not return exactly one row.");
+            }
+
+            const syncedShoppingList = assertOk(await request(
+              `/rest/v1/shopping_list_items?user_id=eq.${encodeURIComponent(userId)}&select=product_id,name,quantity`,
+              { token: accessToken },
+            ), "read the synced shopping list through RLS");
+            if (!Array.isArray(syncedShoppingList) || syncedShoppingList.length !== 1 || syncedShoppingList[0].quantity !== 2) {
+              throw new Error("Expected one synced shopping-list item with quantity 2.");
+            }
+
             const watchRows = assertOk(await request("/rest/v1/watchlist_items", {
               method: "POST",
               token: accessToken,
@@ -197,6 +221,13 @@ jobs:
             ), "verify account-owned watchlist data was cascade-deleted");
             if (!Array.isArray(orphanRows) || orphanRows.length !== 0) {
               throw new Error("Watchlist rows remained after account deletion.");
+            }
+
+            const orphanShoppingRows = assertOk(await request(
+              `/rest/v1/shopping_list_items?user_id=eq.${encodeURIComponent(created.id)}&select=product_id`,
+            ), "verify account-owned shopping-list data was cascade-deleted");
+            if (!Array.isArray(orphanShoppingRows) || orphanShoppingRows.length !== 0) {
+              throw new Error("Shopping-list rows remained after account deletion.");
             }
 
             console.log("LIVE USER FLOW E2E PASSED");

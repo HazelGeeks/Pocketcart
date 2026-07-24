@@ -347,9 +347,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 8D8A721559205058447D2C33 /* Pods-PocketCart.debug.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCart.entitlements;
+				CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCartDebug.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -386,6 +387,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4FEB0A2B051FFB66BACB071C /* Pods-PocketCart.release.xcconfig */;
 			buildSettings = {
+				APS_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCart.entitlements;
