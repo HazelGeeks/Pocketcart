@@ -56,7 +56,6 @@ type UseAdminProductActionsParams = {
   productStorePriceSets: StorePriceSetInput[];
   editingProductId: string | null;
   products: AdminProduct[];
-  filteredProducts: AdminProduct[];
   prices: AdminPriceEntry[];
   productPriceStats: Map<string, ProductPriceStats>;
   stores: AdminStore[];
@@ -111,7 +110,6 @@ export default function useAdminProductActions({
   productStorePriceSets,
   editingProductId,
   products,
-  filteredProducts,
   prices,
   stores,
   productPriceStats,
@@ -406,7 +404,6 @@ export default function useAdminProductActions({
 
   const { handleDownloadProductCsvTemplate, handleExportProductsCsv, handleImportProductsCsv } = useAdminProductCsvActions({
     products,
-    filteredProducts,
     productPriceStats,
     stores,
     setSubmitting,

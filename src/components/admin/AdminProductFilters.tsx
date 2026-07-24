@@ -1,5 +1,5 @@
 import React from "react";
-import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { ProductSortKey } from "../../state/adminStore";
 import { WEB_FILTER_SELECT_STYLE } from "../../utils/adminScreenHelpers";
@@ -71,11 +71,7 @@ export default function AdminProductFilters({
 
   return (
     <View style={st.productFilterCard}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={st.productFilterInlineRow}
-      >
+      <View style={st.productFilterWrapRow}>
         <TextInput
           value={searchQuery}
           onChangeText={onSearchChange}
@@ -170,7 +166,7 @@ export default function AdminProductFilters({
         >
           <Text style={st.btnGhostText}>Reset</Text>
         </Pressable>
-      </ScrollView>
+      </View>
 
       <Text style={st.dataMuted}>
         Showing {filteredCount} / {totalCount} products

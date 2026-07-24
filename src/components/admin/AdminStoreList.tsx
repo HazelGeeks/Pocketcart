@@ -5,7 +5,7 @@ import {
   toDateOnlyLabel,
   type StorePriceStats,
 } from "../../utils/adminScreenHelpers";
-import AdminTechnicalDetails from "./AdminTechnicalDetails";
+import { AdminTechnicalDetailsPanel } from "./AdminTechnicalDetails";
 
 type AdminStoreListProps = {
   stores: AdminStore[];
@@ -34,6 +34,10 @@ export default function AdminStoreList({
   onEditStore,
   onRequestDeleteStore,
 }: AdminStoreListProps) {
+  const [expandedStoreIds, setExpandedStoreIds] = React.useState<Set<string>>(
+    new Set(),
+  );
+
   if (totalStores === 0) {
     return <Text style={st.dataMuted}>No stores yet.</Text>;
   }
@@ -51,6 +55,7 @@ export default function AdminStoreList({
         const selectedOnMap = selectedStoreId === store.id;
         const priceCount = stats?.priceCount ?? 0;
         const productCount = stats?.productIds.size ?? 0;
+        const detailsExpanded = expandedStoreIds.has(store.id);
         const latestObserved =
           stats && stats.latestObservedAtMs >= 0
             ? toDateOnlyLabel(new Date(stats.latestObservedAtMs).toISOString())
@@ -105,21 +110,6 @@ export default function AdminStoreList({
               {store.price_note ? (
                 <Text style={st.dataMuted}>{store.price_note}</Text>
               ) : null}
-              <AdminTechnicalDetails
-                accessibilityContext={`${store.brand ? `${store.brand} ` : ""}${store.name}`}
-                items={[
-                  { key: "store-id", label: "Store ID", value: store.id },
-                  ...(store.place_id
-                    ? [{ key: "place-id", label: "Google Place ID", value: store.place_id }]
-                    : []),
-                  {
-                    key: "coordinates",
-                    label: "Coordinates",
-                    value: `${store.latitude}, ${store.longitude}`,
-                  },
-                ]}
-                styles={st}
-              />
             </View>
             <View style={st.storeListRight}>
               <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
@@ -134,6 +124,28 @@ export default function AdminStoreList({
                   disabled={deleting || submitting}
                 >
                   <Text style={st.btnGhostText}>Map</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${detailsExpanded ? "Hide" : "Show"} technical details for ${
+                    store.brand ? `${store.brand} ` : ""
+                  }${store.name}`}
+                  accessibilityState={{ expanded: detailsExpanded }}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    setExpandedStoreIds((current) => {
+                      const next = new Set(current);
+                      if (next.has(store.id)) next.delete(store.id);
+                      else next.add(store.id);
+                      return next;
+                    });
+                  }}
+                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                  disabled={deleting || submitting}
+                >
+                  <Text style={st.btnGhostText}>
+                    {detailsExpanded ? "Hide" : "Details"}
+                  </Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -159,6 +171,22 @@ export default function AdminStoreList({
                 </Pressable>
               </View>
             </View>
+            {detailsExpanded ? (
+              <AdminTechnicalDetailsPanel
+                items={[
+                  { key: "store-id", label: "Store ID", value: store.id },
+                  ...(store.place_id
+                    ? [{ key: "place-id", label: "Google Place ID", value: store.place_id }]
+                    : []),
+                  {
+                    key: "coordinates",
+                    label: "Coordinates",
+                    value: `${store.latitude}, ${store.longitude}`,
+                  },
+                ]}
+                styles={st}
+              />
+            ) : null}
           </Pressable>
         );
       })}

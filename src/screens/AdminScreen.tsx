@@ -298,7 +298,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     productStorePriceSets,
     editingProductId,
     products,
-    filteredProducts,
     prices,
     stores: displayStores,
     productPriceStats,

@@ -1,3 +1,4 @@
+import { collectPagedRows } from "../../utils/paginatedQuery";
 import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { extensionFromMeta, missingEnvResult, PRODUCT_IMAGE_BUCKET } from "./shared";
 import type { AdminProduct, AdminUploadedImage, ProductRow, ServiceResult } from "./types";
@@ -8,6 +9,8 @@ const PRODUCT_SELECT_WITHOUT_ENGLISH = "id, name, category, unit, thumbnail_url,
 type ProductRowWithOptionalEnglish = Omit<ProductRow, "english_name"> & {
   english_name?: string | null;
 };
+
+type ProductQueryError = { message: string };
 
 function hasEnglishNameColumnError(message: string | undefined): boolean {
   const text = message?.toLowerCase() ?? "";
@@ -46,28 +49,39 @@ function normalizeAdminProductRow(row: ProductRowWithOptionalEnglish | null): Ad
 
 export async function listAdminProducts(): Promise<ServiceResult<AdminProduct[]>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult([]);
+  const client = supabase;
+
+  const fetchProducts = (selectClause: string) =>
+    collectPagedRows<ProductRowWithOptionalEnglish, ProductQueryError>(
+      async (from, to) => {
+        const response = await client
+          .from("products")
+          .select(selectClause)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        return {
+          data: (response.data ?? []) as unknown as ProductRowWithOptionalEnglish[],
+          error: response.error,
+        };
+      },
+    );
 
   let productsRows: ProductRowWithOptionalEnglish[] = [];
-  const productsQuery = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT_WITH_ENGLISH)
-    .order("created_at", { ascending: false });
+  const productsQuery = await fetchProducts(PRODUCT_SELECT_WITH_ENGLISH);
 
   if (productsQuery.error) {
     if (hasEnglishNameColumnError(productsQuery.error.message)) {
-      const fallbackQuery = await supabase
-        .from("products")
-        .select(PRODUCT_SELECT_WITHOUT_ENGLISH)
-        .order("created_at", { ascending: false });
+      const fallbackQuery = await fetchProducts(PRODUCT_SELECT_WITHOUT_ENGLISH);
       if (fallbackQuery.error) {
         return { data: [], error: fallbackQuery.error.message };
       }
-      productsRows = (fallbackQuery.data ?? []) as ProductRowWithOptionalEnglish[];
+      productsRows = fallbackQuery.data;
     } else {
       return { data: [], error: productsQuery.error.message };
     }
   } else {
-    productsRows = (productsQuery.data ?? []) as ProductRowWithOptionalEnglish[];
+    productsRows = productsQuery.data;
   }
 
   return {

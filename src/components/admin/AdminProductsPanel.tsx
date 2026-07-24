@@ -45,7 +45,7 @@ type Props = {
   styles: any;
   onImportProductsCsv: () => void;
   onDownloadProductCsvTemplate: () => void;
-  onExportProductsCsv: () => void;
+  onExportProductsCsv: (selectedProducts: AdminProduct[]) => void;
   onOpenAddProduct: () => void;
   onProductSearchChange: (value: string) => void;
   onProductCategoryChange: (value: string) => void;
@@ -124,6 +124,14 @@ export default function AdminProductsPanel({
     onDeleteProducts,
   });
   const bulkDeleting = deletingKey === "products:bulk";
+  const selectedProducts = React.useMemo(
+    () => products.filter((product) => selectedProductIds.has(product.id)),
+    [products, selectedProductIds],
+  );
+  const handleExportSelectedProducts = React.useCallback(
+    () => onExportProductsCsv(selectedProducts),
+    [onExportProductsCsv, selectedProducts],
+  );
 
   React.useEffect(() => {
     setRequestedPage(1);
@@ -149,12 +157,12 @@ export default function AdminProductsPanel({
     <View style={st.productAdminStack}>
       <View style={st.dataCard}>
         <AdminProductManagementHeader
-          filteredProductCount={filteredProducts.length}
+          selectedProductCount={selectedProducts.length}
           submitting={submitting}
           styles={st}
           onImportProductsCsv={onImportProductsCsv}
           onDownloadProductCsvTemplate={onDownloadProductCsvTemplate}
-          onExportProductsCsv={onExportProductsCsv}
+          onExportProductsCsv={handleExportSelectedProducts}
           onOpenAddProduct={onOpenAddProduct}
         />
 

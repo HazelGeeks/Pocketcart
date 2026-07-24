@@ -18,7 +18,14 @@ export const adminProductGridStyles: Record<string, any> = {
     padding: 6,
     gap: 2,
     ...(Platform.OS === "web"
-      ? ({ boxShadow: "0 10px 24px rgba(36, 48, 72, 0.12)" } as any)
+      ? ({
+          position: "absolute",
+          top: "100%",
+          right: 0,
+          zIndex: 30,
+          marginTop: 8,
+          boxShadow: "0 10px 24px rgba(36, 48, 72, 0.12)",
+        } as any)
       : {}),
   },
   productGrid: {

@@ -22,7 +22,6 @@ type Mutation<TParams, TResult> = {
 
 type Params = {
   products: AdminProduct[];
-  filteredProducts: AdminProduct[];
   productPriceStats: Map<string, ProductPriceStats>;
   stores: AdminStore[];
   setSubmitting: (value: boolean) => void;
@@ -74,7 +73,6 @@ function missingColumnErrorMessage(message: string): string | null {
 
 export default function useAdminProductCsvActions({
   products,
-  filteredProducts,
   productPriceStats,
   stores,
   setSubmitting,
@@ -83,19 +81,19 @@ export default function useAdminProductCsvActions({
   createProductMutation,
   createPriceEntryMutation,
 }: Params) {
-  const handleExportProductsCsv = React.useCallback(() => {
-    if (filteredProducts.length === 0) {
-      setNotice("There are no products to export.");
+  const handleExportProductsCsv = React.useCallback((selectedProducts: AdminProduct[]) => {
+    if (selectedProducts.length === 0) {
+      setNotice("Select at least one product to export.");
       return;
     }
 
-    const error = downloadCsvFile("products", productsToCsv(filteredProducts, productPriceStats));
+    const error = downloadCsvFile("products", productsToCsv(selectedProducts, productPriceStats));
     if (error) {
       setNotice(error);
       return;
     }
-    setNotice(`Exported ${filteredProducts.length} products to CSV.`);
-  }, [filteredProducts, productPriceStats, setNotice]);
+    setNotice(`Exported ${selectedProducts.length} selected products to CSV.`);
+  }, [productPriceStats, setNotice]);
 
   const handleDownloadProductCsvTemplate = React.useCallback(() => {
     const error = downloadCsvFile("product-import-template", productImportTemplateCsv());

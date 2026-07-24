@@ -16,9 +16,17 @@ export const adminFormListStyles = {
     gap: 8,
     paddingRight: 8,
   },
+  productFilterWrapRow: {
+    width: "100%",
+    minWidth: 0,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
   productSearchInputInline: {
     flexGrow: 1,
-    minWidth: 280,
+    minWidth: 240,
   },
   storeMapPanel: {
     borderRadius: 12,

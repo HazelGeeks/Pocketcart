@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, Text, View } from "react-native";
 
 type Props = {
-  filteredProductCount: number;
+  selectedProductCount: number;
   submitting: boolean;
   styles: Record<string, any>;
   onImportProductsCsv: () => void;
@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default function AdminProductManagementHeader({
-  filteredProductCount,
+  selectedProductCount,
   submitting,
   styles: st,
   onImportProductsCsv,
@@ -84,11 +84,13 @@ export default function AdminProductManagementHeader({
             onPress={() => runCsvAction(onExportProductsCsv)}
             style={[
               st.csvActionsMenuItem,
-              filteredProductCount === 0 && st.btnDisabled,
+              selectedProductCount === 0 && st.btnDisabled,
             ]}
-            disabled={filteredProductCount === 0}
+            disabled={selectedProductCount === 0}
           >
-            <Text style={st.csvActionsMenuItemText}>Export Filtered CSV</Text>
+            <Text style={st.csvActionsMenuItemText}>
+              Export Selected CSV{selectedProductCount > 0 ? ` (${selectedProductCount})` : ""}
+            </Text>
           </Pressable>
         </View>
       ) : null}
