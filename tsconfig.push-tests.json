@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.test.json",
+  "compilerOptions": {
+    "rootDir": "."
+  },
+  "include": [
+    "supabase/functions/_shared/pushTickets.ts"
+  ]
+}

@@ -32,7 +32,6 @@
     "src/utils/storeVisibility.ts",
     "src/utils/paginatedQuery.ts",
     "src/utils/pushRegistrationState.ts",
-    "src/services/marketData/shared.ts",
-    "supabase/functions/_shared/pushTickets.ts"
+    "src/services/marketData/shared.ts"
   ]
 }
