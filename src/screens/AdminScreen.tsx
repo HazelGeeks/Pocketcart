@@ -16,6 +16,7 @@ import AdminStoreDeleteModal from "../components/admin/AdminStoreDeleteModal";
 import AdminStoreFormModal from "../components/admin/AdminStoreFormModal";
 import AdminStoreImportPreviewModal from "../components/admin/AdminStoreImportPreviewModal";
 import AdminStoresPanel from "../components/admin/AdminStoresPanel";
+import AdminUsersPanel from "../components/admin/AdminUsersPanel";
 import { AdminNoticePanel, AdminSupabaseSetupNotice } from "../components/admin/AdminStatusPanels";
 import { AdminHeader, AdminMobileMenu } from "../components/admin/AdminWorkspaceChrome";
 import useAdminDashboardData from "../hooks/useAdminDashboardData";
@@ -26,6 +27,7 @@ import useLayout from "../hooks/useLayout";
 import { hasSupabaseEnv } from "../services/supabaseClient";
 import {
   type AdminAuditLog,
+  type AdminDirectoryUser,
   type AdminPriceEntry,
   type AdminProduct,
   type AdminStore,
@@ -38,6 +40,7 @@ import {
   useAdminSignOutMutation,
   useAdminStoresQuery,
   useAdminUserQuery,
+  useAdminUsersQuery,
   useCreateAdminPriceEntryMutation,
   useCreateAdminAuditLogMutation,
   useCreateAdminProductMutation,
@@ -143,6 +146,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       ADMIN_EMAIL_ALLOWLIST.includes(authUser.email.trim().toLowerCase())
     : false;
   const dataQueriesEnabled = Boolean(authUser && hasAdminAccess);
+  const usersQuery = useAdminUsersQuery(dataQueriesEnabled);
   const productsQuery = useAdminProductsQuery(dataQueriesEnabled);
   const storesQuery = useAdminStoresQuery(dataQueriesEnabled);
   const pricesQuery = useAdminPricesQuery(dataQueriesEnabled);
@@ -161,6 +165,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const uploadProductImageMutation = useUploadAdminProductImageMutation();
 
   const products = React.useMemo<AdminProduct[]>(() => productsQuery.data ?? [], [productsQuery.data]);
+  const users = React.useMemo<AdminDirectoryUser[]>(() => usersQuery.data ?? [], [usersQuery.data]);
   const stores = React.useMemo<AdminStore[]>(() => storesQuery.data ?? [], [storesQuery.data]);
   const prices = React.useMemo<AdminPriceEntry[]>(() => pricesQuery.data ?? [], [pricesQuery.data]);
   const auditLogs = React.useMemo<AdminAuditLog[]>(
@@ -168,6 +173,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     [auditLogsQuery.data],
   );
   const productsLoading = productsQuery.isLoading || productsQuery.isFetching;
+  const usersLoading = usersQuery.isLoading || usersQuery.isFetching;
   const authLoading =
     adminUserQuery.isLoading || signInMutation.isPending || signOutMutation.isPending;
 
@@ -212,6 +218,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const loadAll = React.useCallback(
     async (keepNotice = false) => {
       const results = await Promise.all([
+        usersQuery.refetch(),
         productsQuery.refetch(),
         storesQuery.refetch(),
         pricesQuery.refetch(),
@@ -228,7 +235,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         setNotice(null);
       }
     },
-    [auditLogsQuery, pricesQuery, productsQuery, storesQuery],
+    [auditLogsQuery, pricesQuery, productsQuery, storesQuery, usersQuery],
   );
 
   const handleRefresh = React.useCallback(async () => {
@@ -244,6 +251,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   React.useEffect(() => {
     const errors = [
       adminUserQuery.error,
+      usersQuery.error,
       productsQuery.error,
       storesQuery.error,
       pricesQuery.error,
@@ -260,6 +268,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     pricesQuery.error,
     productsQuery.error,
     storesQuery.error,
+    usersQuery.error,
   ]);
 
   const {
@@ -442,6 +451,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       label: "Dashboard",
     },
     {
+      key: "users" as const,
+      label: "Users",
+      badge: users.length,
+    },
+    {
       key: "products" as const,
       label: "Products",
       badge: products.length,
@@ -459,11 +473,13 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const panelTitle =
     activeMenu === "overview"
       ? "Dashboard"
-      : activeMenu === "products"
-        ? "Products"
-        : activeMenu === "stores"
-          ? "Stores"
-          : "Flyer";
+      : activeMenu === "users"
+        ? "Users"
+        : activeMenu === "products"
+          ? "Products"
+          : activeMenu === "stores"
+            ? "Stores"
+            : "Flyer";
 
   return (
     <View style={st.root}>
@@ -529,7 +545,11 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
             ) : null}
 
             {notice ? (
-              <AdminNoticePanel notice={notice} styles={st} />
+              <AdminNoticePanel
+                notice={notice}
+                styles={st}
+                onDismiss={() => setNotice(null)}
+              />
             ) : null}
 
             {!authUser ? (
@@ -574,6 +594,14 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     productsLoading={productsLoading}
                     styles={st}
                     onManageProducts={() => setActiveMenu("products")}
+                  />
+                ) : null}
+
+                {activeMenu === "users" ? (
+                  <AdminUsersPanel
+                    users={users}
+                    loading={usersLoading}
+                    styles={st}
                   />
                 ) : null}
 

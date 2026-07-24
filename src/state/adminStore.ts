@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type AdminMenuKey = "overview" | "products" | "stores" | "flyer";
+export type AdminMenuKey = "overview" | "users" | "products" | "stores" | "flyer";
 
 export type ProductSortKey = "latest" | "oldest" | "name" | "priceLow" | "priceHigh";
 

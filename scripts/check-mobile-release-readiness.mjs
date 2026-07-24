@@ -61,6 +61,7 @@ const requiredFiles = [
   "supabase/migrations/20260714162000_profile_preferences.sql",
   "supabase/migrations/20260715043000_shopping_list_items.sql",
   "supabase/migrations/20260715130000_push_delivery_tickets.sql",
+  "supabase/migrations/20260724050000_admin_user_directory.sql",
 ];
 
 const findings = [];
@@ -644,6 +645,21 @@ includes(
 );
 includes(
   "database/schema.sql",
+  "create or replace function public.admin_list_users()",
+  "Supabase schema includes the admin user directory function",
+);
+includes(
+  "database/schema.sql",
+  "if not public.is_admin() then",
+  "Admin user directory enforces server-side admin access",
+);
+includes(
+  "database/schema.sql",
+  "revoke all on function public.admin_list_users() from public, anon",
+  "Admin user directory revokes anonymous and public execution",
+);
+includes(
+  "database/schema.sql",
   "create trigger on_auth_user_created_profile",
   "Supabase schema creates profiles from auth users",
 );
@@ -881,6 +897,11 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "20260715130000_push_delivery_tickets.sql",
   "Supabase schema workflow applies the push delivery receipt migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724050000_admin_user_directory.sql",
+  "Supabase schema workflow applies the admin user directory migration",
 );
 includes(
   ".easignore",

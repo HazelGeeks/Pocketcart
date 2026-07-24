@@ -1,16 +1,18 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
+import useAdminProductSelection from "../../hooks/useAdminProductSelection";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import type { ProductSortKey } from "../../state/adminStore";
 import type { ProductPriceStats } from "../../utils/adminScreenHelpers";
 import {
-  buildProductDeleteConfirmation,
-  removeDeletedProductIds,
-  type ProductDeleteConfirmation,
-} from "../../utils/productDeleteConfirmation";
+  buildAdminProductPagination,
+  type AdminProductPageSize,
+} from "../../utils/adminProductPagination";
 import AdminProductDeleteModal from "./AdminProductDeleteModal";
 import AdminProductFilters from "./AdminProductFilters";
 import AdminProductList from "./AdminProductList";
+import AdminProductManagementHeader from "./AdminProductManagementHeader";
+import AdminProductPagination from "./AdminProductPagination";
 
 type StoreFilterOption = {
   id: string;
@@ -91,144 +93,70 @@ export default function AdminProductsPanel({
   onDeleteProduct,
   onDeleteProducts,
 }: Props) {
-  const [selectedProductIds, setSelectedProductIds] = React.useState<Set<string>>(new Set());
-  const [csvActionsOpen, setCsvActionsOpen] = React.useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = React.useState<ProductDeleteConfirmation | null>(null);
-  const [deleteConfirming, setDeleteConfirming] = React.useState(false);
-  const deleteConfirmingRef = React.useRef(false);
-  const filteredProductIds = React.useMemo(() => filteredProducts.map((product) => product.id), [filteredProducts]);
-  const selectedVisibleCount = filteredProductIds.filter((id) => selectedProductIds.has(id)).length;
-  const allVisibleSelected = filteredProductIds.length > 0 && selectedVisibleCount === filteredProductIds.length;
+  const [pageSize, setPageSize] = React.useState<AdminProductPageSize>(20);
+  const [requestedPage, setRequestedPage] = React.useState(1);
+  const pagination = React.useMemo(
+    () => buildAdminProductPagination(filteredProducts.length, requestedPage, pageSize),
+    [filteredProducts.length, pageSize, requestedPage],
+  );
+  const pageProducts = React.useMemo(
+    () => filteredProducts.slice(pagination.startIndex, pagination.endIndex),
+    [filteredProducts, pagination.endIndex, pagination.startIndex],
+  );
+  const {
+    allVisibleSelected,
+    deleteConfirmation,
+    deleteConfirming,
+    selectedProductIds,
+    selectedVisibleCount,
+    clearSelection,
+    dismissDeleteConfirmation,
+    handleConfirmDelete,
+    handleRequestDeleteProduct,
+    handleRequestDeleteSelected,
+    handleToggleAllVisible,
+    handleToggleProduct,
+  } = useAdminProductSelection({
+    products,
+    filteredProducts,
+    visibleProducts: pageProducts,
+    onDeleteProduct,
+    onDeleteProducts,
+  });
   const bulkDeleting = deletingKey === "products:bulk";
 
   React.useEffect(() => {
-    setSelectedProductIds((current) => {
-      const visible = new Set(filteredProductIds);
-      const next = new Set(Array.from(current).filter((id) => visible.has(id)));
-      return next.size === current.size ? current : next;
-    });
-  }, [filteredProductIds]);
+    setRequestedPage(1);
+  }, [
+    productBrandFilter,
+    productCategoryFilter,
+    productSaleDateFilter,
+    productSearchQuery,
+    productSort,
+    productStoreFilter,
+  ]);
 
-  const handleToggleProduct = React.useCallback((productId: string) => {
-    setSelectedProductIds((current) => {
-      const next = new Set(current);
-      if (next.has(productId)) {
-        next.delete(productId);
-      } else {
-        next.add(productId);
-      }
-      return next;
-    });
-  }, []);
+  React.useEffect(() => {
+    if (requestedPage !== pagination.page) setRequestedPage(pagination.page);
+  }, [pagination.page, requestedPage]);
 
-  const handleToggleAllVisible = React.useCallback(() => {
-    setSelectedProductIds((current) => {
-      const next = new Set(current);
-      if (allVisibleSelected) {
-        filteredProductIds.forEach((id) => next.delete(id));
-      } else {
-        filteredProductIds.forEach((id) => next.add(id));
-      }
-      return next;
-    });
-  }, [allVisibleSelected, filteredProductIds]);
-
-  const handleClearSelection = React.useCallback(() => {
-    setSelectedProductIds(new Set());
-  }, []);
-
-  const handleRequestDeleteProduct = React.useCallback((productId: string) => {
-    const product = products.find((item) => item.id === productId);
-    if (!product) return;
-    setDeleteConfirmation(buildProductDeleteConfirmation([product], "single"));
-  }, [products]);
-
-  const handleRequestDeleteSelected = React.useCallback(() => {
-    const selectedProducts = products.filter((product) => selectedProductIds.has(product.id));
-    setDeleteConfirmation(buildProductDeleteConfirmation(selectedProducts, "bulk"));
-  }, [products, selectedProductIds]);
-
-  const handleConfirmDelete = React.useCallback(async () => {
-    if (!deleteConfirmation || deleteConfirmingRef.current) return;
-    deleteConfirmingRef.current = true;
-    setDeleteConfirming(true);
-
-    try {
-      let deletedIds: string[] = [];
-      if (deleteConfirmation.mode === "single") {
-        const deleted = await onDeleteProduct(deleteConfirmation.ids[0]);
-        if (deleted) deletedIds = deleteConfirmation.ids;
-      } else {
-        deletedIds = await onDeleteProducts(deleteConfirmation.ids);
-      }
-
-      if (deletedIds.length > 0) {
-        setSelectedProductIds((current) => removeDeletedProductIds(current, deletedIds));
-      }
-    } finally {
-      deleteConfirmingRef.current = false;
-      setDeleteConfirming(false);
-      setDeleteConfirmation(null);
-    }
-  }, [deleteConfirmation, onDeleteProduct, onDeleteProducts]);
-
-  const runCsvAction = React.useCallback((action: () => void) => {
-    setCsvActionsOpen(false);
-    action();
+  const handlePageSizeChange = React.useCallback((nextPageSize: AdminProductPageSize) => {
+    setPageSize(nextPageSize);
+    setRequestedPage(1);
   }, []);
 
   return (
     <View style={st.productAdminStack}>
       <View style={st.dataCard}>
-        <View style={st.dataCardHeader}>
-          <View style={st.productHeaderCopy}>
-            <Text style={st.dataCardTitle}>Product Management</Text>
-            <Text style={st.dataMuted}>Create and remove catalog products.</Text>
-          </View>
-          <View style={st.productHeaderActions}>
-            <View style={st.csvActionsMenu}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="CSV actions"
-                accessibilityState={{ expanded: csvActionsOpen }}
-                onPress={() => setCsvActionsOpen((open) => !open)}
-                style={[st.btn, st.btnGhost, st.csvActionsTrigger, submitting && st.btnDisabled]}
-                disabled={submitting}
-              >
-                <Text style={st.btnGhostText}>CSV Actions {csvActionsOpen ? "▴" : "▾"}</Text>
-              </Pressable>
-              {csvActionsOpen ? (
-                <View style={st.csvActionsMenuPanel}>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => runCsvAction(onImportProductsCsv)}
-                    style={st.csvActionsMenuItem}
-                  >
-                    <Text style={st.csvActionsMenuItemText}>Import CSV</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => runCsvAction(onDownloadProductCsvTemplate)}
-                    style={st.csvActionsMenuItem}
-                  >
-                    <Text style={st.csvActionsMenuItemText}>Download Template</Text>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => runCsvAction(onExportProductsCsv)}
-                    style={[st.csvActionsMenuItem, filteredProducts.length === 0 && st.btnDisabled]}
-                    disabled={filteredProducts.length === 0}
-                  >
-                    <Text style={st.csvActionsMenuItemText}>Export Filtered CSV</Text>
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
-            <Pressable accessibilityRole="button" onPress={onOpenAddProduct} style={[st.btn, st.btnPrimary]} disabled={submitting}>
-              <Text style={st.btnPrimaryText}>Add Product</Text>
-            </Pressable>
-          </View>
-        </View>
+        <AdminProductManagementHeader
+          filteredProductCount={filteredProducts.length}
+          submitting={submitting}
+          styles={st}
+          onImportProductsCsv={onImportProductsCsv}
+          onDownloadProductCsvTemplate={onDownloadProductCsvTemplate}
+          onExportProductsCsv={onExportProductsCsv}
+          onOpenAddProduct={onOpenAddProduct}
+        />
 
         <AdminProductFilters
           searchQuery={productSearchQuery}
@@ -254,6 +182,18 @@ export default function AdminProductsPanel({
           onReset={onResetProductFilters}
         />
 
+        <AdminProductPagination
+          page={pagination.page}
+          pageCount={pagination.pageCount}
+          pageSize={pageSize}
+          rangeStart={pagination.rangeStart}
+          rangeEnd={pagination.rangeEnd}
+          totalItems={filteredProducts.length}
+          styles={st}
+          onPageChange={setRequestedPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
+
         {selectedProductIds.size > 0 ? (
           <View style={st.productSelectionToolbar}>
             <Text accessibilityLiveRegion="polite" style={st.productSelectionCount}>
@@ -262,7 +202,7 @@ export default function AdminProductsPanel({
             <View style={st.productSelectionActions}>
               <Pressable
                 accessibilityRole="button"
-                onPress={handleClearSelection}
+                onPress={clearSelection}
                 style={[st.btn, st.btnGhost]}
                 disabled={submitting || bulkDeleting}
               >
@@ -283,7 +223,7 @@ export default function AdminProductsPanel({
         ) : null}
 
         <AdminProductList
-          products={filteredProducts}
+          products={pageProducts}
           totalProducts={products.length}
           loading={loading}
           priceStats={productPriceStats}
@@ -300,13 +240,28 @@ export default function AdminProductsPanel({
           onEditProduct={onEditProduct}
           onDeleteProduct={handleRequestDeleteProduct}
         />
+
+        {filteredProducts.length > 0 ? (
+          <AdminProductPagination
+            compact
+            page={pagination.page}
+            pageCount={pagination.pageCount}
+            pageSize={pageSize}
+            rangeStart={pagination.rangeStart}
+            rangeEnd={pagination.rangeEnd}
+            totalItems={filteredProducts.length}
+            styles={st}
+            onPageChange={setRequestedPage}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        ) : null}
       </View>
 
       <AdminProductDeleteModal
         confirmation={deleteConfirmation}
         deleting={deleteConfirming}
         styles={st}
-        onClose={() => setDeleteConfirmation(null)}
+        onClose={dismissDeleteConfirmation}
         onConfirm={() => {
           void handleConfirmDelete();
         }}

@@ -8,6 +8,42 @@ export type AdminUser = {
   email: string;
 };
 
+export type AdminDirectoryUser = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  email_confirmed_at: string | null;
+  is_admin: boolean;
+  preferences_completed: boolean;
+  shopping_frequency: string | null;
+  interested_categories: string[];
+  favorite_stores: string[];
+  watchlist_count: number;
+  shopping_list_count: number;
+  sale_alert_count: number;
+  active_push_token_count: number;
+};
+
+export type AdminDirectoryUserRow = {
+  id?: unknown;
+  email?: unknown;
+  full_name?: unknown;
+  created_at?: unknown;
+  last_sign_in_at?: unknown;
+  email_confirmed_at?: unknown;
+  is_admin?: unknown;
+  preferences_completed?: unknown;
+  shopping_frequency?: unknown;
+  interested_categories?: unknown;
+  favorite_stores?: unknown;
+  watchlist_count?: unknown;
+  shopping_list_count?: unknown;
+  sale_alert_count?: unknown;
+  active_push_token_count?: unknown;
+};
+
 export type AdminProduct = {
   id: string;
   name: string;
