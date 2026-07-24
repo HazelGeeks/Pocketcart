@@ -25,6 +25,7 @@ type HomeCatalogPanelProps = {
   actionMessage: string | null;
   loading: boolean;
   products: MarketProduct[];
+  favoriteStoreIds: string[];
   selectedProduct: MarketProduct | null;
   sortMode: HomeSortMode;
   shoppingProductIds: Set<string>;
@@ -46,12 +47,20 @@ const SORT_OPTIONS: Array<{ value: HomeSortMode; label: string }> = [
 ];
 
 const formatTrendLabel = (product: MarketProduct) => {
-  if (product.price_delta_percent === null) return null;
-  const percent = formatSignedPercent(product.price_delta_percent);
+  const deltaPercent =
+    product.preferred_store_price !== null
+      ? product.preferred_price_delta_percent
+      : product.price_delta_percent;
+  const delta =
+    product.preferred_store_price !== null
+      ? product.preferred_price_delta
+      : product.price_delta;
+  if (deltaPercent === null) return null;
+  const percent = formatSignedPercent(deltaPercent);
   const direction =
-    product.price_delta === null || product.price_delta === 0
+    delta === null || delta === 0
       ? "Flat"
-      : product.price_delta < 0
+      : delta < 0
         ? "Down"
         : "Up";
 
@@ -64,7 +73,10 @@ const formatPriceLabel = (value: number | null): string => {
 };
 
 const displayPriceForProduct = (product: MarketProduct): number | null =>
-  product.current_price ?? product.best_store_price ?? product.previous_price;
+  product.preferred_store_price ??
+  product.current_price ??
+  product.best_store_price ??
+  product.previous_price;
 
 export function HomeCatalogPanel({
   query,
@@ -74,6 +86,7 @@ export function HomeCatalogPanel({
   actionMessage,
   loading,
   products,
+  favoriteStoreIds,
   selectedProduct,
   shoppingProductIds,
   unreadAlertCount,
@@ -88,11 +101,28 @@ export function HomeCatalogPanel({
   onOpenAlerts,
 }: HomeCatalogPanelProps) {
   const [visibleCount, setVisibleCount] = React.useState(6);
+  const favoriteStoreIdSet = React.useMemo(
+    () => new Set(favoriteStoreIds),
+    [favoriteStoreIds],
+  );
   const sortedProducts = React.useMemo(() => {
     return products.slice().sort((a, b) => {
+      const favoriteDifference =
+        Number(Boolean(b.preferred_store_id)) -
+        Number(Boolean(a.preferred_store_id));
+      if (favoriteDifference !== 0) return favoriteDifference;
+
       if (sortMode === "biggestDrop") {
-        const aDrop = a.price_delta_percent ?? Number.MAX_VALUE;
-        const bDrop = b.price_delta_percent ?? Number.MAX_VALUE;
+        const aDrop = (
+          a.preferred_store_price !== null
+            ? a.preferred_price_delta_percent
+            : a.price_delta_percent
+        ) ?? Number.MAX_VALUE;
+        const bDrop = (
+          b.preferred_store_price !== null
+            ? b.preferred_price_delta_percent
+            : b.price_delta_percent
+        ) ?? Number.MAX_VALUE;
         if (aDrop !== bDrop) return aDrop - bDrop;
       }
 
@@ -104,7 +134,7 @@ export function HomeCatalogPanel({
 
       return a.name.localeCompare(b.name);
     });
-  }, [products, sortMode]);
+  }, [favoriteStoreIdSet, products, sortMode]);
 
   const visibleProducts = sortedProducts.slice(0, visibleCount);
 
@@ -248,16 +278,28 @@ export function HomeCatalogPanel({
             </Text>
           </View>
           {visibleProducts.map((product) => {
-            const isDeal =
-              product.price_delta_percent !== null &&
-              product.price_delta !== null &&
-              product.price_delta < 0;
+            const effectiveDelta =
+              product.preferred_store_price !== null
+                ? product.preferred_price_delta
+                : product.price_delta;
+            const isDeal = effectiveDelta !== null && effectiveDelta < 0;
             const isInShoppingList = shoppingProductIds.has(product.id);
             const active = selectedProduct?.id === product.id;
             const displayPrice = displayPriceForProduct(product);
             const unitLabel = product.unit ? ` / ${product.unit}` : "";
             const changeLabel = formatTrendLabel(product);
-            const previous = product.previous_price;
+            const previous =
+              product.preferred_store_price !== null
+                ? product.preferred_previous_price
+                : product.previous_price;
+            const isFavoriteStore = Boolean(
+              product.preferred_store_id &&
+              favoriteStoreIdSet.has(product.preferred_store_id),
+            );
+            const displayStoreName =
+              product.preferred_store_name ?? product.best_store_name;
+            const displayStoreArea =
+              product.preferred_store_area ?? product.best_store_area;
 
             return (
               <Pressable
@@ -284,13 +326,14 @@ export function HomeCatalogPanel({
                       {product.name}
                     </Text>
                     {isDeal ? <Text style={st.tag}>Deal</Text> : null}
+                    {isFavoriteStore ? <Text style={st.homeFavoriteTag}>My store</Text> : null}
                   </View>
                   <Text style={st.itemMeta} numberOfLines={1}>
                     {product.category}{unitLabel}
                   </Text>
                   <Text style={st.homeStoreLine} numberOfLines={1}>
-                    {product.best_store_name
-                      ? `${product.best_store_name}${product.best_store_area ? ` · ${product.best_store_area}` : ""}`
+                    {displayStoreName
+                      ? `${displayStoreName}${displayStoreArea ? ` · ${displayStoreArea}` : ""}`
                       : "Store not linked yet"}
                   </Text>
                   <View style={st.homeProductMetaRow}>

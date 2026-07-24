@@ -138,3 +138,164 @@ jobs:
             echo "Supabase schema deploy failed with HTTP $status"
             exit 1
           }
+
+      - name: Apply product identity migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-identity-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-identity-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724060000_product_identity.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply product identity review queue migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-review-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-review-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724070000_product_identity_reviews.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply favorite stores migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-favorite-stores-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-favorite-stores-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724080000_user_favorite_stores.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply product identity and sale period guards
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-period-guards-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-period-guards-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724090000_product_identity_and_sale_period_guards.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply product price summary RPC
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-price-summary-rpc-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-price-summary-rpc-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724100000_product_price_summary_rpc.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply product identity workflow
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-identity-workflow-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-identity-workflow-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724110000_product_identity_workflow.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply product merge watchlist guard
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-merge-watchlist-guard-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-merge-watchlist-guard-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260724120000_product_merge_watchlist_guard.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }

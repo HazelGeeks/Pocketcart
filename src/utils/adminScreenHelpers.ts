@@ -6,6 +6,7 @@ import type {
 } from "../services/adminBackoffice";
 import { createFlyerRow } from "../state/adminStore";
 import type { FlyerRow } from "../state/adminStore";
+import { formatBusinessDate } from "./businessDateTime";
 import { looksLikeProductStoreRecord } from "./storeVisibility";
 
 export type OverviewCard = {
@@ -35,6 +36,7 @@ export type ProductPriceStats = {
   storeIds: Set<string>;
   storeBrands: string[];
   storeNames: string[];
+  saleSessions: Set<string>;
 };
 
 export type StorePriceStats = {
@@ -110,8 +112,11 @@ export const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
 };
 
 export const PRODUCT_IMPORT_HEADERS = {
+  productId: ["product_id", "productid", "product id", "id", "상품id", "상품_id"],
   name: ["name", "product_name", "product", "이름", "상품명", "제품명"],
   englishName: ["english_name", "englishname", "english name", "eng_name", "eng name", "영문명", "영문이름", "영문 이름"],
+  productBrand: ["product_brand", "product brand", "brand", "manufacturer", "제조사", "상품브랜드", "상품 브랜드"],
+  gtin: ["gtin", "upc", "ean", "barcode", "bar_code", "바코드"],
   category: ["category", "main_category", "대분류", "카테고리", "분류"],
   unit: ["unit", "size", "size_unit", "용량", "규격"],
   thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
@@ -129,6 +134,9 @@ export const PRODUCT_IMPORT_HEADERS = {
 
 export function productImportTemplateCsv(): string {
   const header = [
+    "product_id",
+    "gtin",
+    "product_brand",
     "name",
     "english_name",
     "category",
@@ -143,6 +151,9 @@ export function productImportTemplateCsv(): string {
   ];
   const rows = [
     [
+      "",
+      "00012345678905",
+      "Example Farms",
       "Organic Eggs",
       "Organic Eggs",
       "Dairy",
@@ -156,6 +167,9 @@ export function productImportTemplateCsv(): string {
       "2026-07-04",
     ],
     [
+      "",
+      "",
+      "",
       "Bananas",
       "Bananas",
       "Produce",
@@ -234,6 +248,8 @@ function csvCell(value: string): string {
 export function productsToCsv(products: AdminProduct[], priceStats: Map<string, ProductPriceStats>): string {
   const header = [
     "id",
+    "gtin",
+    "product_brand",
     "name",
     "english_name",
     "category",
@@ -252,6 +268,8 @@ export function productsToCsv(products: AdminProduct[], priceStats: Map<string, 
     const stats = priceStats.get(product.id);
     return [
       product.id,
+      product.gtin ?? "",
+      product.brand ?? "",
       product.name,
       product.english_name ?? "",
       product.category,
@@ -313,10 +331,7 @@ export function looksLikeProductStoreRow(store: AdminStore): boolean {
 }
 
 export function dateInputValue(value: string | null | undefined): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
+  return formatBusinessDate(value);
 }
 
 export function storeMapUrl(

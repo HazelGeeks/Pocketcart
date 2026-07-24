@@ -38,6 +38,10 @@ export function ShoppingListPanel({
   const singleSavings = recommendation.bestSingle && recommendation.bestSplit
     ? Math.max(0, recommendation.bestSingle.total - recommendation.bestSplit.total)
     : 0;
+  const preferredDifference =
+    recommendation.bestPreferred && recommended
+      ? Math.max(0, recommendation.bestPreferred.total - recommended.total)
+      : 0;
 
   return (
     <View style={st.sectionStack}>
@@ -103,6 +107,8 @@ export function ShoppingListPanel({
 
             {singleSavings > 0.009 && recommended?.kind === "split" ? (
               <Text style={st.shoppingSavingsText}>Save {money.format(singleSavings)} compared with the cheapest one-store basket.</Text>
+            ) : recommendation.recommendedUsesPreferredStores ? (
+              <Text style={st.shoppingSavingsText}>This recommendation uses only your saved My stores.</Text>
             ) : recommended?.kind === "single" ? (
               <Text style={st.itemMeta}>The cheapest complete basket is also the simplest one-stop trip.</Text>
             ) : null}
@@ -118,6 +124,16 @@ export function ShoppingListPanel({
             <View style={st.shoppingCompareRow}>
               <PlanSummary label="Best one store" plan={recommendation.bestSingle} />
               <PlanSummary label="Best two stores" plan={recommendation.bestSplit} />
+              {recommendation.bestPreferred && !recommendation.recommendedUsesPreferredStores ? (
+                <PlanSummary
+                  label={
+                    preferredDifference > 0.009
+                      ? `My stores (+${money.format(preferredDifference)})`
+                      : "My stores"
+                  }
+                  plan={recommendation.bestPreferred}
+                />
+              ) : null}
             </View>
           ) : null}
           <Text style={st.shoppingFootnote}>Estimates use currently tracked sale prices. Travel cost and untracked regular prices are not included.</Text>

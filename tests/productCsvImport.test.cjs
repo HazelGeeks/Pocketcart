@@ -94,8 +94,8 @@ test("product CSV record parser treats a duplicated store_brand header as store_
 });
 
 test("product CSV date parser accepts ISO and slash dates", () => {
-  assert.equal(productCsvDateToIso("2026-06-25", false), "2026-06-25T00:00:00.000Z");
-  assert.equal(productCsvDateToIso("6/25/2026", false), "2026-06-25T00:00:00.000Z");
-  assert.equal(productCsvDateToIso("7/1/2026", true), "2026-07-01T23:59:59.999Z");
+  assert.equal(productCsvDateToIso("2026-06-25", false), "2026-06-25T07:00:00.000Z");
+  assert.equal(productCsvDateToIso("6/25/2026", false), "2026-06-25T07:00:00.000Z");
+  assert.equal(productCsvDateToIso("7/1/2026", true), "2026-07-02T06:59:59.999Z");
   assert.equal(productCsvDateToIso("25/6/2026", false), null);
 });

@@ -1,6 +1,10 @@
 import React from "react";
 import { Platform } from "react-native";
-import type { AdminProduct, AdminStore } from "../services/adminBackoffice";
+import type {
+  AdminProduct,
+  AdminProductIdentityReview,
+  AdminStore,
+} from "../services/adminBackoffice";
 import type { ProductPriceStats } from "../utils/adminScreenHelpers";
 import {
   PRODUCT_IMPORT_HEADERS,
@@ -14,7 +18,13 @@ import {
   productCsvDateToIso,
   productCsvRecordFromRow,
 } from "../utils/productCsvImport";
-import { productIdentityKey } from "../utils/productIdentity";
+import {
+  gtinValidationMessage,
+  isValidGtin,
+  normalizeGtin,
+  resolveProductMatch,
+  type ProductMatchMethod,
+} from "../utils/productIdentity";
 
 type Mutation<TParams, TResult> = {
   mutateAsync: (params: TParams) => Promise<TResult>;
@@ -28,8 +38,40 @@ type Params = {
   setNotice: (value: string | null) => void;
   loadAll: (keepNotice?: boolean) => Promise<void>;
   createProductMutation: Mutation<
-    { name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
+    {
+      name: string;
+      englishName?: string;
+      brand?: string;
+      gtin?: string;
+      category: string;
+      unit?: string;
+      thumbnailUrl?: string;
+    },
     AdminProduct | null
+  >;
+  updateProductMutation: Mutation<
+    {
+      id: string;
+      name: string;
+      englishName?: string;
+      brand?: string;
+      gtin?: string;
+      category: string;
+      unit?: string;
+      thumbnailUrl?: string;
+    },
+    AdminProduct | null
+  >;
+  createIdentityReviewMutation: Mutation<
+    {
+      rowNumber?: number;
+      productId?: string;
+      reason: string;
+      matchMethod?: string;
+      candidateCount?: number;
+      payload: Record<string, unknown>;
+    },
+    AdminProductIdentityReview | null
   >;
   createPriceEntryMutation?: Mutation<
     {
@@ -79,6 +121,8 @@ export default function useAdminProductCsvActions({
   setNotice,
   loadAll,
   createProductMutation,
+  updateProductMutation,
+  createIdentityReviewMutation,
   createPriceEntryMutation,
 }: Params) {
   const handleExportProductsCsv = React.useCallback((selectedProducts: AdminProduct[]) => {
@@ -147,21 +191,31 @@ export default function useAdminProductCsvActions({
           const hasPriceColumn = hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.price);
           const created: string[] = [];
           const reused: string[] = [];
+          const enriched: string[] = [];
+          const identityConflicts: string[] = [];
           const skipped: string[] = [];
           const priceImported: string[] = [];
           const priceSkipped: string[] = [];
           const priceMissing: string[] = [];
 
-          const productByIdentity = new Map(
-            products.map((product) => [productIdentityKey(product), product]),
-          );
+          const knownProducts = [...products];
+          const matchedBy: Record<ProductMatchMethod, number> = {
+            product_id: 0,
+            gtin: 0,
+            legacy_identity: 0,
+            canonical_identity: 0,
+          };
           const storeResolver = createProductCsvStoreResolver(stores);
 
           for (const [index, values] of dataRows.entries()) {
             const record = productCsvRecordFromRow(headers, values);
 
+            const productId = csvRowValue(record, PRODUCT_IMPORT_HEADERS.productId);
             const name = csvRowValue(record, PRODUCT_IMPORT_HEADERS.name);
             const englishName = csvRowValue(record, PRODUCT_IMPORT_HEADERS.englishName);
+            const productBrand = csvRowValue(record, PRODUCT_IMPORT_HEADERS.productBrand);
+            const rawGtin = csvRowValue(record, PRODUCT_IMPORT_HEADERS.gtin);
+            const gtin = normalizeGtin(rawGtin);
             const category = csvRowValue(record, PRODUCT_IMPORT_HEADERS.category);
             const thumbnailUrl = csvRowValue(record, PRODUCT_IMPORT_HEADERS.thumbnailUrl);
             const unit = csvRowValue(record, PRODUCT_IMPORT_HEADERS.unit);
@@ -172,6 +226,21 @@ export default function useAdminProductCsvActions({
             const rawStoreBrand = csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeBrand);
             const observedAt = csvRowValue(record, PRODUCT_IMPORT_HEADERS.observedAt);
             const periodEnd = csvRowValue(record, PRODUCT_IMPORT_HEADERS.periodEnd);
+            const reviewPayload = {
+              supplied_product_id: productId || null,
+              name,
+              english_name: englishName || null,
+              product_brand: productBrand || null,
+              gtin: gtin || null,
+              category,
+              unit: unit || null,
+              store_id: rawStoreId || null,
+              store_name: rawStoreName || null,
+              store_brand: rawStoreBrand || null,
+              price: rawPrice || null,
+              sale_start_date: observedAt || null,
+              sale_end_date: periodEnd || null,
+            };
 
             if (!name || !category) {
               skipped.push(`row ${index + 2}`);
@@ -179,14 +248,186 @@ export default function useAdminProductCsvActions({
             }
 
             try {
-              const productKey = productIdentityKey({ name, unit, category });
-              let product = productByIdentity.get(productKey) ?? null;
-              if (product) {
+              const gtinError = gtinValidationMessage(rawGtin);
+              if (gtinError) {
+                try {
+                  await createIdentityReviewMutation.mutateAsync({
+                    rowNumber: index + 2,
+                    reason: "invalid_gtin",
+                    matchMethod: "gtin",
+                    payload: {
+                      ...reviewPayload,
+                      supplied_gtin: rawGtin,
+                      validation_error: gtinError,
+                    },
+                  });
+                } catch (reviewError) {
+                  skipped.push(
+                    `row ${index + 2}: review queue save failed - ${
+                      reviewError instanceof Error ? reviewError.message : "failed"
+                    }`,
+                  );
+                }
+                identityConflicts.push(`row ${index + 2}: ${gtinError}`);
+                continue;
+              }
+
+              const match = resolveProductMatch(knownProducts, {
+                productId,
+                name,
+                englishName,
+                brand: productBrand,
+                gtin,
+                unit,
+                category,
+              });
+              let product: AdminProduct | null = null;
+
+              if (match.status === "ambiguous") {
+                try {
+                  await createIdentityReviewMutation.mutateAsync({
+                    rowNumber: index + 2,
+                    reason: "ambiguous_product_match",
+                    matchMethod: match.method,
+                    candidateCount: match.candidateCount,
+                    payload: {
+                      ...reviewPayload,
+                      candidate_product_ids: match.candidateIds,
+                    },
+                  });
+                } catch (reviewError) {
+                  skipped.push(
+                    `row ${index + 2}: review queue save failed - ${
+                      reviewError instanceof Error ? reviewError.message : "failed"
+                    }`,
+                  );
+                }
+                identityConflicts.push(
+                  `row ${index + 2}: ${match.candidateCount} possible product matches (${match.method})`,
+                );
+                continue;
+              }
+
+              if (
+                match.status === "not_found" &&
+                match.reason === "product_id_not_found"
+              ) {
+                try {
+                  await createIdentityReviewMutation.mutateAsync({
+                    rowNumber: index + 2,
+                    reason: "product_id_not_found",
+                    matchMethod: "product_id",
+                    payload: reviewPayload,
+                  });
+                } catch (reviewError) {
+                  skipped.push(
+                    `row ${index + 2}: review queue save failed - ${
+                      reviewError instanceof Error ? reviewError.message : "failed"
+                    }`,
+                  );
+                }
+                identityConflicts.push(
+                  `row ${index + 2}: product_id '${productId}' was not found`,
+                );
+                continue;
+              }
+
+              if (match.status === "matched") {
+                product = match.product;
+                const rawExistingGtin = product.gtin?.trim() ?? "";
+                const existingGtin = isValidGtin(product.gtin)
+                  ? normalizeGtin(product.gtin)
+                  : "";
+                if (rawExistingGtin && !existingGtin && !gtin) {
+                  try {
+                    await createIdentityReviewMutation.mutateAsync({
+                      rowNumber: index + 2,
+                      productId: product.id,
+                      reason: "invalid_gtin",
+                      matchMethod: match.method,
+                      candidateCount: 1,
+                      payload: {
+                        ...reviewPayload,
+                        existing_gtin: rawExistingGtin,
+                        validation_error: gtinValidationMessage(rawExistingGtin),
+                      },
+                    });
+                  } catch (reviewError) {
+                    skipped.push(
+                      `row ${index + 2}: review queue save failed - ${
+                        reviewError instanceof Error ? reviewError.message : "failed"
+                      }`,
+                    );
+                  }
+                  identityConflicts.push(
+                    `row ${index + 2}: matched product '${product.id}' has an invalid GTIN`,
+                  );
+                  continue;
+                }
+                if (gtin && existingGtin && gtin !== existingGtin) {
+                  try {
+                    await createIdentityReviewMutation.mutateAsync({
+                      rowNumber: index + 2,
+                      productId: product.id,
+                      reason: "gtin_conflict",
+                      matchMethod: match.method,
+                      candidateCount: 1,
+                      payload: {
+                        ...reviewPayload,
+                        existing_gtin: existingGtin,
+                      },
+                    });
+                  } catch (reviewError) {
+                    skipped.push(
+                      `row ${index + 2}: review queue save failed - ${
+                        reviewError instanceof Error ? reviewError.message : "failed"
+                      }`,
+                    );
+                  }
+                  identityConflicts.push(
+                    `row ${index + 2}: GTIN conflicts with product_id '${product.id}'`,
+                  );
+                  continue;
+                }
+
+                matchedBy[match.method] += 1;
                 reused.push(product.id);
+                const mergedBrand = product.brand?.trim() || productBrand;
+                const mergedGtin = existingGtin || gtin;
+                const mergedEnglishName = product.english_name?.trim() || englishName;
+                const mergedThumbnail = product.thumbnail_url?.trim() || thumbnailUrl;
+                const needsEnrichment =
+                  mergedBrand !== (product.brand ?? "") ||
+                  mergedGtin !== (product.gtin ?? "") ||
+                  mergedEnglishName !== (product.english_name ?? "") ||
+                  mergedThumbnail !== (product.thumbnail_url ?? "");
+
+                if (needsEnrichment) {
+                  const updated = await updateProductMutation.mutateAsync({
+                    id: product.id,
+                    name: product.name,
+                    englishName: mergedEnglishName,
+                    brand: mergedBrand,
+                    gtin: mergedGtin,
+                    category: product.category,
+                    unit: product.unit ?? undefined,
+                    thumbnailUrl: mergedThumbnail,
+                  });
+                  if (updated) {
+                    product = updated;
+                    enriched.push(updated.id);
+                    const existingIndex = knownProducts.findIndex(
+                      (candidate) => candidate.id === updated.id,
+                    );
+                    if (existingIndex >= 0) knownProducts[existingIndex] = updated;
+                  }
+                }
               } else {
                 product = await createProductMutation.mutateAsync({
                   name,
                   englishName,
+                  brand: productBrand,
+                  gtin,
                   unit,
                   category,
                   thumbnailUrl,
@@ -197,8 +438,10 @@ export default function useAdminProductCsvActions({
                 continue;
               }
 
-              productByIdentity.set(productKey, product);
-              if (!created.includes(product.id) && !reused.includes(product.id)) {
+              if (!knownProducts.some((candidate) => candidate.id === product.id)) {
+                knownProducts.push(product);
+              }
+              if (match.status === "not_found" && !created.includes(product.id)) {
                 created.push(product.id);
               }
 
@@ -263,7 +506,15 @@ export default function useAdminProductCsvActions({
               `Imported ${created.length} products from CSV${
                 priceImported.length > 0 ? ` with ${priceImported.length} prices` : ""
               }.`,
-              reused.length > 0 ? `Reused ${new Set(reused).size} existing products.` : "",
+              reused.length > 0
+                ? `Matched ${new Set(reused).size} existing products (ID ${matchedBy.product_id}, GTIN ${matchedBy.gtin}, exact ${matchedBy.legacy_identity}, canonical ${matchedBy.canonical_identity}).`
+                : "",
+              enriched.length > 0
+                ? `Enriched ${new Set(enriched).size} existing products with missing identity metadata.`
+                : "",
+              identityConflicts.length > 0
+                ? `Identity conflicts ${identityConflicts.length}: ${identityConflicts.slice(0, 3).join(", ")}`
+                : "",
               skipped.length > 0
                 ? `Skipped ${skipped.length}: ${skipped.slice(0, 3).join(", ")}`
                 : "",
@@ -285,7 +536,17 @@ export default function useAdminProductCsvActions({
       })();
     };
     input.click();
-  }, [createPriceEntryMutation, createProductMutation, loadAll, products, setNotice, setSubmitting, stores]);
+  }, [
+    createPriceEntryMutation,
+    createIdentityReviewMutation,
+    createProductMutation,
+    loadAll,
+    products,
+    setNotice,
+    setSubmitting,
+    stores,
+    updateProductMutation,
+  ]);
 
   return { handleDownloadProductCsvTemplate, handleExportProductsCsv, handleImportProductsCsv };
 }

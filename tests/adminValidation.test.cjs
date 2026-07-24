@@ -18,9 +18,11 @@ test("parseCsvRows handles quoted commas and BOM headers", () => {
   assert.equal(csvHeaderKey(rows[0][0]), "name");
 });
 
-test("dateOnlyToIso preserves sale period dates in UTC", () => {
-  assert.equal(dateOnlyToIso("2026-06-18", false), "2026-06-18T00:00:00.000Z");
-  assert.equal(dateOnlyToIso("2026-06-18", true), "2026-06-18T23:59:59.999Z");
+test("dateOnlyToIso preserves Vancouver business days across UTC conversion", () => {
+  assert.equal(dateOnlyToIso("2026-06-18", false), "2026-06-18T07:00:00.000Z");
+  assert.equal(dateOnlyToIso("2026-06-18", true), "2026-06-19T06:59:59.999Z");
+  assert.equal(dateOnlyToIso("2026-01-18", false), "2026-01-18T08:00:00.000Z");
+  assert.equal(dateOnlyToIso("2026-01-18", true), "2026-01-19T07:59:59.999Z");
 });
 
 test("buildStoreImportPreview validates store CSV rows with brand and place_id", () => {

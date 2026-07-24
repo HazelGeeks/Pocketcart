@@ -12,6 +12,7 @@ import AdminProductDeleteModal from "./AdminProductDeleteModal";
 import AdminProductFilters from "./AdminProductFilters";
 import AdminProductList from "./AdminProductList";
 import AdminProductManagementHeader from "./AdminProductManagementHeader";
+import AdminProductMergeModal from "./AdminProductMergeModal";
 import AdminProductPagination from "./AdminProductPagination";
 
 type StoreFilterOption = {
@@ -57,6 +58,7 @@ type Props = {
   onEditProduct: (product: AdminProduct) => void;
   onDeleteProduct: (productId: string) => Promise<boolean>;
   onDeleteProducts: (productIds: string[]) => Promise<string[]>;
+  onMergeProducts: (sourceProductIds: string[], targetProductId: string) => Promise<boolean>;
 };
 
 export default function AdminProductsPanel({
@@ -92,9 +94,12 @@ export default function AdminProductsPanel({
   onEditProduct,
   onDeleteProduct,
   onDeleteProducts,
+  onMergeProducts,
 }: Props) {
   const [pageSize, setPageSize] = React.useState<AdminProductPageSize>(20);
   const [requestedPage, setRequestedPage] = React.useState(1);
+  const [mergeCandidates, setMergeCandidates] = React.useState<AdminProduct[]>([]);
+  const [merging, setMerging] = React.useState(false);
   const pagination = React.useMemo(
     () => buildAdminProductPagination(filteredProducts.length, requestedPage, pageSize),
     [filteredProducts.length, pageSize, requestedPage],
@@ -132,6 +137,24 @@ export default function AdminProductsPanel({
     () => onExportProductsCsv(selectedProducts),
     [onExportProductsCsv, selectedProducts],
   );
+  const handleExportIdentityGaps = React.useCallback(
+    () => onExportProductsCsv(
+      products.filter((product) => !product.brand?.trim() || !product.gtin?.trim()),
+    ),
+    [onExportProductsCsv, products],
+  );
+  const handleMerge = React.useCallback(async (targetProductId: string) => {
+    setMerging(true);
+    const merged = await onMergeProducts(
+      mergeCandidates.map((product) => product.id),
+      targetProductId,
+    );
+    setMerging(false);
+    if (merged) {
+      setMergeCandidates([]);
+      clearSelection();
+    }
+  }, [clearSelection, mergeCandidates, onMergeProducts]);
 
   React.useEffect(() => {
     setRequestedPage(1);
@@ -163,6 +186,7 @@ export default function AdminProductsPanel({
           onImportProductsCsv={onImportProductsCsv}
           onDownloadProductCsvTemplate={onDownloadProductCsvTemplate}
           onExportProductsCsv={handleExportSelectedProducts}
+          onExportIdentityGapsCsv={handleExportIdentityGaps}
           onOpenAddProduct={onOpenAddProduct}
         />
 
@@ -208,6 +232,14 @@ export default function AdminProductsPanel({
               {selectedProductIds.size} selected
             </Text>
             <View style={st.productSelectionActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setMergeCandidates(selectedProducts)}
+                style={[st.btn, st.btnGhost]}
+                disabled={submitting || bulkDeleting || selectedProducts.length < 2}
+              >
+                <Text style={st.btnGhostText}>Merge selected</Text>
+              </Pressable>
               <Pressable
                 accessibilityRole="button"
                 onPress={clearSelection}
@@ -272,6 +304,15 @@ export default function AdminProductsPanel({
         onClose={dismissDeleteConfirmation}
         onConfirm={() => {
           void handleConfirmDelete();
+        }}
+      />
+      <AdminProductMergeModal
+        products={mergeCandidates}
+        merging={merging}
+        styles={st}
+        onClose={() => setMergeCandidates([])}
+        onMerge={(targetProductId) => {
+          void handleMerge(targetProductId);
         }}
       />
     </View>

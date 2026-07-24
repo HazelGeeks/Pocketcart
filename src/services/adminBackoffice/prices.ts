@@ -4,7 +4,7 @@ import { isMissingColumnError, missingEnvResult, parseNumber, priceEntryFromRow 
 import type { AdminPriceEntry, PriceRow, ServiceResult } from "./types";
 
 const PRICE_WITH_PERIOD_SELECT =
-  "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(name), stores(name)";
+  "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(name), stores(brand,name)";
 const PRICE_PAGE_SIZE = 1000;
 const PRICE_PERIOD_MIGRATION_ERROR =
   "Sale period columns are missing in Supabase. Run the product_prices valid_from/valid_to migration, then retry.";
@@ -63,7 +63,11 @@ function buildPricePayload(params: PricePayloadParams) {
 
 function isDuplicatePricePeriodError(error: { code?: string; message?: string } | null | undefined): boolean {
   const text = error?.message?.toLowerCase() ?? "";
-  return error?.code === "23505" || text.includes("product_prices_product_store_valid_from_key");
+  return (
+    error?.code === "23505" ||
+    text.includes("product_prices_product_store_valid_from_key") ||
+    text.includes("product_prices_product_store_sale_period_key")
+  );
 }
 
 export async function listAdminPriceEntries(): Promise<ServiceResult<AdminPriceEntry[]>> {
@@ -145,6 +149,7 @@ export async function createAdminPriceEntry(params: PricePayloadParams): Promise
       .eq("product_id", payload.payload.product_id)
       .eq("store_id", payload.payload.store_id)
       .eq("valid_from", payload.observedAt)
+      .eq("valid_to", payload.validTo)
       .select(PRICE_WITH_PERIOD_SELECT)
       .single();
 

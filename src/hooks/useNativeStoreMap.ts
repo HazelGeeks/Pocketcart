@@ -13,6 +13,7 @@ import type { NativeOnboardingState } from "./useNativeOnboarding";
 
 type UseNativeStoreMapOptions = {
   activeTab: NativeTabId;
+  favoriteStoreIds: string[];
   onboardingState: NativeOnboardingState;
   onHideOnboarding: () => void;
   onOpenMap: () => void;
@@ -21,6 +22,7 @@ type UseNativeStoreMapOptions = {
 
 export default function useNativeStoreMap({
   activeTab,
+  favoriteStoreIds,
   onboardingState,
   onHideOnboarding,
   onOpenMap,
@@ -34,10 +36,19 @@ export default function useNativeStoreMap({
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [pendingStoreId, setPendingStoreId] = React.useState<string | null>(null);
+  const [favoriteFilterActive, setFavoriteFilterActive] = React.useState(false);
+  const favoriteStoreIdSet = React.useMemo(
+    () => new Set(favoriteStoreIds),
+    [favoriteStoreIds],
+  );
 
   const filteredStores = React.useMemo(
-    () => stores.filter((store) => matchesStoreFilter(store, query)),
-    [query, stores],
+    () => stores.filter(
+      (store) =>
+        matchesStoreFilter(store, query) &&
+        (!favoriteFilterActive || favoriteStoreIdSet.has(store.id)),
+    ),
+    [favoriteFilterActive, favoriteStoreIdSet, query, stores],
   );
 
   const personalizationStoreOptions = React.useMemo(() => {
@@ -199,6 +210,7 @@ export default function useNativeStoreMap({
       if (!storeId || storeId === "unlinked-store") return;
       setPendingStoreId(storeId);
       setFocusMode("store");
+      setFavoriteFilterActive(false);
       setQuery(storeName ?? "");
       onOpenMap();
       onHideOnboarding();
@@ -235,6 +247,7 @@ export default function useNativeStoreMap({
   }, []);
 
   return {
+    favoriteFilterActive,
     filteredStores,
     focusedStoreId,
     focusStore,
@@ -247,6 +260,7 @@ export default function useNativeStoreMap({
     query,
     region,
     setFocusMode,
+    setFavoriteFilterActive,
     setFocusedStoreId,
     setMessage,
     setQuery,

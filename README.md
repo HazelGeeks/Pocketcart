@@ -42,6 +42,7 @@ Recommended Node runtime:
 - `npm run build:web`: Expo static web export
 - `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)
 - `npm run release:native:check`: pre-store gate for iOS/Android release work
+- `npm run audit:ci`: fail on new high/critical dependency advisories
 - `npm run release:native:doctor`: external EAS/Supabase/key readiness check
 - `npm run build:ios` / `npm run build:android`: EAS production builds
 - `npm run submit:ios` / `npm run submit:android`: EAS store submissions
@@ -56,7 +57,7 @@ Preflight before every mobile release:
 ```bash
 npm run release:native:check
 npm run release:store-assets:live-check
-npm audit --audit-level=high
+npm run audit:ci
 ```
 
 Print missing GitHub/EAS/Supabase setup values without exposing secrets:
@@ -167,7 +168,16 @@ Google service account JSON files, Android keystores, and API keys out of git.
   - Tap `Get the App` on native/mobile to toggle the same two links.
 - Native app shell:
   - iOS/Android renders a dedicated native app scaffold, separate from the web landing screen.
-  - `Home` tab supports product search, detail page transition, `Add to Watchlist`, and 7-day price trend with previous-price list.
+  - `Home` compares the lowest price for each complete sale period, shows the
+    winning store, and supports exact store-specific deal views from Map.
+  - `Map` lets guests and signed-in users save `My stores`; saved stores feed
+    Home pricing, shopping alternatives, and foreground/background sale alerts.
+  - Admin product entry and CSV imports use product ID, validated GTIN/UPC/EAN,
+    brand, names, and unit to match products, routing uncertain rows to the
+    Dashboard review queue.
+  - Small same-unit name variations are held for review instead of silently
+    creating another product. Existing exact English-name/unit duplicates are
+    seeded into the review queue by the product identity workflow migration.
   - `Map` tab is wired to in-app map + store search and pulls from Supabase `stores` (fallback sample data if env is missing).
   - `More` tab is wired to Supabase sign-up/profile and includes manual admin data entry for products/stores/prices.
   - `Shopping List` supports one- or two-store price plans, keeps guest items on-device,
@@ -178,6 +188,10 @@ Google service account JSON files, Android keystores, and API keys out of git.
   - Sign in with Supabase auth, then manage `products`, `stores`, and `product_prices`.
   - Backoffice writes require the signed-in user UUID in `public.admin_users`.
     Bootstrap the first admin using the schema source or a tracked migration, not README SQL snippets.
+  - Admins can select duplicate products or choose a review candidate to merge.
+    The transactional merge preserves the chosen product, moves linked prices
+    and user data, consolidates same-period price and watchlist conflicts,
+    normalizes sale-alert keys, and writes an audit log.
   - Flyer AI extraction uses the `back-office-flyer` Supabase Edge Function with JWT
     verification enabled. Set `FLYER_ADMIN_EMAILS` as a function secret to restrict
     extraction to specific signed-in admin emails.

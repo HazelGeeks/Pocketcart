@@ -57,11 +57,20 @@ const requiredFiles = [
   "supabase/functions/sync-sale-alerts/index.ts",
   "supabase/functions/_shared/pushDelivery.ts",
   "supabase/functions/_shared/pushTickets.ts",
+  "supabase/functions/_shared/saleAlertDeduplication.ts",
+  "supabase/functions/_shared/saleAlertSelection.ts",
   "supabase/migrations/20260714055500_account_deletion_requests.sql",
   "supabase/migrations/20260714162000_profile_preferences.sql",
   "supabase/migrations/20260715043000_shopping_list_items.sql",
   "supabase/migrations/20260715130000_push_delivery_tickets.sql",
   "supabase/migrations/20260724050000_admin_user_directory.sql",
+  "supabase/migrations/20260724060000_product_identity.sql",
+  "supabase/migrations/20260724070000_product_identity_reviews.sql",
+  "supabase/migrations/20260724080000_user_favorite_stores.sql",
+  "supabase/migrations/20260724090000_product_identity_and_sale_period_guards.sql",
+  "supabase/migrations/20260724100000_product_price_summary_rpc.sql",
+  "supabase/migrations/20260724110000_product_identity_workflow.sql",
+  "supabase/migrations/20260724120000_product_merge_watchlist_guard.sql",
 ];
 
 const findings = [];
@@ -675,6 +684,51 @@ includes(
 );
 includes(
   "database/schema.sql",
+  "add column if not exists gtin text",
+  "Supabase schema includes stable product identity columns",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.product_identity_reviews",
+  "Supabase schema includes the product identity review queue",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.user_favorite_stores",
+  "Supabase schema includes My stores account sync",
+);
+includes(
+  "database/schema.sql",
+  "product_prices_product_store_sale_period_key",
+  "Supabase schema distinguishes complete sale periods",
+);
+includes(
+  "database/schema.sql",
+  "create or replace function public.is_valid_gtin",
+  "Supabase schema validates GTIN length and check digit",
+);
+includes(
+  "database/schema.sql",
+  "create or replace function public.list_product_price_summaries",
+  "Supabase schema computes current price summaries server-side",
+);
+includes(
+  "database/schema.sql",
+  "create or replace function public.merge_products",
+  "Supabase schema supports transactional product merges",
+);
+includes(
+  "database/schema.sql",
+  "watchlist_items_user_product_unique",
+  "Supabase schema prevents duplicate linked watchlist products",
+);
+includes(
+  "supabase/migrations/20260724120000_product_merge_watchlist_guard.sql",
+  "on conflict (user_id, product_id)",
+  "Product merges consolidate duplicate watchlist products",
+);
+includes(
+  "database/schema.sql",
   "insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)",
   "Supabase schema provisions product image storage bucket",
 );
@@ -730,7 +784,7 @@ includes(
 );
 includes(
   ".github/workflows/mobile-release-check.yml",
-  "npm audit --audit-level=high",
+  "npm run audit:ci",
   "GitHub Actions blocks high severity dependency audit failures",
 );
 includes(
@@ -854,6 +908,16 @@ includes(
   "Sale alert sync function uses shared receipt reconciliation",
 );
 includes(
+  "supabase/functions/sync-sale-alerts/index.ts",
+  "selectSaleAlertPrices",
+  "Sale alert sync function applies explicit and favorite store selection",
+);
+includes(
+  "supabase/functions/sync-sale-alerts/index.ts",
+  "dedupeSaleAlertPayloads",
+  "Sale alert sync function deduplicates alert keys before insert",
+);
+includes(
   "supabase/functions/_shared/pushDelivery.ts",
   "push_delivery_tickets",
   "Shared Expo delivery stores receipt tickets",
@@ -902,6 +966,41 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "20260724050000_admin_user_directory.sql",
   "Supabase schema workflow applies the admin user directory migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724060000_product_identity.sql",
+  "Supabase schema workflow applies the product identity migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724070000_product_identity_reviews.sql",
+  "Supabase schema workflow applies the identity review queue migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724080000_user_favorite_stores.sql",
+  "Supabase schema workflow applies the My stores migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724090000_product_identity_and_sale_period_guards.sql",
+  "Supabase schema workflow applies sale period and GTIN guards",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724100000_product_price_summary_rpc.sql",
+  "Supabase schema workflow applies the product price summary RPC",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724110000_product_identity_workflow.sql",
+  "Supabase schema workflow applies the product identity workflow",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260724120000_product_merge_watchlist_guard.sql",
+  "Supabase schema workflow applies the product merge watchlist guard",
 );
 includes(
   ".easignore",

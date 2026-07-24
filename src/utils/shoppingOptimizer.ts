@@ -37,7 +37,9 @@ export type ShoppingPlan = {
 export type ShoppingRecommendation = {
   bestSingle: ShoppingPlan | null;
   bestSplit: ShoppingPlan | null;
+  bestPreferred: ShoppingPlan | null;
   recommended: ShoppingPlan | null;
+  recommendedUsesPreferredStores: boolean;
   unpricedProductIds: string[];
 };
 
@@ -78,7 +80,9 @@ export function buildShoppingCoverageSummary(
 export function buildShoppingRecommendation(
   entries: ShoppingListEntry[],
   prices: ShoppingPrice[],
+  preferredStoreIds: string[] = [],
 ): ShoppingRecommendation {
+  const preferredStoreIdSet = new Set(preferredStoreIds);
   const validEntries = entries.filter(
     (entry) => entry.productId.trim() && Number.isFinite(entry.quantity) && entry.quantity > 0,
   );
@@ -107,7 +111,14 @@ export function buildShoppingRecommendation(
     .map((entry) => entry.productId);
 
   if (pricedEntries.length === 0) {
-    return { bestSingle: null, bestSplit: null, recommended: null, unpricedProductIds };
+    return {
+      bestSingle: null,
+      bestSplit: null,
+      bestPreferred: null,
+      recommended: null,
+      recommendedUsesPreferredStores: false,
+      unpricedProductIds,
+    };
   }
 
   const storeIds = [...stores.keys()];
@@ -128,14 +139,34 @@ export function buildShoppingRecommendation(
     }
   }
 
-  const bestSingle = lowestPlan(singlePlans);
-  const bestSplit = lowestPlan(splitPlans);
+  const bestSingle = lowestPlan(singlePlans, preferredStoreIdSet);
+  const bestSplit = lowestPlan(splitPlans, preferredStoreIdSet);
+  const bestPreferred = lowestPlan(
+    [...singlePlans, ...splitPlans].filter(
+      (plan) =>
+        plan.stops.length > 0 &&
+        plan.stops.every((stop) => preferredStoreIdSet.has(stop.storeId)),
+    ),
+    preferredStoreIdSet,
+  );
   const recommended =
     bestSplit && (!bestSingle || bestSplit.total < bestSingle.total)
       ? bestSplit
       : bestSingle ?? bestSplit;
+  const recommendedUsesPreferredStores = Boolean(
+    recommended &&
+    recommended.stops.length > 0 &&
+    recommended.stops.every((stop) => preferredStoreIdSet.has(stop.storeId)),
+  );
 
-  return { bestSingle, bestSplit, recommended, unpricedProductIds };
+  return {
+    bestSingle,
+    bestSplit,
+    bestPreferred,
+    recommended,
+    recommendedUsesPreferredStores,
+    unpricedProductIds,
+  };
 }
 
 function buildPlan(
@@ -183,6 +214,19 @@ function buildPlan(
   };
 }
 
-function lowestPlan(plans: ShoppingPlan[]): ShoppingPlan | null {
-  return plans.sort((a, b) => a.total - b.total)[0] ?? null;
+function lowestPlan(
+  plans: ShoppingPlan[],
+  preferredStoreIds: Set<string>,
+): ShoppingPlan | null {
+  return plans.sort((a, b) => {
+    const totalDifference = a.total - b.total;
+    if (totalDifference !== 0) return totalDifference;
+
+    const preferredDifference =
+      b.stops.filter((stop) => preferredStoreIds.has(stop.storeId)).length -
+      a.stops.filter((stop) => preferredStoreIds.has(stop.storeId)).length;
+    if (preferredDifference !== 0) return preferredDifference;
+    return a.stops.map((stop) => stop.storeId).join("|")
+      .localeCompare(b.stops.map((stop) => stop.storeId).join("|"));
+  })[0] ?? null;
 }

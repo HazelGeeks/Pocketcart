@@ -8,6 +8,7 @@ type Props = {
   onImportProductsCsv: () => void;
   onDownloadProductCsvTemplate: () => void;
   onExportProductsCsv: () => void;
+  onExportIdentityGapsCsv: () => void;
   onOpenAddProduct: () => void;
 };
 
@@ -18,6 +19,7 @@ export default function AdminProductManagementHeader({
   onImportProductsCsv,
   onDownloadProductCsvTemplate,
   onExportProductsCsv,
+  onExportIdentityGapsCsv,
   onOpenAddProduct,
 }: Props) {
   const [csvActionsOpen, setCsvActionsOpen] = React.useState(false);
@@ -91,6 +93,13 @@ export default function AdminProductManagementHeader({
             <Text style={st.csvActionsMenuItemText}>
               Export Selected CSV{selectedProductCount > 0 ? ` (${selectedProductCount})` : ""}
             </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => runCsvAction(onExportIdentityGapsCsv)}
+            style={st.csvActionsMenuItem}
+          >
+            <Text style={st.csvActionsMenuItemText}>Export Identity Gaps CSV</Text>
           </Pressable>
         </View>
       ) : null}

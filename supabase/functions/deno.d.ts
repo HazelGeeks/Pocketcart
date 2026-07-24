@@ -30,6 +30,7 @@ declare module "https://esm.sh/@supabase/supabase-js@2.106.2" {
     not(column: string, operator: string, value: unknown): SupabaseQueryBuilder<T>;
     order(column: string, options?: Record<string, unknown>): SupabaseQueryBuilder<T>;
     limit(count: number): SupabaseQueryBuilder<T>;
+    range(from: number, to: number): SupabaseQueryBuilder<T>;
     single(): Promise<SupabaseResult<T>>;
     maybeSingle(): Promise<SupabaseResult<T>>;
   };

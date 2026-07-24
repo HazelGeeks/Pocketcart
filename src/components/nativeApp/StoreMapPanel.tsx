@@ -22,6 +22,9 @@ type StoreMapPanelProps = {
   message: string | null;
   loading: boolean;
   stores: MarketStore[];
+  favoriteStoreIds: string[];
+  favoriteStoresLoading: boolean;
+  favoriteFilterActive: boolean;
   focusedStoreId: string;
   region: Region;
   userLocation: { latitude: number; longitude: number } | null;
@@ -30,6 +33,8 @@ type StoreMapPanelProps = {
   bottomInset: number;
   horizontalPad: number;
   onChangeQuery: (value: string) => void;
+  onSetFavoriteFilter: (active: boolean) => void;
+  onToggleFavoriteStore: (storeId: string, storeName: string) => void;
   onFocusStoreId: (storeId: string) => void;
   onFocusStore: (store: MarketStore) => void;
   onUseCurrentLocation: () => void;
@@ -99,6 +104,9 @@ export function StoreMapPanel({
   message,
   loading,
   stores,
+  favoriteStoreIds,
+  favoriteStoresLoading,
+  favoriteFilterActive,
   focusedStoreId,
   region,
   userLocation,
@@ -107,6 +115,8 @@ export function StoreMapPanel({
   bottomInset,
   horizontalPad,
   onChangeQuery,
+  onSetFavoriteFilter,
+  onToggleFavoriteStore,
   onFocusStoreId,
   onFocusStore,
   onUseCurrentLocation,
@@ -114,6 +124,10 @@ export function StoreMapPanel({
 }: StoreMapPanelProps) {
   const [viewMode, setViewMode] = React.useState<"map" | "list">("map");
   const [visibleRegion, setVisibleRegion] = React.useState(region);
+  const favoriteStoreIdSet = React.useMemo(
+    () => new Set(favoriteStoreIds),
+    [favoriteStoreIds],
+  );
   const activeStore =
     stores.find((store) => store.id === focusedStoreId) ?? stores[0] ?? null;
   const storeClusters = React.useMemo(
@@ -185,8 +199,14 @@ export function StoreMapPanel({
       >
         <Pressable
           accessibilityRole="button"
-          onPress={() => onChangeQuery("")}
-          style={[st.storeMapFilterButton, !query && st.storeMapFilterButtonActive]}
+          onPress={() => {
+            onChangeQuery("");
+            onSetFavoriteFilter(false);
+          }}
+          style={[
+            st.storeMapFilterButton,
+            !query && !favoriteFilterActive && st.storeMapFilterButtonActive,
+          ]}
         >
           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
             <Path d="M4 7h10M18 7h2M4 17h2M10 17h10" stroke={C.primaryDeep} strokeWidth={2} strokeLinecap="round" />
@@ -197,10 +217,35 @@ export function StoreMapPanel({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={onUseCurrentLocation}
-          style={[st.storeMapFilterButton, userLocation && st.storeMapFilterButtonActive]}
+          onPress={() => {
+            onSetFavoriteFilter(false);
+            onChangeQuery("");
+            onUseCurrentLocation();
+          }}
+          style={[
+            st.storeMapFilterButton,
+            userLocation && !favoriteFilterActive && st.storeMapFilterButtonActive,
+          ]}
         >
           <Text style={st.storeMapFilterText}>Nearest</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: favoriteFilterActive }}
+          onPress={() => onSetFavoriteFilter(!favoriteFilterActive)}
+          style={[
+            st.storeMapFilterButton,
+            favoriteFilterActive && st.storeMapFilterButtonActive,
+          ]}
+        >
+          <StarIcon
+            size={16}
+            filled={favoriteFilterActive}
+            color={C.primaryDeep}
+          />
+          <Text style={st.storeMapFilterText}>
+            My stores{favoriteStoreIds.length > 0 ? ` (${favoriteStoreIds.length})` : ""}
+          </Text>
         </Pressable>
         <View style={st.storeMapFilterButton}>
           <Text style={st.storeMapFilterText}>
@@ -232,9 +277,15 @@ export function StoreMapPanel({
             <>
               <View style={st.storeListHeaderRow}>
                 <View>
-                  <Text style={st.storeListTitle}>Nearby stores</Text>
+                  <Text style={st.storeListTitle}>
+                    {favoriteFilterActive ? "My stores" : "Nearby stores"}
+                  </Text>
                   <Text style={st.storeListSubtitle}>
-                    {loading ? "Updating results…" : `${stores.length} places with current price data`}
+                    {loading || favoriteStoresLoading
+                      ? "Updating results…"
+                      : favoriteFilterActive
+                        ? `${stores.length} saved ${stores.length === 1 ? "store" : "stores"}`
+                        : `${stores.length} places with current price data`}
                   </Text>
                 </View>
                 <Pressable
@@ -251,8 +302,14 @@ export function StoreMapPanel({
           )}
           ListEmptyComponent={!loading ? (
             <View style={st.storeMapEmptyCard}>
-              <Text style={st.storeMapEmptyTitle}>No stores found</Text>
-              <Text style={st.storeMapEmptyText}>Try a different store name or address.</Text>
+              <Text style={st.storeMapEmptyTitle}>
+                {favoriteFilterActive ? "No saved stores yet" : "No stores found"}
+              </Text>
+              <Text style={st.storeMapEmptyText}>
+                {favoriteFilterActive
+                  ? "Switch to All stores, then tap the star on stores you visit often."
+                  : "Try a different store name or address."}
+              </Text>
             </View>
           ) : null}
           ItemSeparatorComponent={() => <View style={st.storeListCardSeparator} />}
@@ -260,10 +317,15 @@ export function StoreMapPanel({
             <StoreResultCard
               store={store}
               active={store.id === focusedStoreId}
+              favorite={favoriteStoreIdSet.has(store.id)}
               onFocus={() => {
                 onFocusStore(store);
                 setViewMode("map");
               }}
+              onToggleFavorite={() => onToggleFavoriteStore(
+                store.id,
+                getStoreDisplayName(store),
+              )}
               onViewDeals={() => onViewStoreInHome(store.id, getStoreDisplayName(store))}
             />
           )}
@@ -286,6 +348,9 @@ export function StoreMapPanel({
       >
         {storeClusters.map((cluster) => {
           if (cluster.stores.length > 1) {
+            const hasFavorite = cluster.stores.some((store) =>
+              favoriteStoreIdSet.has(store.id)
+            );
             return (
               <Marker
                 key={cluster.key}
@@ -303,8 +368,16 @@ export function StoreMapPanel({
                   );
                 }}
               >
-                <View style={st.storeMapClusterMarker}>
+                <View style={[
+                  st.storeMapClusterMarker,
+                  hasFavorite && st.storeMapClusterMarkerFavorite,
+                ]}>
                   <Text style={st.storeMapClusterMarkerText}>{cluster.stores.length}</Text>
+                  {hasFavorite ? (
+                    <View style={st.storeMapMarkerFavoriteBadge}>
+                      <StarIcon size={11} filled color={C.white} />
+                    </View>
+                  ) : null}
                 </View>
               </Marker>
             );
@@ -312,6 +385,7 @@ export function StoreMapPanel({
 
           const store = cluster.stores[0];
           const active = store.id === focusedStoreId;
+          const favorite = favoriteStoreIdSet.has(store.id);
           const logo = getStoreLogo(store);
           return (
             <Marker
@@ -321,18 +395,25 @@ export function StoreMapPanel({
               onPress={() => onFocusStoreId(store.id)}
               zIndex={active ? 2 : 1}
             >
-              <View style={[
-                st.storeMapMarker,
-                logo && st.storeMapMarkerWithLogo,
-                active && st.storeMapMarkerActive,
-              ]}>
-                {logo ? (
-                  <Image source={logo} resizeMode="contain" style={st.storeMapMarkerImage} />
-                ) : (
-                  <Text style={[st.storeMapMarkerText, active && st.storeMapMarkerTextActive]}>
-                    {getStoreInitials(store)}
-                  </Text>
-                )}
+              <View style={st.storeMapMarkerWrap}>
+                <View style={[
+                  st.storeMapMarker,
+                  logo && st.storeMapMarkerWithLogo,
+                  active && st.storeMapMarkerActive,
+                ]}>
+                  {logo ? (
+                    <Image source={logo} resizeMode="contain" style={st.storeMapMarkerImage} />
+                  ) : (
+                    <Text style={[st.storeMapMarkerText, active && st.storeMapMarkerTextActive]}>
+                      {getStoreInitials(store)}
+                    </Text>
+                  )}
+                </View>
+                {favorite ? (
+                  <View style={st.storeMapMarkerFavoriteBadge}>
+                    <StarIcon size={11} filled color={C.white} />
+                  </View>
+                ) : null}
               </View>
             </Marker>
           );
@@ -351,10 +432,15 @@ export function StoreMapPanel({
         <View style={st.storeMapSheetHeader}>
           <View>
             <Text style={st.storeMapSheetTitle}>
-              {stores.length} nearby {stores.length === 1 ? "store" : "stores"}
+              {stores.length} {favoriteFilterActive ? "saved" : "nearby"}{" "}
+              {stores.length === 1 ? "store" : "stores"}
             </Text>
             <Text style={st.storeMapSheetSubtitle}>
-              {loading ? "Updating map…" : "Tap a marker to explore current prices"}
+              {loading || favoriteStoresLoading
+                ? "Updating map…"
+                : favoriteFilterActive
+                  ? "Your frequently visited stores"
+                  : "Tap a marker to explore current prices"}
             </Text>
           </View>
           <Pressable
@@ -373,11 +459,20 @@ export function StoreMapPanel({
             store={activeStore}
             active
             compact
+            favorite={favoriteStoreIdSet.has(activeStore.id)}
             onFocus={() => onFocusStore(activeStore)}
+            onToggleFavorite={() => onToggleFavoriteStore(
+              activeStore.id,
+              getStoreDisplayName(activeStore),
+            )}
             onViewDeals={() => onViewStoreInHome(activeStore.id, getStoreDisplayName(activeStore))}
           />
         ) : !loading ? (
-          <Text style={st.storeMapEmptyText}>No matches. Try another store or address.</Text>
+          <Text style={st.storeMapEmptyText}>
+            {favoriteFilterActive
+              ? "No saved stores yet. Switch to All stores and tap a star."
+              : "No matches. Try another store or address."}
+          </Text>
         ) : null}
       </View>
     </View>
@@ -388,41 +483,68 @@ function StoreResultCard({
   store,
   active,
   compact = false,
+  favorite,
   onFocus,
+  onToggleFavorite,
   onViewDeals,
 }: {
   store: MarketStore;
   active: boolean;
   compact?: boolean;
+  favorite: boolean;
   onFocus: () => void;
+  onToggleFavorite: () => void;
   onViewDeals: () => void;
 }) {
   const distance = formatDistance(store.distance_km);
   const logo = getStoreLogo(store);
   return (
     <View style={[st.storeResultCard, active && st.storeResultCardActive, compact && st.storeResultCardCompact]}>
-      <Pressable accessibilityRole="button" onPress={onFocus} style={st.storeResultMain}>
-        <View style={[st.storeResultBadge, logo && st.storeResultBadgeWithLogo]}>
-          {logo ? (
-            <Image source={logo} resizeMode="contain" style={st.storeResultLogo} />
-          ) : (
-            <Text style={st.storeResultBadgeText}>{getStoreInitials(store)}</Text>
-          )}
-        </View>
-        <View style={st.storeResultCopy}>
-          <Text style={st.storeResultName} numberOfLines={1}>{getStoreDisplayName(store)}</Text>
-          <Text style={st.storeResultAddress} numberOfLines={1}>
-            {store.address || store.area || "Address unavailable"}
-          </Text>
-          <View style={st.storeResultMetaRow}>
-            {distance ? <Text style={st.storeResultDistance}>{distance}</Text> : null}
-            {distance && store.price_note ? <View style={st.storeResultDivider} /> : null}
-            {store.price_note ? (
-              <Text style={st.storeResultPrice} numberOfLines={1}>{store.price_note}</Text>
-            ) : null}
+      <View style={st.storeResultMain}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onFocus}
+          style={st.storeResultFocusContent}
+        >
+          <View style={[st.storeResultBadge, logo && st.storeResultBadgeWithLogo]}>
+            {logo ? (
+              <Image source={logo} resizeMode="contain" style={st.storeResultLogo} />
+            ) : (
+              <Text style={st.storeResultBadgeText}>{getStoreInitials(store)}</Text>
+            )}
           </View>
-        </View>
-      </Pressable>
+          <View style={st.storeResultCopy}>
+            <Text style={st.storeResultName} numberOfLines={1}>{getStoreDisplayName(store)}</Text>
+            <Text style={st.storeResultAddress} numberOfLines={1}>
+              {store.address || store.area || "Address unavailable"}
+            </Text>
+            <View style={st.storeResultMetaRow}>
+              {distance ? <Text style={st.storeResultDistance}>{distance}</Text> : null}
+              {distance && store.price_note ? <View style={st.storeResultDivider} /> : null}
+              {store.price_note ? (
+                <Text style={st.storeResultPrice} numberOfLines={1}>{store.price_note}</Text>
+              ) : null}
+            </View>
+          </View>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={
+            favorite
+              ? `Remove ${getStoreDisplayName(store)} from My stores`
+              : `Save ${getStoreDisplayName(store)} to My stores`
+          }
+          accessibilityState={{ selected: favorite }}
+          hitSlop={6}
+          onPress={onToggleFavorite}
+          style={[
+            st.storeFavoriteButton,
+            favorite && st.storeFavoriteButtonActive,
+          ]}
+        >
+          <StarIcon size={21} filled={favorite} color={C.primaryDeep} />
+        </Pressable>
+      </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`View deals at ${getStoreDisplayName(store)}`}
@@ -449,6 +571,29 @@ function MapIcon() {
     <Svg width={19} height={19} viewBox="0 0 24 24" fill="none">
       <Path d="m4 6 5-2 6 2 5-2v14l-5 2-6-2-5 2V6Z" stroke={C.white} strokeWidth={2} strokeLinejoin="round" />
       <Path d="M9 4v14M15 6v14" stroke={C.white} strokeWidth={2} />
+    </Svg>
+  );
+}
+
+function StarIcon({
+  color,
+  filled,
+  size,
+}: {
+  color: string;
+  filled: boolean;
+  size: number;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="m12 3 2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 17.2l-5.56 2.92 1.06-6.2L3 9.53l6.22-.9L12 3Z"
+        fill={filled ? color : "none"}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }

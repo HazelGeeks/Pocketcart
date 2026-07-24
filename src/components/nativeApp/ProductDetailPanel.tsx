@@ -132,55 +132,27 @@ export function ProductDetailPanel({
   onAddToWatchlist,
   onOpenStoreOnMap,
 }: ProductDetailPanelProps) {
-  const currentPrice = product?.current_price ?? null;
-  const previousPrice = product?.previous_price ?? null;
-  const priceDelta = product?.price_delta ?? null;
-  const priceDeltaPercent = product?.price_delta_percent ?? null;
+  const usesPreferredStore = product?.preferred_store_price !== null &&
+    product?.preferred_store_price !== undefined;
+  const currentPrice = usesPreferredStore
+    ? product?.preferred_store_price ?? null
+    : product?.current_price ?? null;
+  const previousPrice = usesPreferredStore
+    ? product?.preferred_previous_price ?? null
+    : product?.previous_price ?? null;
+  const priceDelta = usesPreferredStore
+    ? product?.preferred_price_delta ?? null
+    : product?.price_delta ?? null;
+  const priceDeltaPercent = usesPreferredStore
+    ? product?.preferred_price_delta_percent ?? null
+    : product?.price_delta_percent ?? null;
   const isRising = priceDelta !== null && priceDelta > 0;
   const isDropping = priceDelta !== null && priceDelta < 0;
-  const chartWidth = 320;
-  const chartHeight = 160;
   const storePriceGroups = React.useMemo(
     () => buildStorePriceGroups(storePrices),
     [storePrices],
   );
-
-  const fallbackChart: PriceChart | null = React.useMemo(() => {
-    if (chart) return null;
-    const fallbackValue = currentPrice ?? 0;
-    const width = chartWidth;
-    const height = chartHeight;
-    const padding = 14;
-    const y = height / 2;
-    const points = [
-      {
-        x: padding,
-        y,
-        value: fallbackValue,
-        label: "Now",
-        observed_at: new Date().toISOString(),
-      },
-      {
-        x: width - padding,
-        y,
-        value: fallbackValue,
-        label: "Now",
-        observed_at: new Date().toISOString(),
-      },
-    ];
-
-    return {
-      points,
-      polyline: `${points[0].x},${points[0].y} ${points[1].x},${points[1].y}`,
-      width,
-      height,
-      min: fallbackValue,
-      max: fallbackValue,
-      start: fallbackValue,
-      end: fallbackValue,
-    };
-  }, [chart, currentPrice]);
-  const displayChart = chart ?? fallbackChart;
+  const lowestStoresByPeriod = chart ? [...chart.points].reverse() : [];
 
   const distanceToPrevious = previousPrice === null || currentPrice === null ? null : currentPrice - previousPrice;
   const hasTrend = priceDelta !== null && previousPrice !== null && currentPrice !== null;
@@ -192,10 +164,17 @@ export function ProductDetailPanel({
         ? `${money.format(distanceToPrevious ?? 0)} higher than the last sale`
         : "Same as the last sale"
     : "No earlier sale price to compare yet.";
-  const bestStoreId = product?.best_store_id ?? null;
-  const bestStoreName = product?.best_store_name ?? null;
+  const bestStoreId = usesPreferredStore
+    ? product?.preferred_store_id ?? null
+    : product?.best_store_id ?? null;
+  const bestStoreName = usesPreferredStore
+    ? product?.preferred_store_name ?? null
+    : product?.best_store_name ?? null;
   const canOpenStore = bestStoreId !== null && onOpenStoreOnMap !== undefined;
-  const bestStoreArea = product?.best_store_area ?? "TBD";
+  const bestStoreArea = usesPreferredStore
+    ? product?.preferred_store_area ?? "TBD"
+    : product?.best_store_area ?? "TBD";
+  const storeSummaryLabel = usesPreferredStore ? "My / selected store" : "Best store";
   const storeLine = bestStoreName
     ? `${bestStoreName}${bestStoreArea ? ` · ${bestStoreArea}` : ""}`
     : "Store not linked yet";
@@ -384,9 +363,9 @@ export function ProductDetailPanel({
               <Text style={[st.summaryValue, st.summaryValueSmall]}>{product.unit || "-"}</Text>
             </View>
             <View style={st.productInfoCell}>
-              <Text style={st.summaryLabel}>Best store</Text>
+              <Text style={st.summaryLabel}>{storeSummaryLabel}</Text>
               <Text style={[st.summaryValue, st.summaryValueSmall]}>
-                {product.best_store_name ?? "Need store match"}
+                {bestStoreName ?? "Need store match"}
               </Text>
             </View>
           </View>
@@ -399,28 +378,32 @@ export function ProductDetailPanel({
                 {formatSignedPercent(priceDeltaPercent)}
               </Text>
             ) : null}
-            {product.best_store_name ? <Text style={st.tag}>Lowest store: {product.best_store_name}</Text> : null}
+            {bestStoreName ? (
+              <Text style={st.tag}>
+                {usesPreferredStore ? "Selected store" : "Lowest store"}: {bestStoreName}
+              </Text>
+            ) : null}
           </View>
 
           <Text style={st.historyTitle}>Price Trend</Text>
           {historyLoading ? (
             <Text style={st.itemMeta}>Loading price trend...</Text>
-          ) : !displayChart ? (
+          ) : !chart ? (
             <Text style={st.itemMeta}>No price history yet for this product.</Text>
           ) : (
             <>
               <Text style={st.itemMeta}>
-                {chart
-                  ? `Lowest ${money.format(chart.min)} / Highest ${money.format(chart.max)}`
-                  : "Waiting for historical data. Showing current price baseline."}
+                {chart.points.length === 1
+                  ? "1 sale period tracked. Another period is needed to show a trend."
+                  : `Lowest ${money.format(chart.min)} / Highest ${money.format(chart.max)} across sale periods`}
               </Text>
               <View style={st.chartWrap}>
-                <Svg width={displayChart.width} height={displayChart.height}>
+                <Svg width={chart.width} height={chart.height}>
                   <Line
                     x1={14}
-                    y1={displayChart.height - 14}
-                    x2={displayChart.width - 14}
-                    y2={displayChart.height - 14}
+                    y1={chart.height - 14}
+                    x2={chart.width - 14}
+                    y2={chart.height - 14}
                     stroke={C.line}
                     strokeWidth={1}
                   />
@@ -428,26 +411,28 @@ export function ProductDetailPanel({
                     x1={14}
                     y1={14}
                     x2={14}
-                    y2={displayChart.height - 14}
+                    y2={chart.height - 14}
                     stroke={C.line}
                     strokeWidth={1}
                   />
-                  <Polyline
-                    points={displayChart.polyline}
-                    fill="none"
-                    stroke={C.primary}
-                    strokeWidth={3}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
-                  {displayChart.points.map((point, index) => (
+                  {chart.points.length > 1 ? (
+                    <Polyline
+                      points={chart.polyline}
+                      fill="none"
+                      stroke={C.primary}
+                      strokeWidth={3}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  ) : null}
+                  {chart.points.map((point, index) => (
                     <Circle
                       key={`${point.observed_at}-${index}`}
                       cx={point.x}
                       cy={point.y}
                       r={3.7}
                       fill={
-                        index === displayChart.points.length - 1
+                        index === chart.points.length - 1
                           ? C.primaryDeep
                           : C.white
                       }
@@ -459,12 +444,37 @@ export function ProductDetailPanel({
               </View>
               <View style={st.chartMetaRow}>
                 <Text style={st.chartMetaText}>
-                  {displayChart.points[0].label}: {money.format(displayChart.start)}
+                  {chart.points[0].label}: {money.format(chart.start)}
                 </Text>
                 <Text style={st.chartMetaText}>
-                  {displayChart.points[displayChart.points.length - 1].label}: {money.format(displayChart.end)}
+                  {chart.points.length > 1
+                    ? `${chart.points[chart.points.length - 1].label}: ${money.format(chart.end)}`
+                    : "First tracked sale"}
                 </Text>
               </View>
+
+              <Text style={st.historyTitle}>Lowest store by sale period</Text>
+              {lowestStoresByPeriod.map((point, index) => (
+                <View
+                  key={`lowest-store-${point.observed_at}-${point.id ?? index}`}
+                  style={[st.periodLowestRow, index === 0 && st.bestStoreRow]}
+                >
+                  <View style={st.periodLowestMain}>
+                    <View style={st.periodLowestLabelRow}>
+                      <Text style={st.historyLabel}>{point.label}</Text>
+                      {index === 0 ? <Text style={st.periodLatestBadge}>Latest</Text> : null}
+                    </View>
+                    <Text style={st.periodLowestStore} numberOfLines={1}>
+                      {point.store_name}
+                      {point.store_area ? ` · ${point.store_area}` : ""}
+                    </Text>
+                  </View>
+                  <View style={st.periodLowestPriceBlock}>
+                    <Text style={st.historyPrice}>{money.format(point.value)}</Text>
+                    <Text style={st.storeCompareLowest}>Lowest</Text>
+                  </View>
+                </View>
+              ))}
             </>
           )}
 

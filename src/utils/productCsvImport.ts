@@ -1,5 +1,6 @@
 import type { AdminStore } from "../services/adminBackoffice";
 import { csvHeaderKey } from "./adminValidation";
+import { localDatePartsToIso } from "./businessDateTime";
 
 function parseStoreIdCandidate(candidate: string): string | null {
   const trimmed = candidate.trim();
@@ -104,16 +105,5 @@ export function productCsvDateToIso(value: string, endOfDay: boolean): string | 
 
   if (!parts) return null;
 
-  const date = endOfDay
-    ? new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 23, 59, 59, 999))
-    : new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 0, 0, 0, 0));
-  if (Number.isNaN(date.getTime())) return null;
-  if (
-    date.getUTCFullYear() !== parts.year ||
-    date.getUTCMonth() !== parts.month - 1 ||
-    date.getUTCDate() !== parts.day
-  ) {
-    return null;
-  }
-  return date.toISOString();
+  return localDatePartsToIso({ ...parts, endOfDay });
 }

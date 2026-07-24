@@ -35,4 +35,4 @@ jobs:
         run: npm run release:native:check
 
       - name: Audit high severity dependencies
-        run: npm audit --audit-level=high
+        run: npm run audit:ci

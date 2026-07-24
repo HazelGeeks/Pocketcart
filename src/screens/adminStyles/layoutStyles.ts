@@ -112,6 +112,26 @@ export const adminLayoutStyles = {
   menuBadgeTextActive: {
     color: C.primaryDeep,
   },
+  sidebarReviewAlert: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e9b65f",
+    backgroundColor: "#fff8e8",
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    gap: 2,
+    marginTop: -3,
+  },
+  sidebarReviewAlertTitle: {
+    color: "#815400",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  sidebarReviewAlertBody: {
+    color: "#906d2c",
+    fontSize: 10,
+    lineHeight: 14,
+  },
   sidebarFooter: {
     marginTop: "auto",
     borderTopWidth: 1,

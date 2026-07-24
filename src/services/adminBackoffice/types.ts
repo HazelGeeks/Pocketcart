@@ -3,6 +3,18 @@ export type ServiceResult<T> = {
   error: string | null;
 };
 
+export type AdminSchemaCheck = {
+  id: string;
+  label: string;
+  ready: boolean;
+  detail: string | null;
+};
+
+export type AdminSchemaReadiness = {
+  ready: boolean;
+  checks: AdminSchemaCheck[];
+};
+
 export type AdminUser = {
   id: string;
   email: string;
@@ -48,6 +60,8 @@ export type AdminProduct = {
   id: string;
   name: string;
   english_name: string | null;
+  brand: string | null;
+  gtin: string | null;
   category: string;
   unit: string | null;
   thumbnail_url: string | null;
@@ -78,6 +92,7 @@ export type AdminPriceEntry = {
   product_name: string | null;
   store_id: string;
   store_name: string | null;
+  store_brand: string | null;
   price: number;
   valid_from: string;
   valid_to: string | null;
@@ -89,6 +104,37 @@ export type AdminUploadedImage = {
   bucket: string;
   path: string;
   publicUrl: string;
+};
+
+export type ProductIdentityReviewStatus = "pending" | "resolved";
+
+export type AdminProductIdentityReview = {
+  id: string;
+  source: string;
+  row_number: number | null;
+  product_id: string | null;
+  reason: string;
+  match_method: string | null;
+  candidate_count: number;
+  candidate_product_ids: string[];
+  payload: Record<string, unknown>;
+  status: ProductIdentityReviewStatus;
+  created_at: string;
+  resolved_at: string | null;
+  resolved_product_id: string | null;
+  resolution_action: string | null;
+};
+
+export type ProductIdentityReviewRow = AdminProductIdentityReview;
+
+export type ProductMergeResult = {
+  source_product_ids: string[];
+  target_product_id: string;
+  moved_prices: number;
+  merged_price_conflicts: number;
+  moved_shopping_items: number;
+  moved_watchlist_items: number;
+  moved_sale_alerts: number;
 };
 
 export type AdminAuditLog = {
@@ -123,7 +169,10 @@ export type StoreRow = {
   created_at: string;
 };
 
-export type JoinedName = { name?: string | null } | Array<{ name?: string | null }> | null;
+export type JoinedName =
+  | { name?: string | null; brand?: string | null }
+  | Array<{ name?: string | null; brand?: string | null }>
+  | null;
 
 export type PriceRow = {
   id: string;

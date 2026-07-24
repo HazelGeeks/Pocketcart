@@ -77,7 +77,9 @@ The doctor checks repository release settings plus external readiness:
 The repository includes seven release and verification workflows:
 
 - `Mobile Release Check`: runs `npm run release:native:check` and
-  `npm audit --audit-level=high` on PRs and `main`.
+  `npm run audit:ci` on PRs and `main`. This fails on every new high/critical
+  advisory while temporarily tracking the Expo SDK 55 / React Native 0.83
+  `brace-expansion` advisory until the next compatible SDK upgrade.
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
   It runs `npm run release:native:check` first and waits for native artifact
   completion. Production builds fail before starting if required EAS production
@@ -93,9 +95,10 @@ The repository includes seven release and verification workflows:
 - `Live User Flow E2E`: manually creates a disposable confirmed user, verifies
   login, profile, live data, watchlist, alert generation, public deletion
   request, authenticated deletion, cascade cleanup, and rejected re-login.
-- `Supabase Schema Deploy`: manually applies the account-deletion request table,
-  its admin-policy dependencies, indexes, RLS policies, and PostgREST schema
-  refresh through the authenticated Supabase Management API.
+- `Supabase Schema Deploy`: manually applies account, product identity/review,
+  transactional product-merge, price-history, and My stores migrations together
+  with their indexes, RLS policies, and PostgREST schema refresh through the
+  authenticated Supabase Management API.
 
 Required GitHub repository secrets:
 

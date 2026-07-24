@@ -105,12 +105,12 @@ export default function AdminProductCard({
           </Text>
         </View>
         <View style={st.productGridMetric}>
-          <Text style={st.productGridMetricLabel}>Stores</Text>
-          <Text style={st.productGridMetricValue}>{storeCount}</Text>
+          <Text style={st.productGridMetricLabel}>History</Text>
+          <Text style={st.productGridMetricValue}>{stats?.saleSessions.size ?? 0}×</Text>
         </View>
         <View style={st.productGridMetricWide}>
-          <Text style={st.productGridMetricLabel}>Price range</Text>
-          <Text style={st.productGridMetricValue}>{priceRangeLabel}</Text>
+          <Text style={st.productGridMetricLabel}>Stores · Price range</Text>
+          <Text style={st.productGridMetricValue}>{storeCount} · {priceRangeLabel}</Text>
         </View>
       </View>
 

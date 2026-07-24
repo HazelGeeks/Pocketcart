@@ -96,6 +96,12 @@ function joinedName(value: JoinedName | undefined): string | null {
   return value.name ?? null;
 }
 
+function joinedBrand(value: JoinedName | undefined): string | null {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0]?.brand ?? null;
+  return value.brand ?? null;
+}
+
 type MissingColumnInput = string | null | undefined | {
   message?: string | null;
   details?: string | null;
@@ -133,6 +139,7 @@ export function priceEntryFromRow(row: PriceRow, fallbackPrice?: number): AdminP
     product_name: joinedName(row.products),
     store_id: row.store_id,
     store_name: joinedName(row.stores),
+    store_brand: joinedBrand(row.stores),
     price,
     valid_from: row.valid_from ?? row.observed_at,
     valid_to: row.valid_to ?? null,

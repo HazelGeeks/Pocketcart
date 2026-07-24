@@ -1,30 +1,38 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAdminAuditLog,
+  createProductIdentityReview,
   createAdminStore,
   createAdminPriceEntry,
   createAdminProduct,
   deleteAdminProduct,
   deleteAdminStore,
   getAdminUser,
+  getAdminSchemaReadiness,
   listAdminUsers,
   listAdminPriceEntries,
   listAdminAuditLogs,
+  listPendingProductIdentityReviews,
   listAdminProducts,
   listAdminStores,
+  mergeAdminProducts,
   signInAdmin,
   signOutAdmin,
   updateAdminPriceEntry,
   updateAdminProduct,
   updateAdminStore,
+  resolveProductIdentityReview,
   uploadAdminProductImage,
   type AdminAuditLog,
+  type AdminProductIdentityReview,
   type AdminPriceEntry,
   type AdminProduct,
   type AdminStore,
   type AdminUploadedImage,
   type AdminDirectoryUser,
   type AdminUser,
+  type AdminSchemaReadiness,
+  type ProductMergeResult,
 } from "../services/adminBackoffice";
 import { hasSupabaseEnv } from "../services/supabaseClient";
 
@@ -40,6 +48,8 @@ const adminQueryKeys = {
   stores: ["admin", "stores"] as const,
   prices: ["admin", "prices"] as const,
   auditLogs: ["admin", "auditLogs"] as const,
+  productIdentityReviews: ["admin", "productIdentityReviews"] as const,
+  schemaReadiness: ["admin", "schemaReadiness"] as const,
 };
 
 function unwrap<T>(result: ServiceResult<T>): T {
@@ -95,6 +105,23 @@ export function useAdminAuditLogsQuery(enabled: boolean) {
     queryKey: adminQueryKeys.auditLogs,
     queryFn: async () => unwrap(await listAdminAuditLogs()),
     enabled,
+  });
+}
+
+export function useProductIdentityReviewsQuery(enabled: boolean) {
+  return useQuery<AdminProductIdentityReview[]>({
+    queryKey: adminQueryKeys.productIdentityReviews,
+    queryFn: async () => unwrap(await listPendingProductIdentityReviews()),
+    enabled,
+  });
+}
+
+export function useAdminSchemaReadinessQuery(enabled: boolean) {
+  return useQuery<AdminSchemaReadiness>({
+    queryKey: adminQueryKeys.schemaReadiness,
+    queryFn: async () => unwrap(await getAdminSchemaReadiness()),
+    enabled,
+    staleTime: 1000 * 60 * 5,
   });
 }
 
@@ -208,6 +235,51 @@ export function useCreateAdminAuditLogMutation() {
   return useMutation<AdminAuditLog | null, Error, Parameters<typeof createAdminAuditLog>[0]>({
     mutationFn: async (params) => unwrap(await createAdminAuditLog(params)),
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs });
+    },
+  });
+}
+
+export function useCreateProductIdentityReviewMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    AdminProductIdentityReview | null,
+    Error,
+    Parameters<typeof createProductIdentityReview>[0]
+  >({
+    mutationFn: async (params) => unwrap(await createProductIdentityReview(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productIdentityReviews });
+    },
+  });
+}
+
+export function useResolveProductIdentityReviewMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    AdminProductIdentityReview | null,
+    Error,
+    Parameters<typeof resolveProductIdentityReview>[0]
+  >({
+    mutationFn: async (reviewId) => unwrap(await resolveProductIdentityReview(reviewId)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productIdentityReviews });
+    },
+  });
+}
+
+export function useMergeAdminProductsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ProductMergeResult | null,
+    Error,
+    Parameters<typeof mergeAdminProducts>[0]
+  >({
+    mutationFn: async (params) => unwrap(await mergeAdminProducts(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productIdentityReviews });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs });
     },
   });

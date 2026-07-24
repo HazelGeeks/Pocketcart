@@ -30,6 +30,8 @@ import {
   type AdminDirectoryUser,
   type AdminPriceEntry,
   type AdminProduct,
+  type AdminProductIdentityReview,
+  type AdminSchemaReadiness,
   type AdminStore,
 } from "../services/adminBackoffice";
 import {
@@ -38,18 +40,23 @@ import {
   useAdminProductsQuery,
   useAdminSignInMutation,
   useAdminSignOutMutation,
+  useAdminSchemaReadinessQuery,
   useAdminStoresQuery,
   useAdminUserQuery,
   useAdminUsersQuery,
   useCreateAdminPriceEntryMutation,
   useCreateAdminAuditLogMutation,
   useCreateAdminProductMutation,
+  useCreateProductIdentityReviewMutation,
   useCreateAdminStoreMutation,
   useDeleteAdminProductMutation,
   useDeleteAdminStoreMutation,
   useUpdateAdminProductMutation,
   useUpdateAdminStoreMutation,
   useUpdateAdminPriceEntryMutation,
+  useProductIdentityReviewsQuery,
+  useMergeAdminProductsMutation,
+  useResolveProductIdentityReviewMutation,
   useUploadAdminProductImageMutation,
 } from "../hooks/useAdminBackofficeQueries";
 import { useAdminStore } from "../state/adminStore";
@@ -72,6 +79,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   const [productName, setProductName] = React.useState("");
   const [productEnglishName, setProductEnglishName] = React.useState("");
+  const [productBrand, setProductBrand] = React.useState("");
+  const [productGtin, setProductGtin] = React.useState("");
   const [productUnit, setProductUnit] = React.useState("");
   const [productCategory, setProductCategory] = React.useState("");
   const [productCategoryCustom, setProductCategoryCustom] = React.useState("");
@@ -107,6 +116,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
   const [submitting, setSubmitting] = React.useState(false);
   const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
+  const [resolvingReviewId, setResolvingReviewId] = React.useState<string | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
 
   const activeMenu = useAdminStore((state) => state.activeMenu);
@@ -151,9 +161,12 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const storesQuery = useAdminStoresQuery(dataQueriesEnabled);
   const pricesQuery = useAdminPricesQuery(dataQueriesEnabled);
   const auditLogsQuery = useAdminAuditLogsQuery(dataQueriesEnabled);
+  const productIdentityReviewsQuery = useProductIdentityReviewsQuery(dataQueriesEnabled);
+  const schemaReadinessQuery = useAdminSchemaReadinessQuery(dataQueriesEnabled);
   const signInMutation = useAdminSignInMutation();
   const signOutMutation = useAdminSignOutMutation();
   const createProductMutation = useCreateAdminProductMutation();
+  const createIdentityReviewMutation = useCreateProductIdentityReviewMutation();
   const updateProductMutation = useUpdateAdminProductMutation();
   const createPriceEntryMutation = useCreateAdminPriceEntryMutation();
   const createAuditLogMutation = useCreateAdminAuditLogMutation();
@@ -163,6 +176,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const updateStoreMutation = useUpdateAdminStoreMutation();
   const deleteProductMutation = useDeleteAdminProductMutation();
   const uploadProductImageMutation = useUploadAdminProductImageMutation();
+  const resolveIdentityReviewMutation = useResolveProductIdentityReviewMutation();
+  const mergeProductsMutation = useMergeAdminProductsMutation();
 
   const products = React.useMemo<AdminProduct[]>(() => productsQuery.data ?? [], [productsQuery.data]);
   const users = React.useMemo<AdminDirectoryUser[]>(() => usersQuery.data ?? [], [usersQuery.data]);
@@ -172,8 +187,18 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     () => auditLogsQuery.data ?? [],
     [auditLogsQuery.data],
   );
+  const productIdentityReviews = React.useMemo<AdminProductIdentityReview[]>(
+    () => productIdentityReviewsQuery.data ?? [],
+    [productIdentityReviewsQuery.data],
+  );
+  const schemaReadiness = React.useMemo<AdminSchemaReadiness | null>(
+    () => schemaReadinessQuery.data ?? null,
+    [schemaReadinessQuery.data],
+  );
   const productsLoading = productsQuery.isLoading || productsQuery.isFetching;
   const usersLoading = usersQuery.isLoading || usersQuery.isFetching;
+  const productIdentityReviewsLoading =
+    productIdentityReviewsQuery.isLoading || productIdentityReviewsQuery.isFetching;
   const authLoading =
     adminUserQuery.isLoading || signInMutation.isPending || signOutMutation.isPending;
 
@@ -186,6 +211,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     overviewCards,
     productActiveFilterCount,
     productBrandFilterOptions,
+    productDataHealth,
     productFilterCategoryOptions,
     productPriceStats,
     productSortOptions,
@@ -223,6 +249,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         storesQuery.refetch(),
         pricesQuery.refetch(),
         auditLogsQuery.refetch(),
+        productIdentityReviewsQuery.refetch(),
+        schemaReadinessQuery.refetch(),
       ]);
       const errors = results
         .map((item) => (item.error instanceof Error ? item.error.message : null))
@@ -235,7 +263,15 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         setNotice(null);
       }
     },
-    [auditLogsQuery, pricesQuery, productsQuery, storesQuery, usersQuery],
+    [
+      auditLogsQuery,
+      pricesQuery,
+      productIdentityReviewsQuery,
+      productsQuery,
+      schemaReadinessQuery,
+      storesQuery,
+      usersQuery,
+    ],
   );
 
   const handleRefresh = React.useCallback(async () => {
@@ -256,6 +292,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
       storesQuery.error,
       pricesQuery.error,
       auditLogsQuery.error,
+      productIdentityReviewsQuery.error,
     ]
       .map((error) => (error instanceof Error ? error.message : null))
       .filter((item): item is string => Boolean(item));
@@ -266,6 +303,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     adminUserQuery.error,
     auditLogsQuery.error,
     pricesQuery.error,
+    productIdentityReviewsQuery.error,
     productsQuery.error,
     storesQuery.error,
     usersQuery.error,
@@ -291,6 +329,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   } = useAdminProductActions({
     productName,
     productEnglishName,
+    productBrand,
+    productGtin,
     productUnit,
     productCategory,
     productCategoryCustom,
@@ -303,6 +343,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     productPriceStats,
     setProductName,
     setProductEnglishName,
+    setProductBrand,
+    setProductGtin,
     setProductUnit,
     setProductCategory,
     setProductCategoryCustom,
@@ -322,6 +364,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     createPriceEntryMutation,
     updatePriceEntryMutation,
     uploadProductImageMutation,
+    createIdentityReviewMutation,
   });
   const {
     handleConfirmDeleteStore,
@@ -444,10 +487,84 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     setNotice("Signed out.");
   }, [resetAdminUi, signOutMutation]);
 
+  const handleResolveIdentityReview = React.useCallback(
+    async (reviewId: string) => {
+      setResolvingReviewId(reviewId);
+      try {
+        await resolveIdentityReviewMutation.mutateAsync(reviewId);
+        await productIdentityReviewsQuery.refetch();
+        setNotice("Product identity review marked as reviewed.");
+      } catch (error) {
+        setNotice(
+          error instanceof Error
+            ? error.message
+            : "Product identity review could not be updated.",
+        );
+      } finally {
+        setResolvingReviewId(null);
+      }
+    },
+    [productIdentityReviewsQuery, resolveIdentityReviewMutation],
+  );
+
+  const handleMergeProducts = React.useCallback(
+    async (
+      productIds: string[],
+      targetProductId: string,
+      reviewId?: string,
+    ): Promise<boolean> => {
+      const sourceProductIds = productIds.filter(
+        (productId) => productId !== targetProductId,
+      );
+      if (!targetProductId || sourceProductIds.length === 0) {
+        setNotice("Choose one product to keep and at least one product to merge.");
+        return false;
+      }
+
+      setSubmitting(true);
+      if (reviewId) setResolvingReviewId(reviewId);
+      try {
+        const result = await mergeProductsMutation.mutateAsync({
+          sourceProductIds,
+          targetProductId,
+          reviewId,
+        });
+        await Promise.all([
+          productsQuery.refetch(),
+          pricesQuery.refetch(),
+          productIdentityReviewsQuery.refetch(),
+          auditLogsQuery.refetch(),
+        ]);
+        setNotice(
+          `Merged ${sourceProductIds.length} product${sourceProductIds.length === 1 ? "" : "s"}. ` +
+          `${result?.moved_prices ?? 0} price rows moved; ` +
+          `${result?.merged_price_conflicts ?? 0} same-period price conflicts consolidated.`,
+        );
+        return true;
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Products could not be merged.");
+        return false;
+      } finally {
+        setSubmitting(false);
+        if (reviewId) setResolvingReviewId(null);
+      }
+    },
+    [
+      auditLogsQuery,
+      mergeProductsMutation,
+      pricesQuery,
+      productIdentityReviewsQuery,
+      productsQuery,
+    ],
+  );
+
   const sectionMenu = [
     {
       key: "overview" as const,
       label: "Dashboard",
+      badge: productIdentityReviews.length > 0
+        ? productIdentityReviews.length
+        : undefined,
     },
     {
       key: "users" as const,
@@ -498,6 +615,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 activeMenu={activeMenu}
                 authUserLabel={authUser.email || authUser.id}
                 authLoading={authLoading}
+                productReviewCount={productIdentityReviews.length}
                 styles={st}
                 onSelectMenu={setActiveMenu}
                 onSignOut={() => {
@@ -591,8 +709,22 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     cards={overviewCards}
                     products={products}
                     productsLoading={productsLoading}
+                    productDataHealth={productDataHealth}
+                    schemaReadiness={schemaReadiness}
+                    schemaReadinessLoading={
+                      schemaReadinessQuery.isLoading || schemaReadinessQuery.isFetching
+                    }
+                    productIdentityReviews={productIdentityReviews}
+                    productIdentityReviewsLoading={productIdentityReviewsLoading}
+                    resolvingReviewId={resolvingReviewId}
                     styles={st}
                     onManageProducts={() => setActiveMenu("products")}
+                    onResolveReview={(reviewId) => {
+                      void handleResolveIdentityReview(reviewId);
+                    }}
+                    onMergeReview={(reviewId, candidateProductIds, targetProductId) => {
+                      void handleMergeProducts(candidateProductIds, targetProductId, reviewId);
+                    }}
                   />
                 ) : null}
 
@@ -638,6 +770,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onEditProduct={handleOpenEditProduct}
                     onDeleteProduct={handleDeleteProduct}
                     onDeleteProducts={handleDeleteProducts}
+                    onMergeProducts={handleMergeProducts}
                   />
                 ) : null}
 
@@ -773,6 +906,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         imageUploading={productImageUploading}
         productName={productName}
         productEnglishName={productEnglishName}
+        productBrand={productBrand}
+        productGtin={productGtin}
         productUnit={productUnit}
         productCategory={productCategory}
         productCategoryCustom={productCategoryCustom}
@@ -783,6 +918,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         styles={st}
         onNameChange={setProductName}
         onEnglishNameChange={setProductEnglishName}
+        onBrandChange={setProductBrand}
+        onGtinChange={setProductGtin}
         onUnitChange={setProductUnit}
         onCategoryChange={setProductCategory}
         onCategoryCustomChange={setProductCategoryCustom}

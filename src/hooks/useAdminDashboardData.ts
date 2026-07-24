@@ -7,6 +7,7 @@ import type {
 } from "../services/adminBackoffice";
 import type { ProductSortKey } from "../state/adminStore";
 import { dateOnlyToIso } from "../utils/adminValidation";
+import { saleSessionKey } from "../utils/saleSession";
 import {
   DEFAULT_PRODUCT_CATEGORIES,
   STORE_TYPE_OPTIONS,
@@ -17,6 +18,7 @@ import {
   type ProductPriceStats,
   type StorePriceStats,
 } from "../utils/adminScreenHelpers";
+import { buildProductDataHealth } from "../utils/productDataHealth";
 
 type AdminDashboardDataParams = {
   products: AdminProduct[];
@@ -65,25 +67,15 @@ export default function useAdminDashboardData({
   productSort,
   flyerSelectedRows,
 }: AdminDashboardDataParams) {
-  const priceRowsMissingLink = React.useMemo(
-    () => prices.filter((row) => !row.product_name || !row.store_name).length,
-    [prices],
-  );
-
   const displayStores = React.useMemo(
     () => stores.filter((store) => !looksLikeProductStoreRow(store)),
     [stores],
   );
 
-  const stalePriceRows = React.useMemo(() => {
-    const now = Date.now();
-    const thirtyDays = 1000 * 60 * 60 * 24 * 30;
-    return prices.filter((row) => {
-      const time = new Date(row.observed_at).getTime();
-      if (Number.isNaN(time)) return false;
-      return now - time > thirtyDays;
-    }).length;
-  }, [prices]);
+  const productDataHealth = React.useMemo(
+    () => buildProductDataHealth(products, prices),
+    [prices, products],
+  );
 
   const overviewCards = React.useMemo<OverviewCard[]>(
     () => [
@@ -91,7 +83,7 @@ export default function useAdminDashboardData({
         id: "products",
         label: "Products",
         value: String(products.length),
-        hint: "Catalog items",
+        hint: "Full paged catalog",
       },
       {
         id: "stores",
@@ -100,13 +92,19 @@ export default function useAdminDashboardData({
         hint: "Store locations",
       },
       {
+        id: "history",
+        label: "4+ Sessions",
+        value: String(productDataHealth.fourPlusSessions),
+        hint: `${productDataHealth.twoPlusSessions} have 2+ sessions`,
+      },
+      {
         id: "issues",
-        label: "Data Health",
-        value: String(toNonNegativeCount(priceRowsMissingLink + stalePriceRows)),
-        hint: "Link freshness",
+        label: "Data Issues",
+        value: String(toNonNegativeCount(productDataHealth.issueCount)),
+        hint: "Identity, period, links, freshness",
       },
     ],
-    [displayStores.length, priceRowsMissingLink, products.length, stalePriceRows],
+    [displayStores.length, productDataHealth, products.length],
   );
 
   const productFormStoreOptions = displayStores;
@@ -172,6 +170,13 @@ export default function useAdminDashboardData({
           storeIds: new Set(storeId ? [storeId] : []),
           storeBrands: storeBrand ? [storeBrand] : [],
           storeNames: storeName ? [storeName] : [],
+          saleSessions: new Set([
+            saleSessionKey({
+              validFrom: row.valid_from,
+              validTo: row.valid_to,
+              observedAt: row.observed_at,
+            }),
+          ]),
         });
         return;
       }
@@ -183,6 +188,13 @@ export default function useAdminDashboardData({
       if (storeName && !existing.storeNames.some((item) => item.toLowerCase() === storeName.toLowerCase())) {
         existing.storeNames.push(storeName);
       }
+      existing.saleSessions.add(
+        saleSessionKey({
+          validFrom: row.valid_from,
+          validTo: row.valid_to,
+          observedAt: row.observed_at,
+        }),
+      );
       if (existing.minPrice === null || row.price < existing.minPrice) existing.minPrice = row.price;
       if (existing.maxPrice === null || row.price > existing.maxPrice) existing.maxPrice = row.price;
       if (parsedUpdatedAtMs > existing.latestUpdatedAtMs) {
@@ -342,7 +354,7 @@ export default function useAdminDashboardData({
         const storeNames = stats?.storeNames.join(" ").toLowerCase() ?? "";
         const storeBrands = stats?.storeBrands.join(" ").toLowerCase() ?? "";
         const englishName = item.english_name?.trim() || "";
-        const haystack = `${item.name} ${englishName} ${item.category} ${item.id} ${storeNames} ${storeBrands}`.toLowerCase();
+        const haystack = `${item.name} ${englishName} ${item.brand ?? ""} ${item.gtin ?? ""} ${item.category} ${item.id} ${storeNames} ${storeBrands}`.toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       if (categoryFilter !== "all" && category !== categoryFilter) return false;
@@ -422,16 +434,15 @@ export default function useAdminDashboardData({
     filteredStores,
     flyerSelectedCount: flyerSelectedRows,
     overviewCards,
-    priceRowsMissingLink,
     productActiveFilterCount,
     productFilterCategoryOptions,
     productBrandFilterOptions,
+    productDataHealth,
     productPriceStats,
     productSortOptions,
     productStoreFilterOptions,
     productFormStoreOptions,
     selectedStoreForMap,
-    stalePriceRows,
     storeActiveFilterCount,
     storeAuditLogs,
     storeBrandOptions,

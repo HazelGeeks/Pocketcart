@@ -1,15 +1,21 @@
 import type { Region } from "react-native-maps";
 import type { MarketPricePoint } from "../services/marketData";
+import { BUSINESS_TIME_ZONE } from "../utils/businessDateTime";
 
 export type NativeTabId = "home" | "watchlist" | "map" | "alerts" | "more";
 export type HomeRoute = "catalog" | "detail";
 
 type PriceChartPoint = {
+  id: string;
   x: number;
   y: number;
   value: number;
   label: string;
   observed_at: string;
+  sale_end_at: string | null;
+  store_id: string | null;
+  store_name: string;
+  store_area: string | null;
 };
 
 export type PriceChart = {
@@ -45,9 +51,9 @@ export const DEFAULT_REGION: Region = {
   longitudeDelta: 0.18,
 };
 
-export const money = new Intl.NumberFormat("en-US", {
+export const money = new Intl.NumberFormat("en-CA", {
   style: "currency",
-  currency: "USD",
+  currency: "CAD",
   minimumFractionDigits: 2,
 });
 
@@ -58,7 +64,13 @@ export function buildPriceChart(
 ): PriceChart | null {
   if (history.length === 0) return null;
 
-  const source = history.slice(-7);
+  const source = [...history]
+    .sort(
+      (a, b) =>
+        saleSessionChartTime(a) - saleSessionChartTime(b) ||
+        a.id.localeCompare(b.id),
+    )
+    .slice(-7);
   const values = source.map((point) => point.price);
   const width = Math.max(240, Math.min(360, viewportWidth - horizontalPadding * 2 - 28));
   const height = 160;
@@ -68,19 +80,30 @@ export function buildPriceChart(
   const range = max - min || 1;
   const usableW = width - padding * 2;
   const usableH = height - padding * 2;
+  const times = source.map(saleSessionChartTime);
+  const firstTime = times[0];
+  const lastTime = times[times.length - 1];
+  const timeRange = lastTime - firstTime;
 
   const points = source.map((point, index) => {
     const x =
       source.length === 1
         ? width / 2
-        : padding + (index / (source.length - 1)) * usableW;
+        : timeRange > 0 && Number.isFinite(times[index])
+          ? padding + ((times[index] - firstTime) / timeRange) * usableW
+          : padding + (index / (source.length - 1)) * usableW;
     const y = padding + ((max - point.price) / range) * usableH;
     return {
+      id: point.id,
       x,
       y,
       value: point.price,
-      label: shortWeekday(point.observed_at),
+      label: salePeriodLabel(point.observed_at, point.sale_end_at),
       observed_at: point.observed_at,
+      sale_end_at: point.sale_end_at,
+      store_id: point.store_id,
+      store_name: point.store_name,
+      store_area: point.store_area,
     };
   });
 
@@ -114,8 +137,32 @@ export function buildPreviousPriceRows(chart: PriceChart | null): PreviousPriceR
     .reverse();
 }
 
-function shortWeekday(dateLike: string): string {
+function dateTime(dateLike: string): number {
+  const time = new Date(dateLike).getTime();
+  return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
+}
+
+function saleSessionChartTime(point: Pick<MarketPricePoint, "observed_at" | "sale_end_at">): number {
+  const start = dateTime(point.observed_at);
+  const end = point.sale_end_at ? dateTime(point.sale_end_at) : start;
+  if (!Number.isFinite(start)) return start;
+  return Number.isFinite(end) && end >= start ? start + (end - start) / 2 : start;
+}
+
+function shortDate(dateLike: string): string {
   const date = new Date(dateLike);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-US", { weekday: "short" });
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: BUSINESS_TIME_ZONE,
+  });
+}
+
+function salePeriodLabel(startLike: string, endLike: string | null): string {
+  const start = shortDate(startLike);
+  if (!endLike) return start;
+
+  const end = shortDate(endLike);
+  return end === "-" || end === start ? start : `${start}–${end}`;
 }

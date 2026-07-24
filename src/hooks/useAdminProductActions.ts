@@ -1,8 +1,18 @@
 import React from "react";
-import type { AdminPriceEntry, AdminProduct, AdminStore } from "../services/adminBackoffice";
+import type {
+  AdminPriceEntry,
+  AdminProduct,
+  AdminProductIdentityReview,
+  AdminStore,
+} from "../services/adminBackoffice";
 import type { ProductPriceStats, StorePriceSetInput } from "../utils/adminScreenHelpers";
 import { createStorePriceSet, dateInputValue } from "../utils/adminScreenHelpers";
-import { findMatchingProduct } from "../utils/productIdentity";
+import {
+  gtinValidationMessage,
+  isValidGtin,
+  normalizeGtin,
+  resolveProductMatch,
+} from "../utils/productIdentity";
 import { prepareProductPriceSets } from "../utils/productStorePriceSets";
 import useAdminProductCsvActions from "./useAdminProductCsvActions";
 import useAdminProductImageUpload, { extensionFromType } from "./useAdminProductImageUpload";
@@ -16,13 +26,17 @@ function findExistingPriceForPeriod(params: {
   productId: string;
   storeId: string;
   periodStartDate: string;
+  periodEndDate: string;
 }): AdminPriceEntry | null {
   const targetDate = params.periodStartDate.trim();
   if (!targetDate) return null;
   return (
     params.prices.find((price) => {
       if (price.product_id !== params.productId || price.store_id !== params.storeId) return false;
-      return dateInputValue(price.valid_from || price.observed_at) === targetDate;
+      return (
+        dateInputValue(price.valid_from || price.observed_at) === targetDate &&
+        dateInputValue(price.valid_to) === params.periodEndDate.trim()
+      );
     }) ?? null
   );
 }
@@ -49,6 +63,8 @@ function safeProductImageName(params: { name: string; contentType: string }): st
 type UseAdminProductActionsParams = {
   productName: string;
   productEnglishName: string;
+  productBrand: string;
+  productGtin: string;
   productUnit: string;
   productCategory: string;
   productCategoryCustom: string;
@@ -61,6 +77,8 @@ type UseAdminProductActionsParams = {
   stores: AdminStore[];
   setProductName: (value: string) => void;
   setProductEnglishName: (value: string) => void;
+  setProductBrand: (value: string) => void;
+  setProductGtin: (value: string) => void;
   setProductUnit: (value: string) => void;
   setProductCategory: (value: string) => void;
   setProductCategoryCustom: (value: string) => void;
@@ -75,12 +93,40 @@ type UseAdminProductActionsParams = {
   resetProductFilters: () => void;
   loadAll: (keepNotice?: boolean) => Promise<void>;
   createProductMutation: Mutation<
-    { name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
+    {
+      name: string;
+      englishName?: string;
+      brand?: string;
+      gtin?: string;
+      category: string;
+      unit?: string;
+      thumbnailUrl?: string;
+    },
     AdminProduct | null
   >;
   updateProductMutation: Mutation<
-    { id: string; name: string; englishName?: string; category: string; unit?: string; thumbnailUrl?: string },
+    {
+      id: string;
+      name: string;
+      englishName?: string;
+      brand?: string;
+      gtin?: string;
+      category: string;
+      unit?: string;
+      thumbnailUrl?: string;
+    },
     AdminProduct | null
+  >;
+  createIdentityReviewMutation: Mutation<
+    {
+      rowNumber?: number;
+      productId?: string;
+      reason: string;
+      matchMethod?: string;
+      candidateCount?: number;
+      payload: Record<string, unknown>;
+    },
+    AdminProductIdentityReview | null
   >;
   deleteProductMutation: Mutation<string, unknown>;
   createPriceEntryMutation: Mutation<{
@@ -104,6 +150,8 @@ type UseAdminProductActionsParams = {
 export default function useAdminProductActions({
   productName,
   productEnglishName,
+  productBrand,
+  productGtin,
   productUnit,
   productCategory,
   productThumb,
@@ -115,6 +163,8 @@ export default function useAdminProductActions({
   productPriceStats,
   setProductName,
   setProductEnglishName,
+  setProductBrand,
+  setProductGtin,
   setProductUnit,
   setProductCategory,
   setProductCategoryCustom,
@@ -130,6 +180,7 @@ export default function useAdminProductActions({
   loadAll,
   createProductMutation,
   updateProductMutation,
+  createIdentityReviewMutation,
   deleteProductMutation,
   createPriceEntryMutation,
   updatePriceEntryMutation,
@@ -166,6 +217,8 @@ export default function useAdminProductActions({
     setEditingProductId(null);
     setProductName("");
     setProductEnglishName("");
+    setProductBrand("");
+    setProductGtin("");
     setProductUnit("");
     setProductCategory("");
     setProductCategoryCustom("");
@@ -173,7 +226,9 @@ export default function useAdminProductActions({
     setProductStorePriceSets([createStorePriceSet()]);
   }, [
     setEditingProductId,
+    setProductBrand,
     setProductEnglishName,
+    setProductGtin,
     setProductCategory,
     setProductCategoryCustom,
     setProductName,
@@ -211,6 +266,8 @@ export default function useAdminProductActions({
       setEditingProductId(product.id);
       setProductName(product.name);
       setProductEnglishName(product.english_name ?? "");
+      setProductBrand(product.brand ?? "");
+      setProductGtin(product.gtin ?? "");
       setProductUnit(product.unit ?? "");
       setProductCategory(product.category);
       setProductCategoryCustom(product.category);
@@ -223,7 +280,9 @@ export default function useAdminProductActions({
       setEditingProductId,
       setProductCategory,
       setProductCategoryCustom,
+      setProductBrand,
       setProductEnglishName,
+      setProductGtin,
       setProductModalOpen,
       setProductName,
       setProductUnit,
@@ -236,11 +295,19 @@ export default function useAdminProductActions({
   const handleCreateProduct = React.useCallback(async () => {
     const name = productName.trim();
     const englishName = productEnglishName.trim();
+    const brand = productBrand.trim();
+    const rawGtin = productGtin.trim();
+    const gtin = normalizeGtin(rawGtin);
     const unit = productUnit.trim();
     const category = productCategory.trim();
 
     if (!name || !category) {
       setNotice("Product name and category are required.");
+      return;
+    }
+    const gtinError = gtinValidationMessage(rawGtin);
+    if (gtinError) {
+      setNotice(gtinError);
       return;
     }
     const preparedPriceSets = prepareProductPriceSets({
@@ -289,21 +356,109 @@ export default function useAdminProductActions({
           setProductImageUploading(false);
         }
       }
-      const matchingProduct = editingProductId
+      const match = editingProductId
         ? null
-        : findMatchingProduct(products, { name, unit, category });
+        : resolveProductMatch(products, {
+            name,
+            englishName,
+            brand,
+            gtin,
+            unit,
+            category,
+          });
+      if (match?.status === "ambiguous") {
+        await createIdentityReviewMutation.mutateAsync({
+          reason: "ambiguous_manual_product_match",
+          matchMethod: match.method,
+          candidateCount: match.candidateCount,
+          payload: {
+            name,
+            english_name: englishName || null,
+            product_brand: brand || null,
+            gtin: gtin || null,
+            unit: unit || null,
+            category,
+            candidate_product_ids: match.candidateIds,
+          },
+        });
+        setNotice(
+          `${match.candidateCount} possible products were found. The item was sent to Dashboard review instead of being merged.`,
+        );
+        return;
+      }
+
+      const matchingProduct = match?.status === "matched" ? match.product : null;
+      const rawExistingGtin = matchingProduct?.gtin?.trim() ?? "";
+      const existingGtin = isValidGtin(matchingProduct?.gtin)
+        ? normalizeGtin(matchingProduct?.gtin)
+        : "";
+      if (matchingProduct && rawExistingGtin && !existingGtin && !gtin) {
+        await createIdentityReviewMutation.mutateAsync({
+          productId: matchingProduct.id,
+          reason: "invalid_gtin",
+          matchMethod: match?.status === "matched" ? match.method : undefined,
+          candidateCount: 1,
+          payload: {
+            name,
+            product_brand: brand || null,
+            existing_gtin: rawExistingGtin,
+            validation_error: gtinValidationMessage(rawExistingGtin),
+          },
+        });
+        setNotice(
+          "The matched product has an invalid saved GTIN. It was sent to Dashboard review; correct the GTIN before adding prices.",
+        );
+        return;
+      }
+      if (matchingProduct && gtin && existingGtin && gtin !== existingGtin) {
+        await createIdentityReviewMutation.mutateAsync({
+          productId: matchingProduct.id,
+          reason: "gtin_conflict",
+          matchMethod: match?.status === "matched" ? match.method : undefined,
+          candidateCount: 1,
+          payload: {
+            name,
+            product_brand: brand || null,
+            supplied_gtin: gtin,
+            existing_gtin: existingGtin,
+          },
+        });
+        setNotice("The GTIN conflicts with the matched product. It was sent to Dashboard review.");
+        return;
+      }
+
       reusedExistingProduct = Boolean(matchingProduct);
-      const savedProduct = matchingProduct ??
-        (editingProductId
+      const savedProduct = editingProductId
+        ? await updateProductMutation.mutateAsync({
+            id: editingProductId,
+            name,
+            englishName,
+            brand,
+            gtin,
+            unit,
+            category,
+            thumbnailUrl,
+          })
+        : matchingProduct
           ? await updateProductMutation.mutateAsync({
-              id: editingProductId,
+              id: matchingProduct.id,
+              name: matchingProduct.name,
+              englishName: matchingProduct.english_name?.trim() || englishName,
+              brand: matchingProduct.brand?.trim() || brand,
+              gtin: existingGtin || gtin,
+              unit: matchingProduct.unit ?? unit,
+              category: matchingProduct.category,
+              thumbnailUrl: matchingProduct.thumbnail_url?.trim() || thumbnailUrl,
+            })
+          : await createProductMutation.mutateAsync({
               name,
               englishName,
+              brand,
+              gtin,
               unit,
               category,
               thumbnailUrl,
-            })
-          : await createProductMutation.mutateAsync({ name, englishName, unit, category, thumbnailUrl }));
+            });
 
       if (!savedProduct) {
         setNotice(editingProductId ? "Product was not updated." : "Product was not created.");
@@ -318,6 +473,7 @@ export default function useAdminProductActions({
             productId: savedProduct.id,
             storeId: item.storeId,
             periodStartDate: item.periodStartDate,
+            periodEndDate: item.periodEndDate,
           });
           const payload = {
             productId: savedProduct.id,
@@ -371,6 +527,7 @@ export default function useAdminProductActions({
     }
     await loadAll(true);
   }, [
+    createIdentityReviewMutation,
     createPriceEntryMutation,
     createProductMutation,
     editingProductId,
@@ -378,6 +535,8 @@ export default function useAdminProductActions({
     prices,
     products,
     productCategory,
+    productBrand,
+    productGtin,
     productName,
     productEnglishName,
     productUnit,
@@ -410,6 +569,8 @@ export default function useAdminProductActions({
     setNotice,
     loadAll,
     createProductMutation,
+    updateProductMutation,
+    createIdentityReviewMutation,
     createPriceEntryMutation,
   });
 

@@ -3,6 +3,7 @@ import { FALLBACK_PRODUCTS } from "./fallbacks";
 import { listProductPriceSummaries } from "./prices";
 import { matchesProductFilter } from "./shared";
 import type { MarketProduct, ProductRow, ServiceResult } from "./types";
+import { collectPagedRows } from "../../utils/paginatedQuery";
 
 const PRODUCT_SELECT_WITH_ENGLISH = "id, name, english_name, category, unit, thumbnail_url";
 const PRODUCT_SELECT_WITHOUT_ENGLISH = "id, name, category, unit, thumbnail_url";
@@ -10,6 +11,8 @@ const PRODUCT_SELECT_WITHOUT_ENGLISH = "id, name, category, unit, thumbnail_url"
 type ProductRowWithOptionalEnglish = Omit<ProductRow, "english_name"> & {
   english_name?: string | null;
 };
+
+type ProductQueryError = { message: string };
 
 function hasEnglishNameColumnError(message: string | undefined): boolean {
   const text = message?.toLowerCase() ?? "";
@@ -40,6 +43,14 @@ function normalizeProductRow(row: ProductRowWithOptionalEnglish): MarketProduct 
     best_store_name: null,
     best_store_area: null,
     best_store_price: null,
+    preferred_store_id: null,
+    preferred_store_name: null,
+    preferred_store_area: null,
+    preferred_store_price: null,
+    preferred_previous_price: null,
+    preferred_price_delta: null,
+    preferred_price_delta_percent: null,
+    preferred_price_compare_current_batch: null,
   };
 }
 
@@ -62,6 +73,7 @@ function inferUnitFromName(name: string): string | null {
 export async function listProducts(params?: {
   search?: string;
   category?: string;
+  preferredStoreIds?: string[];
 }): Promise<ServiceResult<MarketProduct[]>> {
   if (!hasSupabaseEnv || !supabase) {
     return {
@@ -72,25 +84,37 @@ export async function listProducts(params?: {
     };
   }
 
-  let productsRows: ProductRowWithOptionalEnglish[] = [];
-  const productsQuery = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT_WITH_ENGLISH)
-    .order("name", { ascending: true });
+  const client = supabase;
+  const fetchProductRows = (selectClause: string) =>
+    collectPagedRows<ProductRowWithOptionalEnglish, ProductQueryError>(
+      async (from, to) => {
+        let query = client.from("products").select(selectClause);
+        if (params?.category?.trim()) {
+          query = query.eq("category", params.category.trim());
+        }
+        const response = await query
+          .order("name", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to);
+        return {
+          data: (response.data ?? []) as unknown as ProductRowWithOptionalEnglish[],
+          error: response.error,
+        };
+      },
+    );
 
+  let productsRows: ProductRowWithOptionalEnglish[] = [];
+  const productsQuery = await fetchProductRows(PRODUCT_SELECT_WITH_ENGLISH);
   if (productsQuery.error) {
     if (hasEnglishNameColumnError(productsQuery.error.message)) {
-      const fallbackQuery = await supabase
-        .from("products")
-        .select(PRODUCT_SELECT_WITHOUT_ENGLISH)
-        .order("name", { ascending: true });
+      const fallbackQuery = await fetchProductRows(PRODUCT_SELECT_WITHOUT_ENGLISH);
       if (fallbackQuery.error) {
         return {
           data: [],
           error: fallbackQuery.error.message,
         };
       }
-      productsRows = (fallbackQuery.data ?? []) as ProductRowWithOptionalEnglish[];
+      productsRows = fallbackQuery.data;
     } else {
       return {
         data: [],
@@ -98,14 +122,20 @@ export async function listProducts(params?: {
       };
     }
   } else {
-    productsRows = (productsQuery.data ?? []) as ProductRowWithOptionalEnglish[];
+    productsRows = productsQuery.data;
   }
 
-  const priceSummaries = await listProductPriceSummaries();
+  const [priceSummaries, preferredPriceSummaries] = await Promise.all([
+    listProductPriceSummaries(),
+    params?.preferredStoreIds?.length
+      ? listProductPriceSummaries(params.preferredStoreIds)
+      : Promise.resolve({ data: new Map(), error: null }),
+  ]);
 
   const products: MarketProduct[] = productsRows
     .map((row) => {
       const summary = priceSummaries.data.get(row.id);
+      const preferredSummary = preferredPriceSummaries.data.get(row.id);
       const base = normalizeProductRow(row);
       return {
         ...base,
@@ -120,6 +150,15 @@ export async function listProducts(params?: {
         best_store_name: summary?.best_store_name ?? null,
         best_store_area: summary?.best_store_area ?? null,
         best_store_price: summary?.best_store_price ?? null,
+        preferred_store_id: preferredSummary?.best_store_id ?? null,
+        preferred_store_name: preferredSummary?.best_store_name ?? null,
+        preferred_store_area: preferredSummary?.best_store_area ?? null,
+        preferred_store_price: preferredSummary?.best_store_price ?? null,
+        preferred_previous_price: preferredSummary?.previous_price ?? null,
+        preferred_price_delta: preferredSummary?.price_delta ?? null,
+        preferred_price_delta_percent: preferredSummary?.price_delta_percent ?? null,
+        preferred_price_compare_current_batch:
+          preferredSummary?.price_compare_current_batch ?? null,
       };
     })
     .filter((product) =>
@@ -129,7 +168,7 @@ export async function listProducts(params?: {
 
   return {
     data: products,
-    error: priceSummaries.error,
+    error: priceSummaries.error ?? preferredPriceSummaries.error,
   };
 }
 

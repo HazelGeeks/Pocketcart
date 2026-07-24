@@ -5,3 +5,5 @@ export * from "./adminBackoffice/products";
 export * from "./adminBackoffice/stores";
 export * from "./adminBackoffice/prices";
 export * from "./adminBackoffice/audit";
+export * from "./adminBackoffice/productIdentityReviews";
+export * from "./adminBackoffice/schemaReadiness";

@@ -12,14 +12,17 @@
   },
   "include": [
     "src/routing/routeState.ts",
+    "src/screens/nativeAppData.ts",
     "src/constants/palette.ts",
     "src/utils/authCallback.ts",
+    "src/utils/businessDateTime.ts",
     "src/utils/adminValidation.ts",
     "src/utils/adminProductPagination.ts",
     "src/utils/adminUserDirectory.ts",
     "src/utils/categoryIcon.ts",
     "src/utils/flyerCsv.ts",
     "src/utils/flyerAiRows.ts",
+    "src/utils/favoriteStoreState.ts",
     "src/utils/productCsvImport.ts",
     "src/utils/productIdentity.ts",
     "src/utils/productDeleteConfirmation.ts",
@@ -34,6 +37,9 @@
     "src/utils/storeVisibility.ts",
     "src/utils/storeBrandLogo.ts",
     "src/utils/paginatedQuery.ts",
+    "src/utils/productPriceHistory.ts",
+    "src/utils/productDataHealth.ts",
+    "src/utils/saleSession.ts",
     "src/utils/pushRegistrationState.ts",
     "src/services/marketData/shared.ts"
   ]

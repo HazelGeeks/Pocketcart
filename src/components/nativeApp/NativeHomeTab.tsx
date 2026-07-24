@@ -10,6 +10,7 @@ import { ProductDetailPanel } from "./ProductDetailPanel";
 type Props = {
   catalog: ReturnType<typeof useNativeCatalog>;
   detailPanHandlers: GestureResponderHandlers;
+  favoriteStoreIds: string[];
   onAddProductToShoppingList: (product: MarketProduct) => void;
   onAddSelectedToWatchlist: () => void;
   onAddShoppingProductFromHome: (productId: string) => void;
@@ -22,6 +23,7 @@ type Props = {
 export function NativeHomeTab({
   catalog,
   detailPanHandlers,
+  favoriteStoreIds,
   onAddProductToShoppingList,
   onAddSelectedToWatchlist,
   onAddShoppingProductFromHome,
@@ -40,6 +42,7 @@ export function NativeHomeTab({
         actionMessage={catalog.actionMessage}
         loading={catalog.loading}
         products={catalog.filteredProducts}
+        favoriteStoreIds={favoriteStoreIds}
         shoppingProductIds={shopping.productIds}
         unreadAlertCount={unreadAlertCount}
         sortMode={catalog.sortMode}

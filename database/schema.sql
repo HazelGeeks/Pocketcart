@@ -185,20 +185,64 @@ create table if not exists public.products (
   category text not null,
   unit text,
   english_name text,
+  brand text,
+  gtin text,
   thumbnail_url text,
   created_at timestamptz not null default now()
 );
 
 alter table public.products
   add column if not exists unit text,
-  add column if not exists english_name text;
+  add column if not exists english_name text,
+  add column if not exists brand text,
+  add column if not exists gtin text;
 
-create unique index if not exists products_identity_key
+drop index if exists public.products_identity_key;
+create unique index products_identity_key
   on public.products (
+    lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),
     lower(regexp_replace(trim(name), '\s+', ' ', 'g')),
     lower(regexp_replace(trim(coalesce(unit, '')), '\s+', ' ', 'g')),
     lower(regexp_replace(trim(category), '\s+', ' ', 'g'))
   );
+
+create unique index if not exists products_gtin_key
+  on public.products (regexp_replace(gtin, '\D', '', 'g'))
+  where nullif(regexp_replace(gtin, '\D', '', 'g'), '') is not null;
+
+alter table public.products
+  drop constraint if exists products_gtin_format_check;
+
+create or replace function public.is_valid_gtin(value text)
+returns boolean
+language sql
+immutable
+strict
+set search_path = pg_catalog
+as $$
+  select
+    value ~ '^[0-9]+$'
+    and length(value) in (8, 12, 13, 14)
+    and (
+      10 - (
+        coalesce((
+          select sum(
+            substring(value from digits.pos for 1)::integer *
+            case when (length(value) - digits.pos) % 2 = 1 then 3 else 1 end
+          )
+          from generate_series(1, length(value) - 1) as digits(pos)
+        ), 0) % 10
+      )
+    ) % 10 = right(value, 1)::integer;
+$$;
+
+alter table public.products
+  add constraint products_gtin_format_check
+  check (
+    gtin is null
+    or public.is_valid_gtin(gtin)
+  )
+  not valid;
 
 alter table public.products enable row level security;
 
@@ -355,13 +399,73 @@ for delete
 to authenticated
 using (public.is_admin());
 
+-- user_favorite_stores
+create table if not exists public.user_favorite_stores (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  store_id uuid not null references public.stores(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, store_id)
+);
+
+create index if not exists user_favorite_stores_store_idx
+  on public.user_favorite_stores(store_id);
+
+alter table public.user_favorite_stores enable row level security;
+
+drop policy if exists user_favorite_stores_select_own on public.user_favorite_stores;
+create policy user_favorite_stores_select_own
+on public.user_favorite_stores
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists user_favorite_stores_insert_own on public.user_favorite_stores;
+create policy user_favorite_stores_insert_own
+on public.user_favorite_stores
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+drop policy if exists user_favorite_stores_delete_own on public.user_favorite_stores;
+create policy user_favorite_stores_delete_own
+on public.user_favorite_stores
+for delete
+to authenticated
+using (auth.uid() = user_id);
+
+revoke all on table public.user_favorite_stores from anon;
+grant select, insert, delete on table public.user_favorite_stores to authenticated;
+
 -- watchlist product/store links
 alter table public.watchlist_items
   add column if not exists product_id uuid references public.products(id) on delete set null,
   add column if not exists store_id uuid references public.stores(id) on delete set null;
 
-create index if not exists watchlist_items_user_product_idx
-  on public.watchlist_items(user_id, product_id);
+with ranked_watchlist_items as (
+  select
+    watchlist_items.id,
+    row_number() over (
+      partition by watchlist_items.user_id, watchlist_items.product_id
+      order by
+        (watchlist_items.store_id is not null) desc,
+        (nullif(trim(watchlist_items.target_price), '') is not null) desc,
+        (nullif(trim(watchlist_items.latest_price), '') is not null) desc,
+        watchlist_items.created_at asc,
+        watchlist_items.id asc
+    ) as duplicate_rank
+  from public.watchlist_items
+  where watchlist_items.product_id is not null
+)
+delete from public.watchlist_items
+using ranked_watchlist_items
+where watchlist_items.id = ranked_watchlist_items.id
+  and ranked_watchlist_items.duplicate_rank > 1;
+
+drop index if exists public.watchlist_items_user_product_idx;
+
+create unique index if not exists watchlist_items_user_product_unique
+  on public.watchlist_items(user_id, product_id)
+  where product_id is not null;
 
 -- user_push_tokens
 create table if not exists public.user_push_tokens (
@@ -435,6 +539,57 @@ alter table public.sale_alerts
 
 create unique index if not exists sale_alerts_user_alert_key_unique
   on public.sale_alerts(user_id, alert_key);
+
+with normalized_alerts as (
+  select
+    sale_alerts.id,
+    sale_alerts.user_id,
+    sale_alerts.product_id::text
+      || substring(
+        sale_alerts.alert_key
+        from position('|' in sale_alerts.alert_key)
+      ) as normalized_alert_key,
+    sale_alerts.push_sent_at,
+    sale_alerts.created_at
+  from public.sale_alerts
+  where sale_alerts.product_id is not null
+    and position('|' in sale_alerts.alert_key) > 0
+),
+ranked_alerts as (
+  select
+    normalized_alerts.id,
+    row_number() over (
+      partition by
+        normalized_alerts.user_id,
+        normalized_alerts.normalized_alert_key
+      order by
+        (normalized_alerts.push_sent_at is not null) desc,
+        normalized_alerts.created_at desc,
+        normalized_alerts.id asc
+    ) as duplicate_rank
+  from normalized_alerts
+)
+delete from public.sale_alerts
+using ranked_alerts
+where sale_alerts.id = ranked_alerts.id
+  and ranked_alerts.duplicate_rank > 1;
+
+update public.sale_alerts
+set alert_key =
+  sale_alerts.product_id::text
+  || substring(
+    sale_alerts.alert_key
+    from position('|' in sale_alerts.alert_key)
+  )
+where sale_alerts.product_id is not null
+  and position('|' in sale_alerts.alert_key) > 0
+  and sale_alerts.alert_key is distinct from (
+    sale_alerts.product_id::text
+    || substring(
+      sale_alerts.alert_key
+      from position('|' in sale_alerts.alert_key)
+    )
+  );
 
 create index if not exists sale_alerts_user_created_idx
   on public.sale_alerts(user_id, created_at desc);
@@ -558,8 +713,174 @@ create index if not exists product_prices_product_observed_idx
 create index if not exists product_prices_store_observed_idx
   on public.product_prices(store_id, observed_at desc);
 
-create unique index if not exists product_prices_product_store_valid_from_key
-  on public.product_prices(product_id, store_id, valid_from);
+do $$
+begin
+  if exists (
+    select 1
+    from public.product_prices legacy
+    join public.product_prices localized
+      on localized.product_id = legacy.product_id
+      and localized.store_id = legacy.store_id
+      and localized.id <> legacy.id
+      and localized.valid_from = (
+        ((legacy.valid_from at time zone 'UTC')::date)::timestamp
+        at time zone 'America/Vancouver'
+      )
+    where
+      (legacy.valid_from at time zone 'UTC')::time = time '00:00:00'
+      and (legacy.valid_to at time zone 'UTC')::time = time '23:59:59.999'
+  ) then
+    raise exception
+      'Legacy UTC sale periods overlap already-localized periods. Resolve duplicate rows before applying this migration.';
+  end if;
+end;
+$$;
+
+update public.product_prices
+set
+  observed_at = case
+    when observed_at = valid_from then
+      (((valid_from at time zone 'UTC')::date)::timestamp at time zone 'America/Vancouver')
+    else observed_at
+  end,
+  valid_from =
+    (((valid_from at time zone 'UTC')::date)::timestamp at time zone 'America/Vancouver'),
+  valid_to =
+    (
+      ((((valid_to at time zone 'UTC')::date + 1)::timestamp) at time zone 'America/Vancouver')
+      - interval '1 millisecond'
+    )
+where
+  (valid_from at time zone 'UTC')::time = time '00:00:00'
+  and (valid_to at time zone 'UTC')::time = time '23:59:59.999';
+
+drop index if exists public.product_prices_product_store_valid_from_key;
+
+create unique index if not exists product_prices_product_store_sale_period_key
+  on public.product_prices (
+    product_id,
+    store_id,
+    valid_from,
+    coalesce(valid_to, 'infinity'::timestamptz)
+  );
+
+create or replace function public.list_product_price_summaries(
+  p_store_ids uuid[] default null
+)
+returns table (
+  product_id uuid,
+  current_price numeric,
+  previous_price numeric,
+  current_session_start timestamptz,
+  current_session_end timestamptz,
+  previous_session_start timestamptz,
+  previous_session_end timestamptz,
+  best_store_id uuid,
+  best_store_brand text,
+  best_store_name text,
+  best_store_area text
+)
+language sql
+stable
+set search_path = public
+as $$
+  with scoped_prices as (
+    select
+      pp.id,
+      pp.product_id,
+      pp.store_id,
+      pp.price,
+      coalesce(pp.valid_from, pp.observed_at) as session_start,
+      pp.valid_to as session_end
+    from public.product_prices pp
+    where p_store_ids is null or pp.store_id = any(p_store_ids)
+  ),
+  session_catalog as (
+    select product_id, session_start, session_end
+    from scoped_prices
+    group by product_id, session_start, session_end
+  ),
+  active_sessions as (
+    select
+      sessions.*,
+      row_number() over (
+        partition by sessions.product_id
+        order by sessions.session_start desc, sessions.session_end desc nulls first
+      ) as session_rank
+    from session_catalog sessions
+    where
+      sessions.session_start <= now()
+      and (sessions.session_end is null or sessions.session_end >= now())
+  ),
+  current_sessions as (
+    select product_id, session_start, session_end
+    from active_sessions
+    where session_rank = 1
+  ),
+  current_prices as (
+    select
+      prices.*,
+      row_number() over (
+        partition by prices.product_id
+        order by prices.price asc, prices.store_id asc, prices.id asc
+      ) as price_rank
+    from scoped_prices prices
+    join current_sessions current_session_row
+      on current_session_row.product_id = prices.product_id
+      and current_session_row.session_start = prices.session_start
+      and current_session_row.session_end is not distinct from prices.session_end
+  ),
+  previous_sessions_ranked as (
+    select
+      sessions.*,
+      row_number() over (
+        partition by sessions.product_id
+        order by sessions.session_start desc, sessions.session_end desc nulls first
+      ) as session_rank
+    from session_catalog sessions
+    join current_sessions current_session_row using (product_id)
+    where sessions.session_start < current_session_row.session_start
+  ),
+  previous_sessions as (
+    select product_id, session_start, session_end
+    from previous_sessions_ranked
+    where session_rank = 1
+  ),
+  previous_prices as (
+    select
+      prices.*,
+      row_number() over (
+        partition by prices.product_id
+        order by prices.price asc, prices.store_id asc, prices.id asc
+      ) as price_rank
+    from scoped_prices prices
+    join previous_sessions previous_session_row
+      on previous_session_row.product_id = prices.product_id
+      and previous_session_row.session_start = prices.session_start
+      and previous_session_row.session_end is not distinct from prices.session_end
+  )
+  select
+    current_price_row.product_id,
+    current_price_row.price as current_price,
+    previous_price_row.price as previous_price,
+    current_price_row.session_start as current_session_start,
+    current_price_row.session_end as current_session_end,
+    previous_price_row.session_start as previous_session_start,
+    previous_price_row.session_end as previous_session_end,
+    current_price_row.store_id as best_store_id,
+    stores.brand as best_store_brand,
+    stores.name as best_store_name,
+    stores.area as best_store_area
+  from current_prices current_price_row
+  left join previous_prices previous_price_row
+    on previous_price_row.product_id = current_price_row.product_id
+    and previous_price_row.price_rank = 1
+  left join public.stores stores
+    on stores.id = current_price_row.store_id
+  where current_price_row.price_rank = 1;
+$$;
+
+grant execute on function public.list_product_price_summaries(uuid[]) to anon, authenticated;
 
 alter table public.product_prices enable row level security;
 
@@ -594,6 +915,68 @@ on public.product_prices
 for delete
 to authenticated
 using (public.is_admin());
+
+-- product_identity_reviews
+create table if not exists public.product_identity_reviews (
+  id uuid primary key default gen_random_uuid(),
+  review_key text not null,
+  source text not null default 'csv_import',
+  row_number integer,
+  product_id uuid references public.products(id) on delete set null,
+  reason text not null,
+  match_method text,
+  candidate_count integer not null default 0 check (candidate_count >= 0),
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'pending' check (status in ('pending', 'resolved')),
+  created_by uuid references auth.users(id) on delete set null,
+  resolved_by uuid references auth.users(id) on delete set null,
+  resolved_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.product_identity_reviews
+  add column if not exists review_key text;
+
+update public.product_identity_reviews
+set review_key = id::text
+where review_key is null;
+
+alter table public.product_identity_reviews
+  alter column review_key set not null;
+
+create index if not exists product_identity_reviews_pending_created_idx
+  on public.product_identity_reviews(status, created_at desc);
+
+create unique index if not exists product_identity_reviews_pending_key
+  on public.product_identity_reviews(review_key)
+  where status = 'pending';
+
+alter table public.product_identity_reviews enable row level security;
+
+drop policy if exists product_identity_reviews_select_admin on public.product_identity_reviews;
+create policy product_identity_reviews_select_admin
+on public.product_identity_reviews
+for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists product_identity_reviews_insert_admin on public.product_identity_reviews;
+create policy product_identity_reviews_insert_admin
+on public.product_identity_reviews
+for insert
+to authenticated
+with check (public.is_admin() and created_by = auth.uid());
+
+drop policy if exists product_identity_reviews_update_admin on public.product_identity_reviews;
+create policy product_identity_reviews_update_admin
+on public.product_identity_reviews
+for update
+to authenticated
+using (public.is_admin())
+with check (
+  public.is_admin()
+  and (resolved_by is null or resolved_by = auth.uid())
+);
 
 -- storage: product-images bucket
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -767,5 +1150,363 @@ $$;
 
 revoke all on function public.admin_list_users() from public, anon;
 grant execute on function public.admin_list_users() to authenticated;
+
+notify pgrst, 'reload schema';
+
+-- Product identity review and merge workflow
+alter table public.product_identity_reviews
+  add column if not exists candidate_product_ids uuid[] not null default '{}'::uuid[],
+  add column if not exists resolved_product_id uuid references public.products(id) on delete set null,
+  add column if not exists resolution_action text;
+
+create or replace function public.seed_existing_product_identity_reviews()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  inserted_count integer := 0;
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    raise exception 'Admin access required';
+  end if;
+
+  with normalized_products as (
+    select
+      products.id,
+      products.english_name,
+      products.unit,
+      lower(regexp_replace(trim(products.english_name), '[^a-zA-Z0-9]+', '', 'g')) as name_key,
+      lower(regexp_replace(trim(coalesce(products.unit, '')), '\s+', '', 'g')) as unit_key
+    from public.products
+    where nullif(trim(products.english_name), '') is not null
+  ),
+  duplicate_groups as (
+    select
+      name_key,
+      unit_key,
+      min(english_name) as english_name,
+      min(unit) as unit,
+      array_agg(id order by id) as candidate_ids,
+      count(*)::integer as candidate_count
+    from normalized_products
+    where name_key <> ''
+    group by name_key, unit_key
+    having count(*) > 1
+  )
+  insert into public.product_identity_reviews (
+    review_key,
+    source,
+    reason,
+    match_method,
+    candidate_count,
+    candidate_product_ids,
+    payload,
+    status
+  )
+  select
+    'existing-duplicate:' || md5(name_key || '|' || unit_key),
+    'identity_backfill',
+    'existing_duplicate_candidates',
+    'canonical_identity',
+    candidate_count,
+    candidate_ids,
+    jsonb_build_object(
+      'name', english_name,
+      'english_name', english_name,
+      'unit', unit,
+      'candidate_product_ids', to_jsonb(candidate_ids),
+      'backfill_reason', 'Same normalized English name and unit'
+    ),
+    'pending'
+  from duplicate_groups
+  where not exists (
+    select 1
+    from public.product_identity_reviews as existing_review
+    where existing_review.review_key =
+      'existing-duplicate:' || md5(duplicate_groups.name_key || '|' || duplicate_groups.unit_key)
+  )
+  on conflict do nothing;
+
+  get diagnostics inserted_count = row_count;
+  return inserted_count;
+end;
+$$;
+
+revoke all on function public.seed_existing_product_identity_reviews() from public, anon;
+grant execute on function public.seed_existing_product_identity_reviews() to authenticated;
+
+create or replace function public.merge_products(
+  p_source_product_ids uuid[],
+  p_target_product_id uuid,
+  p_review_id uuid default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  source_id uuid;
+  source_ids uuid[];
+  target_name text;
+  target_unit text;
+  moved_prices integer := 0;
+  merged_price_conflicts integer := 0;
+  moved_shopping_items integer := 0;
+  moved_watchlist_items integer := 0;
+  moved_sale_alerts integer := 0;
+  affected integer := 0;
+begin
+  if not public.is_admin() then
+    raise exception 'Admin access required';
+  end if;
+  if p_target_product_id is null then
+    raise exception 'Target product is required';
+  end if;
+
+  select products.name, products.unit
+  into target_name, target_unit
+  from public.products
+  where products.id = p_target_product_id
+  for update;
+
+  if not found then
+    raise exception 'Target product was not found';
+  end if;
+
+  select coalesce(array_agg(distinct source_values.source_id), '{}'::uuid[])
+  into source_ids
+  from unnest(coalesce(p_source_product_ids, '{}'::uuid[])) as source_values(source_id)
+  where source_values.source_id is not null
+    and source_values.source_id <> p_target_product_id;
+
+  if cardinality(source_ids) = 0 then
+    raise exception 'At least one different source product is required';
+  end if;
+
+  if exists (
+    select 1
+    from unnest(source_ids) as requested(source_id)
+    left join public.products on products.id = requested.source_id
+    where products.id is null
+  ) then
+    raise exception 'One or more source products were not found';
+  end if;
+
+  perform 1
+  from public.products
+  where id = any(source_ids)
+  order by id
+  for update;
+
+  foreach source_id in array source_ids loop
+    update public.product_prices as target_price
+    set
+      price = least(target_price.price, source_price.price),
+      observed_at = greatest(target_price.observed_at, source_price.observed_at)
+    from public.product_prices as source_price
+    where target_price.product_id = p_target_product_id
+      and source_price.product_id = source_id
+      and target_price.store_id = source_price.store_id
+      and target_price.valid_from is not distinct from source_price.valid_from
+      and target_price.valid_to is not distinct from source_price.valid_to;
+    get diagnostics affected = row_count;
+    merged_price_conflicts := merged_price_conflicts + affected;
+
+    delete from public.product_prices as source_price
+    using public.product_prices as target_price
+    where source_price.product_id = source_id
+      and target_price.product_id = p_target_product_id
+      and target_price.store_id = source_price.store_id
+      and target_price.valid_from is not distinct from source_price.valid_from
+      and target_price.valid_to is not distinct from source_price.valid_to;
+
+    update public.product_prices
+    set product_id = p_target_product_id
+    where product_id = source_id;
+    get diagnostics affected = row_count;
+    moved_prices := moved_prices + affected;
+
+    insert into public.shopping_list_items as target_item (
+      user_id,
+      product_id,
+      name,
+      unit,
+      quantity,
+      updated_at
+    )
+    select
+      shopping_list_items.user_id,
+      p_target_product_id,
+      target_name,
+      target_unit,
+      shopping_list_items.quantity,
+      shopping_list_items.updated_at
+    from public.shopping_list_items
+    where shopping_list_items.product_id = source_id
+    on conflict (user_id, product_id) do update
+    set
+      quantity = least(99, target_item.quantity + excluded.quantity),
+      name = excluded.name,
+      unit = excluded.unit,
+      updated_at = greatest(target_item.updated_at, excluded.updated_at);
+    get diagnostics affected = row_count;
+    moved_shopping_items := moved_shopping_items + affected;
+
+    delete from public.shopping_list_items
+    where product_id = source_id;
+
+    insert into public.watchlist_items as target_item (
+      user_id,
+      product_id,
+      store_id,
+      name,
+      store,
+      target_price,
+      latest_price,
+      created_at
+    )
+    select
+      watchlist_items.user_id,
+      p_target_product_id,
+      watchlist_items.store_id,
+      target_name,
+      watchlist_items.store,
+      watchlist_items.target_price,
+      watchlist_items.latest_price,
+      watchlist_items.created_at
+    from public.watchlist_items
+    where watchlist_items.product_id = source_id
+    on conflict (user_id, product_id)
+      where product_id is not null
+    do update
+    set
+      name = excluded.name,
+      store_id = coalesce(target_item.store_id, excluded.store_id),
+      store = case
+        when target_item.store_id is not null then target_item.store
+        when excluded.store_id is not null then excluded.store
+        else target_item.store
+      end,
+      target_price = coalesce(
+        nullif(trim(target_item.target_price), ''),
+        excluded.target_price
+      ),
+      latest_price = coalesce(
+        nullif(trim(target_item.latest_price), ''),
+        excluded.latest_price
+      ),
+      created_at = least(target_item.created_at, excluded.created_at);
+    get diagnostics affected = row_count;
+    moved_watchlist_items := moved_watchlist_items + affected;
+
+    delete from public.watchlist_items
+    where product_id = source_id;
+
+    delete from public.sale_alerts as source_alert
+    using public.sale_alerts as target_alert
+    where source_alert.product_id = source_id
+      and position('|' in source_alert.alert_key) > 0
+      and target_alert.user_id = source_alert.user_id
+      and target_alert.id <> source_alert.id
+      and target_alert.alert_key = (
+        p_target_product_id::text
+        || substring(
+          source_alert.alert_key
+          from position('|' in source_alert.alert_key)
+        )
+      );
+    get diagnostics affected = row_count;
+    moved_sale_alerts := moved_sale_alerts + affected;
+
+    update public.sale_alerts
+    set
+      product_id = p_target_product_id,
+      alert_key = case
+        when position('|' in alert_key) > 0 then
+          p_target_product_id::text
+          || substring(alert_key from position('|' in alert_key))
+        else alert_key
+      end
+    where product_id = source_id;
+    get diagnostics affected = row_count;
+    moved_sale_alerts := moved_sale_alerts + affected;
+
+    update public.product_identity_reviews
+    set
+      product_id = case when product_id = source_id then p_target_product_id else product_id end,
+      resolved_product_id = case
+        when resolved_product_id = source_id then p_target_product_id
+        else resolved_product_id
+      end,
+      candidate_product_ids = array_remove(candidate_product_ids, source_id),
+      candidate_count = greatest(0, candidate_count - case when source_id = any(candidate_product_ids) then 1 else 0 end)
+    where product_id = source_id
+      or resolved_product_id = source_id
+      or source_id = any(candidate_product_ids);
+
+    delete from public.products
+    where id = source_id;
+  end loop;
+
+  if p_review_id is not null then
+    update public.product_identity_reviews
+    set
+      status = 'resolved',
+      resolved_by = auth.uid(),
+      resolved_at = now(),
+      resolved_product_id = p_target_product_id,
+      resolution_action = 'merged'
+    where id = p_review_id
+      and status = 'pending';
+  end if;
+
+  insert into public.admin_audit_logs (
+    actor_user_id,
+    actor_email,
+    action,
+    entity_type,
+    entity_id,
+    summary,
+    metadata
+  )
+  select
+    auth.uid(),
+    auth.users.email,
+    'merge_products',
+    'product',
+    p_target_product_id::text,
+    format('Merged %s product(s) into %s', cardinality(source_ids), target_name),
+    jsonb_build_object(
+      'source_product_ids', to_jsonb(source_ids),
+      'target_product_id', p_target_product_id,
+      'review_id', p_review_id,
+      'moved_prices', moved_prices,
+      'merged_price_conflicts', merged_price_conflicts,
+      'moved_shopping_items', moved_shopping_items,
+      'moved_watchlist_items', moved_watchlist_items,
+      'moved_sale_alerts', moved_sale_alerts
+    )
+  from auth.users
+  where auth.users.id = auth.uid();
+
+  return jsonb_build_object(
+    'source_product_ids', to_jsonb(source_ids),
+    'target_product_id', p_target_product_id,
+    'moved_prices', moved_prices,
+    'merged_price_conflicts', merged_price_conflicts,
+    'moved_shopping_items', moved_shopping_items,
+    'moved_watchlist_items', moved_watchlist_items,
+    'moved_sale_alerts', moved_sale_alerts
+  );
+end;
+$$;
+
+revoke all on function public.merge_products(uuid[], uuid, uuid) from public, anon;
+grant execute on function public.merge_products(uuid[], uuid, uuid) to authenticated;
+
+select public.seed_existing_product_identity_reviews();
 
 notify pgrst, 'reload schema';

@@ -7,11 +7,13 @@ import useShoppingList from "./useShoppingList";
 
 type UseNativeShoppingPlanOptions = {
   activeTab: NativeTabId;
+  favoriteStoreIds: string[];
   profileId: string | null;
 };
 
 export default function useNativeShoppingPlan({
   activeTab,
+  favoriteStoreIds,
   profileId,
 }: UseNativeShoppingPlanOptions) {
   const [prices, setPrices] = React.useState<
@@ -48,8 +50,9 @@ export default function useNativeShoppingPlan({
         storeArea: price.store_area,
         price: price.price,
       })),
+      favoriteStoreIds,
     ),
-    [items, prices],
+    [favoriteStoreIds, items, prices],
   );
 
   const loadPrices = React.useCallback(async () => {

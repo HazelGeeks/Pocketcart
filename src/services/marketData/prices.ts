@@ -3,6 +3,12 @@ import { FALLBACK_PRICE_HISTORY, FALLBACK_PRODUCTS } from "./fallbacks";
 import { parseNumber } from "./shared";
 import type { MarketPricePoint, MarketStorePrice, PriceRow, ServiceResult } from "./types";
 import { collectPagedRows } from "../../utils/paginatedQuery";
+import { selectLowestPricePerSaleSession } from "../../utils/productPriceHistory";
+import { BUSINESS_TIME_ZONE } from "../../utils/businessDateTime";
+import {
+  saleSessionKey,
+  saleSessionStartFromKey,
+} from "../../utils/saleSession";
 
 type PriceDeltaInfo = {
   previousPrice: number | null;
@@ -16,6 +22,20 @@ type PriceRowWithMeta = PriceRow & {
 };
 
 type QueryError = { message: string };
+
+type PriceSummaryRpcRow = {
+  product_id: string;
+  current_price: number | string;
+  previous_price: number | string | null;
+  current_session_start: string;
+  current_session_end: string | null;
+  previous_session_start: string | null;
+  previous_session_end: string | null;
+  best_store_id: string | null;
+  best_store_brand: string | null;
+  best_store_name: string | null;
+  best_store_area: string | null;
+};
 
 function isMissingPriceQueryColumnError(error: string | null | undefined): boolean {
   const text = (error ?? "").toLowerCase();
@@ -31,17 +51,29 @@ function isMissingPriceQueryColumnError(error: string | null | undefined): boole
   return mentionsKnownOptionalColumn && hasMissingPattern;
 }
 
+function isMissingPriceSummaryRpcError(error: string | null | undefined): boolean {
+  const text = (error ?? "").toLowerCase();
+  return (
+    text.includes("list_product_price_summaries") &&
+    (
+      text.includes("could not find") ||
+      text.includes("does not exist") ||
+      text.includes("schema cache") ||
+      text.includes("pgrst202")
+    )
+  );
+}
+
 function toPriceSession(row: PriceRow): string {
-  const source = row.valid_from?.trim() || row.observed_at;
-  const parsed = new Date(source);
-  if (Number.isNaN(parsed.getTime())) {
-    return row.observed_at;
-  }
-  return parsed.toISOString();
+  return saleSessionKey({
+    validFrom: row.valid_from,
+    validTo: row.valid_to,
+    observedAt: row.observed_at,
+  });
 }
 
 function buildSessionLabel(session: string): string {
-  const date = new Date(session);
+  const date = new Date(saleSessionStartFromKey(session));
   if (Number.isNaN(date.getTime())) {
     return "unknown";
   }
@@ -50,11 +82,12 @@ function buildSessionLabel(session: string): string {
     month: "short",
     day: "2-digit",
     year: "numeric",
+    timeZone: BUSINESS_TIME_ZONE,
   });
 }
 
 function sessionTime(session: string): number {
-  const parsed = new Date(session).getTime();
+  const parsed = new Date(saleSessionStartFromKey(session)).getTime();
   return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
 }
 
@@ -65,14 +98,8 @@ function rowEndTime(row: PriceRowWithMeta): number {
 }
 
 function getCurrentSaleSession(rows: PriceRowWithMeta[], nowMs = Date.now()): string | null {
-  const orderedSessions: string[] = [];
-  const seen = new Set<string>();
-
-  for (const row of rows) {
-    if (seen.has(row.priceSession)) continue;
-    seen.add(row.priceSession);
-    orderedSessions.push(row.priceSession);
-  }
+  const orderedSessions = [...new Set(rows.map((row) => row.priceSession))]
+    .sort((a, b) => sessionTime(b) - sessionTime(a) || b.localeCompare(a));
 
   return orderedSessions.find((session) =>
     rows.some((row) => row.priceSession === session && sessionTime(row.priceSession) <= nowMs && rowEndTime(row) >= nowMs),
@@ -82,14 +109,8 @@ function getCurrentSaleSession(rows: PriceRowWithMeta[], nowMs = Date.now()): st
 function getPreviousVisibleSession(rows: PriceRowWithMeta[], currentSession: string | null, nowMs = Date.now()): string | null {
   if (!currentSession) return null;
   const currentTime = sessionTime(currentSession);
-  const orderedSessions: string[] = [];
-  const seen = new Set<string>();
-
-  for (const row of rows) {
-    if (seen.has(row.priceSession)) continue;
-    seen.add(row.priceSession);
-    orderedSessions.push(row.priceSession);
-  }
+  const orderedSessions = [...new Set(rows.map((row) => row.priceSession))]
+    .sort((a, b) => sessionTime(b) - sessionTime(a) || b.localeCompare(a));
 
   return orderedSessions.find((session) => {
     const time = sessionTime(session);
@@ -168,6 +189,10 @@ export async function listProductPriceHistory(
         product_id: productId,
         price: value,
         observed_at: day.toISOString(),
+        sale_end_at: null,
+        store_id: null,
+        store_name: "Store not linked",
+        store_area: null,
       };
     });
 
@@ -176,43 +201,73 @@ export async function listProductPriceHistory(
   const client = supabase;
 
   async function fetchHistoryRows(selectClause: string, orderByValidFrom: boolean) {
-    let query = client
-      .from("product_prices")
-      .select(selectClause)
-      .eq("product_id", productId);
-    if (orderByValidFrom) {
-      query = query.order("valid_from", { ascending: true });
-    }
-    return query.order("observed_at", { ascending: true }).limit(60);
+    return collectPagedRows<PriceRow, QueryError>(async (from, to) => {
+      let query = client
+        .from("product_prices")
+        .select(selectClause)
+        .eq("product_id", productId);
+      if (orderByValidFrom) {
+        query = query.order("valid_from", { ascending: true });
+      }
+      const response = await query
+        .order("observed_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to);
+      return {
+        data: ((response.data ?? []) as unknown) as PriceRow[],
+        error: response.error,
+      };
+    });
   }
 
-  let response = await fetchHistoryRows("id, product_id, price, observed_at, valid_from, valid_to", true);
+  let response = await fetchHistoryRows(
+    "id, product_id, store_id, price, observed_at, valid_from, valid_to, stores(brand, name, area)",
+    true,
+  );
   if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
-    response = await fetchHistoryRows("id, product_id, price, observed_at, valid_from", true);
+    response = await fetchHistoryRows(
+      "id, product_id, store_id, price, observed_at, valid_from, stores(name, area)",
+      true,
+    );
   }
   if (response.error && isMissingPriceQueryColumnError(response.error.message)) {
-    response = await fetchHistoryRows("id, product_id, price, observed_at", false);
+    response = await fetchHistoryRows(
+      "id, product_id, store_id, price, observed_at, stores(name, area)",
+      false,
+    );
   }
 
   if (response.error) {
     return { data: [], error: response.error.message };
   }
 
-  const nowMs = Date.now();
-  const points = (((response.data ?? []) as unknown) as PriceRow[])
-    .map((row) => {
-      const parsedPrice = parseNumber(row.price);
-      if (parsedPrice === null) return null;
-      const meta = rowToMeta(row);
-      if (!meta || sessionTime(meta.priceSession) > nowMs) return null;
-      return {
-        id: row.id,
-        product_id: row.product_id,
-        price: parsedPrice,
-        observed_at: meta.priceSession,
-      };
-    })
-    .filter((row): row is MarketPricePoint => row !== null);
+  const candidates = response.data.flatMap((row) => {
+    const parsedPrice = parseNumber(row.price);
+    if (parsedPrice === null) return [];
+
+    return [{
+      id: row.id,
+      productId: row.product_id,
+      price: parsedPrice,
+      observedAt: row.observed_at,
+      validFrom: row.valid_from ?? null,
+      validTo: row.valid_to ?? null,
+      storeId: row.store_id ?? null,
+      storeName: storeDisplayName(row.stores),
+      storeArea: row.stores?.area?.trim() || null,
+    }];
+  });
+
+  const points: MarketPricePoint[] = selectLowestPricePerSaleSession(candidates).map((row) => ({
+    id: row.id,
+    product_id: row.productId,
+    price: row.price,
+    observed_at: row.sessionStartedAt,
+    sale_end_at: row.validTo,
+    store_id: row.storeId,
+    store_name: row.storeName,
+    store_area: row.storeArea,
+  }));
 
   return {
     data: points,
@@ -235,8 +290,13 @@ export type ProductPriceSummary = {
   best_store_price: number | null;
 };
 
-export async function listProductPriceSummaries(): Promise<ServiceResult<Map<string, ProductPriceSummary>>> {
+export async function listProductPriceSummaries(
+  storeIds?: string[],
+): Promise<ServiceResult<Map<string, ProductPriceSummary>>> {
   if (!hasSupabaseEnv || !supabase) {
+    if (storeIds && storeIds.length > 0) {
+      return { data: new Map(), error: null };
+    }
     return {
       data: new Map(
         FALLBACK_PRODUCTS.map((product) => [
@@ -261,10 +321,69 @@ export async function listProductPriceSummaries(): Promise<ServiceResult<Map<str
     };
   }
   const client = supabase;
+  const normalizedStoreIds = [
+    ...new Set((storeIds ?? []).map((storeId) => storeId.trim()).filter(Boolean)),
+  ];
+
+  const rpcResponse = await collectPagedRows<PriceSummaryRpcRow, QueryError>(
+    async (from, to) => {
+      const response = await client
+        .rpc("list_product_price_summaries", {
+          p_store_ids: normalizedStoreIds.length > 0 ? normalizedStoreIds : null,
+        })
+        .range(from, to);
+      return {
+        data: ((response.data ?? []) as unknown) as PriceSummaryRpcRow[],
+        error: response.error,
+      };
+    },
+  );
+  if (!rpcResponse.error) {
+    const summaries = new Map<string, ProductPriceSummary>();
+    for (const row of (rpcResponse.data ?? []) as PriceSummaryRpcRow[]) {
+      const currentPrice = parseNumber(row.current_price);
+      const previousPrice = parseNumber(row.previous_price);
+      if (currentPrice === null) continue;
+      const delta = toPriceDelta(currentPrice, previousPrice);
+      const currentLabel = buildSessionLabel(row.current_session_start);
+      const previousLabel = row.previous_session_start
+        ? buildSessionLabel(row.previous_session_start)
+        : null;
+      const comparisonLabel = formatComparisonLabel(currentLabel, previousLabel);
+      const bestStoreName = storeDisplayName({
+        brand: row.best_store_brand,
+        name: row.best_store_name,
+        area: row.best_store_area,
+      });
+      summaries.set(row.product_id, {
+        product_id: row.product_id,
+        current_price: currentPrice,
+        previous_price: previousPrice,
+        price_delta: delta.priceDelta,
+        price_delta_percent: delta.percentDelta,
+        price_compare_label: comparisonLabel.includes("vs")
+          ? `${comparisonLabel} (Current lowest: ${bestStoreName})`
+          : comparisonLabel,
+        price_compare_current_batch: currentLabel,
+        price_compare_previous_batch: previousLabel,
+        best_store_id: row.best_store_id,
+        best_store_name: bestStoreName,
+        best_store_area: row.best_store_area,
+        best_store_price: currentPrice,
+      });
+    }
+    return { data: summaries, error: null };
+  }
+  if (!isMissingPriceSummaryRpcError(rpcResponse.error.message)) {
+    return { data: new Map(), error: rpcResponse.error.message };
+  }
 
   async function fetchSummaryRows(selectClause: string, orderByValidFrom: boolean) {
     return collectPagedRows<PriceRow, QueryError>(async (from, to) => {
       let query = client.from("product_prices").select(selectClause);
+      if (normalizedStoreIds.length > 0) {
+        query = query.in("store_id", normalizedStoreIds);
+      }
       if (orderByValidFrom) {
         query = query.order("valid_from", { ascending: false });
       }

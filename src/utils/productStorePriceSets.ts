@@ -111,7 +111,7 @@ export function prepareProductPriceSets(params: {
 
   const seenStoreIds = new Set<string>();
   for (const item of expandedSets) {
-    const key = `${item.storeId.toLowerCase()}|${item.periodStartIso}`;
+    const key = `${item.storeId.toLowerCase()}|${item.periodStartIso}|${item.periodEndIso}`;
     if (seenStoreIds.has(key)) {
       return {
         ok: false,

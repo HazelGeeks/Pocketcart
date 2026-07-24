@@ -16,6 +16,14 @@ export type MarketProduct = {
   best_store_name: string | null;
   best_store_area: string | null;
   best_store_price: number | null;
+  preferred_store_id: string | null;
+  preferred_store_name: string | null;
+  preferred_store_area: string | null;
+  preferred_store_price: number | null;
+  preferred_previous_price: number | null;
+  preferred_price_delta: number | null;
+  preferred_price_delta_percent: number | null;
+  preferred_price_compare_current_batch: string | null;
 };
 
 export type MarketPricePoint = {
@@ -23,6 +31,10 @@ export type MarketPricePoint = {
   product_id: string;
   price: number;
   observed_at: string;
+  sale_end_at: string | null;
+  store_id: string | null;
+  store_name: string;
+  store_area: string | null;
 };
 
 export type MarketStorePrice = {

@@ -4,6 +4,8 @@
     "rootDir": "."
   },
   "include": [
-    "supabase/functions/_shared/pushTickets.ts"
+    "supabase/functions/_shared/pushTickets.ts",
+    "supabase/functions/_shared/saleAlertDeduplication.ts",
+    "supabase/functions/_shared/saleAlertSelection.ts"
   ]
 }

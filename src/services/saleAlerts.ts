@@ -1,4 +1,9 @@
-import { listProducts } from "./marketData";
+import {
+  listLatestStorePricesForProduct,
+  listProducts,
+  type MarketStorePrice,
+} from "./marketData";
+import { listSyncedFavoriteStoreIds } from "./favoriteStores";
 import { hasSupabaseEnv, supabase } from "./supabaseClient";
 import type { WatchlistItem } from "./watchlist";
 import {
@@ -139,12 +144,29 @@ export async function syncSaleAlertsForWatchlist(
     };
   }
 
-  const products = await listProducts();
+  const favoriteStores = await listSyncedFavoriteStoreIds(userId);
+  const products = await listProducts({
+    preferredStoreIds: favoriteStores.data,
+  });
   if (products.error) {
     return { data: fallback, error: products.error };
   }
+  let preferredStorePrices: MarketStorePrice[] = [];
+  const productIds = [
+    ...new Set(
+      watchlistItems.flatMap((item) => item.product_id ? [item.product_id] : []),
+    ),
+  ];
+  if (productIds.length > 0) {
+    const priceResults = await Promise.all(
+      productIds.map((productId) => listLatestStorePricesForProduct(productId)),
+    );
+    preferredStorePrices = priceResults.flatMap((result) => result.data);
+  }
 
   const candidates = buildSaleAlertCandidates({
+    favoriteStoreIds: favoriteStores.data,
+    preferredStorePrices,
     watchlistItems,
     products: products.data,
   });
@@ -182,7 +204,10 @@ export async function syncSaleAlertsForWatchlist(
   if (payloads.length > 0) {
     const inserted = await supabase
       .from("sale_alerts")
-      .insert(payloads)
+      .upsert(payloads, {
+        onConflict: "user_id,alert_key",
+        ignoreDuplicates: true,
+      })
       .select(SALE_ALERT_SELECT);
 
     if (inserted.error) {

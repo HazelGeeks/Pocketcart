@@ -63,7 +63,11 @@ export default function useNativeAccount(options: Options) {
   }, []);
 
   React.useEffect(() => {
-    if (options.activeTab === "more") void loadProfile();
+    void loadProfile();
+  }, [loadProfile]);
+
+  React.useEffect(() => {
+    if (options.activeTab === "more") void loadProfile(true);
   }, [loadProfile, options.activeTab]);
 
   useNativeAccountLinks({

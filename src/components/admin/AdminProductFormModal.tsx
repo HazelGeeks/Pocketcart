@@ -11,6 +11,8 @@ type Props = {
   imageUploading: boolean;
   productName: string;
   productEnglishName: string;
+  productBrand: string;
+  productGtin: string;
   productUnit: string;
   productCategory: string;
   productCategoryCustom: string;
@@ -21,6 +23,8 @@ type Props = {
   styles: any;
   onNameChange: (value: string) => void;
   onEnglishNameChange: (value: string) => void;
+  onBrandChange: (value: string) => void;
+  onGtinChange: (value: string) => void;
   onUnitChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onCategoryCustomChange: (value: string) => void;
@@ -42,6 +46,8 @@ export default function AdminProductFormModal({
   imageUploading,
   productName,
   productEnglishName,
+  productBrand,
+  productGtin,
   productUnit,
   productCategory,
   productCategoryCustom,
@@ -52,6 +58,8 @@ export default function AdminProductFormModal({
   styles: st,
   onNameChange,
   onEnglishNameChange,
+  onBrandChange,
+  onGtinChange,
   onUnitChange,
   onCategoryChange,
   onCategoryCustomChange,
@@ -208,6 +216,30 @@ export default function AdminProductFormModal({
                         placeholderTextColor={C.textMuted}
                         autoCapitalize="none"
                         autoCorrect={false}
+                        style={st.input}
+                      />
+                    </View>
+                    <View style={[st.modalTopCell, st.modalTopCellHalf]}>
+                      <Text style={st.fieldLabel}>Product Brand</Text>
+                      <TextInput
+                        value={productBrand}
+                        onChangeText={onBrandChange}
+                        placeholder="Manufacturer or brand (optional)"
+                        placeholderTextColor={C.textMuted}
+                        autoCorrect={false}
+                        style={st.input}
+                      />
+                    </View>
+                    <View style={[st.modalTopCell, st.modalTopCellHalf]}>
+                      <Text style={st.fieldLabel}>GTIN / UPC / EAN</Text>
+                      <TextInput
+                        value={productGtin}
+                        onChangeText={onGtinChange}
+                        placeholder="8, 12, 13, or 14 digits"
+                        placeholderTextColor={C.textMuted}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        keyboardType="number-pad"
                         style={st.input}
                       />
                     </View>

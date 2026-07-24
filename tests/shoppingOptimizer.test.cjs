@@ -82,7 +82,9 @@ test("shopping optimizer returns no plan for empty or invalid entries", () => {
   assert.deepEqual(buildShoppingRecommendation([], prices), {
     bestSingle: null,
     bestSplit: null,
+    bestPreferred: null,
     recommended: null,
+    recommendedUsesPreferredStores: false,
     unpricedProductIds: [],
   });
   assert.deepEqual(buildShoppingRecommendation([
@@ -92,9 +94,39 @@ test("shopping optimizer returns no plan for empty or invalid entries", () => {
   ], prices), {
     bestSingle: null,
     bestSplit: null,
+    bestPreferred: null,
     recommended: null,
+    recommendedUsesPreferredStores: false,
     unpricedProductIds: [],
   });
+});
+
+test("shopping optimizer exposes a transparent My stores alternative", () => {
+  const result = buildShoppingRecommendation(entries, [
+    { productId: "milk", storeId: "favorite", storeName: "My Store", storeArea: null, price: 3 },
+    { productId: "bread", storeId: "favorite", storeName: "My Store", storeArea: null, price: 4 },
+    { productId: "milk", storeId: "cheap", storeName: "Cheap Store", storeArea: null, price: 2 },
+    { productId: "bread", storeId: "cheap", storeName: "Cheap Store", storeArea: null, price: 3 },
+  ], ["favorite"]);
+
+  assert.equal(result.recommended.total, 7);
+  assert.equal(result.recommendedUsesPreferredStores, false);
+  assert.equal(result.bestPreferred.total, 10);
+  assert.equal(result.bestPreferred.stops[0].storeId, "favorite");
+});
+
+test("shopping optimizer breaks equal-price ties in favor of My stores", () => {
+  const result = buildShoppingRecommendation(
+    [{ productId: "milk", name: "Milk", quantity: 1 }],
+    [
+      { productId: "milk", storeId: "other", storeName: "Other", storeArea: null, price: 3 },
+      { productId: "milk", storeId: "favorite", storeName: "Favorite", storeArea: null, price: 3 },
+    ],
+    ["favorite"],
+  );
+
+  assert.equal(result.recommended.stops[0].storeId, "favorite");
+  assert.equal(result.recommendedUsesPreferredStores, true);
 });
 
 test("shopping optimizer ignores invalid prices while accepting a free item", () => {

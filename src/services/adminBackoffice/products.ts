@@ -1,8 +1,14 @@
 import { collectPagedRows } from "../../utils/paginatedQuery";
+import {
+  gtinValidationMessage,
+  normalizeGtin,
+} from "../../utils/productIdentity";
 import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { extensionFromMeta, missingEnvResult, PRODUCT_IMAGE_BUCKET } from "./shared";
 import type { AdminProduct, AdminUploadedImage, ProductRow, ServiceResult } from "./types";
 
+const PRODUCT_SELECT_WITH_IDENTITY =
+  "id, name, english_name, brand, gtin, category, unit, thumbnail_url, created_at";
 const PRODUCT_SELECT_WITH_ENGLISH = "id, name, english_name, category, unit, thumbnail_url, created_at";
 const PRODUCT_SELECT_WITHOUT_ENGLISH = "id, name, category, unit, thumbnail_url, created_at";
 
@@ -22,6 +28,16 @@ function hasEnglishNameColumnError(message: string | undefined): boolean {
   );
 }
 
+function hasProductIdentityColumnError(message: string | undefined): boolean {
+  const text = message?.toLowerCase() ?? "";
+  return (
+    (text.includes("brand") || text.includes("gtin")) &&
+    (text.includes("does not exist") ||
+      text.includes("could not find") ||
+      text.includes("schema cache"))
+  );
+}
+
 function normalizeAdminProductRow(row: ProductRowWithOptionalEnglish | null): AdminProduct {
   const safeRow = row ?? null;
   if (!safeRow) {
@@ -29,6 +45,8 @@ function normalizeAdminProductRow(row: ProductRowWithOptionalEnglish | null): Ad
       id: "",
       name: "",
       english_name: null,
+      brand: null,
+      gtin: null,
       category: "",
       unit: null,
       thumbnail_url: null,
@@ -40,6 +58,8 @@ function normalizeAdminProductRow(row: ProductRowWithOptionalEnglish | null): Ad
     id: safeRow.id,
     name: safeRow.name,
     english_name: safeRow.english_name ?? null,
+    brand: safeRow.brand?.trim() ? safeRow.brand.trim() : null,
+    gtin: safeRow.gtin?.trim() ? safeRow.gtin.trim() : null,
     category: safeRow.category,
     unit: safeRow.unit?.trim() ? safeRow.unit.trim() : null,
     thumbnail_url: safeRow.thumbnail_url,
@@ -68,10 +88,24 @@ export async function listAdminProducts(): Promise<ServiceResult<AdminProduct[]>
     );
 
   let productsRows: ProductRowWithOptionalEnglish[] = [];
-  const productsQuery = await fetchProducts(PRODUCT_SELECT_WITH_ENGLISH);
+  const productsQuery = await fetchProducts(PRODUCT_SELECT_WITH_IDENTITY);
 
   if (productsQuery.error) {
-    if (hasEnglishNameColumnError(productsQuery.error.message)) {
+    if (hasProductIdentityColumnError(productsQuery.error.message)) {
+      const fallbackQuery = await fetchProducts(PRODUCT_SELECT_WITH_ENGLISH);
+      if (fallbackQuery.error) {
+        if (!hasEnglishNameColumnError(fallbackQuery.error.message)) {
+          return { data: [], error: fallbackQuery.error.message };
+        }
+        const legacyQuery = await fetchProducts(PRODUCT_SELECT_WITHOUT_ENGLISH);
+        if (legacyQuery.error) {
+          return { data: [], error: legacyQuery.error.message };
+        }
+        productsRows = legacyQuery.data;
+      } else {
+        productsRows = fallbackQuery.data;
+      }
+    } else if (hasEnglishNameColumnError(productsQuery.error.message)) {
       const fallbackQuery = await fetchProducts(PRODUCT_SELECT_WITHOUT_ENGLISH);
       if (fallbackQuery.error) {
         return { data: [], error: fallbackQuery.error.message };
@@ -93,34 +127,72 @@ export async function listAdminProducts(): Promise<ServiceResult<AdminProduct[]>
 export async function createAdminProduct(params: {
   name: string;
   englishName?: string;
+  brand?: string;
+  gtin?: string;
   category: string;
   unit?: string;
   thumbnailUrl?: string;
 }): Promise<ServiceResult<AdminProduct | null>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
+  const gtinError = gtinValidationMessage(params.gtin);
+  if (gtinError) return { data: null, error: gtinError };
 
-  const withEnglishPayload = {
+  const withIdentityPayload = {
     name: params.name.trim(),
     english_name: params.englishName?.trim() ? params.englishName.trim() : null,
+    brand: params.brand?.trim() ? params.brand.trim() : null,
+    gtin: normalizeGtin(params.gtin) || null,
     category: params.category.trim(),
     unit: params.unit?.trim() ? params.unit.trim() : null,
     thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
   };
   const withoutEnglishPayload = {
-    name: withEnglishPayload.name,
-    category: withEnglishPayload.category,
-    unit: withEnglishPayload.unit,
-    thumbnail_url: withEnglishPayload.thumbnail_url,
+    name: withIdentityPayload.name,
+    category: withIdentityPayload.category,
+    unit: withIdentityPayload.unit,
+    thumbnail_url: withIdentityPayload.thumbnail_url,
+  };
+  const withEnglishPayload = {
+    ...withoutEnglishPayload,
+    english_name: withIdentityPayload.english_name,
   };
 
-  const insertedWithEnglish = await supabase
+  const insertedWithIdentity = await supabase
     .from("products")
-    .insert(withEnglishPayload)
-    .select(PRODUCT_SELECT_WITH_ENGLISH)
+    .insert(withIdentityPayload)
+    .select(PRODUCT_SELECT_WITH_IDENTITY)
     .single();
 
-  if (insertedWithEnglish.error) {
-    if (hasEnglishNameColumnError(insertedWithEnglish.error.message)) {
+  if (insertedWithIdentity.error) {
+    if (hasProductIdentityColumnError(insertedWithIdentity.error.message)) {
+      const fallbackInsert = await supabase
+        .from("products")
+        .insert(withEnglishPayload)
+        .select(PRODUCT_SELECT_WITH_ENGLISH)
+        .single();
+      if (fallbackInsert.error) {
+        if (!hasEnglishNameColumnError(fallbackInsert.error.message)) {
+          return { data: null, error: fallbackInsert.error.message };
+        }
+        const legacyInsert = await supabase
+          .from("products")
+          .insert(withoutEnglishPayload)
+          .select(PRODUCT_SELECT_WITHOUT_ENGLISH)
+          .single();
+        if (legacyInsert.error) return { data: null, error: legacyInsert.error.message };
+        if (!legacyInsert.data) return { data: null, error: "Product insert returned no data." };
+        return {
+          data: normalizeAdminProductRow(legacyInsert.data as ProductRowWithOptionalEnglish),
+          error: null,
+        };
+      }
+      if (!fallbackInsert.data) return { data: null, error: "Product insert returned no data." };
+      return {
+        data: normalizeAdminProductRow(fallbackInsert.data as ProductRowWithOptionalEnglish),
+        error: null,
+      };
+    }
+    if (hasEnglishNameColumnError(insertedWithIdentity.error.message)) {
       const fallbackInsert = await supabase
         .from("products")
         .insert(withoutEnglishPayload)
@@ -137,12 +209,12 @@ export async function createAdminProduct(params: {
         error: null,
       };
     }
-    return { data: null, error: insertedWithEnglish.error.message };
+    return { data: null, error: insertedWithIdentity.error.message };
   }
 
   return {
-    data: insertedWithEnglish.data
-      ? normalizeAdminProductRow(insertedWithEnglish.data as ProductRowWithOptionalEnglish)
+    data: insertedWithIdentity.data
+      ? normalizeAdminProductRow(insertedWithIdentity.data as ProductRowWithOptionalEnglish)
       : null,
     error: null,
   };
@@ -152,6 +224,8 @@ export async function updateAdminProduct(params: {
   id: string;
   name: string;
   englishName?: string;
+  brand?: string;
+  gtin?: string;
   category: string;
   unit?: string;
   thumbnailUrl?: string;
@@ -160,26 +234,67 @@ export async function updateAdminProduct(params: {
 
   const id = params.id.trim();
   if (!id) return { data: null, error: "Product ID is required." };
+  const gtinError = gtinValidationMessage(params.gtin);
+  if (gtinError) return { data: null, error: gtinError };
 
-  const withEnglishPayload = {
+  const withIdentityPayload = {
     name: params.name.trim(),
     english_name: params.englishName?.trim() ? params.englishName.trim() : null,
     category: params.category.trim(),
     unit: params.unit?.trim() ? params.unit.trim() : null,
     thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
+    ...(params.brand === undefined
+      ? {}
+      : { brand: params.brand.trim() || null }),
+    ...(params.gtin === undefined
+      ? {}
+      : { gtin: normalizeGtin(params.gtin) || null }),
   };
+  const withEnglishPayload = { ...withIdentityPayload };
+  delete (withEnglishPayload as { brand?: string | null }).brand;
+  delete (withEnglishPayload as { gtin?: string | null }).gtin;
   const withoutEnglishPayload = { ...withEnglishPayload };
   delete (withoutEnglishPayload as { english_name?: string | null }).english_name;
 
-  const updatedWithEnglish = await supabase
+  const updatedWithIdentity = await supabase
     .from("products")
-    .update(withEnglishPayload)
+    .update(withIdentityPayload)
     .eq("id", id)
-    .select(PRODUCT_SELECT_WITH_ENGLISH)
+    .select(PRODUCT_SELECT_WITH_IDENTITY)
     .single();
 
-  if (updatedWithEnglish.error) {
-    if (hasEnglishNameColumnError(updatedWithEnglish.error.message)) {
+  if (updatedWithIdentity.error) {
+    if (hasProductIdentityColumnError(updatedWithIdentity.error.message)) {
+      const fallbackUpdate = await supabase
+        .from("products")
+        .update(withEnglishPayload)
+        .eq("id", id)
+        .select(PRODUCT_SELECT_WITH_ENGLISH)
+        .single();
+      if (fallbackUpdate.error) {
+        if (!hasEnglishNameColumnError(fallbackUpdate.error.message)) {
+          return { data: null, error: fallbackUpdate.error.message };
+        }
+        const legacyUpdate = await supabase
+          .from("products")
+          .update(withoutEnglishPayload)
+          .eq("id", id)
+          .select(PRODUCT_SELECT_WITHOUT_ENGLISH)
+          .single();
+        if (legacyUpdate.error) return { data: null, error: legacyUpdate.error.message };
+        if (!legacyUpdate.data) return { data: null, error: "Product update returned no data." };
+        return {
+          data: normalizeAdminProductRow(legacyUpdate.data as ProductRowWithOptionalEnglish),
+          error: null,
+        };
+      }
+      if (!fallbackUpdate.data) return { data: null, error: "Product update returned no data." };
+      return {
+        data: normalizeAdminProductRow(fallbackUpdate.data as ProductRowWithOptionalEnglish),
+        error: null,
+      };
+    }
+    if (hasEnglishNameColumnError(updatedWithIdentity.error.message)) {
       const fallbackUpdate = await supabase
         .from("products")
         .update(withoutEnglishPayload)
@@ -197,12 +312,12 @@ export async function updateAdminProduct(params: {
         error: null,
       };
     }
-    return { data: null, error: updatedWithEnglish.error.message };
+    return { data: null, error: updatedWithIdentity.error.message };
   }
 
   return {
-    data: updatedWithEnglish.data
-      ? normalizeAdminProductRow(updatedWithEnglish.data as ProductRowWithOptionalEnglish)
+    data: updatedWithIdentity.data
+      ? normalizeAdminProductRow(updatedWithIdentity.data as ProductRowWithOptionalEnglish)
       : null,
     error: null,
   };

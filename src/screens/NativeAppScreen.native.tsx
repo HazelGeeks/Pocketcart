@@ -10,6 +10,7 @@ import {
   NativeBottomTabs,
   NativeContextHeader,
 } from "../components/nativeApp/NativeShell";
+import useFavoriteStores from "../hooks/useFavoriteStores";
 import useLayout from "../hooks/useLayout";
 import useNativeAccount from "../hooks/useNativeAccount";
 import useNativeBackNavigation from "../hooks/useNativeBackNavigation";
@@ -30,25 +31,6 @@ export default function NativeAppScreen() {
   const shell = useNativeShellState();
   const onboarding = useNativeOnboarding();
 
-  const catalog = useNativeCatalog({
-    activeTab: shell.activeTab,
-    horizontalPad: pad,
-    onOpenHome: shell.openHome,
-    showToast: shell.showToast,
-    width: w,
-  });
-
-  const hideOnboarding = React.useCallback(() => {
-    onboarding.setVisible(false);
-  }, [onboarding.setVisible]);
-  const map = useNativeStoreMap({
-    activeTab: shell.activeTab,
-    onboardingState: onboarding.state,
-    onHideOnboarding: hideOnboarding,
-    onOpenMap: shell.openMap,
-    showToast: shell.showToast,
-  });
-
   const alerts = useNativeSaleAlerts({
     activeTab: shell.activeTab,
     alertsEnabled: onboarding.state.alertsEnabled,
@@ -59,6 +41,29 @@ export default function NativeAppScreen() {
     clearWatchlist: alerts.clearWatchlist,
     loadWatchlist: alerts.loadWatchlist,
     onOpenMore: shell.openMore,
+    showToast: shell.showToast,
+  });
+  const favoriteStores = useFavoriteStores(
+    account.profile?.id ?? null,
+    shell.showToast,
+  );
+  const catalog = useNativeCatalog({
+    activeTab: shell.activeTab,
+    favoriteStoreIds: favoriteStores.storeIds,
+    horizontalPad: pad,
+    onOpenHome: shell.openHome,
+    showToast: shell.showToast,
+    width: w,
+  });
+  const hideOnboarding = React.useCallback(() => {
+    onboarding.setVisible(false);
+  }, [onboarding.setVisible]);
+  const map = useNativeStoreMap({
+    activeTab: shell.activeTab,
+    favoriteStoreIds: favoriteStores.storeIds,
+    onboardingState: onboarding.state,
+    onHideOnboarding: hideOnboarding,
+    onOpenMap: shell.openMap,
     showToast: shell.showToast,
   });
   const permissions = useNativePermissions({
@@ -74,6 +79,7 @@ export default function NativeAppScreen() {
   });
   const shopping = useNativeShoppingPlan({
     activeTab: shell.activeTab,
+    favoriteStoreIds: favoriteStores.storeIds,
     profileId: account.profile?.id ?? null,
   });
   const navigation = useNativeBackNavigation({ account, catalog, map, shell });
@@ -120,6 +126,7 @@ export default function NativeAppScreen() {
       {shell.activeTab === "map" ? (
         <NativeMapTab
           bottomInset={insets.bottom}
+          favoriteStores={favoriteStores}
           horizontalPad={pad}
           map={map}
           onViewStoreInHome={catalog.setStoreFilter}
@@ -145,6 +152,7 @@ export default function NativeAppScreen() {
             <NativeHomeTab
               catalog={catalog}
               detailPanHandlers={navigation.detailPanHandlers}
+              favoriteStoreIds={favoriteStores.storeIds}
               onAddProductToShoppingList={productActions.addProductToShoppingList}
               onAddSelectedToWatchlist={productActions.addSelectedToWatchlist}
               onAddShoppingProductFromHome={productActions.addShoppingProductFromHome}

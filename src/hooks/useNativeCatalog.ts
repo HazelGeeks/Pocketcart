@@ -15,6 +15,7 @@ import {
 
 type UseNativeCatalogOptions = {
   activeTab: NativeTabId;
+  favoriteStoreIds: string[];
   horizontalPad: number;
   onOpenHome: () => void;
   showToast: (message: string) => void;
@@ -23,6 +24,7 @@ type UseNativeCatalogOptions = {
 
 export default function useNativeCatalog({
   activeTab,
+  favoriteStoreIds,
   horizontalPad,
   onOpenHome,
   showToast,
@@ -52,10 +54,14 @@ export default function useNativeCatalog({
   const [addSubmitting, setAddSubmitting] = React.useState(false);
   const [storeFilterId, setStoreFilterId] = React.useState<string | null>(null);
   const [storeFilterName, setStoreFilterName] = React.useState<string | null>(null);
+  const productsRequestIdRef = React.useRef(0);
+  const categoriesRequestIdRef = React.useRef(0);
+  const historyRequestIdRef = React.useRef(0);
+  const storePricesRequestIdRef = React.useRef(0);
 
   const filteredProducts = React.useMemo(() => {
     if (!storeFilterId) return products;
-    return products.filter((product) => product.best_store_id === storeFilterId);
+    return products.filter((product) => product.preferred_store_id === storeFilterId);
   }, [products, storeFilterId]);
 
   const selectedProduct = React.useMemo(
@@ -82,41 +88,56 @@ export default function useNativeCatalog({
   );
 
   const loadProducts = React.useCallback(async () => {
+    const requestId = productsRequestIdRef.current + 1;
+    productsRequestIdRef.current = requestId;
     setLoading(true);
     const { data, error } = await listProducts({
       search: query,
       category: category === "All" ? undefined : category,
+      preferredStoreIds: storeFilterId ? [storeFilterId] : favoriteStoreIds,
     });
+    if (productsRequestIdRef.current !== requestId) return;
     setProducts(data);
     setLoading(false);
     setMessage(error ?? null);
-  }, [category, query]);
+  }, [category, favoriteStoreIds, query, storeFilterId]);
 
   const loadCategories = React.useCallback(async () => {
+    const requestId = categoriesRequestIdRef.current + 1;
+    categoriesRequestIdRef.current = requestId;
     const { data, error } = await listProductCategories();
+    if (categoriesRequestIdRef.current !== requestId) return;
     setCategories(data);
     if (error) setMessage(error);
   }, []);
 
   const loadPriceHistory = React.useCallback(async (productId: string) => {
+    const requestId = historyRequestIdRef.current + 1;
+    historyRequestIdRef.current = requestId;
     if (!productId) {
       setPriceHistory([]);
+      setHistoryLoading(false);
       return;
     }
     setHistoryLoading(true);
     const { data, error } = await listProductPriceHistory(productId);
+    if (historyRequestIdRef.current !== requestId) return;
     setPriceHistory(data);
     setHistoryLoading(false);
     setHistoryMessage(error ?? null);
   }, []);
 
   const loadStorePrices = React.useCallback(async (productId: string) => {
+    const requestId = storePricesRequestIdRef.current + 1;
+    storePricesRequestIdRef.current = requestId;
     if (!productId) {
       setStorePrices([]);
+      setStorePricesLoading(false);
       return;
     }
     setStorePricesLoading(true);
     const { data, error } = await listLatestStorePricesForProduct(productId);
+    if (storePricesRequestIdRef.current !== requestId) return;
     setStorePrices(data);
     setStorePricesLoading(false);
     if (error) setHistoryMessage(error);

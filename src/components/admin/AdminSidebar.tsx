@@ -14,6 +14,7 @@ type AdminSidebarProps = {
   activeMenu: AdminMenuKey;
   authUserLabel: string;
   authLoading: boolean;
+  productReviewCount: number;
   styles: Record<string, any>;
   onSelectMenu: (value: AdminMenuKey) => void;
   onSignOut: () => void;
@@ -26,6 +27,7 @@ export default function AdminSidebar({
   activeMenu,
   authUserLabel,
   authLoading,
+  productReviewCount,
   styles: st,
   onSelectMenu,
   onSignOut,
@@ -43,21 +45,38 @@ export default function AdminSidebar({
           {sectionMenu.map((item) => {
             const active = activeMenu === item.key;
             return (
-              <Pressable
-                key={item.key}
-                accessibilityRole="button"
-                onPress={() => onSelectMenu(item.key)}
-                style={[st.menuBtn, active && st.menuBtnActive]}
-              >
-                <Text style={[st.menuText, active && st.menuTextActive]}>{item.label}</Text>
-                {typeof item.badge === "number" ? (
-                  <View style={[st.menuBadge, active && st.menuBadgeActive]}>
-                    <Text style={[st.menuBadgeText, active && st.menuBadgeTextActive]}>
-                      {item.badge}
+              <React.Fragment key={item.key}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => onSelectMenu(item.key)}
+                  style={[st.menuBtn, active && st.menuBtnActive]}
+                >
+                  <Text style={[st.menuText, active && st.menuTextActive]}>{item.label}</Text>
+                  {typeof item.badge === "number" ? (
+                    <View style={[st.menuBadge, active && st.menuBadgeActive]}>
+                      <Text style={[st.menuBadgeText, active && st.menuBadgeTextActive]}>
+                        {item.badge}
+                      </Text>
+                    </View>
+                  ) : null}
+                </Pressable>
+
+                {item.key === "overview" && productReviewCount > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${productReviewCount} products need identity review`}
+                    onPress={() => onSelectMenu("overview")}
+                    style={st.sidebarReviewAlert}
+                  >
+                    <Text style={st.sidebarReviewAlertTitle}>
+                      Review required · {productReviewCount}
                     </Text>
-                  </View>
+                    <Text style={st.sidebarReviewAlertBody}>
+                      Product matching needs confirmation
+                    </Text>
+                  </Pressable>
                 ) : null}
-              </Pressable>
+              </React.Fragment>
             );
           })}
         </View>

@@ -1,3 +1,5 @@
+import { localDatePartsToIso } from "./businessDateTime";
+
 type StoreImportStatus = "ready" | "duplicate" | "invalid";
 
 export type StoreImportPreviewInput = {
@@ -52,18 +54,7 @@ export function dateOnlyToIso(value: string, endOfDay: boolean): string | null {
   const year = Number(yearText);
   const month = Number(monthText);
   const day = Number(dayText);
-  const date = endOfDay
-    ? new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
-    : new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-  if (Number.isNaN(date.getTime())) return null;
-  if (
-    date.getUTCFullYear() !== year ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-  return date.toISOString();
+  return localDatePartsToIso({ year, month, day, endOfDay });
 }
 
 export function parseCsvRows(text: string): string[][] {

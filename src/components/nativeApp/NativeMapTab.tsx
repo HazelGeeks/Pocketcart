@@ -1,10 +1,12 @@
 import React from "react";
+import type useFavoriteStores from "../../hooks/useFavoriteStores";
 import type useNativePermissions from "../../hooks/useNativePermissions";
 import type useNativeStoreMap from "../../hooks/useNativeStoreMap";
 import { StoreMapPanel } from "./StoreMapPanel";
 
 type Props = {
   bottomInset: number;
+  favoriteStores: ReturnType<typeof useFavoriteStores>;
   horizontalPad: number;
   map: ReturnType<typeof useNativeStoreMap>;
   onViewStoreInHome: (storeId: string, storeName: string) => void;
@@ -14,6 +16,7 @@ type Props = {
 
 export function NativeMapTab({
   bottomInset,
+  favoriteStores,
   horizontalPad,
   map,
   onViewStoreInHome,
@@ -24,9 +27,12 @@ export function NativeMapTab({
     <StoreMapPanel
       mapRef={map.mapRef}
       query={map.query}
-      message={map.message}
+      message={map.message ?? favoriteStores.syncMessage}
       loading={map.loading}
       stores={map.filteredStores}
+      favoriteStoreIds={favoriteStores.storeIds}
+      favoriteStoresLoading={!favoriteStores.loaded}
+      favoriteFilterActive={map.favoriteFilterActive}
       focusedStoreId={map.focusedStoreId}
       region={map.region}
       userLocation={map.userLocation}
@@ -35,6 +41,8 @@ export function NativeMapTab({
       bottomInset={bottomInset}
       horizontalPad={horizontalPad}
       onChangeQuery={map.setQuery}
+      onSetFavoriteFilter={map.setFavoriteFilterActive}
+      onToggleFavoriteStore={favoriteStores.toggleStore}
       onFocusStoreId={(storeId) => {
         map.setFocusMode("store");
         map.setFocusedStoreId(storeId);
