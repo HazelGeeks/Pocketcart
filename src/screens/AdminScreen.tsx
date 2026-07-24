@@ -190,7 +190,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     productPriceStats,
     productSortOptions,
     productStoreFilterOptions,
-    recentStoreOptions,
+    productFormStoreOptions,
     selectedStoreForMap,
     storeActiveFilterCount,
     storeAuditLogs,
@@ -768,7 +768,6 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
 
       <AdminProductFormModal
         visible={productModalOpen}
-        isLg={isLg}
         editingProductId={editingProductId}
         submitting={submitting}
         imageUploading={productImageUploading}
@@ -780,7 +779,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
         productThumb={productThumb}
         storePriceSets={productStorePriceSets}
         categoryOptions={categoryOptions}
-        recentStoreOptions={recentStoreOptions}
+        storeOptions={productFormStoreOptions}
         styles={st}
         onNameChange={setProductName}
         onEnglishNameChange={setProductEnglishName}

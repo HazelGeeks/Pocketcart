@@ -6,7 +6,6 @@ import { WEB_FILTER_SELECT_STYLE, type StorePriceSetInput } from "../../utils/ad
 
 type Props = {
   visible: boolean;
-  isLg: boolean;
   editingProductId: string | null;
   submitting: boolean;
   imageUploading: boolean;
@@ -18,7 +17,7 @@ type Props = {
   productThumb: string;
   storePriceSets: StorePriceSetInput[];
   categoryOptions: string[];
-  recentStoreOptions: AdminStore[];
+  storeOptions: AdminStore[];
   styles: any;
   onNameChange: (value: string) => void;
   onEnglishNameChange: (value: string) => void;
@@ -38,7 +37,6 @@ type Props = {
 
 export default function AdminProductFormModal({
   visible,
-  isLg,
   editingProductId,
   submitting,
   imageUploading,
@@ -50,7 +48,7 @@ export default function AdminProductFormModal({
   productThumb,
   storePriceSets,
   categoryOptions,
-  recentStoreOptions,
+  storeOptions,
   styles: st,
   onNameChange,
   onEnglishNameChange,
@@ -90,19 +88,19 @@ export default function AdminProductFormModal({
 
   const storeNameById = React.useMemo(() => {
     const map = new Map<string, AdminStore>();
-    recentStoreOptions.forEach((store) => {
+    storeOptions.forEach((store) => {
       map.set(store.id, store);
     });
     return map;
-  }, [recentStoreOptions]);
+  }, [storeOptions]);
 
   const storeBrandOptions = React.useMemo(() => {
     const brands = new Set<string>();
-    recentStoreOptions.forEach((store) => {
+    storeOptions.forEach((store) => {
       brands.add(storeBrandLabel(store));
     });
     return Array.from(brands).sort((a, b) => a.localeCompare(b));
-  }, [recentStoreOptions, storeBrandLabel]);
+  }, [storeOptions, storeBrandLabel]);
 
   React.useEffect(() => {
     if (!visible) {
@@ -149,83 +147,89 @@ export default function AdminProductFormModal({
                   Upload a file, paste an image URL, or copy an image and press Cmd/Ctrl+V while this modal is open.
                 </Text>
               </View>
-              <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]} disabled={imageUploading || submitting}>
-                {productThumb ? (
-                  <Image source={{ uri: productThumb }} style={st.modalImagePreview} resizeMode="cover" />
-                ) : (
-                  <View style={[st.modalImagePreview, st.modalImagePlaceholder]}>
-                    <Text style={st.dataMuted}>Tap to upload</Text>
+              <View style={st.productEditorTopLayout}>
+                <View style={st.productImageControls}>
+                  <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]} disabled={imageUploading || submitting}>
+                    {productThumb ? (
+                      <Image source={{ uri: productThumb }} style={st.modalImagePreview} resizeMode="cover" />
+                    ) : (
+                      <View style={[st.modalImagePreview, st.modalImagePlaceholder]}>
+                        <Text style={st.dataMuted}>Tap to upload</Text>
+                      </View>
+                    )}
+                    <View style={st.imageUploadOverlay}>
+                      {imageUploading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
+                      <Text style={st.imageUploadOverlayText}>{imageUploading ? "Uploading..." : productThumb ? "Replace image" : "Upload image"}</Text>
+                    </View>
+                  </Pressable>
+                  <View style={st.productImageActionRow}>
+                    <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
+                      <Text style={st.btnGhostText}>Upload image</Text>
+                    </Pressable>
+                    <Pressable accessibilityRole="button" onPress={onPasteImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
+                      <Text style={st.btnGhostText}>Paste image</Text>
+                    </Pressable>
                   </View>
-                )}
-                <View style={st.imageUploadOverlay}>
-                  {imageUploading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
-                  <Text style={st.imageUploadOverlayText}>{imageUploading ? "Uploading..." : productThumb ? "Replace image" : "Upload image"}</Text>
+                  <TextInput
+                    value={productThumb}
+                    onChangeText={onThumbChange}
+                    placeholder="Paste image URL"
+                    placeholderTextColor={C.textMuted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={[st.input, st.productImageUrlInput]}
+                  />
                 </View>
-              </Pressable>
-              <View style={st.productImageActionRow}>
-                <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
-                  <Text style={st.btnGhostText}>Upload image</Text>
-                </Pressable>
-                <Pressable accessibilityRole="button" onPress={onPasteImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
-                  <Text style={st.btnGhostText}>Paste image</Text>
-                </Pressable>
-              </View>
-              <TextInput
-                value={productThumb}
-                onChangeText={onThumbChange}
-                placeholder="Paste image URL"
-                placeholderTextColor={C.textMuted}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={[st.input, st.productImageUrlInput]}
-              />
-            </View>
 
-            <View style={st.modalTopGrid}>
-              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
-                <Text style={st.fieldLabel}>Product Name</Text>
-                <TextInput value={productName} onChangeText={onNameChange} placeholder="Product name" placeholderTextColor={C.textMuted} style={st.input} />
-              </View>
-              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
-                <Text style={st.fieldLabel}>English Name</Text>
-                <TextInput
-                  value={productEnglishName}
-                  onChangeText={onEnglishNameChange}
-                  placeholder="Product name in English"
-                  placeholderTextColor={C.textMuted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={st.input}
-                />
-              </View>
-              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
-                <Text style={st.fieldLabel}>Unit</Text>
-                <TextInput
-                  value={productUnit}
-                  onChangeText={onUnitChange}
-                  placeholder="2L, 500g (optional)"
-                  placeholderTextColor={C.textMuted}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={st.input}
-                />
-              </View>
-            </View>
+                <View style={st.productDetailsTopSection}>
+                  <View style={st.modalTopGrid}>
+                    <View style={[st.modalTopCell, st.modalTopCellHalf]}>
+                      <Text style={st.fieldLabel}>Product Name</Text>
+                      <TextInput value={productName} onChangeText={onNameChange} placeholder="Product name" placeholderTextColor={C.textMuted} style={st.input} />
+                    </View>
+                    <View style={[st.modalTopCell, st.modalTopCellHalf]}>
+                      <Text style={st.fieldLabel}>English Name</Text>
+                      <TextInput
+                        value={productEnglishName}
+                        onChangeText={onEnglishNameChange}
+                        placeholder="Product name in English"
+                        placeholderTextColor={C.textMuted}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={st.input}
+                      />
+                    </View>
+                    <View style={st.modalTopCell}>
+                      <Text style={st.fieldLabel}>Unit</Text>
+                      <TextInput
+                        value={productUnit}
+                        onChangeText={onUnitChange}
+                        placeholder="2L, 500g (optional)"
+                        placeholderTextColor={C.textMuted}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={st.input}
+                      />
+                    </View>
+                  </View>
 
-            <View style={st.modalTopGrid}>
-              <View style={[st.modalTopCell, isLg && st.modalTopCellHalf]}>
-                <Text style={st.fieldLabel}>Custom Category</Text>
-                <TextInput
-                  value={productCategoryCustom}
-                  onChangeText={(value) => {
-                    onCategoryCustomChange(value);
-                    onCategoryChange(value.trim());
-                  }}
-                  placeholder="Type custom category (optional)"
-                  placeholderTextColor={C.textMuted}
-                  style={st.input}
-                />
-                <Text style={st.dataMuted}>Selected: {productCategory.trim() || "None"}</Text>
+                  <View style={st.modalTopGrid}>
+                    <View style={st.modalTopCell}>
+                      <Text style={st.fieldLabel}>Custom Category</Text>
+                      <TextInput
+                        value={productCategoryCustom}
+                        onChangeText={(value) => {
+                          onCategoryCustomChange(value);
+                          onCategoryChange(value.trim());
+                        }}
+                        placeholder="Type custom category (optional)"
+                        placeholderTextColor={C.textMuted}
+                        style={st.input}
+                      />
+                      <Text style={st.dataMuted}>Selected: {productCategory.trim() || "None"}</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
             </View>
 
@@ -260,7 +264,7 @@ export default function AdminProductFormModal({
                   ? storeBrandLabel(selectedStore)
                   : set.brand.trim();
                 const visibleStoreOptions = selectedBrand
-                  ? recentStoreOptions.filter((store) => storeBrandLabel(store) === selectedBrand)
+                  ? storeOptions.filter((store) => storeBrandLabel(store) === selectedBrand)
                   : [];
                 const isOpen = openStoreSetId === set.id;
 
@@ -307,11 +311,11 @@ export default function AdminProductFormModal({
                         accessibilityRole="button"
                         onPress={() => setOpenStoreSetId(isOpen ? null : set.id)}
                         style={st.storeDropdownButton}
-                        disabled={submitting || recentStoreOptions.length === 0 || !selectedBrand}
+                        disabled={submitting || storeOptions.length === 0 || !selectedBrand}
                       >
                         <View style={st.storeDropdownTextWrap}>
                           <Text style={selectedStore ? st.storeDropdownSelectedText : st.storeDropdownPlaceholderText} numberOfLines={1}>
-                            {selectedStore ? storeDisplayName(selectedStore) : recentStoreOptions.length === 0 ? "No stores loaded" : selectedBrand ? "All branches included" : "Select brand first"}
+                            {selectedStore ? storeDisplayName(selectedStore) : storeOptions.length === 0 ? "No stores loaded" : selectedBrand ? "All branches included" : "Select brand first"}
                           </Text>
                           {selectedStore && (selectedStore.address || selectedStore.area) ? (
                             <Text style={st.storeDropdownMetaText} numberOfLines={1}>{selectedStore.address || selectedStore.area}</Text>

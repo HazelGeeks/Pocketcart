@@ -1,6 +1,17 @@
 import React from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import {
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import type { AdminStore } from "../../services/adminBackoffice";
+import {
+  getStoreBrandLogoKey,
+  type StoreBrandLogoKey,
+} from "../../utils/storeBrandLogo";
+
+type StoreLogoAsset = number | string | { uri?: string };
 
 const WEB_STORE_MAP_IFRAME_STYLE: React.CSSProperties = {
   width: "100%",
@@ -9,6 +20,25 @@ const WEB_STORE_MAP_IFRAME_STYLE: React.CSSProperties = {
   border: 0,
   display: "block",
 };
+
+const STORE_LOGO_ASSETS: Record<StoreBrandLogoKey, StoreLogoAsset> = {
+  hMart: require("../../../assets/store-logos/h-mart.png"),
+  hannamMart: require("../../../assets/store-logos/hannam-mart.png"),
+  priceSmart: require("../../../assets/store-logos/pricesmart-foods.png"),
+  marketRibbon: require("../../../assets/store-logos/market-ribbon.png"),
+  tAndT: require("../../../assets/store-logos/t-and-t.png"),
+};
+
+function getStoreLogoUrl(store: AdminStore): string | null {
+  const logoKey = getStoreBrandLogoKey(store);
+  if (!logoKey) return null;
+  const asset = STORE_LOGO_ASSETS[logoKey];
+  if (typeof asset === "string") return asset;
+  if (typeof asset === "object" && typeof asset.uri === "string") {
+    return asset.uri;
+  }
+  return null;
+}
 
 function safeScriptJson(value: unknown): string {
   return JSON.stringify(value).replace(/</g, "\\u003c");
@@ -25,6 +55,7 @@ function storeLeafletMapSrcDoc(
       address: store.address || store.area,
       storeType: store.store_type,
       isActive: store.is_active,
+      logoUrl: getStoreLogoUrl(store),
       latitude: Number(store.latitude),
       longitude: Number(store.longitude),
       selected: selectedStore?.id === store.id,
@@ -49,6 +80,24 @@ function storeLeafletMapSrcDoc(
     html, body, #map { height: 100%; margin: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     .leaflet-popup-content { margin: 8px 10px; color: #2f3748; font-size: 12px; }
+    .store-logo-marker {
+      box-sizing: border-box;
+      overflow: hidden;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.28);
+    }
+    .store-logo-marker.is-selected {
+      border-color: #0b7d5a;
+      box-shadow: 0 3px 10px rgba(11, 125, 90, 0.38);
+    }
+    .store-logo-marker img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
@@ -79,7 +128,22 @@ function storeLeafletMapSrcDoc(
       maxClusterRadius: 36
     });
     points.forEach((point) => {
-      const marker = L.marker([point.latitude, point.longitude]);
+      const markerSize = point.selected ? 54 : 46;
+      const logoIcon = point.logoUrl
+        ? L.divIcon({
+            className: "store-logo-marker" + (point.selected ? " is-selected" : ""),
+            html: '<img src="' + escapeHtml(point.logoUrl) + '" alt="" />',
+            iconSize: [markerSize, markerSize],
+            iconAnchor: [markerSize / 2, markerSize / 2],
+            popupAnchor: [0, -(markerSize / 2)]
+          })
+        : null;
+      const marker = L.marker(
+        [point.latitude, point.longitude],
+        logoIcon
+          ? { icon: logoIcon, zIndexOffset: point.selected ? 1000 : 0 }
+          : { zIndexOffset: point.selected ? 1000 : 0 }
+      );
       marker.bindPopup(
         "<strong>" + escapeHtml(point.name) + "</strong><br />" +
         escapeHtml(point.address) + "<br />" +

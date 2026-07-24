@@ -32,6 +32,7 @@
     "src/utils/nativeOnboardingState.ts",
     "src/utils/asyncRequestResults.ts",
     "src/utils/storeVisibility.ts",
+    "src/utils/storeBrandLogo.ts",
     "src/utils/paginatedQuery.ts",
     "src/utils/pushRegistrationState.ts",
     "src/services/marketData/shared.ts"

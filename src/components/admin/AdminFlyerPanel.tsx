@@ -35,6 +35,7 @@ const STORE_FLYER_LINKS = [
   { name: "PriceSmart", url: "https://www.pricesmartfoods.com" },
   { name: "Hannan", url: "https://hannamsm.com/weekly-special/7days" },
   { name: "MarketRibbon", url: "https://marketribbon.ca/" },
+  { name: "T&T", url: "https://www.tntsupermarket.com/eng/store-flyer" },
 ] as const;
 
 export default function AdminFlyerPanel({

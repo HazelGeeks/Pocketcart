@@ -1,3 +1,4 @@
+import { collectPagedRows } from "../../utils/paginatedQuery";
 import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { isMissingColumnError, missingEnvResult, parseNumber, priceEntryFromRow } from "./shared";
 import type { AdminPriceEntry, PriceRow, ServiceResult } from "./types";
@@ -65,11 +66,9 @@ function isDuplicatePricePeriodError(error: { code?: string; message?: string } 
   return error?.code === "23505" || text.includes("product_prices_product_store_valid_from_key");
 }
 
-export async function listAdminPriceEntries(limit = 5000): Promise<ServiceResult<AdminPriceEntry[]>> {
+export async function listAdminPriceEntries(): Promise<ServiceResult<AdminPriceEntry[]>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult([]);
   const client = supabase;
-
-  const queryLimit = Math.max(1, Math.min(limit, 5000));
 
   type FetchPriceRowsResult = {
     rows: PriceRow[];
@@ -77,30 +76,26 @@ export async function listAdminPriceEntries(limit = 5000): Promise<ServiceResult
   };
 
   async function fetchPriceRows(selectClause: string): Promise<FetchPriceRowsResult> {
-    const collected: PriceRow[] = [];
-    let page = 0;
+    const result = await collectPagedRows<PriceRow, { message: string }>(
+      async (from, to) => {
+        const response = await client
+          .from("product_prices")
+          .select(selectClause)
+          .order("observed_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to);
+        return {
+          data: (response.data ?? []) as unknown as PriceRow[],
+          error: response.error,
+        };
+      },
+      PRICE_PAGE_SIZE,
+    );
 
-    while (true) {
-      const from = page * PRICE_PAGE_SIZE;
-      const to = from + Math.min(PRICE_PAGE_SIZE - 1, queryLimit - 1 - from);
-      const response = await client
-        .from("product_prices")
-        .select(selectClause)
-        .order("observed_at", { ascending: false })
-        .range(from, to);
-
-      if (response.error) {
-        return { rows: [], error: response.error.message };
-      }
-
-      const chunk = ((response.data ?? []) as unknown) as PriceRow[];
-      collected.push(...chunk);
-      if (chunk.length < PRICE_PAGE_SIZE) break;
-      if (collected.length >= queryLimit) break;
-      page += 1;
-    }
-
-    return { rows: collected.slice(0, queryLimit), error: null };
+    return {
+      rows: result.data,
+      error: result.error?.message ?? null,
+    };
   }
 
   const withPeriodRows = await fetchPriceRows(PRICE_WITH_PERIOD_SELECT);

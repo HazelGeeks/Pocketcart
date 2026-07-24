@@ -109,7 +109,7 @@ export default function useAdminDashboardData({
     [displayStores.length, priceRowsMissingLink, products.length, stalePriceRows],
   );
 
-  const recentStoreOptions = React.useMemo(() => displayStores.slice(0, 16), [displayStores]);
+  const productFormStoreOptions = displayStores;
   const categoryOptions = React.useMemo(
     () => uniqueValues([...DEFAULT_PRODUCT_CATEGORIES, ...products.map((item) => item.category)]),
     [products],
@@ -429,7 +429,7 @@ export default function useAdminDashboardData({
     productPriceStats,
     productSortOptions,
     productStoreFilterOptions,
-    recentStoreOptions,
+    productFormStoreOptions,
     selectedStoreForMap,
     stalePriceRows,
     storeActiveFilterCount,

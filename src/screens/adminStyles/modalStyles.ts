@@ -256,11 +256,28 @@ export const adminModalStyles = {
     textAlign: "right",
   },
   productImageTopSection: {
-    alignSelf: "flex-start",
     gap: 8,
   },
   productImageTopCopy: {
     gap: 2,
+  },
+  productEditorTopLayout: {
+    width: "100%",
+    minWidth: 0,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    gap: 14,
+  },
+  productImageControls: {
+    width: 180,
+    gap: 8,
+  },
+  productDetailsTopSection: {
+    flex: 1,
+    flexBasis: 360,
+    minWidth: 260,
+    gap: 10,
   },
   modalImagePreview: {
     width: 180,

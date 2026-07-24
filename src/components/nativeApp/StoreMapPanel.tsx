@@ -14,6 +14,7 @@ import Svg, { Circle, Line, Path } from "react-native-svg";
 import type { MarketStore } from "../../services/marketData";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
+import { getStoreBrandLogoKey } from "../../utils/storeBrandLogo";
 
 type StoreMapPanelProps = {
   mapRef: React.RefObject<MapView | null>;
@@ -55,26 +56,12 @@ const STORE_LOGOS = {
   hannamMart: require("../../../assets/store-logos/hannam-mart.png"),
   priceSmart: require("../../../assets/store-logos/pricesmart-foods.png"),
   marketRibbon: require("../../../assets/store-logos/market-ribbon.png"),
+  tAndT: require("../../../assets/store-logos/t-and-t.png"),
 };
 
 function getStoreLogo(store: MarketStore) {
-  const identity = `${store.brand ?? ""} ${store.name}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-
-  if (/(^|\s)h\s*mart(\s|$)/.test(identity)) return STORE_LOGOS.hMart;
-  if (/(^|\s)hannam(?:\s+supermarket|\s+mart)?(\s|$)/.test(identity)) {
-    return STORE_LOGOS.hannamMart;
-  }
-  if (/(^|\s)price\s*smart(\s|$)/.test(identity)) return STORE_LOGOS.priceSmart;
-  if (
-    /(^|\s)market\s+ribbon(\s|$)/.test(identity) ||
-    /(^|\s)ribbon\s+market(\s|$)/.test(identity)
-  ) {
-    return STORE_LOGOS.marketRibbon;
-  }
-  return null;
+  const logoKey = getStoreBrandLogoKey(store);
+  return logoKey ? STORE_LOGOS[logoKey] : null;
 }
 
 function formatDistance(distance: number | null | undefined) {
