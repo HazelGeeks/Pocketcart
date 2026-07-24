@@ -2,6 +2,7 @@ import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { FALLBACK_PRICE_HISTORY, FALLBACK_PRODUCTS } from "./fallbacks";
 import { parseNumber } from "./shared";
 import type { MarketPricePoint, MarketStorePrice, PriceRow, ServiceResult } from "./types";
+import { collectPagedRows } from "../../utils/paginatedQuery";
 
 type PriceDeltaInfo = {
   previousPrice: number | null;
@@ -13,6 +14,8 @@ type PriceRowWithMeta = PriceRow & {
   price: number;
   priceSession: string;
 };
+
+type QueryError = { message: string };
 
 function isMissingPriceQueryColumnError(error: string | null | undefined): boolean {
   const text = (error ?? "").toLowerCase();
@@ -260,11 +263,20 @@ export async function listProductPriceSummaries(): Promise<ServiceResult<Map<str
   const client = supabase;
 
   async function fetchSummaryRows(selectClause: string, orderByValidFrom: boolean) {
-    let query = client.from("product_prices").select(selectClause);
-    if (orderByValidFrom) {
-      query = query.order("valid_from", { ascending: false });
-    }
-    return query.order("observed_at", { ascending: false }).limit(5000);
+    return collectPagedRows<PriceRow, QueryError>(async (from, to) => {
+      let query = client.from("product_prices").select(selectClause);
+      if (orderByValidFrom) {
+        query = query.order("valid_from", { ascending: false });
+      }
+      const response = await query
+        .order("observed_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to);
+      return {
+        data: ((response.data ?? []) as unknown) as PriceRow[],
+        error: response.error,
+      };
+    });
   }
 
   let response = await fetchSummaryRows(
@@ -288,7 +300,7 @@ export async function listProductPriceSummaries(): Promise<ServiceResult<Map<str
     return { data: new Map(), error: response.error.message };
   }
 
-  const rows = (((response.data ?? []) as unknown) as PriceRow[])
+  const rows = response.data
     .map(rowToMeta)
     .filter((row): row is PriceRowWithMeta => row !== null);
 
@@ -423,14 +435,23 @@ export async function listLatestStorePricesForProduct(
   const client = supabase;
 
   async function fetchStorePriceRows(selectClause: string, orderByValidFrom: boolean) {
-    let query = client
-      .from("product_prices")
-      .select(selectClause)
-      .eq("product_id", productId);
-    if (orderByValidFrom) {
-      query = query.order("valid_from", { ascending: false });
-    }
-    return query.order("observed_at", { ascending: false }).limit(300);
+    return collectPagedRows<PriceRow, QueryError>(async (from, to) => {
+      let query = client
+        .from("product_prices")
+        .select(selectClause)
+        .eq("product_id", productId);
+      if (orderByValidFrom) {
+        query = query.order("valid_from", { ascending: false });
+      }
+      const response = await query
+        .order("observed_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to);
+      return {
+        data: ((response.data ?? []) as unknown) as PriceRow[],
+        error: response.error,
+      };
+    });
   }
 
   let response = await fetchStorePriceRows(
@@ -454,7 +475,7 @@ export async function listLatestStorePricesForProduct(
     return { data: [], error: response.error.message };
   }
 
-  const rows = (((response.data ?? []) as unknown) as PriceRow[]).map(rowToMeta).filter((row): row is PriceRowWithMeta => row !== null);
+  const rows = response.data.map(rowToMeta).filter((row): row is PriceRowWithMeta => row !== null);
   const currentSession = getCurrentSaleSession(rows);
   const previousSession = getPreviousVisibleSession(rows, currentSession);
   if (!currentSession) {

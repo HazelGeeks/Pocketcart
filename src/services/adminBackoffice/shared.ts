@@ -90,7 +90,7 @@ export function userFromAuth(user: User | null): AdminUser | null {
   };
 }
 
-export function joinedName(value: JoinedName | undefined): string | null {
+function joinedName(value: JoinedName | undefined): string | null {
   if (!value) return null;
   if (Array.isArray(value)) return value[0]?.name ?? null;
   return value.name ?? null;

@@ -31,7 +31,7 @@ type ServiceResult<T> = {
   error: string | null;
 };
 
-export const adminQueryKeys = {
+const adminQueryKeys = {
   user: ["admin", "user"] as const,
   products: ["admin", "products"] as const,
   stores: ["admin", "stores"] as const,

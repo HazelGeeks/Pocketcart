@@ -1,4 +1,4 @@
-export type StoreImportStatus = "ready" | "duplicate" | "invalid";
+type StoreImportStatus = "ready" | "duplicate" | "invalid";
 
 export type StoreImportPreviewInput = {
   id?: string;
@@ -42,7 +42,7 @@ const STORE_IMPORT_HEADERS = {
   isActive: ["is_active", "active", "status", "활성", "상태"],
 };
 
-export function isDateOnly(value: string): boolean {
+function isDateOnly(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value.trim());
 }
 
@@ -123,7 +123,7 @@ export function csvRowValue(row: Record<string, string>, aliases: string[]): str
   return "";
 }
 
-export function parseStoreActive(value: string): boolean {
+function parseStoreActive(value: string): boolean {
   const normalized = value.trim().toLowerCase();
   if (["false", "0", "no", "inactive", "disabled", "비활성"].includes(normalized)) return false;
   return true;
@@ -135,66 +135,6 @@ export function coordinateValidationMessage(latitude: string, longitude: string)
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "Latitude and longitude must be valid numbers.";
   if (lat < -90 || lat > 90) return "Latitude must be between -90 and 90.";
   if (lng < -180 || lng > 180) return "Longitude must be between -180 and 180.";
-  return null;
-}
-
-export function validateProductInput(params: {
-  name: string;
-  category: string;
-}): string | null {
-  if (!params.name.trim() || !params.category.trim()) {
-    return "Product name and category are required.";
-  }
-  return null;
-}
-
-export function validateStoreInput(
-  params: {
-    brand?: string;
-    name: string;
-    latitude: string;
-    longitude: string;
-  },
-  existingStores: StoreImportPreviewInput[] = [],
-  editingStoreId?: string | null,
-): string | null {
-  const name = params.name.trim();
-  if (!name || !params.latitude.trim() || !params.longitude.trim()) {
-    return "Branch name, latitude, and longitude are required.";
-  }
-  const coordinateError = coordinateValidationMessage(params.latitude, params.longitude);
-  if (coordinateError) return coordinateError;
-
-  const duplicate = existingStores.find((store) => {
-    if (editingStoreId && "id" in store && store.id === editingStoreId) return false;
-    const existingBrand = store.brand?.trim().toLowerCase() ?? "";
-    const inputBrand = "brand" in params && typeof params.brand === "string"
-      ? params.brand.trim().toLowerCase()
-      : "";
-    return existingBrand === inputBrand &&
-      store.name.trim().toLowerCase() === name.toLowerCase();
-  });
-  if (duplicate) return "A store with the same brand and branch already exists.";
-  return null;
-}
-
-export function validatePriceEntryInput(params: {
-  productId: string;
-  storeId: string;
-  price: string;
-  validFrom?: string;
-  validTo?: string;
-}): string | null {
-  if (!params.productId.trim() || !params.storeId.trim() || !params.price.trim()) {
-    return "Product, store, and price are required.";
-  }
-  const price = Number(params.price);
-  if (!Number.isFinite(price) || price < 0) return "Price must be a valid non-negative number.";
-  if (!params.validFrom?.trim() || !params.validTo?.trim()) {
-    return "Sale period start and end dates are required.";
-  }
-  if (params.validFrom && !dateOnlyToIso(params.validFrom, false)) return "Valid from must be a valid date.";
-  if (params.validTo && !dateOnlyToIso(params.validTo, true)) return "Valid to must be a valid date.";
   return null;
 }
 

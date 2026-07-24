@@ -58,7 +58,7 @@ function normalizeImageBox(row: Record<string, unknown>): FlyerCropCandidate | n
   };
 }
 
-export function normalizeFlyerAiRow(row: Partial<FlyerRow> & Record<string, unknown>): FlyerRow {
+function normalizeFlyerAiRow(row: Partial<FlyerRow> & Record<string, unknown>): FlyerRow {
   const cropCandidate = normalizeImageBox(row);
   return createFlyerRow({
     selected: typeof row.selected === "boolean" ? row.selected : true,

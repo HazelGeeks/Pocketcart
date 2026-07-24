@@ -4,7 +4,7 @@ export type AdminMenuKey = "overview" | "products" | "stores" | "flyer";
 
 export type ProductSortKey = "latest" | "oldest" | "name" | "priceLow" | "priceHigh";
 
-export type FlyerImageStatus = "none" | "candidate" | "ready" | "saving" | "saved" | "error";
+type FlyerImageStatus = "none" | "candidate" | "ready" | "saving" | "saved" | "error";
 
 export type FlyerCropCandidate = {
   pageIndex: number;

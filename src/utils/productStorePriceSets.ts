@@ -2,7 +2,7 @@ import { dateOnlyToIso } from "./adminValidation";
 import type { StorePriceSetInput } from "./adminScreenHelpers";
 import type { AdminStore } from "../services/adminBackoffice";
 
-export type ActiveStorePriceSet = {
+type ActiveStorePriceSet = {
   id: string;
   row: number;
   brand: string;

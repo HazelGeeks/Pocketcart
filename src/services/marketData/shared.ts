@@ -1,12 +1,4 @@
-import type { MarketProduct, MarketStore, ServiceResult } from "./types";
-
-export function missingEnvResult<T>(fallback: T): ServiceResult<T> {
-  return {
-    data: fallback,
-    error:
-      "Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.",
-  };
-}
+import type { MarketProduct, MarketStore } from "./types";
 
 export function parseNumber(value: number | string | null | undefined): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -36,11 +28,20 @@ export function matchesProductFilter(
 }
 
 export function matchesStoreFilter(store: MarketStore, search?: string): boolean {
-  const q = search?.trim().toLowerCase() ?? "";
+  const q = normalizeStoreSearchText(search);
   if (!q) return true;
-  return `${store.brand ?? ""} ${store.name} ${store.area} ${store.price_note ?? ""}`
+  return normalizeStoreSearchText(
+    `${store.brand ?? ""} ${store.name} ${store.area} ${store.price_note ?? ""}`,
+  ).includes(q);
+}
+
+function normalizeStoreSearchText(value?: string | null): string {
+  return (value ?? "")
+    .trim()
     .toLowerCase()
-    .includes(q);
+    .replace(/[^a-z0-9\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function calculateHaversineDistanceKm(
