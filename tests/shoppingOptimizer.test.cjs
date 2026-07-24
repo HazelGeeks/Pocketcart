@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  buildShoppingCoverageSummary,
   buildShoppingRecommendation,
 } = require("../.tmp-tests/utils/shoppingOptimizer.js");
 
@@ -140,4 +141,24 @@ test("shopping optimizer prefers a single store when a split plan ties", () => {
   assert.equal(result.bestSplit.total, 2);
   assert.equal(result.recommended.kind, "single");
   assert.equal(result.recommended.stops[0].storeId, "b");
+});
+
+test("shopping coverage copy labels incomplete totals as priced subtotals", () => {
+  assert.deepEqual(buildShoppingCoverageSummary(4, 1), {
+    isPartial: true,
+    pricedCount: 3,
+    eyebrow: "PARTIAL ESTIMATE · 3 OF 4 ITEMS PRICED",
+    subtotalSuffix: " priced subtotal",
+    warning: "1 item has no current tracked price. The subtotal above excludes it.",
+  });
+});
+
+test("shopping coverage copy keeps complete recommendations unchanged", () => {
+  assert.deepEqual(buildShoppingCoverageSummary(3, 0), {
+    isPartial: false,
+    pricedCount: 3,
+    eyebrow: "RECOMMENDED PLAN",
+    subtotalSuffix: "",
+    warning: null,
+  });
 });

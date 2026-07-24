@@ -4,6 +4,8 @@ const assert = require("node:assert/strict");
 const {
   addShoppingListProduct,
   changeShoppingListQuantity,
+  mergeShoppingListItems,
+  mergeShoppingListItemSources,
   normalizeShoppingListItems,
   removeShoppingListProduct,
 } = require("../.tmp-tests/utils/shoppingListState.js");
@@ -20,6 +22,9 @@ const {
 const {
   settleLatestListResults,
 } = require("../.tmp-tests/utils/asyncRequestResults.js");
+const {
+  isPushRegistrationReady,
+} = require("../.tmp-tests/utils/pushRegistrationState.js");
 
 test("shopping-list normalization rejects non-lists and malformed rows", () => {
   assert.deepEqual(normalizeShoppingListItems(null), []);
@@ -65,6 +70,39 @@ test("shopping-list operations leave unrelated items intact", () => {
 
   assert.deepEqual(changeShoppingListQuantity(items, "missing", 1), items);
   assert.deepEqual(removeShoppingListProduct(items, "missing"), items);
+});
+
+test("shopping-list merge keeps remote items and guest quantities", () => {
+  assert.deepEqual(mergeShoppingListItems(
+    [
+      { productId: "milk", name: "Fresh Milk", unit: "1 L", quantity: 3 },
+      { productId: "eggs", name: "Eggs", unit: "12 pack", quantity: 1 },
+    ],
+    [
+      { productId: "milk", name: "Milk", unit: null, quantity: 1 },
+      { productId: "bread", name: "Bread", unit: null, quantity: 2 },
+    ],
+  ), [
+    { productId: "milk", name: "Fresh Milk", unit: "1 L", quantity: 3 },
+    { productId: "bread", name: "Bread", unit: null, quantity: 2 },
+    { productId: "eggs", name: "Eggs", unit: "12 pack", quantity: 1 },
+  ]);
+});
+
+test("shopping-list hydration keeps legacy, guest, in-memory, and account items", () => {
+  const legacy = [{ productId: "legacy", name: "Legacy", unit: null, quantity: 1 }];
+  const guest = [{ productId: "guest", name: "Guest", unit: "ea", quantity: 1 }];
+  const inMemory = [{ productId: "guest", name: "Guest", unit: "ea", quantity: 3 }];
+  const account = [{ productId: "account", name: "Account", unit: "lb", quantity: 1 }];
+
+  assert.deepEqual(
+    mergeShoppingListItemSources(legacy, guest, inMemory, account),
+    [
+      { productId: "account", name: "Account", unit: "lb", quantity: 1 },
+      { productId: "guest", name: "Guest", unit: "ea", quantity: 3 },
+      { productId: "legacy", name: "Legacy", unit: null, quantity: 1 },
+    ],
+  );
 });
 
 test("profile-preference normalization keeps only supported values", () => {
@@ -204,4 +242,27 @@ test("latest list result settlement clears an old error after a clean response",
     data: [{ id: "fresh" }],
     message: null,
   });
+});
+
+test("push alerts require permission, a persisted registration, and a token", () => {
+  assert.equal(isPushRegistrationReady({
+    granted: true,
+    registered: false,
+    token: null,
+  }), false);
+  assert.equal(isPushRegistrationReady({
+    granted: true,
+    registered: false,
+    token: "ExponentPushToken[unlinked]",
+  }), false);
+  assert.equal(isPushRegistrationReady({
+    granted: false,
+    registered: true,
+    token: "ExponentPushToken[denied]",
+  }), false);
+  assert.equal(isPushRegistrationReady({
+    granted: true,
+    registered: true,
+    token: "ExponentPushToken[ready]",
+  }), true);
 });

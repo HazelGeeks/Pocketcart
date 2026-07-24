@@ -3,8 +3,9 @@ import * as Notifications from "expo-notifications";
 import { hasSupabaseEnv, supabase, supabaseAnonKey, supabaseUrl } from "./supabaseClient";
 import type { SaleAlert } from "./saleAlerts";
 
-type PushRegistrationResult = {
+export type PushRegistrationResult = {
   granted: boolean;
+  registered: boolean;
   token: string | null;
   message: string | null;
 };
@@ -64,6 +65,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
   if (Platform.OS === "web") {
     return {
       granted: false,
+      registered: false,
       token: null,
       message: "Native push notifications are available in the iOS/Android app.",
     };
@@ -79,6 +81,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
   if (!hasNotificationPermission(finalPermission)) {
     return {
       granted: false,
+      registered: false,
       token: null,
       message: "Notification permission denied. You can enable it later in system settings.",
     };
@@ -99,6 +102,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
   } catch (error) {
     return {
       granted: true,
+      registered: false,
       token: null,
       message: error instanceof Error ? error.message : "Unable to create Expo push token.",
     };
@@ -108,6 +112,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
   if (!userId) {
     return {
       granted: true,
+      registered: false,
       token,
       message: userError ?? "Sign in to link push alerts to this device.",
     };
@@ -130,6 +135,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
   if (error) {
     return {
       granted: true,
+      registered: false,
       token,
       message: error.message.includes("user_push_tokens")
         ? "Push token table is missing. Run the user_push_tokens migration in Supabase."
@@ -139,6 +145,7 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
 
   return {
     granted: true,
+    registered: true,
     token,
     message: "Push sale alerts are enabled for this device.",
   };

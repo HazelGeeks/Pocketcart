@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
+import {
+  deliverPushAlerts,
+  type PushTokenRecord,
+} from "../_shared/pushDelivery.ts";
 
 type SaleAlertRow = {
   id: string;
@@ -6,11 +10,6 @@ type SaleAlertRow = {
   title: string;
   body: string;
   push_sent_at: string | null;
-};
-
-type PushTokenRow = {
-  user_id: string;
-  token: string;
 };
 
 const corsHeaders = {
@@ -35,24 +34,6 @@ function bearerToken(request: Request): string {
 
 function uniqueStrings(values: unknown[]): string[] {
   return Array.from(new Set(values.filter((value): value is string => typeof value === "string" && value.trim().length > 0)));
-}
-
-async function sendExpoPush(messages: Array<Record<string, unknown>>) {
-  if (messages.length === 0) return [];
-  const response = await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Encoding": "gzip, deflate",
-    },
-    body: JSON.stringify(messages),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(typeof payload?.errors?.[0]?.message === "string" ? payload.errors[0].message : `Expo push failed with ${response.status}.`);
-  }
-  return Array.isArray(payload?.data) ? payload.data : [];
 }
 
 Deno.serve(async (request) => {
@@ -106,48 +87,28 @@ Deno.serve(async (request) => {
   const userIds = uniqueStrings(alerts.map((alert) => alert.user_id));
   const { data: tokenRows, error: tokenError } = await adminClient
     .from("user_push_tokens")
-    .select("user_id, token")
+    .select("id, user_id, token")
     .in("user_id", userIds)
     .eq("enabled", true);
   if (tokenError) return jsonResponse({ error: tokenError.message }, 500);
 
-  const tokensByUser = new Map<string, string[]>();
-  ((tokenRows ?? []) as PushTokenRow[]).forEach((row) => {
-    const tokens = tokensByUser.get(row.user_id) ?? [];
-    tokens.push(row.token);
-    tokensByUser.set(row.user_id, tokens);
-  });
-
-  const messages = alerts.flatMap((alert) =>
-    (tokensByUser.get(alert.user_id) ?? []).map((token) => ({
-      to: token,
-      sound: "default",
-      title: alert.title,
-      body: alert.body,
-      data: {
-        alertId: alert.id,
-        route: "alerts",
-      },
-    })),
-  );
-
-  const tickets = await sendExpoPush(messages);
-  const sentAt = new Date().toISOString();
-  const sentAlertIds = alerts
-    .filter((alert) => (tokensByUser.get(alert.user_id) ?? []).length > 0)
-    .map((alert) => alert.id);
-
-  if (sentAlertIds.length > 0) {
-    await adminClient
-      .from("sale_alerts")
-      .update({ push_sent_at: sentAt })
-      .in("id", sentAlertIds);
+  const pushTokens = (tokenRows ?? []) as PushTokenRecord[];
+  let delivery;
+  try {
+    delivery = await deliverPushAlerts(adminClient, alerts, pushTokens);
+  } catch (error) {
+    return jsonResponse({
+      error: error instanceof Error ? error.message : "Push delivery failed.",
+    }, 500);
   }
 
-  return jsonResponse({
-    sent: messages.length,
-    alerts: sentAlertIds.length,
-    skipped: alerts.length - sentAlertIds.length,
-    tickets,
-  });
+  const responseBody = {
+    ...delivery,
+    skipped: alerts.length - delivery.alerts,
+  };
+
+  return jsonResponse(
+    responseBody,
+    delivery.attempted > 0 && delivery.sent === 0 ? 502 : 200,
+  );
 });

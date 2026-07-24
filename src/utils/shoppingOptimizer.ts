@@ -12,7 +12,7 @@ export type ShoppingPrice = {
   price: number;
 };
 
-export type ShoppingPlanItem = {
+type ShoppingPlanItem = {
   productId: string;
   name: string;
   quantity: number;
@@ -20,7 +20,7 @@ export type ShoppingPlanItem = {
   total: number;
 };
 
-export type ShoppingPlanStop = {
+type ShoppingPlanStop = {
   storeId: string;
   storeName: string;
   storeArea: string | null;
@@ -41,9 +41,39 @@ export type ShoppingRecommendation = {
   unpricedProductIds: string[];
 };
 
+export type ShoppingCoverageSummary = {
+  isPartial: boolean;
+  pricedCount: number;
+  eyebrow: string;
+  subtotalSuffix: string;
+  warning: string | null;
+};
+
 type StoreInfo = Pick<ShoppingPrice, "storeId" | "storeName" | "storeArea">;
 
 const roundMoney = (value: number): number => Math.round(value * 100) / 100;
+
+export function buildShoppingCoverageSummary(
+  totalItems: number,
+  unpricedCount: number,
+): ShoppingCoverageSummary {
+  const safeTotal = Math.max(0, Math.round(totalItems));
+  const safeUnpriced = Math.max(0, Math.min(safeTotal, Math.round(unpricedCount)));
+  const pricedCount = safeTotal - safeUnpriced;
+  const isPartial = safeUnpriced > 0;
+
+  return {
+    isPartial,
+    pricedCount,
+    eyebrow: isPartial
+      ? `PARTIAL ESTIMATE · ${pricedCount} OF ${safeTotal} ITEMS PRICED`
+      : "RECOMMENDED PLAN",
+    subtotalSuffix: isPartial ? " priced subtotal" : "",
+    warning: isPartial
+      ? `${safeUnpriced} ${safeUnpriced === 1 ? "item has" : "items have"} no current tracked price. The subtotal above excludes ${safeUnpriced === 1 ? "it" : "them"}.`
+      : null,
+  };
+}
 
 export function buildShoppingRecommendation(
   entries: ShoppingListEntry[],

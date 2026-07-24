@@ -66,3 +66,36 @@ export function removeShoppingListProduct(
 ): ShoppingListItem[] {
   return items.filter((item) => item.productId !== productId);
 }
+
+export function mergeShoppingListItems(
+  localItems: ShoppingListItem[],
+  remoteItems: ShoppingListItem[],
+): ShoppingListItem[] {
+  const merged = new Map<string, ShoppingListItem>();
+
+  for (const item of [...remoteItems, ...localItems]) {
+    const current = merged.get(item.productId);
+    if (!current) {
+      merged.set(item.productId, item);
+      continue;
+    }
+
+    merged.set(item.productId, {
+      productId: item.productId,
+      name: item.name || current.name,
+      unit: item.unit ?? current.unit,
+      quantity: Math.max(current.quantity, item.quantity),
+    });
+  }
+
+  return [...merged.values()];
+}
+
+export function mergeShoppingListItemSources(
+  ...sources: ShoppingListItem[][]
+): ShoppingListItem[] {
+  return sources.reduce(
+    (merged, source) => mergeShoppingListItems(merged, source),
+    [],
+  );
+}

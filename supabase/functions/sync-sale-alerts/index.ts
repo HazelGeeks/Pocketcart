@@ -1,4 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
+import {
+  deliverPushAlerts,
+  reconcilePushReceipts,
+  type PushTokenRecord,
+  type ReceiptSyncResult,
+} from "../_shared/pushDelivery.ts";
 
 type WatchlistRow = {
   id: string;
@@ -41,11 +47,6 @@ type SaleAlertRow = {
   title: string;
   body: string;
   push_sent_at: string | null;
-};
-
-type PushTokenRow = {
-  user_id: string;
-  token: string;
 };
 
 type AlertPayload = {
@@ -219,28 +220,6 @@ function buildAlertPayload(params: {
   };
 }
 
-async function sendExpoPush(messages: Array<Record<string, unknown>>) {
-  if (messages.length === 0) return [];
-  const response = await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Encoding": "gzip, deflate",
-    },
-    body: JSON.stringify(messages),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(
-      typeof payload?.errors?.[0]?.message === "string"
-        ? payload.errors[0].message
-        : `Expo push failed with ${response.status}.`,
-    );
-  }
-  return Array.isArray(payload?.data) ? payload.data : [];
-}
-
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed." }, 405);
@@ -261,6 +240,15 @@ Deno.serve(async (request) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  let receiptSync: ReceiptSyncResult;
+  try {
+    receiptSync = await reconcilePushReceipts(adminClient);
+  } catch (error) {
+    return jsonResponse({
+      error: error instanceof Error ? error.message : "Push receipt sync failed.",
+    }, 502);
+  }
+
   const { data: watchlistRows, error: watchlistError } = await adminClient
     .from("watchlist_items")
     .select("id, user_id, product_id, store_id, name, store")
@@ -271,7 +259,9 @@ Deno.serve(async (request) => {
 
   const watchlistItems = (watchlistRows ?? []) as WatchlistRow[];
   const productIds = uniqueStrings(watchlistItems.map((item) => item.product_id));
-  if (productIds.length === 0) return jsonResponse({ created: 0, sent: 0, skipped: 0 });
+  if (productIds.length === 0) {
+    return jsonResponse({ created: 0, sent: 0, skipped: 0, receipts: receiptSync });
+  }
 
   const [{ data: productRows, error: productError }, { data: priceRows, error: priceError }] =
     await Promise.all([
@@ -337,7 +327,9 @@ Deno.serve(async (request) => {
     );
   }
 
-  if (candidates.length === 0) return jsonResponse({ created: 0, sent: 0, skipped: 0 });
+  if (candidates.length === 0) {
+    return jsonResponse({ created: 0, sent: 0, skipped: 0, receipts: receiptSync });
+  }
 
   const userIds = uniqueStrings(candidates.map((candidate) => candidate.user_id));
   const alertKeys = uniqueStrings(candidates.map((candidate) => candidate.alert_key));
@@ -380,56 +372,38 @@ Deno.serve(async (request) => {
       created: createdAlerts.length,
       sent: 0,
       skipped: candidates.length - payloads.length,
+      receipts: receiptSync,
     });
   }
 
   const pushUserIds = uniqueStrings(alertsToPush.map((alert) => alert.user_id));
   const { data: tokenRows, error: tokenError } = await adminClient
     .from("user_push_tokens")
-    .select("user_id, token")
+    .select("id, user_id, token")
     .in("user_id", pushUserIds)
     .eq("enabled", true);
 
   if (tokenError) return jsonResponse({ error: tokenError.message }, 500);
 
-  const tokensByUser = new Map<string, string[]>();
-  for (const row of (tokenRows ?? []) as PushTokenRow[]) {
-    const tokens = tokensByUser.get(row.user_id) ?? [];
-    tokens.push(row.token);
-    tokensByUser.set(row.user_id, tokens);
+  const pushTokens = (tokenRows ?? []) as PushTokenRecord[];
+  let delivery;
+  try {
+    delivery = await deliverPushAlerts(adminClient, alertsToPush, pushTokens);
+  } catch (error) {
+    return jsonResponse({
+      error: error instanceof Error ? error.message : "Push delivery failed.",
+    }, 500);
   }
 
-  const messages = alertsToPush.flatMap((alert) =>
-    (tokensByUser.get(alert.user_id) ?? []).map((token) => ({
-      to: token,
-      sound: "default",
-      title: alert.title,
-      body: alert.body,
-      data: {
-        alertId: alert.id,
-        route: "alerts",
-      },
-    })),
-  );
-
-  const tickets = await sendExpoPush(messages);
-  const sentAt = new Date().toISOString();
-  const sentAlertIds = alertsToPush
-    .filter((alert) => (tokensByUser.get(alert.user_id) ?? []).length > 0)
-    .map((alert) => alert.id);
-
-  if (sentAlertIds.length > 0) {
-    await adminClient
-      .from("sale_alerts")
-      .update({ push_sent_at: sentAt })
-      .in("id", sentAlertIds);
-  }
-
-  return jsonResponse({
+  const responseBody = {
     created: createdAlerts.length,
-    sent: messages.length,
-    alerts: sentAlertIds.length,
+    ...delivery,
     skipped: candidates.length - payloads.length,
-    tickets,
-  });
+    receipts: receiptSync,
+  };
+
+  return jsonResponse(
+    responseBody,
+    delivery.attempted > 0 && delivery.sent === 0 ? 502 : 200,
+  );
 });

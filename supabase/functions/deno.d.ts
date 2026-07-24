@@ -17,9 +17,14 @@ declare module "https://esm.sh/@supabase/supabase-js@2.106.2" {
   type SupabaseQueryBuilder<T = { id?: string }> = PromiseLike<SupabaseResult<T>> & {
     select(columns?: string): SupabaseQueryBuilder<T>;
     insert(values: Record<string, unknown> | Array<Record<string, unknown>>): SupabaseQueryBuilder<T>;
+    upsert(
+      values: Record<string, unknown> | Array<Record<string, unknown>>,
+      options?: Record<string, unknown>,
+    ): SupabaseQueryBuilder<T>;
     update(values: Record<string, unknown>): SupabaseQueryBuilder<T>;
     delete(): SupabaseQueryBuilder<T>;
     eq(column: string, value: unknown): SupabaseQueryBuilder<T>;
+    lte(column: string, value: unknown): SupabaseQueryBuilder<T>;
     in(column: string, values: unknown[]): SupabaseQueryBuilder<T>;
     is(column: string, value: unknown): SupabaseQueryBuilder<T>;
     not(column: string, operator: string, value: unknown): SupabaseQueryBuilder<T>;
