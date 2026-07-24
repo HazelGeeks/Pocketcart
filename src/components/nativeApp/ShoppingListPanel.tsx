@@ -3,7 +3,11 @@ import { Pressable, Text, View } from "react-native";
 import type { ShoppingListItem } from "../../hooks/useShoppingList";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
-import type { ShoppingPlan, ShoppingRecommendation } from "../../utils/shoppingOptimizer";
+import {
+  buildShoppingCoverageSummary,
+  type ShoppingPlan,
+  type ShoppingRecommendation,
+} from "../../utils/shoppingOptimizer";
 
 type ShoppingListPanelProps = {
   items: ShoppingListItem[];
@@ -29,6 +33,8 @@ export function ShoppingListPanel({
   onOpenStore,
 }: ShoppingListPanelProps) {
   const recommended = recommendation.recommended;
+  const unpricedCount = recommendation.unpricedProductIds.length;
+  const coverage = buildShoppingCoverageSummary(items.length, unpricedCount);
   const singleSavings = recommendation.bestSingle && recommendation.bestSplit
     ? Math.max(0, recommendation.bestSingle.total - recommendation.bestSplit.total)
     : 0;
@@ -49,7 +55,7 @@ export function ShoppingListPanel({
       {items.length === 0 ? (
         <View style={st.shoppingEmptyCard}>
           <Text style={st.itemName}>Build this week's basket</Text>
-          <Text style={st.itemMeta}>Tap “Add to list” on products from Home. Your list stays on this device.</Text>
+          <Text style={st.itemMeta}>Tap “Add to list” on products from Home. Signed-in lists sync across devices.</Text>
         </View>
       ) : (
         <>
@@ -79,9 +85,15 @@ export function ShoppingListPanel({
           <View style={st.shoppingRecommendationCard}>
             <View style={st.shoppingPlanTitleRow}>
               <View>
-                <Text style={st.shoppingEyebrow}>RECOMMENDED PLAN</Text>
+                <Text style={st.shoppingEyebrow}>
+                  {coverage.eyebrow}
+                </Text>
                 <Text style={st.shoppingPlanTitle}>
-                  {loading ? "Checking current prices..." : recommended ? `${recommended.stops.length} ${recommended.stops.length === 1 ? "store" : "stores"} · ${money.format(recommended.total)}` : "Not enough price coverage"}
+                  {loading
+                    ? "Checking current prices..."
+                    : recommended
+                      ? `${recommended.stops.length} ${recommended.stops.length === 1 ? "store" : "stores"} · ${money.format(recommended.total)}${coverage.subtotalSuffix}`
+                      : "Not enough price coverage"}
                 </Text>
               </View>
               <Pressable accessibilityRole="button" onPress={onRefresh} style={st.shoppingRefreshBtn} disabled={loading}>
@@ -97,8 +109,8 @@ export function ShoppingListPanel({
 
             {recommended ? <PlanStops plan={recommended} onOpenStore={onOpenStore} /> : null}
             {message ? <Text style={st.shoppingWarningText}>{message}</Text> : null}
-            {!loading && recommendation.unpricedProductIds.length > 0 ? (
-              <Text style={st.shoppingWarningText}>{recommendation.unpricedProductIds.length} item(s) without a current tracked price are excluded.</Text>
+            {!loading && coverage.warning ? (
+              <Text style={st.shoppingWarningText}>{coverage.warning}</Text>
             ) : null}
           </View>
 

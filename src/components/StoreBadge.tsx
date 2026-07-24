@@ -66,5 +66,3 @@ export function BadgeRow({ center }: { center?: boolean }) {
     </View>
   );
 }
-
-export default StoreBadge;

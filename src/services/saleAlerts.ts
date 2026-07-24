@@ -95,7 +95,7 @@ function candidateToPayload(userId: string, candidate: SaleAlertCandidate) {
   };
 }
 
-export async function listSaleAlerts(): Promise<ServiceResult<SaleAlert[]>> {
+async function listSaleAlerts(): Promise<ServiceResult<SaleAlert[]>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult([]);
 
   const { data: userId, error: userError } = await getAuthedUserId();

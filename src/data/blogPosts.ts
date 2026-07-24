@@ -1,6 +1,6 @@
 import type { Locale } from "../i18n/types";
 
-export type BlogSection = {
+type BlogSection = {
   heading: string;
   paragraphs: string[];
 };

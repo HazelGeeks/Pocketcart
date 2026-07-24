@@ -26,7 +26,7 @@ function unavailableResult(message: string): ServiceResult<SocialAuthResult> {
   };
 }
 
-export async function isAppleSignInAvailable(): Promise<boolean> {
+async function isAppleSignInAvailable(): Promise<boolean> {
   return Platform.OS === "ios" && AppleAuthentication.isAvailableAsync();
 }
 

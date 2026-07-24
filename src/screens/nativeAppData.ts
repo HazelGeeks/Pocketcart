@@ -4,7 +4,7 @@ import type { MarketPricePoint } from "../services/marketData";
 export type NativeTabId = "home" | "watchlist" | "map" | "alerts" | "more";
 export type HomeRoute = "catalog" | "detail";
 
-export type PriceChartPoint = {
+type PriceChartPoint = {
   x: number;
   y: number;
   value: number;

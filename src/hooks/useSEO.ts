@@ -16,7 +16,7 @@ interface SEOConfig {
 
 export const BASE_URL = "https://pocketcart.pages.dev";
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
-export const ROUTE_PATHS: Record<Route, string> = {
+const ROUTE_PATHS: Record<Route, string> = {
   home: "/",
   blog: "/blog",
   privacy: "/privacy",
@@ -130,7 +130,7 @@ export default function useSEO(config: SEOConfig) {
 }
 
 /** Pre-defined SEO configs per route */
-export const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
+const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
   en: {
     home: {
       title: "PocketCart - Smart Price Comparison & Savings App",

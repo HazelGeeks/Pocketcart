@@ -7,8 +7,6 @@ import { productDetailStyles } from "./nativeAppStyles/productDetailStyles";
 import { shoppingListStyles } from "./nativeAppStyles/shoppingListStyles";
 import { storeMapStyles } from "./nativeAppStyles/storeMapStyles";
 
-export { F } from "./nativeAppStyles/fonts";
-
 export const st = {
   ...commonStyles,
   ...accountSettingsStyles,
