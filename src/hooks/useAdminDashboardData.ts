@@ -83,7 +83,7 @@ export default function useAdminDashboardData({
         id: "products",
         label: "Products",
         value: String(products.length),
-        hint: "Full paged catalog",
+        hint: "All saved products",
       },
       {
         id: "stores",
@@ -93,15 +93,15 @@ export default function useAdminDashboardData({
       },
       {
         id: "history",
-        label: "4+ Sessions",
+        label: "4+ Sale Periods",
         value: String(productDataHealth.fourPlusSessions),
-        hint: `${productDataHealth.twoPlusSessions} have 2+ sessions`,
+        hint: `${productDataHealth.twoPlusSessions} have prices from 2+ sale periods`,
       },
       {
         id: "issues",
         label: "Data Issues",
         value: String(toNonNegativeCount(productDataHealth.issueCount)),
-        hint: "Identity, period, links, freshness",
+        hint: "Missing details, dates, links, or recent prices",
       },
     ],
     [displayStores.length, productDataHealth, products.length],

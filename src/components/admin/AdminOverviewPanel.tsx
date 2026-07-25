@@ -33,10 +33,10 @@ type AdminOverviewPanelProps = {
 
 function reviewReasonLabel(reason: string): string {
   if (reason === "ambiguous_product_match") return "Multiple possible products";
-  if (reason === "ambiguous_manual_product_match") return "Manual entry matches multiple products";
-  if (reason === "product_id_not_found") return "Product ID was not found";
-  if (reason === "gtin_conflict") return "GTIN conflicts with the saved product";
-  if (reason === "invalid_gtin") return "GTIN format or check digit is invalid";
+  if (reason === "ambiguous_manual_product_match") return "This entry may match multiple products";
+  if (reason === "product_id_not_found") return "The linked product was not found";
+  if (reason === "gtin_conflict") return "Barcode number does not match the saved product";
+  if (reason === "invalid_gtin") return "Barcode number is invalid";
   if (reason === "existing_duplicate_candidates") return "Existing products may be duplicates";
   return reason.replace(/_/g, " ");
 }
@@ -76,13 +76,13 @@ export default function AdminOverviewPanel({
       <View style={st.dataCard}>
         <View style={st.dataCardHeader}>
           <View>
-            <Text style={st.dataCardTitle}>Database Readiness</Text>
+            <Text style={st.dataCardTitle}>System Setup</Text>
             <Text style={st.dataMuted}>
               {schemaReadinessLoading
-                ? "Checking required tables and columns…"
+                ? "Checking the required product and price information…"
                 : schemaReadiness?.ready
-                  ? "All required product, history, review, and My stores schemas are ready."
-                  : "One or more required migrations still need attention."}
+                  ? "All required product, price history, review, and My Stores information is ready."
+                  : "One or more required system updates still need attention."}
             </Text>
           </View>
           <Text
@@ -128,7 +128,7 @@ export default function AdminOverviewPanel({
                 Products need review · {productIdentityReviews.length}
               </Text>
               <Text style={st.productReviewDescription}>
-                These CSV rows were not imported because the product identity was uncertain.
+                These spreadsheet rows were not added because they could not be confidently matched to a product.
               </Text>
             </View>
             <Pressable
@@ -145,7 +145,7 @@ export default function AdminOverviewPanel({
               const productName =
                 payloadText(review, "name") ??
                 payloadText(review, "english_name") ??
-                "Unnamed CSV product";
+                "Unnamed spreadsheet product";
               const unit = payloadText(review, "unit");
               const brand = payloadText(review, "product_brand");
               const resolving = resolvingReviewId === review.id;
@@ -161,11 +161,11 @@ export default function AdminOverviewPanel({
                     <Text style={st.productReviewReason}>
                       {reviewReasonLabel(review.reason)}
                       {review.candidate_count > 1
-                        ? ` · ${review.candidate_count} candidates`
+                        ? ` · ${review.candidate_count} possible matches`
                         : ""}
                     </Text>
                     <Text style={st.dataMuted}>
-                      {[brand, unit, review.row_number ? `CSV row ${review.row_number}` : null]
+                      {[brand, unit, review.row_number ? `Spreadsheet row ${review.row_number}` : null]
                         .filter(Boolean)
                         .join(" · ")}
                     </Text>
@@ -235,9 +235,9 @@ export default function AdminOverviewPanel({
       <View style={st.dataHealthCard}>
         <View style={st.dataCardHeader}>
           <View style={st.dataHealthHeading}>
-            <Text style={st.dataCardTitle}>Price History Coverage</Text>
+            <Text style={st.dataCardTitle}>Price History Progress</Text>
             <Text style={st.dataMuted}>
-              Build at least four sale sessions for the same product before treating its graph as a useful trend.
+              Record prices from at least four different sale periods for each product to show a useful price trend.
             </Text>
           </View>
           <Pressable
@@ -252,7 +252,7 @@ export default function AdminOverviewPanel({
         <View style={st.dataHealthProgressHeader}>
           <Text style={st.dataHealthProgressValue}>{historyProgress}%</Text>
           <Text style={st.dataMuted}>
-            {productDataHealth.fourPlusSessions} of {productDataHealth.totalProducts} products have 4+ sessions
+            {productDataHealth.fourPlusSessions} of {productDataHealth.totalProducts} products have prices from 4 or more sale periods
           </Text>
         </View>
         <View style={st.dataHealthProgressTrack}>
@@ -266,14 +266,14 @@ export default function AdminOverviewPanel({
 
         <View style={st.dataHealthMetricGrid}>
           {[
-            ["No history", productDataHealth.noHistory],
-            ["1 session", productDataHealth.oneSession],
-            ["2+ sessions", productDataHealth.twoPlusSessions],
-            ["4+ sessions", productDataHealth.fourPlusSessions],
-            ["8+ sessions", productDataHealth.eightPlusSessions],
-            ["Comparable store sessions", productDataHealth.comparableMultiStoreSessions],
-            ["Cross-brand sessions", productDataHealth.comparableMultiBrandSessions],
-            ["Store price differences", productDataHealth.crossStorePriceDifferenceSessions],
+            ["No price history", productDataHealth.noHistory],
+            ["1 sale period", productDataHealth.oneSession],
+            ["2+ sale periods", productDataHealth.twoPlusSessions],
+            ["4+ sale periods", productDataHealth.fourPlusSessions],
+            ["8+ sale periods", productDataHealth.eightPlusSessions],
+            ["Compared at 2+ stores", productDataHealth.comparableMultiStoreSessions],
+            ["Compared across 2+ grocery chains", productDataHealth.comparableMultiBrandSessions],
+            ["Sales with different store prices", productDataHealth.crossStorePriceDifferenceSessions],
           ].map(([label, value]) => (
             <View key={String(label)} style={st.dataHealthMetric}>
               <Text style={st.dataHealthMetricValue}>{value}</Text>
@@ -283,38 +283,38 @@ export default function AdminOverviewPanel({
         </View>
 
         <View style={st.dataHealthIssueRow}>
-          <Text style={st.dataHealthIssueText}>Missing GTIN · {productDataHealth.missingGtin}</Text>
-          <Text style={st.dataHealthIssueText}>Missing product brand · {productDataHealth.missingBrand}</Text>
-          <Text style={st.dataHealthIssueText}>Invalid GTIN · {productDataHealth.invalidGtin}</Text>
-          <Text style={st.dataHealthIssueText}>Missing unit · {productDataHealth.missingUnit}</Text>
+          <Text style={st.dataHealthIssueText}>No barcode number · {productDataHealth.missingGtin}</Text>
+          <Text style={st.dataHealthIssueText}>No product brand name · {productDataHealth.missingBrand}</Text>
+          <Text style={st.dataHealthIssueText}>Barcode number needs correction · {productDataHealth.invalidGtin}</Text>
+          <Text style={st.dataHealthIssueText}>No package size or unit · {productDataHealth.missingUnit}</Text>
           <Text style={st.dataHealthIssueText}>
-            Missing sale period · {productDataHealth.missingSalePeriodRows}
+            Missing sale dates · {productDataHealth.missingSalePeriodRows}
           </Text>
           <Text style={st.dataHealthIssueText}>
-            Unlinked price rows · {productDataHealth.unlinkedPriceRows}
+            Price not linked to a product or store · {productDataHealth.unlinkedPriceRows}
           </Text>
-          <Text style={st.dataHealthIssueText}>Stale products · {productDataHealth.staleProducts}</Text>
+          <Text style={st.dataHealthIssueText}>Not updated in 30+ days · {productDataHealth.staleProducts}</Text>
         </View>
         <Text style={st.dataMuted}>
           {productDataHealth.comparableMultiBrandSessions === 0
-            ? "No same-period cross-brand comparisons exist yet. This is expected until the same product overlaps at chains such as T&T and H-Mart."
+            ? "No product has prices from two or more grocery chains for the same sale dates yet. Prices from every grocery chain are included, not only T&T and H Mart."
             : productDataHealth.crossStorePriceDifferenceSessions === 0
-              ? `${productDataHealth.comparableMultiBrandSessions} same-period cross-brand sessions exist, but their prices are currently identical.`
-              : `${productDataHealth.crossStorePriceDifferenceSessions} sessions contain a store price difference; ${productDataHealth.comparableMultiBrandSessions} sessions span multiple store brands.`}
+              ? `${productDataHealth.comparableMultiBrandSessions} sale periods include prices from two or more grocery chains, but the prices are the same.`
+              : `${productDataHealth.crossStorePriceDifferenceSessions} sale periods have different store prices. ${productDataHealth.comparableMultiBrandSessions} sale periods include two or more grocery chains.`}
         </Text>
 
         <View style={st.dataHealthQueueHeader}>
           <View>
-            <Text style={st.dataCardTitle}>Next History Collection Queue</Text>
+            <Text style={st.dataCardTitle}>Products Needing More Price History</Text>
             <Text style={st.dataMuted}>
-              Up to 100 products, prioritizing active sales closest to the four-session target.
+              Shows up to 100 products. Current sale products closest to four sale periods appear first.
             </Text>
           </View>
-          <Text style={st.dataMeta}>{productDataHealth.collectionQueue.length} queued</Text>
+          <Text style={st.dataMeta}>{productDataHealth.collectionQueue.length} products</Text>
         </View>
 
         {productDataHealth.collectionQueue.length === 0 ? (
-          <Text style={st.dataMuted}>Every tracked product has at least four sale sessions.</Text>
+          <Text style={st.dataMuted}>Every product has prices from at least four sale periods.</Text>
         ) : (
           <View style={st.dataHealthQueue}>
             {productDataHealth.collectionQueue.slice(0, 10).map((item) => (
@@ -324,22 +324,22 @@ export default function AdminOverviewPanel({
                   <Text style={st.dataMuted}>
                     {item.activeNow ? "Active sale" : "No active sale"}
                     {item.latestSessionAt
-                      ? ` · Latest ${toDateOnlyLabel(item.latestSessionAt)}`
-                      : " · Never tracked"}
+                      ? ` · Latest sale period ${toDateOnlyLabel(item.latestSessionAt)}`
+                      : " · No price history"}
                   </Text>
                 </View>
                 <View style={st.dataHealthQueueStatus}>
                   <Text style={st.dataHealthSessionBadge}>
-                    {item.sessionCount}/4 sessions
+                    {item.sessionCount}/4 sale periods
                   </Text>
                   {item.missingGtin || item.missingBrand || item.invalidGtin || item.missingUnit ? (
                     <Text style={st.dataHealthIdentityWarning}>
                       {[
-                        item.missingGtin ? "Missing GTIN" : null,
-                        item.missingBrand ? "Missing brand" : null,
-                        item.invalidGtin ? "Invalid GTIN" : null,
-                        item.missingUnit ? "Missing unit" : null,
-                      ].filter(Boolean).join(" + ")}
+                        item.missingGtin ? "No barcode number" : null,
+                        item.missingBrand ? "No brand name" : null,
+                        item.invalidGtin ? "Barcode needs correction" : null,
+                        item.missingUnit ? "No size or unit" : null,
+                      ].filter(Boolean).join(" · ")}
                     </Text>
                   ) : null}
                 </View>

@@ -16,7 +16,7 @@ type SchemaProbe = {
 const SCHEMA_PROBES: SchemaProbe[] = [
   {
     id: "product_identity",
-    label: "Product identity",
+    label: "Product details",
     table: "products",
     columns: "id,brand,gtin",
   },
@@ -28,7 +28,7 @@ const SCHEMA_PROBES: SchemaProbe[] = [
   },
   {
     id: "identity_reviews",
-    label: "Identity review queue",
+    label: "Products needing review",
     table: "product_identity_reviews",
     columns: "id,status,candidate_product_ids,resolved_product_id,resolution_action",
   },
@@ -72,7 +72,7 @@ export async function getAdminSchemaReadiness(): Promise<
   );
   checks.push({
     id: "price_summary_rpc",
-    label: "Price summary RPC",
+    label: "Price summaries",
     ready: !priceSummaryError,
     detail: priceSummaryError?.message ?? null,
   });
