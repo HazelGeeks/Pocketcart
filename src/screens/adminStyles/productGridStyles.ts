@@ -155,7 +155,23 @@ export const adminProductGridStyles: Record<string, any> = {
     borderColor: "#e3e8f1",
     paddingHorizontal: 9,
     paddingVertical: 7,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  productGridSalePeriod: {
+    flexShrink: 0,
     gap: 2,
+  },
+  productGridSaleBrands: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  productGridSaleBrandsDivided: {
+    borderLeftWidth: 1,
+    borderLeftColor: "#dce3ed",
+    paddingLeft: 10,
   },
   productGridSaleLabel: {
     color: "#7b8799",

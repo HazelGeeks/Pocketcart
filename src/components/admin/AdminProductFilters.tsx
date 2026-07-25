@@ -20,6 +20,7 @@ type AdminProductFiltersProps = {
   brandFilter: string;
   storeFilter: string;
   saleDateFilter: string;
+  onSaleOnly: boolean;
   sort: ProductSortKey;
   categoryOptions: string[];
   brandOptions: string[];
@@ -34,6 +35,7 @@ type AdminProductFiltersProps = {
   onBrandChange: (value: string) => void;
   onStoreChange: (value: string) => void;
   onSaleDateChange: (value: string) => void;
+  onSaleOnlyChange: (value: boolean) => void;
   onSortChange: (value: ProductSortKey) => void;
   onReset: () => void;
 };
@@ -44,6 +46,7 @@ export default function AdminProductFilters({
   brandFilter,
   storeFilter,
   saleDateFilter,
+  onSaleOnly,
   sort,
   categoryOptions,
   brandOptions,
@@ -58,6 +61,7 @@ export default function AdminProductFilters({
   onBrandChange,
   onStoreChange,
   onSaleDateChange,
+  onSaleOnlyChange,
   onSortChange,
   onReset,
 }: AdminProductFiltersProps) {
@@ -157,6 +161,18 @@ export default function AdminProductFilters({
             </select>
           </>
         ) : null}
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Show only products currently on sale"
+          accessibilityState={{ selected: onSaleOnly }}
+          onPress={() => onSaleOnlyChange(!onSaleOnly)}
+          style={[st.btn, onSaleOnly ? st.btnPrimary : st.btnGhost]}
+        >
+          <Text style={onSaleOnly ? st.btnPrimaryText : st.btnGhostText}>
+            On Sale
+          </Text>
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"

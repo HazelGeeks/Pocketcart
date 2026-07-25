@@ -45,6 +45,7 @@ export default function AdminProductCard({
         stats.latestValidTo ? dateInputValue(stats.latestValidTo) : "No end date"
       }`
     : null;
+  const currentSaleStoreBrands = stats?.currentSaleStoreBrands ?? [];
   const disabled = deleting || bulkDeleting || submitting;
 
   return (
@@ -114,10 +115,31 @@ export default function AdminProductCard({
         </View>
       </View>
 
-      {salePeriodLabel ? (
+      {salePeriodLabel || currentSaleStoreBrands.length > 0 ? (
         <View style={st.productGridSale}>
-          <Text style={st.productGridSaleLabel}>Sale period</Text>
-          <Text style={st.productGridSaleValue}>{salePeriodLabel}</Text>
+          {salePeriodLabel ? (
+            <View style={st.productGridSalePeriod}>
+              <Text style={st.productGridSaleLabel}>Sale period</Text>
+              <Text style={st.productGridSaleValue}>{salePeriodLabel}</Text>
+            </View>
+          ) : null}
+          {currentSaleStoreBrands.length > 0 ? (
+            <View
+              style={[
+                st.productGridSaleBrands,
+                salePeriodLabel && st.productGridSaleBrandsDivided,
+              ]}
+            >
+              <Text style={st.productGridSaleLabel}>Brands</Text>
+              <View style={st.productChipRow}>
+                {currentSaleStoreBrands.map((storeBrand) => (
+                  <View key={`${product.id}-${storeBrand}`} style={st.storeMetaChip}>
+                    <Text style={st.storeMetaChipText}>{storeBrand}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : null}
 

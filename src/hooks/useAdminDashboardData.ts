@@ -6,6 +6,10 @@ import type {
   AdminStore,
 } from "../services/adminBackoffice";
 import type { ProductSortKey } from "../state/adminStore";
+import {
+  buildOnSaleProductIdSet,
+  buildOnSaleStoreIdsByProduct,
+} from "../utils/adminProductSaleFilter";
 import { dateOnlyToIso } from "../utils/adminValidation";
 import { saleSessionKey } from "../utils/saleSession";
 import {
@@ -35,6 +39,7 @@ type AdminDashboardDataParams = {
   productBrandFilter: string;
   productStoreFilter: string;
   productSaleDateFilter: string;
+  productOnSaleOnly: boolean;
   productSort: ProductSortKey;
   flyerSelectedRows: number;
 };
@@ -64,6 +69,7 @@ export default function useAdminDashboardData({
   productBrandFilter,
   productStoreFilter,
   productSaleDateFilter,
+  productOnSaleOnly,
   productSort,
   flyerSelectedRows,
 }: AdminDashboardDataParams) {
@@ -140,8 +146,19 @@ export default function useAdminDashboardData({
       if (!storeId) return;
       map.set(storeId, store.brand?.trim() || "Other");
     });
+    prices.forEach((row) => {
+      const storeId = row.store_id.trim();
+      const storeBrand = row.store_brand?.trim();
+      if (!storeId || !storeBrand || map.has(storeId)) return;
+      map.set(storeId, storeBrand);
+    });
     return map;
-  }, [displayStores]);
+  }, [displayStores, prices]);
+
+  const onSaleStoreIdsByProduct = React.useMemo(
+    () => buildOnSaleStoreIdsByProduct(prices),
+    [prices],
+  );
 
   const productPriceStats = React.useMemo(() => {
     const stats = new Map<string, ProductPriceStats>();
@@ -170,6 +187,10 @@ export default function useAdminDashboardData({
           storeIds: new Set(storeId ? [storeId] : []),
           storeBrands: storeBrand ? [storeBrand] : [],
           storeNames: storeName ? [storeName] : [],
+          currentSaleStoreBrands: uniqueValues(
+            Array.from(onSaleStoreIdsByProduct.get(productId) ?? [])
+              .map((activeStoreId) => storeBrandById.get(activeStoreId) || "Other"),
+          ).sort((a, b) => a.localeCompare(b)),
           saleSessions: new Set([
             saleSessionKey({
               validFrom: row.valid_from,
@@ -208,7 +229,7 @@ export default function useAdminDashboardData({
       }
     });
     return stats;
-  }, [prices, storeBrandById, storeNameById]);
+  }, [onSaleStoreIdsByProduct, prices, storeBrandById, storeNameById]);
 
   const productStoreFilterOptions = React.useMemo(() => {
     const assignedStoreOptions = Array.from(storeNameById.entries())
@@ -340,6 +361,11 @@ export default function useAdminDashboardData({
     return Number.isFinite(start) && Number.isFinite(end) ? { start, end } : null;
   }, [productSaleDateFilter]);
 
+  const onSaleProductIds = React.useMemo(
+    () => buildOnSaleProductIdSet(prices),
+    [prices],
+  );
+
   const filteredProducts = React.useMemo(() => {
     const query = productSearchQuery.trim().toLowerCase();
     const categoryFilter = productCategoryFilter.trim().toLowerCase();
@@ -369,6 +395,7 @@ export default function useAdminDashboardData({
       } else if (storeFilter.toLowerCase() !== "all" && !stats?.storeIds.has(storeFilter)) {
         return false;
       }
+      if (productOnSaleOnly && !onSaleProductIds.has(item.id)) return false;
       if (productSaleDateRangeMs !== null) {
         const hasSaleOnDate = prices.some((row) => {
           if (row.product_id !== item.id) return false;
@@ -408,6 +435,8 @@ export default function useAdminDashboardData({
   }, [
     productCategoryFilter,
     productBrandFilter,
+    productOnSaleOnly,
+    onSaleProductIds,
     productPriceStats,
     productSaleDateRangeMs,
     productSearchQuery,
@@ -424,8 +453,16 @@ export default function useAdminDashboardData({
     if (productBrandFilter !== "all") count += 1;
     if (productStoreFilter !== "all") count += 1;
     if (productSaleDateFilter.trim()) count += 1;
+    if (productOnSaleOnly) count += 1;
     return count;
-  }, [productBrandFilter, productCategoryFilter, productSaleDateFilter, productSearchQuery, productStoreFilter]);
+  }, [
+    productBrandFilter,
+    productCategoryFilter,
+    productOnSaleOnly,
+    productSaleDateFilter,
+    productSearchQuery,
+    productStoreFilter,
+  ]);
 
   return {
     categoryOptions,

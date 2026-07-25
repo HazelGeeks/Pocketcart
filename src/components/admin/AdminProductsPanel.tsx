@@ -36,6 +36,7 @@ type Props = {
   productBrandFilter: string;
   productStoreFilter: string;
   productSaleDateFilter: string;
+  productOnSaleOnly: boolean;
   productSort: ProductSortKey;
   productCategoryOptions: string[];
   productBrandOptions: string[];
@@ -53,6 +54,7 @@ type Props = {
   onProductBrandChange: (value: string) => void;
   onProductStoreChange: (value: string) => void;
   onProductSaleDateChange: (value: string) => void;
+  onProductOnSaleOnlyChange: (value: boolean) => void;
   onProductSortChange: (value: ProductSortKey) => void;
   onResetProductFilters: () => void;
   onEditProduct: (product: AdminProduct) => void;
@@ -72,6 +74,7 @@ export default function AdminProductsPanel({
   productBrandFilter,
   productStoreFilter,
   productSaleDateFilter,
+  productOnSaleOnly,
   productSort,
   productCategoryOptions,
   productBrandOptions,
@@ -89,6 +92,7 @@ export default function AdminProductsPanel({
   onProductBrandChange,
   onProductStoreChange,
   onProductSaleDateChange,
+  onProductOnSaleOnlyChange,
   onProductSortChange,
   onResetProductFilters,
   onEditProduct,
@@ -161,6 +165,7 @@ export default function AdminProductsPanel({
   }, [
     productBrandFilter,
     productCategoryFilter,
+    productOnSaleOnly,
     productSaleDateFilter,
     productSearchQuery,
     productSort,
@@ -196,6 +201,7 @@ export default function AdminProductsPanel({
           brandFilter={productBrandFilter}
           storeFilter={productStoreFilter}
           saleDateFilter={productSaleDateFilter}
+          onSaleOnly={productOnSaleOnly}
           sort={productSort}
           categoryOptions={productCategoryOptions}
           brandOptions={productBrandOptions}
@@ -210,6 +216,7 @@ export default function AdminProductsPanel({
           onBrandChange={onProductBrandChange}
           onStoreChange={onProductStoreChange}
           onSaleDateChange={onProductSaleDateChange}
+          onSaleOnlyChange={onProductOnSaleOnlyChange}
           onSortChange={onProductSortChange}
           onReset={onResetProductFilters}
         />

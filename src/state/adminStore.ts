@@ -72,6 +72,7 @@ type AdminStoreState = {
   productBrandFilter: string;
   productStoreFilter: string;
   productSaleDateFilter: string;
+  productOnSaleOnly: boolean;
   productSort: ProductSortKey;
   flyerRows: FlyerRow[];
   flyerProcessing: boolean;
@@ -83,6 +84,7 @@ type AdminStoreState = {
   setProductBrandFilter: (value: string) => void;
   setProductStoreFilter: (value: string) => void;
   setProductSaleDateFilter: (value: string) => void;
+  setProductOnSaleOnly: (value: boolean) => void;
   setProductSort: (value: ProductSortKey) => void;
   resetProductFilters: () => void;
   setFlyerRows: (rows: FlyerRow[]) => void;
@@ -101,6 +103,7 @@ const productFilterDefaults = {
   productBrandFilter: "all",
   productStoreFilter: "all",
   productSaleDateFilter: "",
+  productOnSaleOnly: false,
   productSort: "latest" as ProductSortKey,
 };
 
@@ -118,6 +121,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   setProductBrandFilter: (value) => set({ productBrandFilter: value }),
   setProductStoreFilter: (value) => set({ productStoreFilter: value }),
   setProductSaleDateFilter: (value) => set({ productSaleDateFilter: value }),
+  setProductOnSaleOnly: (value) => set({ productOnSaleOnly: value }),
   setProductSort: (value) => set({ productSort: value }),
   resetProductFilters: () => set(productFilterDefaults),
   setFlyerRows: (rows) => set({ flyerRows: rows }),

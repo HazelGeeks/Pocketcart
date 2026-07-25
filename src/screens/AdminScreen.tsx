@@ -133,6 +133,8 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
   const setProductStoreFilter = useAdminStore((state) => state.setProductStoreFilter);
   const productSaleDateFilter = useAdminStore((state) => state.productSaleDateFilter);
   const setProductSaleDateFilter = useAdminStore((state) => state.setProductSaleDateFilter);
+  const productOnSaleOnly = useAdminStore((state) => state.productOnSaleOnly);
+  const setProductOnSaleOnly = useAdminStore((state) => state.setProductOnSaleOnly);
   const productSort = useAdminStore((state) => state.productSort);
   const setProductSort = useAdminStore((state) => state.setProductSort);
   const resetProductFilters = useAdminStore((state) => state.resetProductFilters);
@@ -238,6 +240,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
     productBrandFilter,
     productStoreFilter,
     productSaleDateFilter,
+    productOnSaleOnly,
     productSort,
     flyerSelectedRows: flyerRows.filter((row) => row.selected).length,
   });
@@ -748,6 +751,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     productBrandFilter={productBrandFilter}
                     productStoreFilter={productStoreFilter}
                     productSaleDateFilter={productSaleDateFilter}
+                    productOnSaleOnly={productOnSaleOnly}
                     productSort={productSort}
                     productCategoryOptions={productFilterCategoryOptions}
                     productBrandOptions={productBrandFilterOptions}
@@ -765,6 +769,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                     onProductBrandChange={setProductBrandFilter}
                     onProductStoreChange={setProductStoreFilter}
                     onProductSaleDateChange={setProductSaleDateFilter}
+                    onProductOnSaleOnlyChange={setProductOnSaleOnly}
                     onProductSortChange={setProductSort}
                     onResetProductFilters={handleResetProductFilters}
                     onEditProduct={handleOpenEditProduct}

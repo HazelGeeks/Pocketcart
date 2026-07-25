@@ -36,6 +36,7 @@ export type ProductPriceStats = {
   storeIds: Set<string>;
   storeBrands: string[];
   storeNames: string[];
+  currentSaleStoreBrands: string[];
   saleSessions: Set<string>;
 };
 

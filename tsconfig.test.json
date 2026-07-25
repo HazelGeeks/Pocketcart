@@ -18,6 +18,7 @@
     "src/utils/businessDateTime.ts",
     "src/utils/adminValidation.ts",
     "src/utils/adminProductPagination.ts",
+    "src/utils/adminProductSaleFilter.ts",
     "src/utils/adminUserDirectory.ts",
     "src/utils/categoryIcon.ts",
     "src/utils/flyerCsv.ts",
