@@ -1,0 +1,37 @@
+import { StyleSheet } from "react-native";
+import { marketingPalette as C } from "../../shared/design/palette";
+import { F } from "./fonts";
+
+export const storeMapResultStyles = StyleSheet.create({
+  storeResultCard: { borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.white, overflow: "hidden", shadowColor: "#10281F", shadowOpacity: 0.09, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  storeResultCardActive: { borderColor: C.primaryLight },
+  storeResultCardCompact: { shadowOpacity: 0, elevation: 0 },
+  storeResultMain: { minHeight: 78, flexDirection: "row", alignItems: "center", paddingHorizontal: 13, paddingVertical: 10 },
+  storeResultFocusContent: { minWidth: 0, flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  storeFavoriteButton: { width: 44, height: 44, marginLeft: 8, borderRadius: 22, borderWidth: 1, borderColor: C.line, backgroundColor: C.white, alignItems: "center", justifyContent: "center" },
+  storeFavoriteButtonActive: { borderColor: C.primary, backgroundColor: C.primaryGhost },
+  storeResultBadge: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: C.primaryGhost, borderWidth: 2, borderColor: C.primary },
+  storeResultBadgeWithLogo: { overflow: "hidden", backgroundColor: C.white, padding: 4 },
+  storeResultLogo: { width: "100%", height: "100%" },
+  storeResultBadgeText: { color: C.primaryDeep, fontSize: 14, fontFamily: F.extraBold },
+  storeResultCopy: { minWidth: 0, flex: 1, gap: 3 },
+  storeResultName: { color: C.text, fontSize: 15, fontFamily: F.extraBold },
+  storeResultAddress: { color: C.textSoft, fontSize: 12, fontFamily: F.regular },
+  storeResultMetaRow: { minWidth: 0, flexDirection: "row", alignItems: "center", gap: 7 },
+  storeResultDistance: { color: C.primaryDeep, fontSize: 11, fontFamily: F.bold },
+  storeResultDivider: { width: 1, height: 12, backgroundColor: C.line },
+  storeResultPrice: { minWidth: 0, flexShrink: 1, color: C.textMuted, fontSize: 11, fontFamily: F.semibold },
+  storeResultDealsButton: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: 14 },
+  storeResultDealsText: { color: C.primaryDeep, fontSize: 12, fontFamily: F.extraBold },
+  storeResultDealsArrow: { color: C.primaryDeep, fontSize: 24, lineHeight: 26, fontFamily: F.regular },
+  storeListScreen: { flex: 1, backgroundColor: C.white },
+  storeListScroll: { flex: 1 },
+  storeListHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingTop: 4, paddingBottom: 14 },
+  storeListHeaderCopy: { flex: 1, minWidth: 0 },
+  storeListTitle: { color: C.text, fontSize: 22, fontFamily: F.extraBold },
+  storeListSubtitle: { marginTop: 3, color: C.textMuted, fontSize: 11, lineHeight: 16, fontFamily: F.regular },
+  storeListCardSeparator: { height: 12 },
+  storeMapEmptyCard: { borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.bg, padding: 20, marginBottom: 12 },
+  storeMapEmptyTitle: { color: C.text, fontSize: 16, fontFamily: F.extraBold },
+  storeMapEmptyText: { marginTop: 3, color: C.textMuted, fontSize: 12, lineHeight: 17, fontFamily: F.regular },
+});

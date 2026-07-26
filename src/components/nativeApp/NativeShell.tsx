@@ -122,7 +122,16 @@ export function NativeBottomTabs({
             >
               <View style={[st.tabBtnContent, isMain && st.tabBtnMainContent]}>
                 <TabIcon tabId={tab.id} active={active} emphasized={isMain} />
-                {active && !isMain ? <View style={st.tabActiveDot} /> : null}
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    st.tabLabel,
+                    active && st.tabLabelActive,
+                    isMain && st.tabLabelMain,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
                 {tab.id === "alerts" && unreadAlertCount > 0 ? (
                   <View style={st.bottomAlertBadge}>
                     <Text style={st.bottomAlertBadgeText}>
@@ -171,7 +180,7 @@ function TabIcon({ tabId, active, emphasized = false }: { tabId: NativeTabId; ac
           />
         </Svg>
       );
-    case "watchlist":
+    case "shopping":
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
           <Path

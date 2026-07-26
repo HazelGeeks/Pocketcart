@@ -98,7 +98,7 @@ export function NativeAppOnboarding({
         {!!message ? <Text style={st.itemMeta}>{message}</Text> : null}
         <Text style={st.onboardingTitle}>Don&apos;t miss price drops</Text>
         <Text style={st.onboardingMeta}>
-          Enable notifications to get sale alerts for saved watchlist items.
+          Enable notifications for products you choose to monitor.
         </Text>
 
         <Pressable

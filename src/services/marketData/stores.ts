@@ -13,15 +13,21 @@ export async function listStores(params?: {
   latitude?: number;
   longitude?: number;
 }): Promise<ServiceResult<MarketStore[]>> {
+  const hasCoordinates =
+    typeof params?.latitude === "number" &&
+    Number.isFinite(params.latitude) &&
+    typeof params?.longitude === "number" &&
+    Number.isFinite(params.longitude);
+
   if (!hasSupabaseEnv || !supabase) {
     const fallback = FALLBACK_STORES.filter((store) => matchesStoreFilter(store, params?.search));
 
     const withDistance: Array<MarketStore & { distance_km: number | null }> = fallback.map((store) => ({
       ...store,
-      distance_km: params?.latitude && params?.longitude
+      distance_km: hasCoordinates
         ? calculateHaversineDistanceKm(
-            params.latitude,
-            params.longitude,
+            params.latitude!,
+            params.longitude!,
             store.latitude,
             store.longitude,
           )
@@ -65,10 +71,10 @@ export async function listStores(params?: {
       if (latitude === null || longitude === null) return null;
 
       const distanceKm =
-        params?.latitude && params?.longitude
+        hasCoordinates
           ? calculateHaversineDistanceKm(
-              params.latitude,
-              params.longitude,
+              params.latitude!,
+              params.longitude!,
               latitude,
               longitude,
             )

@@ -19,13 +19,13 @@ export function getNativeHeaderContent(options: HeaderOptions) {
       ? { title: "Product Details", status: options.category ?? "Price history" }
       : { title: "Discover", status: "Live prices" };
   }
-  if (options.activeTab === "watchlist") {
+  if (options.activeTab === "shopping") {
     const count = options.shoppingItemCount;
     return { title: "Shopping List", status: `${count} ${count === 1 ? "item" : "items"}` };
   }
   if (options.activeTab === "map") {
     const count = options.storeCount;
-    return { title: "Nearby Stores", status: `${count} ${count === 1 ? "store" : "stores"}` };
+    return { title: "Stores", status: `${count} ${count === 1 ? "store" : "stores"}` };
   }
   if (options.activeTab === "alerts") {
     return {

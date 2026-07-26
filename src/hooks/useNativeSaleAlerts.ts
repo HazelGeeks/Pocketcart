@@ -128,7 +128,7 @@ export default function useNativeSaleAlerts({
 
       setWatchMessage(null);
       await loadWatchlist(true);
-      showToast("Removed from watchlist.");
+      showToast("Price alert removed.");
     },
     [loadWatchlist, showToast],
   );

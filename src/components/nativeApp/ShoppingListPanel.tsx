@@ -14,6 +14,7 @@ type ShoppingListPanelProps = {
   loading: boolean;
   message: string | null;
   recommendation: ShoppingRecommendation;
+  onBrowseDeals: () => void;
   onChangeQuantity: (productId: string, delta: number) => void;
   onClear: () => void;
   onRefresh: () => void;
@@ -26,6 +27,7 @@ export function ShoppingListPanel({
   loading,
   message,
   recommendation,
+  onBrowseDeals,
   onChangeQuantity,
   onClear,
   onRefresh,
@@ -60,6 +62,13 @@ export function ShoppingListPanel({
         <View style={st.shoppingEmptyCard}>
           <Text style={st.itemName}>Build this week's basket</Text>
           <Text style={st.itemMeta}>Tap “Add to list” on products from Home. Signed-in lists sync across devices.</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onBrowseDeals}
+            style={st.shoppingEmptyAction}
+          >
+            <Text style={st.shoppingEmptyActionText}>Browse current deals</Text>
+          </Pressable>
         </View>
       ) : (
         <>
@@ -156,7 +165,11 @@ function PlanStops({ plan, onOpenStore }: { plan: ShoppingPlan; onOpenStore: Sho
             </View>
             <View style={st.shoppingStopPriceCol}>
               <Text style={st.storePrice}>{money.format(stop.subtotal)}</Text>
-              <Pressable accessibilityRole="button" onPress={() => onOpenStore(stop.storeId, stop.storeName)}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => onOpenStore(stop.storeId, stop.storeName)}
+                style={st.shoppingMapButton}
+              >
                 <Text style={st.shoppingMapLink}>View map</Text>
               </Pressable>
             </View>

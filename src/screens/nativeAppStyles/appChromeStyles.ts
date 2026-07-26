@@ -218,11 +218,11 @@ export const appChromeStyles = StyleSheet.create({
   tabRow: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 54,
+    minHeight: 60,
   },
   tabBtn: {
     flex: 1,
-    minHeight: 50,
+    minHeight: 58,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -231,7 +231,7 @@ export const appChromeStyles = StyleSheet.create({
     backgroundColor: C.primaryGhost,
   },
   tabBtnMain: {
-    top: -24,
+    top: -20,
     flex: 0,
     width: 68,
     height: 68,
@@ -253,17 +253,24 @@ export const appChromeStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    gap: 2,
   },
   tabBtnMainContent: {
     transform: [{ translateY: 1 }],
   },
-  tabActiveDot: {
-    position: "absolute",
-    bottom: -9,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: C.primaryDeep,
+  tabLabel: {
+    color: C.textMuted,
+    fontSize: 9,
+    lineHeight: 12,
+    fontWeight: "800",
+    fontFamily: F.extraBold,
+    textAlign: "center",
+  },
+  tabLabelActive: {
+    color: C.primaryDeep,
+  },
+  tabLabelMain: {
+    color: C.white,
   },
   bottomAlertBadge: {
     position: "absolute",
@@ -285,27 +292,4 @@ export const appChromeStyles = StyleSheet.create({
     lineHeight: 11,
     fontFamily: F.extraBold,
   },
-  toastWrap: {
-    position: "absolute",
-    zIndex: 20,
-    minHeight: 46,
-    borderRadius: 999,
-    backgroundColor: C.text,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  toastText: {
-    color: C.white,
-    fontSize: 13,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-    textAlign: "center",
-  },
-
 });

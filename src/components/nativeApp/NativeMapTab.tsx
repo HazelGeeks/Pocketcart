@@ -35,6 +35,7 @@ export function NativeMapTab({
       favoriteFilterActive={map.favoriteFilterActive}
       focusedStoreId={map.focusedStoreId}
       region={map.region}
+      distanceScope={map.distanceScope}
       userLocation={map.userLocation}
       locatingUser={permissions.requesting}
       topInset={topInset}

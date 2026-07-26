@@ -14,6 +14,7 @@ type Props = {
   activeTab: NativeTabId;
   alerts: ReturnType<typeof useNativeSaleAlerts>;
   catalog: ReturnType<typeof useNativeCatalog>;
+  onBrowseDeals: () => void;
   onOpenStore: (storeId: string, storeName?: string) => void;
   shopping: ReturnType<typeof useNativeShoppingPlan>;
 };
@@ -22,16 +23,18 @@ export function NativeListTabs({
   activeTab,
   alerts,
   catalog,
+  onBrowseDeals,
   onOpenStore,
   shopping,
 }: Props) {
-  if (activeTab === "watchlist") {
+  if (activeTab === "shopping") {
     return (
       <ShoppingListPanel
         items={shopping.items}
         loading={shopping.pricesLoading}
         message={shopping.syncMessage ?? shopping.message}
         recommendation={shopping.recommendation}
+        onBrowseDeals={onBrowseDeals}
         onChangeQuantity={shopping.changeQuantity}
         onClear={shopping.clear}
         onRefresh={() => {

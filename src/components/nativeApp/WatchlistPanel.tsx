@@ -81,7 +81,7 @@ export function WatchlistPanel({
         </View>
       ) : normalized.length === 0 ? (
         <View style={st.rowCard}>
-          <Text style={st.itemMeta}>No subscriptions yet. Enable a price alert from a product detail page.</Text>
+          <Text style={st.itemMeta}>No subscriptions yet. Choose “Notify me when on sale” from a product detail page.</Text>
         </View>
       ) : (
         normalized.map((entry) => {

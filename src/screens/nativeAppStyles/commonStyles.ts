@@ -70,7 +70,7 @@ export const commonStyles = StyleSheet.create({
     gap: 10,
   },
   sortOptionsScroll: {
-    maxHeight: 42,
+    maxHeight: 48,
   },
   searchInput: {
     height: 52,
@@ -121,12 +121,15 @@ export const commonStyles = StyleSheet.create({
     fontFamily: F.extraBold,
   },
   categoryChip: {
+    minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.white,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   categoryChipActive: {
     backgroundColor: C.primaryGhost,
@@ -246,7 +249,7 @@ export const commonStyles = StyleSheet.create({
     marginTop: 4,
   },
   productActionBtn: {
-    minHeight: 32,
+    minHeight: 44,
     borderRadius: 9,
     borderWidth: 1,
     alignItems: "center",
@@ -271,35 +274,6 @@ export const commonStyles = StyleSheet.create({
     color: C.text,
     fontSize: 12,
     fontWeight: "800",
-    fontFamily: F.extraBold,
-  },
-  detailActionRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  detailActionBtn: {
-    flex: 1,
-  },
-  detailNavBtn: {
-    minHeight: 44,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  detailNavBtnAccent: {
-    backgroundColor: C.primaryGhost,
-    borderColor: C.primary,
-  },
-  detailNavText: {
-    color: C.primaryDeep,
-    fontSize: 13,
-    fontWeight: "900",
     fontFamily: F.extraBold,
   },
 });

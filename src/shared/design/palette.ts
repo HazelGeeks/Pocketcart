@@ -1,7 +1,7 @@
 export const marketingPalette = {
-  primary: "#61e392",
-  primaryDark: "#35d978",
-  primaryDeep: "#179653",
+  primary: "#0F7A42",
+  primaryDark: "#0A6A37",
+  primaryDeep: "#075E31",
   primaryLight: "#9ef0bc",
   primaryPale: "#dffbea",
   primaryGhost: "#f2fdf6",
@@ -10,8 +10,8 @@ export const marketingPalette = {
   dark: "#071f12",
   text: "#102918",
   textSoft: "#365944",
-  textMuted: "#6b8b76",
-  line: "rgba(97,227,146,0.2)",
+  textMuted: "#4F6F5A",
+  line: "rgba(15,122,66,0.22)",
   badgeBg: "#082414",
   glass: "rgba(255,255,255,0.82)",
 } as const;

@@ -84,7 +84,7 @@ export default function useNativeShoppingPlan({
   }, [productKey]);
 
   React.useEffect(() => {
-    if (!loaded || activeTab !== "watchlist") return;
+    if (!loaded || activeTab !== "shopping") return;
     void loadPrices();
   }, [activeTab, loadPrices, loaded]);
 

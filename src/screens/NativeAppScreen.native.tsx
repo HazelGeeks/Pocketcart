@@ -166,6 +166,7 @@ export default function NativeAppScreen() {
             activeTab={shell.activeTab}
             alerts={alerts}
             catalog={catalog}
+            onBrowseDeals={shell.openHome}
             onOpenStore={map.openStore}
             shopping={shopping}
           />

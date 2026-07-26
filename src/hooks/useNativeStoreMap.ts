@@ -9,6 +9,7 @@ import {
   DEFAULT_REGION,
   type NativeTabId,
 } from "../screens/nativeAppData";
+import { getStoreDistanceScope } from "../utils/storeDistanceScope";
 import type { NativeOnboardingState } from "./useNativeOnboarding";
 
 type UseNativeStoreMapOptions = {
@@ -84,9 +85,17 @@ export default function useNativeStoreMap({
     onboardingState.locationLongitude,
     onboardingState.locationMode,
   ]);
+  const distanceScope = React.useMemo(
+    () => getStoreDistanceScope(filteredStores, Boolean(userLocation)),
+    [filteredStores, userLocation],
+  );
 
   const region = React.useMemo<Region>(() => {
-    if (focusMode === "user" && userLocation) {
+    if (
+      focusMode === "user" &&
+      userLocation &&
+      distanceScope !== "outside"
+    ) {
       return {
         ...userLocation,
         latitudeDelta: 0.04,
@@ -108,7 +117,7 @@ export default function useNativeStoreMap({
       latitudeDelta: 0.045,
       longitudeDelta: 0.045,
     };
-  }, [activeStore, focusMode, userLocation]);
+  }, [activeStore, distanceScope, focusMode, userLocation]);
 
   const loadStores = React.useCallback(async () => {
     const searchText =
@@ -188,9 +197,9 @@ export default function useNativeStoreMap({
   }, [filteredStores, focusedStoreId]);
 
   React.useEffect(() => {
-    if (!activeStore || focusMode !== "store") return;
+    if (!activeStore && !userLocation) return;
     mapRef.current?.animateToRegion(region, 220);
-  }, [activeStore, focusMode, region]);
+  }, [activeStore, region, userLocation]);
 
   React.useEffect(() => {
     if (onboardingState.locationMode !== "postal") {
@@ -248,6 +257,7 @@ export default function useNativeStoreMap({
 
   return {
     favoriteFilterActive,
+    distanceScope,
     filteredStores,
     focusedStoreId,
     focusStore,
