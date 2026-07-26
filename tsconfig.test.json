@@ -25,6 +25,7 @@
     "src/utils/flyerAiRows.ts",
     "src/utils/favoriteStoreState.ts",
     "src/utils/productCsvImport.ts",
+    "src/utils/productDuplicateGroups.ts",
     "src/utils/productIdentity.ts",
     "src/utils/productDeleteConfirmation.ts",
     "src/utils/productStorePriceSets.ts",

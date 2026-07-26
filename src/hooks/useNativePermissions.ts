@@ -1,14 +1,10 @@
 import React from "react";
 import { requestLocationPermissionAndPosition } from "../services/nativePermissions";
-import {
-  configurePushNotificationHandler,
-  registerPushTokenForCurrentUser,
-} from "../services/pushNotifications";
 import type { UserProfile } from "../services/userProfile";
-import { isPushRegistrationReady } from "../utils/pushRegistrationState";
 import { getLocationSettingsLabel } from "../utils/nativeLocationSettings";
 import type useNativeOnboarding from "./useNativeOnboarding";
 import type { NativeOnboardingState } from "./useNativeOnboarding";
+import useNativePushSettings from "./useNativePushSettings";
 
 type OnboardingController = ReturnType<typeof useNativeOnboarding>;
 type LocationSource = "onboarding" | "settings" | "map";
@@ -41,7 +37,6 @@ export default function useNativePermissions({
     alertsEnabled,
     persist,
     postalCode,
-    setAlertsEnabled,
     setMessage,
     setStep,
     setVisible,
@@ -49,33 +44,13 @@ export default function useNativePermissions({
   } = onboarding;
 
   const locationSettingsLabel = getLocationSettingsLabel(state);
-
-  React.useEffect(() => {
-    configurePushNotificationHandler();
-  }, []);
-
-  React.useEffect(() => {
-    if (!profile || !state.alertsEnabled) return;
-    let active = true;
-
-    void registerPushTokenForCurrentUser()
-      .then((registration) => {
-        if (!active || isPushRegistrationReady(registration)) return;
-        setMoreMessage(
-          registration.message ?? "Push alerts could not be linked to this device.",
-        );
-        void persist({ ...state, alertsEnabled: false });
-      })
-      .catch(() => {
-        if (!active) return;
-        setMoreMessage("Push alerts could not be linked to this device.");
-        void persist({ ...state, alertsEnabled: false });
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [persist, profile, setMoreMessage, state]);
+  const pushSettings = useNativePushSettings({
+    onboarding,
+    profile,
+    setMoreLoading,
+    setMoreMessage,
+    showToast,
+  });
 
   const shareLocation = React.useCallback(async (
     source: LocationSource = "onboarding",
@@ -190,63 +165,6 @@ export default function useNativePermissions({
     state,
   ]);
 
-  const enableAlerts = React.useCallback(async (
-    source: "onboarding" | "settings" = "onboarding",
-  ) => {
-    setRequesting(true);
-    if (source === "settings") setMoreLoading(true);
-
-    try {
-      const permission = await registerPushTokenForCurrentUser();
-      const nextAlertsEnabled = isPushRegistrationReady(permission);
-
-      if (source === "settings") setMoreMessage(permission.message ?? null);
-      else setMessage(permission.message ?? null);
-
-      setAlertsEnabled(nextAlertsEnabled);
-      await persist({
-        ...state,
-        alertsCompleted: true,
-        alertsEnabled: nextAlertsEnabled,
-      });
-      if (source === "onboarding") setVisible(false);
-      showToast(
-        nextAlertsEnabled
-          ? "Alerts enabled."
-          : permission.message ?? "Push alerts could not be enabled.",
-      );
-    } catch {
-      const message = "Notification permission could not be checked.";
-      if (source === "settings") setMoreMessage(message);
-      else setMessage(message);
-      showToast(message);
-    } finally {
-      setRequesting(false);
-      if (source === "settings") setMoreLoading(false);
-    }
-  }, [
-    persist,
-    setAlertsEnabled,
-    setMessage,
-    setMoreLoading,
-    setMoreMessage,
-    setVisible,
-    showToast,
-    state,
-  ]);
-
-  const disableAlerts = React.useCallback(async () => {
-    setMoreMessage(
-      "In-app alert prompts are off. You can also change OS notification access in Settings.",
-    );
-    await persist({
-      ...state,
-      alertsCompleted: true,
-      alertsEnabled: false,
-    });
-    showToast("Alerts disabled.");
-  }, [persist, setMoreMessage, showToast, state]);
-
   const skipLocation = React.useCallback(async () => {
     setMessage(null);
     await persist({
@@ -265,7 +183,12 @@ export default function useNativePermissions({
 
   const finishAlertsStep = React.useCallback(async () => {
     if (alertsEnabled) {
-      await enableAlerts("onboarding");
+      setRequesting(true);
+      try {
+        await pushSettings.enableAlerts("onboarding");
+      } finally {
+        setRequesting(false);
+      }
       return;
     }
 
@@ -276,13 +199,12 @@ export default function useNativePermissions({
     });
     setVisible(false);
     showToast("Alerts disabled.");
-  }, [alertsEnabled, enableAlerts, persist, setVisible, showToast, state]);
+  }, [alertsEnabled, persist, pushSettings, setVisible, showToast, state]);
 
   return {
-    disableAlerts,
-    enableAlerts,
     finishAlertsStep,
     locationSettingsLabel,
+    ...pushSettings,
     requesting,
     shareLocation,
     skipLocation,

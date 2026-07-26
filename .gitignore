@@ -31,6 +31,25 @@ pnpm-debug.log*
 .dev.vars
 .dev.vars.*
 
+# Native signing keys and provider credentials
+*.jks
+*.keystore
+!android/app/debug.keystore
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*.cer
+*firebase-adminsdk*.json
+*service-account*.json
+*service_account*.json
+credentials.json
+
+# Platform service configuration is supplied by EAS file secrets
+google-services.json
+GoogleService-Info.plist
+
 # Cloudflare
 .wrangler/
 

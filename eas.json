@@ -5,6 +5,7 @@
   },
   "build": {
     "development": {
+      "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
@@ -15,6 +16,7 @@
       }
     },
     "development-device": {
+      "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {

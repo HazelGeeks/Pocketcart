@@ -26,6 +26,7 @@
     "build:ios": "npx eas-cli build --platform ios --profile production",
     "build:android": "npx eas-cli build --platform android --profile production",
     "build:native": "npx eas-cli build --platform all --profile production",
+    "eas-build-post-install": "node scripts/prepare-google-services.mjs",
     "submit:ios": "npx eas-cli submit --platform ios --profile production --latest",
     "submit:android": "npx eas-cli submit --platform android --profile production --latest",
     "submit:native": "npm run submit:ios && npm run submit:android",

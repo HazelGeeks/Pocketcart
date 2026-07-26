@@ -68,6 +68,13 @@ jobs:
           grep -q "EXPO_PUBLIC_SUPABASE_ANON_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_ANON_KEY"; exit 1; }
           grep -q "EXPO_PUBLIC_AUTH_REDIRECT_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_AUTH_REDIRECT_URL"; exit 1; }
           grep -q "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"; exit 1; }
+          grep -q "GOOGLE_SERVICES_JSON" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: GOOGLE_SERVICES_JSON"; exit 1; }
+
+      - name: Validate EAS development Firebase configuration
+        if: ${{ inputs.profile == 'development' }}
+        run: |
+          npx eas-cli env:list development --format long > /tmp/pocketcart-eas-development-env.txt
+          grep -q "GOOGLE_SERVICES_JSON" /tmp/pocketcart-eas-development-env.txt || { echo "Missing EAS development env: GOOGLE_SERVICES_JSON"; exit 1; }
 
       - name: Build native artifacts
         run: npx eas-cli build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive

@@ -26,6 +26,7 @@ type MorePanelProps = {
   onSetPostalLocation: () => void;
   onEnableAlerts: () => void;
   onDisableAlerts: () => void;
+  onSendTestAlert: () => void;
   onOpenAppSettings: () => void;
   preferences: ProfilePreferences;
   deleteConfirming: boolean;
@@ -78,7 +79,9 @@ function PreferencesSection({
   onSetPostalLocation,
   onEnableAlerts,
   onDisableAlerts,
+  onSendTestAlert,
   onOpenAppSettings,
+  profile,
 }: MorePanelProps) {
   return (
     <SettingsSection label="Preferences">
@@ -141,6 +144,18 @@ function PreferencesSection({
 
       <View style={st.settingsDivider} />
 
+      {profile && alertsEnabled ? (
+        <>
+          <SettingsLinkRow
+            label="Send test notification"
+            value={loading ? "Sending…" : "Device check"}
+            disabled={loading}
+            onPress={onSendTestAlert}
+          />
+          <View style={st.settingsDivider} />
+        </>
+      ) : null}
+
       <SettingsLinkRow label="Open App Settings" value="Permissions" onPress={onOpenAppSettings} />
     </SettingsSection>
   );
@@ -162,19 +177,27 @@ function SettingsLinkRow({
   label,
   value,
   destructive = false,
+  disabled = false,
   onPress,
 }: {
   label: string;
   value?: string;
   destructive?: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={value ? `${label}, ${value}` : label}
+      accessibilityState={{ disabled }}
       onPress={onPress}
-      style={({ pressed }) => [st.settingsLinkRow, pressed && st.settingsRowPressed]}
+      disabled={disabled}
+      style={({ pressed }) => [
+        st.settingsLinkRow,
+        pressed && st.settingsRowPressed,
+        disabled && { opacity: 0.5 },
+      ]}
     >
       <Text style={[st.settingsRowTitle, destructive && st.settingsDangerText]}>{label}</Text>
       <View style={st.settingsLinkMeta}>

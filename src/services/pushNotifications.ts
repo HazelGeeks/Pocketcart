@@ -10,6 +10,16 @@ export type PushRegistrationResult = {
   message: string | null;
 };
 
+export type PushDeliverySummary = {
+  attempted: number;
+  sent: number;
+  failed: number;
+  alerts: number;
+  receiptsQueued: number;
+  skipped: number;
+  error: string | null;
+};
+
 const EAS_PROJECT_ID =
   process.env.EXPO_PUBLIC_EAS_PROJECT_ID?.trim() ||
   "b2c314b8-b5ac-443c-b848-819da5ef3d32";
@@ -151,13 +161,48 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
   };
 }
 
-export async function sendSaleAlertPushNotifications(alerts: SaleAlert[]): Promise<string | null> {
-  if (!hasSupabaseEnv || !supabase || alerts.length === 0) return null;
+export async function disablePushTokensForCurrentUser(): Promise<string | null> {
+  const { userId, error: userError } = await currentUserId();
+  if (!userId || !supabase) {
+    return userError ?? "Sign in to update push alerts.";
+  }
+
+  const { error } = await supabase
+    .from("user_push_tokens")
+    .update({ enabled: false, last_seen_at: new Date().toISOString() })
+    .eq("user_id", userId);
+  return error?.message ?? null;
+}
+
+function deliverySummary(
+  payload: Partial<PushDeliverySummary>,
+  error: string | null = null,
+): PushDeliverySummary {
+  return {
+    attempted: payload.attempted ?? 0,
+    sent: payload.sent ?? 0,
+    failed: payload.failed ?? 0,
+    alerts: payload.alerts ?? 0,
+    receiptsQueued: payload.receiptsQueued ?? 0,
+    skipped: payload.skipped ?? 0,
+    error,
+  };
+}
+
+export async function sendSaleAlertPushNotifications(
+  alerts: SaleAlert[],
+): Promise<PushDeliverySummary> {
+  if (!hasSupabaseEnv || !supabase) {
+    return deliverySummary({}, "Supabase is not configured.");
+  }
+  if (alerts.length === 0) return deliverySummary({});
   const alertIds = alerts.map((alert) => alert.id).filter(Boolean);
-  if (alertIds.length === 0) return null;
+  if (alertIds.length === 0) return deliverySummary({});
 
   const session = (await supabase.auth.getSession()).data.session;
-  if (!session?.access_token) return "Sign in to send push alerts.";
+  if (!session?.access_token) {
+    return deliverySummary({}, "Sign in to send push alerts.");
+  }
 
   const endpoint = `${supabaseUrl.replace(/\/$/, "")}/functions/v1/send-sale-alert-push`;
   const response = await fetch(endpoint, {
@@ -170,10 +215,14 @@ export async function sendSaleAlertPushNotifications(alerts: SaleAlert[]): Promi
     body: JSON.stringify({ alertIds }),
   });
 
+  const payload = (await response.json().catch(() => ({}))) as
+    Partial<PushDeliverySummary> & { error?: string };
   if (!response.ok) {
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    return payload.error ?? `Push alert request failed with ${response.status}.`;
+    return deliverySummary(
+      payload,
+      payload.error ?? `Push alert request failed with ${response.status}.`,
+    );
   }
 
-  return null;
+  return deliverySummary(payload);
 }

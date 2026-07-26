@@ -179,12 +179,21 @@ production environment variables. The production build profile uses the EAS
 Minimum EAS environment setup:
 
 ```bash
-npx eas-cli env:create production --name EXPO_PUBLIC_SUPABASE_URL --visibility plaintext
-npx eas-cli env:create production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --visibility sensitive
-npx eas-cli env:create production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --visibility plaintext
-npx eas-cli env:create production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --visibility plaintext
-npx eas-cli env:create production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --visibility sensitive
+npx eas-cli env:set production --name EXPO_PUBLIC_SUPABASE_URL --visibility plaintext
+npx eas-cli env:set production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --visibility sensitive
+npx eas-cli env:set production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --visibility plaintext
+npx eas-cli env:set production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --visibility plaintext
+npx eas-cli env:set production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --visibility sensitive
+npx eas-cli env:set --name GOOGLE_SERVICES_JSON --value ./google-services.json --type file --visibility secret --environment development --environment preview --environment production --non-interactive
 ```
+
+`google-services.json` and `android/app/google-services.json` stay out of Git and
+the EAS upload archive. `app.config.js` uses the EAS `GOOGLE_SERVICES_JSON`
+secret-file path during remote builds and falls back to the ignored root file
+for local native builds. Because this repository commits its native `android/`
+project, the `eas-build-post-install` hook copies the EAS file into
+`android/app/google-services.json` after dependency installation and before
+Gradle runs.
 
 The setup guide prints the same commands for missing values:
 
@@ -224,6 +233,12 @@ Use these menus to confirm:
 - App Store Connect access is available for the PocketCart app record.
 - Android upload key is available through EAS credentials or the local
   `POCKETCART_UPLOAD_*` variables.
+- The Firebase Android API key is restricted to `com.pocketcart.app` and the
+  local debug plus EAS upload certificate SHA-1 fingerprints.
+- After Google Play App Signing is enabled, add the Play Console app-signing
+  certificate SHA-1 to the same Android API key before testing the Play-delivered
+  build. Google Play re-signs the uploaded AAB, so the EAS upload fingerprint
+  alone does not cover the installed store build.
 - Google Play service account access is configured before using
   `eas submit --platform android`.
 

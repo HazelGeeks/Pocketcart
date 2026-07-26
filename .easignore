@@ -22,10 +22,17 @@ ios/Pods/
 # Local native credentials and generated files
 *.jks
 *.keystore
+!android/app/debug.keystore
 *.p8
 *.mobileprovision
 *.cer
 *.p12
+*.pem
+*.key
+*firebase-adminsdk*.json
+*service-account*.json
+*service_account*.json
+credentials.json
 google-services.json
 GoogleService-Info.plist
 

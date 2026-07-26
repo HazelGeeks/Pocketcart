@@ -15,6 +15,7 @@ const easProductionEnv = [
   "EXPO_PUBLIC_AUTH_REDIRECT_URL",
   "EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET",
   "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY",
+  "GOOGLE_SERVICES_JSON",
 ];
 
 function commandOutput(command, args) {
@@ -111,6 +112,14 @@ if (!easWhoami) {
 }
 for (const name of easProductionEnv) {
   if (!easEnvNames?.has(name)) {
+    if (name === "GOOGLE_SERVICES_JSON") {
+      console.log(
+        "npx eas-cli env:set --name GOOGLE_SERVICES_JSON --value ./google-services.json " +
+          "--type file --visibility secret --environment development " +
+          "--environment preview --environment production --non-interactive",
+      );
+      continue;
+    }
     const visibility =
       name === "EXPO_PUBLIC_SUPABASE_ANON_KEY" ||
       name === "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"

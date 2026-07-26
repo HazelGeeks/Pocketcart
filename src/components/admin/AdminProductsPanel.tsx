@@ -10,6 +10,7 @@ import {
 } from "../../utils/adminProductPagination";
 import AdminProductDeleteModal from "./AdminProductDeleteModal";
 import AdminProductFilters from "./AdminProductFilters";
+import AdminProductIdentityWorkbench from "./AdminProductIdentityWorkbench";
 import AdminProductList from "./AdminProductList";
 import AdminProductManagementHeader from "./AdminProductManagementHeader";
 import AdminProductMergeModal from "./AdminProductMergeModal";
@@ -193,6 +194,14 @@ export default function AdminProductsPanel({
           onExportProductsCsv={handleExportSelectedProducts}
           onExportIdentityGapsCsv={handleExportIdentityGaps}
           onOpenAddProduct={onOpenAddProduct}
+        />
+
+        <AdminProductIdentityWorkbench
+          products={products}
+          priceStats={productPriceStats}
+          styles={st}
+          onExportIdentityGaps={handleExportIdentityGaps}
+          onReviewGroup={(group) => setMergeCandidates(group.products)}
         />
 
         <AdminProductFilters

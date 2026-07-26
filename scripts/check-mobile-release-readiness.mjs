@@ -6,6 +6,7 @@ const checkExternal = args.has("--external");
 
 const requiredFiles = [
   "App.native.tsx",
+  "app.config.js",
   "app.json",
   "eas.json",
   "package.json",
@@ -37,6 +38,7 @@ const requiredFiles = [
   "src/hooks/useNativeShoppingPlan.ts",
   "src/hooks/useNativeStoreMap.ts",
   "scripts/print-mobile-release-setup-guide.mjs",
+  "scripts/prepare-google-services.mjs",
   "scripts/check-store-submission-assets.mjs",
   "store-assets/README.md",
   "store-assets/metadata/en-US.json",
@@ -1003,14 +1005,54 @@ includes(
   "Supabase schema workflow applies the product merge watchlist guard",
 );
 includes(
+  ".gitignore",
+  "google-services.json",
+  "Git ignore excludes Firebase platform configuration files",
+);
+includes(
+  ".gitignore",
+  "*firebase-adminsdk*.json",
+  "Git ignore excludes Firebase Admin service account files",
+);
+includes(
+  ".gitignore",
+  "*.keystore",
+  "Git ignore excludes local Android signing keys",
+);
+includes(
   ".easignore",
   "*.jks",
   "EAS ignore excludes local Android keystores",
 );
 includes(
   ".easignore",
+  "*firebase-adminsdk*.json",
+  "EAS ignore excludes Firebase Admin service account files",
+);
+includes(
+  ".easignore",
+  "credentials.json",
+  "EAS ignore excludes downloaded EAS credential bundles",
+);
+includes(
+  ".easignore",
+  "google-services.json",
+  "EAS ignore excludes the local Android Firebase config",
+);
+includes(
+  ".easignore",
   "GoogleService-Info.plist",
   "EAS ignore excludes local platform service config files",
+);
+includes(
+  "package.json",
+  "eas-build-post-install",
+  "Package scripts prepare the ignored Firebase config during EAS builds",
+);
+includes(
+  "scripts/prepare-google-services.mjs",
+  "GOOGLE_SERVICES_JSON",
+  "EAS build hook consumes the Firebase secret-file environment variable",
 );
 includes(
   "package.json",
@@ -1061,6 +1103,7 @@ const filesToScan = [
   ".github/workflows/eas-submit.yml",
   ".github/workflows/mobile-release-check.yml",
   ".github/workflows/supabase-functions.yml",
+  "app.config.js",
   "app.json",
   "eas.json",
   "package.json",
@@ -1131,6 +1174,7 @@ if (checkExternal) {
     "EXPO_PUBLIC_SUPABASE_URL",
     "EXPO_PUBLIC_SUPABASE_ANON_KEY",
     "EXPO_PUBLIC_AUTH_REDIRECT_URL",
+    "GOOGLE_SERVICES_JSON",
   ];
   if (!easProductionEnvNames) {
     fail("Unable to verify EAS production environment variables. Run: npx eas-cli login");
