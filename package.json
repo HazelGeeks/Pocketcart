@@ -2,6 +2,9 @@
   "name": "pocketcart",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "dev": "expo start --web",
@@ -58,7 +61,7 @@
     "pdfjs-dist": "^6.0.227",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "react-native": "0.83.6",
+    "react-native": "0.83.10",
     "react-native-maps": "1.27.2",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-svg": "15.15.3",

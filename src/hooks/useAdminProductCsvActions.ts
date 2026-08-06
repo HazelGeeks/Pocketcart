@@ -145,7 +145,9 @@ export default function useAdminProductCsvActions({
       setNotice(error);
       return;
     }
-    setNotice("Downloaded product CSV import template.");
+    setNotice(
+      "Downloaded product CSV import template. Leave store_name and store_id blank to apply store_brand to all active branches.",
+    );
   }, [setNotice]);
 
   const handleImportProductsCsv = React.useCallback(() => {
@@ -469,8 +471,8 @@ export default function useAdminProductCsvActions({
 
               const storeIds = storeResolver.resolveStoreIds(rawStoreId, rawStoreName, rawStoreBrand);
               if (storeIds.length === 0) {
-                if (!rawStoreName && !rawStoreId) {
-                  priceSkipped.push(`row ${index + 2}: price skipped (missing store/store_id)`);
+                if (!rawStoreName && !rawStoreId && !rawStoreBrand) {
+                  priceSkipped.push(`row ${index + 2}: price skipped (missing store_brand/store_name/store_id)`);
                 } else {
                   priceSkipped.push(`row ${index + 2}: price skipped (store not found)`);
                 }

@@ -38,6 +38,12 @@ const SCHEMA_PROBES: SchemaProbe[] = [
     table: "user_favorite_stores",
     columns: "user_id,store_id",
   },
+  {
+    id: "admin_audit_logs",
+    label: "Admin audit logs",
+    table: "admin_audit_logs",
+    columns: "id,action,entity_type,created_at",
+  },
 ];
 
 export async function getAdminSchemaReadiness(): Promise<

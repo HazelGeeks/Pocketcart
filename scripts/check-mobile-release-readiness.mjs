@@ -73,6 +73,7 @@ const requiredFiles = [
   "supabase/migrations/20260724100000_product_price_summary_rpc.sql",
   "supabase/migrations/20260724110000_product_identity_workflow.sql",
   "supabase/migrations/20260724120000_product_merge_watchlist_guard.sql",
+  "supabase/migrations/20260803093000_admin_audit_logs.sql",
 ];
 
 const findings = [];
@@ -210,6 +211,21 @@ for (const file of requiredFiles) {
 const pkg = readJson("package.json");
 const app = readJson("app.json").expo;
 const eas = readJson("eas.json");
+const nativeBuildProfiles = [
+  "development",
+  "development-device",
+  "preview",
+  "preview-simulator",
+  "production",
+];
+if (
+  eas.build?.base?.node === "22.22.3" &&
+  nativeBuildProfiles.every((profile) => eas.build?.[profile]?.extends === "base")
+) {
+  pass("All EAS native build profiles use Node.js 22.22.3");
+} else {
+  fail("Every EAS native build profile must extend the Node.js 22.22.3 base profile");
+}
 
 if (pkg.version === app.version) {
   pass(`Package and Expo versions match: ${pkg.version}`);
@@ -463,6 +479,23 @@ if (targetReleaseConfiguration.includes("APS_ENVIRONMENT = production;")) {
 } else {
   fail("iOS Release builds must set APS_ENVIRONMENT to production");
 }
+const targetBuildConfigurationList = xcodeProject.match(
+  /Build configuration list for PBXNativeTarget "PocketCart" \*\/ = \{[\s\S]*?\n\t\t\};/,
+)?.[0] ?? "";
+if (
+  targetBuildConfigurationList.indexOf("/* Release */") >= 0 &&
+  targetBuildConfigurationList.indexOf("/* Release */") <
+    targetBuildConfigurationList.indexOf("/* Debug */")
+) {
+  pass("Expo autolinking prioritizes the Release entitlement set");
+} else {
+  fail("PocketCart target must list Release before Debug for Expo entitlement discovery");
+}
+includes(
+  "ios/PocketCart.xcodeproj/project.pbxproj",
+  '"$(SRCROOT)/PocketCart/PocketCart.entitlements"',
+  "Expo configure-project phase tracks the Release entitlement set",
+);
 includes(
   "ios/PocketCart/PrivacyInfo.xcprivacy",
   "NSPrivacyCollectedDataTypeEmailAddress",
@@ -816,6 +849,11 @@ includes(
 );
 includes(
   ".github/workflows/eas-build.yml",
+  "inputs.platform == 'android' || inputs.platform == 'all'",
+  "EAS build workflow scopes Android-only release secrets to Android artifacts",
+);
+includes(
+  ".github/workflows/eas-build.yml",
   "eas-cli build",
   "EAS build workflow can create native artifacts",
 );
@@ -858,6 +896,11 @@ includes(
   ".github/workflows/eas-submit.yml",
   "Validate EAS production environment",
   "EAS submit workflow validates production environment variables before submission",
+);
+includes(
+  ".github/workflows/eas-submit.yml",
+  "if: ${{ inputs.platform == 'android' }}",
+  "EAS submit workflow does not require Android-only settings for iOS submission",
 );
 includes(
   ".github/workflows/supabase-functions.yml",
@@ -1003,6 +1046,11 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "20260724120000_product_merge_watchlist_guard.sql",
   "Supabase schema workflow applies the product merge watchlist guard",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260803093000_admin_audit_logs.sql",
+  "Supabase schema workflow applies the admin audit logs migration",
 );
 includes(
   ".gitignore",

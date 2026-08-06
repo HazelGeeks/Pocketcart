@@ -4,7 +4,11 @@
     "appVersionSource": "local"
   },
   "build": {
+    "base": {
+      "node": "22.22.3"
+    },
     "development": {
+      "extends": "base",
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
@@ -16,6 +20,7 @@
       }
     },
     "development-device": {
+      "extends": "base",
       "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
@@ -27,6 +32,7 @@
       }
     },
     "preview": {
+      "extends": "base",
       "environment": "production",
       "distribution": "internal",
       "ios": {
@@ -37,6 +43,7 @@
       }
     },
     "preview-simulator": {
+      "extends": "base",
       "environment": "production",
       "distribution": "internal",
       "ios": {
@@ -44,6 +51,7 @@
       }
     },
     "production": {
+      "extends": "base",
       "environment": "production",
       "autoIncrement": true,
       "ios": {

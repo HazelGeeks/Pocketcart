@@ -39,6 +39,20 @@ test("product CSV store resolver keeps direct store_id as a single explicit targ
   );
 });
 
+test("product CSV store resolver expands a brand-only row to all active branches", () => {
+  const resolver = createProductCsvStoreResolver([
+    { id: "metrotown", brand: "PriceSmart Foods", name: "Metrotown", is_active: true },
+    { id: "richmond", brand: "PriceSmart Foods", name: "Richmond", is_active: true },
+    { id: "closed", brand: "PriceSmart Foods", name: "Closed Branch", is_active: false },
+    { id: "other", brand: "Other", name: "Other Branch", is_active: true },
+  ]);
+
+  assert.deepEqual(
+    resolver.resolveStoreIds("", "", "pricesmart-foods"),
+    ["metrotown", "richmond"],
+  );
+});
+
 test("product CSV store resolver ignores brand spacing and punctuation differences", () => {
   const resolver = createProductCsvStoreResolver([
     { id: "hmart-richmond", brand: "H Mart", name: "Richmond" },

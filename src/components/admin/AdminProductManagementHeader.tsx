@@ -34,7 +34,9 @@ export default function AdminProductManagementHeader({
       <View style={st.dataCardHeader}>
         <View style={st.productHeaderCopy}>
           <Text style={st.dataCardTitle}>Product Management</Text>
-          <Text style={st.dataMuted}>Create and remove catalog products.</Text>
+          <Text style={st.dataMuted}>
+            Create and remove catalog products. CSV rows with only store_brand apply to all active branches.
+          </Text>
         </View>
         <View style={st.productHeaderActions}>
           <Pressable

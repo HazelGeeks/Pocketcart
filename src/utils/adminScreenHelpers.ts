@@ -161,7 +161,7 @@ export function productImportTemplateCsv(): string {
       "12 ct",
       "",
       "Safeway",
-      "Robson",
+      "",
       "",
       "6.99",
       "2026-06-28",

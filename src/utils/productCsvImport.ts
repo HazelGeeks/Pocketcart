@@ -24,12 +24,20 @@ export function createProductCsvStoreResolver(stores: AdminStore[]) {
   const storeById = new Map(stores.map((store) => [store.id.trim().toLowerCase(), store.id]));
   const storeIdByName = new Map<string, string>();
   const storeIdByIdentity = new Map<string, string>();
+  const activeStoreIdsByBrand = new Map<string, string[]>();
 
   stores.forEach((store) => {
     storeIdByName.set(storeNameKey(store.name), store.id);
     storeIdByIdentity.set(storeIdentityKey(store), store.id);
     if (store.brand?.trim()) {
       storeIdByName.set(storeNameKey(`${store.brand.trim()} - ${store.name.trim()}`), store.id);
+      if (store.is_active !== false) {
+        const brandKey = normalizedLookupKey(store.brand);
+        activeStoreIdsByBrand.set(brandKey, [
+          ...(activeStoreIdsByBrand.get(brandKey) ?? []),
+          store.id,
+        ]);
+      }
     }
   });
 
@@ -46,6 +54,10 @@ export function createProductCsvStoreResolver(stores: AdminStore[]) {
         .split("|")
         .map((value) => storeNameKey(value))
         .filter(Boolean);
+
+      if (candidates.length === 0) {
+        return [...(activeStoreIdsByBrand.get(normalizedLookupKey(storeBrandValue)) ?? [])];
+      }
 
       for (const candidate of candidates) {
         const identityMatch = storeIdByIdentity.get(storeIdentityKey({ brand: storeBrandValue, name: candidate }));

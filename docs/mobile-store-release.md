@@ -10,6 +10,7 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - Android package: `com.pocketcart.app`
 - App scheme: `pocketcart`
 - EAS project: linked through `expo.extra.eas.projectId` in `app.json`
+- EAS build runtime: Node.js `22.22.3` through the shared `base` profile
 - Release version: `1.0.0`
 - iOS build number: `1`
 - Android versionCode: starts at `1`; EAS production builds auto-increment store
@@ -83,11 +84,13 @@ The repository includes seven release and verification workflows:
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
   It runs `npm run release:native:check` first and waits for native artifact
   completion. Production builds fail before starting if required EAS production
-  environment variables are missing.
+  environment variables are missing. Android Maps and Firebase variables are
+  checked only when the requested artifact includes Android, so they do not
+  block an iOS-only build.
 - `EAS Store Submit`: manually submits the latest iOS or Android EAS artifact
   after store records and credentials are ready. It verifies the live legal,
-  support, account deletion URLs, and EAS production environment before
-  submission.
+  support, account deletion URLs, and shared EAS production environment before
+  submission. The Android Maps key is required only for Android submission.
 - `Supabase Functions Deploy`: manually deploys the account and back-office
   functions and sets the sale-alert trigger secret.
 - `Sale Alert Sync`: runs every six hours and can also be started manually to
@@ -130,6 +133,11 @@ Required EAS `production` environment variables:
 - `EXPO_PUBLIC_FLYER_AI_ENDPOINT`: production `back-office-flyer` function URL
   if admin flyer extraction is needed in the release build.
 - `POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY`: Android Maps SDK key.
+
+`POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY` and `GOOGLE_SERVICES_JSON` are
+Android-only build requirements. The full `release:native:doctor` command still
+checks both platforms, while the EAS build and submit workflows scope these
+requirements to the selected platform.
 
 Restrict the Android maps key to package `com.pocketcart.app` and the release
 upload certificate SHA-1 before store submission.

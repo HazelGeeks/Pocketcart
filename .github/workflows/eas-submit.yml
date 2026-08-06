@@ -35,7 +35,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 22
           cache: npm
 
       - name: Validate GitHub secrets
@@ -62,7 +62,12 @@ jobs:
           grep -q "EXPO_PUBLIC_SUPABASE_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
           grep -q "EXPO_PUBLIC_SUPABASE_ANON_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_ANON_KEY"; exit 1; }
           grep -q "EXPO_PUBLIC_AUTH_REDIRECT_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_AUTH_REDIRECT_URL"; exit 1; }
-          grep -q "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"; exit 1; }
+
+      - name: Validate Android EAS production environment
+        if: ${{ inputs.platform == 'android' }}
+        run: |
+          npx eas-cli env:list production --format long > /tmp/pocketcart-eas-android-env.txt
+          grep -q "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY" /tmp/pocketcart-eas-android-env.txt || { echo "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"; exit 1; }
 
       - name: Submit latest native artifact
         run: npx eas-cli submit --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --latest --non-interactive

@@ -1,604 +1,30 @@
 import React from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import {
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
-import { AdminNoAccessPanel, AdminSignInPanel } from "../components/admin/AdminAuthPanels";
+  AdminNoAccessPanel,
+  AdminSignInPanel,
+} from "../components/admin/AdminAuthPanels";
 import AdminSidebar from "../components/admin/AdminSidebar";
-import AdminOverviewPanel from "../components/admin/AdminOverviewPanel";
-import AdminFlyerPanel from "../components/admin/AdminFlyerPanel";
-import AdminProductFormModal from "../components/admin/AdminProductFormModal";
-import AdminProductsPanel from "../components/admin/AdminProductsPanel";
-import AdminStoreDeleteModal from "../components/admin/AdminStoreDeleteModal";
-import AdminStoreFormModal from "../components/admin/AdminStoreFormModal";
-import AdminStoreImportPreviewModal from "../components/admin/AdminStoreImportPreviewModal";
-import AdminStoresPanel from "../components/admin/AdminStoresPanel";
-import AdminUsersPanel from "../components/admin/AdminUsersPanel";
-import { AdminNoticePanel, AdminSupabaseSetupNotice } from "../components/admin/AdminStatusPanels";
-import { AdminHeader, AdminMobileMenu } from "../components/admin/AdminWorkspaceChrome";
-import useAdminDashboardData from "../hooks/useAdminDashboardData";
-import useAdminFlyerImport from "../hooks/useAdminFlyerImport";
-import useAdminProductActions from "../hooks/useAdminProductActions";
-import useAdminStoreActions from "../hooks/useAdminStoreActions";
-import useLayout from "../hooks/useLayout";
+import {
+  AdminNoticePanel,
+  AdminSupabaseSetupNotice,
+} from "../components/admin/AdminStatusPanels";
+import {
+  AdminHeader,
+  AdminMobileMenu,
+} from "../components/admin/AdminWorkspaceChrome";
+import AdminWorkspaceModals from "../components/admin/AdminWorkspaceModals";
+import AdminWorkspacePanels from "../components/admin/AdminWorkspacePanels";
+import useAdminWorkspaceActions from "../hooks/useAdminWorkspaceActions";
+import useAdminWorkspaceData from "../hooks/useAdminWorkspaceData";
 import { hasSupabaseEnv } from "../services/supabaseClient";
-import {
-  type AdminAuditLog,
-  type AdminDirectoryUser,
-  type AdminPriceEntry,
-  type AdminProduct,
-  type AdminProductIdentityReview,
-  type AdminSchemaReadiness,
-  type AdminStore,
-} from "../services/adminBackoffice";
-import {
-  useAdminAuditLogsQuery,
-  useAdminPricesQuery,
-  useAdminProductsQuery,
-  useAdminSignInMutation,
-  useAdminSignOutMutation,
-  useAdminSchemaReadinessQuery,
-  useAdminStoresQuery,
-  useAdminUserQuery,
-  useAdminUsersQuery,
-  useCreateAdminPriceEntryMutation,
-  useCreateAdminAuditLogMutation,
-  useCreateAdminProductMutation,
-  useCreateProductIdentityReviewMutation,
-  useCreateAdminStoreMutation,
-  useDeleteAdminProductMutation,
-  useDeleteAdminStoreMutation,
-  useUpdateAdminProductMutation,
-  useUpdateAdminStoreMutation,
-  useUpdateAdminPriceEntryMutation,
-  useProductIdentityReviewsQuery,
-  useMergeAdminProductsMutation,
-  useResolveProductIdentityReviewMutation,
-  useUploadAdminProductImageMutation,
-} from "../hooks/useAdminBackofficeQueries";
-import { useAdminStore } from "../state/adminStore";
-import { type StoreImportPreviewRow } from "../utils/adminValidation";
-import {
-  ADMIN_EMAIL_ALLOWLIST,
-  createStorePriceSet,
-  type StorePriceSetInput,
-} from "../utils/adminScreenHelpers";
 import { st } from "./adminScreenStyles";
 
 export default function AdminScreen({ onBack }: { onBack: () => void }) {
-  const { isLg } = useLayout();
-  const allowlistEnabled = ADMIN_EMAIL_ALLOWLIST.length > 0;
-
-  const [authEmail, setAuthEmail] = React.useState("");
-  const [authPassword, setAuthPassword] = React.useState("");
-
-  const [notice, setNotice] = React.useState<string | null>(null);
-
-  const [productName, setProductName] = React.useState("");
-  const [productEnglishName, setProductEnglishName] = React.useState("");
-  const [productBrand, setProductBrand] = React.useState("");
-  const [productGtin, setProductGtin] = React.useState("");
-  const [productUnit, setProductUnit] = React.useState("");
-  const [productCategory, setProductCategory] = React.useState("");
-  const [productCategoryCustom, setProductCategoryCustom] = React.useState("");
-  const [productThumb, setProductThumb] = React.useState("");
-  const [productStorePriceSets, setProductStorePriceSets] = React.useState<StorePriceSetInput[]>([
-    createStorePriceSet(),
-  ]);
-  const [productModalOpen, setProductModalOpen] = React.useState(false);
-  const [editingProductId, setEditingProductId] = React.useState<string | null>(null);
-  const [productImageUploading, setProductImageUploading] = React.useState(false);
-  const [editingStoreId, setEditingStoreId] = React.useState<string | null>(null);
-  const [storeModalOpen, setStoreModalOpen] = React.useState(false);
-  const [storeBrand, setStoreBrand] = React.useState("");
-  const [storeName, setStoreName] = React.useState("");
-  const [storeLatitude, setStoreLatitude] = React.useState("");
-  const [storeLongitude, setStoreLongitude] = React.useState("");
-  const [storePriceNote, setStorePriceNote] = React.useState("");
-  const [storeAddress, setStoreAddress] = React.useState("");
-  const [storePlaceId, setStorePlaceId] = React.useState("");
-  const [storePhone, setStorePhone] = React.useState("");
-  const [storeWebsite, setStoreWebsite] = React.useState("");
-  const [storeHours, setStoreHours] = React.useState("");
-  const [storeType, setStoreType] = React.useState("grocery");
-  const [storeIsActive, setStoreIsActive] = React.useState(true);
-  const [storeSearchQuery, setStoreSearchQuery] = React.useState("");
-  const [storeBrandFilter, setStoreBrandFilter] = React.useState("all");
-  const [storeStatusFilter, setStoreStatusFilter] = React.useState("all");
-  const [storeTypeFilter, setStoreTypeFilter] = React.useState("all");
-  const [selectedStoreMapId, setSelectedStoreMapId] = React.useState<string | null>(null);
-  const [storeImportPreviewRows, setStoreImportPreviewRows] = React.useState<StoreImportPreviewRow[]>([]);
-  const [storeImportPreviewOpen, setStoreImportPreviewOpen] = React.useState(false);
-  const [storeDeleteCandidate, setStoreDeleteCandidate] = React.useState<AdminStore | null>(null);
-
-  const [submitting, setSubmitting] = React.useState(false);
-  const [deletingKey, setDeletingKey] = React.useState<string | null>(null);
-  const [resolvingReviewId, setResolvingReviewId] = React.useState<string | null>(null);
-  const [refreshing, setRefreshing] = React.useState(false);
-
-  const activeMenu = useAdminStore((state) => state.activeMenu);
-  const setActiveMenu = useAdminStore((state) => state.setActiveMenu);
-  const sidebarCollapsed = useAdminStore((state) => state.sidebarCollapsed);
-  const setSidebarCollapsed = useAdminStore((state) => state.setSidebarCollapsed);
-  const productSearchQuery = useAdminStore((state) => state.productSearchQuery);
-  const setProductSearchQuery = useAdminStore((state) => state.setProductSearchQuery);
-  const productCategoryFilter = useAdminStore((state) => state.productCategoryFilter);
-  const setProductCategoryFilter = useAdminStore((state) => state.setProductCategoryFilter);
-  const productBrandFilter = useAdminStore((state) => state.productBrandFilter);
-  const setProductBrandFilter = useAdminStore((state) => state.setProductBrandFilter);
-  const productStoreFilter = useAdminStore((state) => state.productStoreFilter);
-  const setProductStoreFilter = useAdminStore((state) => state.setProductStoreFilter);
-  const productSaleDateFilter = useAdminStore((state) => state.productSaleDateFilter);
-  const setProductSaleDateFilter = useAdminStore((state) => state.setProductSaleDateFilter);
-  const productOnSaleOnly = useAdminStore((state) => state.productOnSaleOnly);
-  const setProductOnSaleOnly = useAdminStore((state) => state.setProductOnSaleOnly);
-  const productSort = useAdminStore((state) => state.productSort);
-  const setProductSort = useAdminStore((state) => state.setProductSort);
-  const resetProductFilters = useAdminStore((state) => state.resetProductFilters);
-  const flyerRows = useAdminStore((state) => state.flyerRows);
-  const setFlyerRows = useAdminStore((state) => state.setFlyerRows);
-  const flyerProcessing = useAdminStore((state) => state.flyerProcessing);
-  const setFlyerProcessing = useAdminStore((state) => state.setFlyerProcessing);
-  const flyerProgress = useAdminStore((state) => state.flyerProgress);
-  const setFlyerProgress = useAdminStore((state) => state.setFlyerProgress);
-  const updateFlyerRow = useAdminStore((state) => state.updateFlyerRow);
-  const addFlyerRow = useAdminStore((state) => state.addFlyerRow);
-  const removeSelectedFlyerRows = useAdminStore((state) => state.removeSelectedFlyerRows);
-  const clearFlyerImport = useAdminStore((state) => state.clearFlyerImport);
-  const resetAdminUi = useAdminStore((state) => state.resetAdminUi);
-
-  const adminUserQuery = useAdminUserQuery();
-  const authUser = adminUserQuery.data ?? null;
-
-  const hasAdminAccess = authUser
-    ? !allowlistEnabled ||
-      ADMIN_EMAIL_ALLOWLIST.includes(authUser.email.trim().toLowerCase())
-    : false;
-  const dataQueriesEnabled = Boolean(authUser && hasAdminAccess);
-  const usersQuery = useAdminUsersQuery(dataQueriesEnabled);
-  const productsQuery = useAdminProductsQuery(dataQueriesEnabled);
-  const storesQuery = useAdminStoresQuery(dataQueriesEnabled);
-  const pricesQuery = useAdminPricesQuery(dataQueriesEnabled);
-  const auditLogsQuery = useAdminAuditLogsQuery(dataQueriesEnabled);
-  const productIdentityReviewsQuery = useProductIdentityReviewsQuery(dataQueriesEnabled);
-  const schemaReadinessQuery = useAdminSchemaReadinessQuery(dataQueriesEnabled);
-  const signInMutation = useAdminSignInMutation();
-  const signOutMutation = useAdminSignOutMutation();
-  const createProductMutation = useCreateAdminProductMutation();
-  const createIdentityReviewMutation = useCreateProductIdentityReviewMutation();
-  const updateProductMutation = useUpdateAdminProductMutation();
-  const createPriceEntryMutation = useCreateAdminPriceEntryMutation();
-  const createAuditLogMutation = useCreateAdminAuditLogMutation();
-  const updatePriceEntryMutation = useUpdateAdminPriceEntryMutation();
-  const createStoreMutation = useCreateAdminStoreMutation();
-  const deleteStoreMutation = useDeleteAdminStoreMutation();
-  const updateStoreMutation = useUpdateAdminStoreMutation();
-  const deleteProductMutation = useDeleteAdminProductMutation();
-  const uploadProductImageMutation = useUploadAdminProductImageMutation();
-  const resolveIdentityReviewMutation = useResolveProductIdentityReviewMutation();
-  const mergeProductsMutation = useMergeAdminProductsMutation();
-
-  const products = React.useMemo<AdminProduct[]>(() => productsQuery.data ?? [], [productsQuery.data]);
-  const users = React.useMemo<AdminDirectoryUser[]>(() => usersQuery.data ?? [], [usersQuery.data]);
-  const stores = React.useMemo<AdminStore[]>(() => storesQuery.data ?? [], [storesQuery.data]);
-  const prices = React.useMemo<AdminPriceEntry[]>(() => pricesQuery.data ?? [], [pricesQuery.data]);
-  const auditLogs = React.useMemo<AdminAuditLog[]>(
-    () => auditLogsQuery.data ?? [],
-    [auditLogsQuery.data],
-  );
-  const productIdentityReviews = React.useMemo<AdminProductIdentityReview[]>(
-    () => productIdentityReviewsQuery.data ?? [],
-    [productIdentityReviewsQuery.data],
-  );
-  const schemaReadiness = React.useMemo<AdminSchemaReadiness | null>(
-    () => schemaReadinessQuery.data ?? null,
-    [schemaReadinessQuery.data],
-  );
-  const productsLoading = productsQuery.isLoading || productsQuery.isFetching;
-  const usersLoading = usersQuery.isLoading || usersQuery.isFetching;
-  const productIdentityReviewsLoading =
-    productIdentityReviewsQuery.isLoading || productIdentityReviewsQuery.isFetching;
-  const authLoading =
-    adminUserQuery.isLoading || signInMutation.isPending || signOutMutation.isPending;
-
-  const {
-    categoryOptions,
-    displayStores,
-    filteredProducts,
-    filteredStores,
-    flyerSelectedCount,
-    overviewCards,
-    productActiveFilterCount,
-    productBrandFilterOptions,
-    productDataHealth,
-    productFilterCategoryOptions,
-    productPriceStats,
-    productSortOptions,
-    productStoreFilterOptions,
-    productFormStoreOptions,
-    selectedStoreForMap,
-    storeActiveFilterCount,
-    storeAuditLogs,
-    storeBrandOptions,
-    storePriceStats,
-    storeTypeOptions,
-  } = useAdminDashboardData({
-    products,
-    stores,
-    prices,
-    auditLogs,
-    storeSearchQuery,
-    storeBrandFilter,
-    storeStatusFilter,
-    storeTypeFilter,
-    selectedStoreMapId,
-    productSearchQuery,
-    productCategoryFilter,
-    productBrandFilter,
-    productStoreFilter,
-    productSaleDateFilter,
-    productOnSaleOnly,
-    productSort,
-    flyerSelectedRows: flyerRows.filter((row) => row.selected).length,
-  });
-  const loadAll = React.useCallback(
-    async (keepNotice = false) => {
-      const results = await Promise.all([
-        usersQuery.refetch(),
-        productsQuery.refetch(),
-        storesQuery.refetch(),
-        pricesQuery.refetch(),
-        auditLogsQuery.refetch(),
-        productIdentityReviewsQuery.refetch(),
-        schemaReadinessQuery.refetch(),
-      ]);
-      const errors = results
-        .map((item) => (item.error instanceof Error ? item.error.message : null))
-        .filter((item): item is string => Boolean(item));
-      if (errors.length > 0) {
-        setNotice(errors.join(" | "));
-        return;
-      }
-      if (!keepNotice) {
-        setNotice(null);
-      }
-    },
-    [
-      auditLogsQuery,
-      pricesQuery,
-      productIdentityReviewsQuery,
-      productsQuery,
-      schemaReadinessQuery,
-      storesQuery,
-      usersQuery,
-    ],
-  );
-
-  const handleRefresh = React.useCallback(async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    try {
-      await loadAll(true);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [loadAll, refreshing]);
-
-  React.useEffect(() => {
-    const errors = [
-      adminUserQuery.error,
-      usersQuery.error,
-      productsQuery.error,
-      storesQuery.error,
-      pricesQuery.error,
-      auditLogsQuery.error,
-      productIdentityReviewsQuery.error,
-    ]
-      .map((error) => (error instanceof Error ? error.message : null))
-      .filter((item): item is string => Boolean(item));
-    if (errors.length > 0) {
-      setNotice(errors.join(" | "));
-    }
-  }, [
-    adminUserQuery.error,
-    auditLogsQuery.error,
-    pricesQuery.error,
-    productIdentityReviewsQuery.error,
-    productsQuery.error,
-    storesQuery.error,
-    usersQuery.error,
-  ]);
-
-  const {
-    addStorePriceSet,
-    handleCreateProduct,
-    handleDeleteProduct,
-    handleDeleteProducts,
-    handleDownloadProductCsvTemplate,
-    handleExportProductsCsv,
-    handleImportProductsCsv,
-    handleOpenAddProduct,
-    handleOpenEditProduct,
-    handlePasteProductImage,
-    handleProductImagePasteEvent,
-    handleResetProductFilters,
-    handleUploadProductImage,
-    removeStorePriceSet,
-    resetProductForm,
-    updateStorePriceSet,
-  } = useAdminProductActions({
-    productName,
-    productEnglishName,
-    productBrand,
-    productGtin,
-    productUnit,
-    productCategory,
-    productCategoryCustom,
-    productThumb,
-    productStorePriceSets,
-    editingProductId,
-    products,
-    prices,
-    stores: displayStores,
-    productPriceStats,
-    setProductName,
-    setProductEnglishName,
-    setProductBrand,
-    setProductGtin,
-    setProductUnit,
-    setProductCategory,
-    setProductCategoryCustom,
-    setProductThumb,
-    setProductStorePriceSets,
-    setProductModalOpen,
-    setEditingProductId,
-    setProductImageUploading,
-    setSubmitting,
-    setDeletingKey,
-    setNotice,
-    resetProductFilters,
-    loadAll,
-    createProductMutation,
-    updateProductMutation,
-    deleteProductMutation,
-    createPriceEntryMutation,
-    updatePriceEntryMutation,
-    uploadProductImageMutation,
-    createIdentityReviewMutation,
-  });
-  const {
-    handleConfirmDeleteStore,
-    handleConfirmStoreImport,
-    handleExportStoresCsv,
-    handleImportStoresCsv,
-    handleOpenAddStore,
-    handleOpenEditStore,
-    handleRequestDeleteStore,
-    handleSaveStore,
-    resetStoreForm,
-  } = useAdminStoreActions({
-    displayStores,
-    stores,
-    editingStoreId,
-    storeBrand,
-    storeName,
-    storeLatitude,
-    storeLongitude,
-    storePriceNote,
-    storeAddress,
-    storePlaceId,
-    storePhone,
-    storeWebsite,
-    storeHours,
-    storeType,
-    storeIsActive,
-    storeImportPreviewRows,
-    storeDeleteCandidate,
-    storePriceStats,
-    setEditingStoreId,
-    setStoreModalOpen,
-    setStoreBrand,
-    setStoreName,
-    setStoreLatitude,
-    setStoreLongitude,
-    setStorePriceNote,
-    setStoreAddress,
-    setStorePlaceId,
-    setStorePhone,
-    setStoreWebsite,
-    setStoreHours,
-    setStoreType,
-    setStoreIsActive,
-    setStoreImportPreviewRows,
-    setStoreImportPreviewOpen,
-    setStoreDeleteCandidate,
-    setSubmitting,
-    setDeletingKey,
-    setNotice,
-    loadAll,
-    createStoreMutation,
-    updateStoreMutation,
-    deleteStoreMutation,
-    createAuditLogMutation,
-  });
-  const {
-    handleAddFlyerRow,
-    handleClearFlyerImport,
-    handleExportFlyerCsv,
-    handleExportFlyerProductCsv,
-    handlePickFlyerFile,
-    handleRemoveSelectedFlyerRows,
-    handleSaveSelectedFlyerImages,
-  } = useAdminFlyerImport({
-    flyerRows,
-    setFlyerRows,
-    setFlyerProcessing,
-    setFlyerProgress,
-    addFlyerRow,
-    removeSelectedFlyerRows,
-    clearFlyerImport,
-    setNotice,
-    uploadProductImageMutation,
-  });
-
-  const handleOpenMapUrl = React.useCallback((url: string) => {
-    if (Platform.OS !== "web") {
-      setNotice("Map helper is currently available on web admin.");
-      return;
-    }
-    const opener = (globalThis as { open?: (url: string, target?: string, features?: string) => Window | null }).open;
-    if (typeof opener !== "function") {
-      setNotice("Map helper is not available in this browser.");
-      return;
-    }
-    opener(url, "_blank", "noopener,noreferrer");
-  }, []);
-
-  const handleSignIn = React.useCallback(async () => {
-    const email = authEmail.trim();
-    const password = authPassword;
-
-    if (!email || !password) {
-      setNotice("Email and password are required.");
-      return;
-    }
-
-    try {
-      await signInMutation.mutateAsync({ email, password });
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Sign in failed.");
-      return;
-    }
-
-    setAuthPassword("");
-    setActiveMenu("overview");
-    setNotice("Signed in to admin.");
-  }, [authEmail, authPassword, setActiveMenu, signInMutation]);
-
-  const handleSignOut = React.useCallback(async () => {
-    try {
-      await signOutMutation.mutateAsync();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Sign out failed.");
-      return;
-    }
-
-    resetAdminUi();
-    setNotice("Signed out.");
-  }, [resetAdminUi, signOutMutation]);
-
-  const handleResolveIdentityReview = React.useCallback(
-    async (reviewId: string) => {
-      setResolvingReviewId(reviewId);
-      try {
-        await resolveIdentityReviewMutation.mutateAsync(reviewId);
-        await productIdentityReviewsQuery.refetch();
-        setNotice("Product identity review marked as reviewed.");
-      } catch (error) {
-        setNotice(
-          error instanceof Error
-            ? error.message
-            : "Product identity review could not be updated.",
-        );
-      } finally {
-        setResolvingReviewId(null);
-      }
-    },
-    [productIdentityReviewsQuery, resolveIdentityReviewMutation],
-  );
-
-  const handleMergeProducts = React.useCallback(
-    async (
-      productIds: string[],
-      targetProductId: string,
-      reviewId?: string,
-    ): Promise<boolean> => {
-      const sourceProductIds = productIds.filter(
-        (productId) => productId !== targetProductId,
-      );
-      if (!targetProductId || sourceProductIds.length === 0) {
-        setNotice("Choose one product to keep and at least one product to merge.");
-        return false;
-      }
-
-      setSubmitting(true);
-      if (reviewId) setResolvingReviewId(reviewId);
-      try {
-        const result = await mergeProductsMutation.mutateAsync({
-          sourceProductIds,
-          targetProductId,
-          reviewId,
-        });
-        await Promise.all([
-          productsQuery.refetch(),
-          pricesQuery.refetch(),
-          productIdentityReviewsQuery.refetch(),
-          auditLogsQuery.refetch(),
-        ]);
-        setNotice(
-          `Merged ${sourceProductIds.length} product${sourceProductIds.length === 1 ? "" : "s"}. ` +
-          `${result?.moved_prices ?? 0} price rows moved; ` +
-          `${result?.merged_price_conflicts ?? 0} same-period price conflicts consolidated.`,
-        );
-        return true;
-      } catch (error) {
-        setNotice(error instanceof Error ? error.message : "Products could not be merged.");
-        return false;
-      } finally {
-        setSubmitting(false);
-        if (reviewId) setResolvingReviewId(null);
-      }
-    },
-    [
-      auditLogsQuery,
-      mergeProductsMutation,
-      pricesQuery,
-      productIdentityReviewsQuery,
-      productsQuery,
-    ],
-  );
-
-  const sectionMenu = [
-    {
-      key: "overview" as const,
-      label: "Dashboard",
-      badge: productIdentityReviews.length > 0
-        ? productIdentityReviews.length
-        : undefined,
-    },
-    {
-      key: "users" as const,
-      label: "Users",
-      badge: users.length,
-    },
-    {
-      key: "products" as const,
-      label: "Products",
-      badge: products.length,
-    },
-    {
-      key: "stores" as const,
-      label: "Stores",
-      badge: displayStores.length,
-    },
-    {
-      key: "flyer" as const,
-      label: "Flyer",
-    },
-  ];
-  const panelTitle =
-    activeMenu === "overview"
-      ? "Dashboard"
-      : activeMenu === "users"
-        ? "Users"
-        : activeMenu === "products"
-          ? "Products"
-          : activeMenu === "stores"
-            ? "Stores"
-            : "Flyer";
+  const data = useAdminWorkspaceData();
+  const actions = useAdminWorkspaceActions(data);
+  const { state, backend, isLg } = data;
+  const { adminUi, auth, status } = state;
 
   return (
     <View style={st.root}>
@@ -609,31 +35,28 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           { paddingHorizontal: isLg ? 0 : 10, paddingVertical: isLg ? 0 : 12 },
         ]}
       >
-        {authUser && hasAdminAccess ? (
+        {backend.authUser && backend.hasAdminAccess ? (
           <>
-            {(!isLg || !sidebarCollapsed) ? (
+            {!isLg || !adminUi.sidebarCollapsed ? (
               <AdminSidebar
                 isLg={isLg}
-                sectionMenu={sectionMenu}
-                activeMenu={activeMenu}
-                authUserLabel={authUser.email || authUser.id}
-                authLoading={authLoading}
-                productReviewCount={productIdentityReviews.length}
+                sectionMenu={data.sectionMenu}
+                activeMenu={adminUi.activeMenu}
+                authUserLabel={backend.authUser.email || backend.authUser.id}
+                authLoading={backend.loading.auth}
+                productReviewCount={backend.reviews.length}
                 styles={st}
-                onSelectMenu={setActiveMenu}
-                onSignOut={() => {
-                  void handleSignOut();
-                }}
-                onCollapse={() => setSidebarCollapsed(true)}
+                onSelectMenu={adminUi.setActiveMenu}
+                onSignOut={() => void actions.handleSignOut()}
+                onCollapse={() => adminUi.setSidebarCollapsed(true)}
               />
             ) : null}
-
-            {isLg && sidebarCollapsed ? (
+            {isLg && adminUi.sidebarCollapsed ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Expand sidebar"
                 accessibilityHint="Opens the admin navigation"
-                onPress={() => setSidebarCollapsed(false)}
+                onPress={() => adminUi.setSidebarCollapsed(false)}
                 style={st.sidebarCollapsedToggle}
                 {...({ title: "Expand sidebar" } as any)}
               >
@@ -647,304 +70,62 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
           <ScrollView
             role="main"
             style={st.scroll}
-            contentContainerStyle={[st.scrollContent, !authUser && st.scrollContentAuth]}
+            contentContainerStyle={[
+              st.scrollContent,
+              !backend.authUser && st.scrollContentAuth,
+            ]}
             showsVerticalScrollIndicator={false}
           >
             <AdminHeader
-              hasAdminAccess={Boolean(authUser && hasAdminAccess)}
-              refreshing={refreshing}
+              hasAdminAccess={Boolean(backend.authUser && backend.hasAdminAccess)}
+              refreshing={status.refreshing}
               styles={st}
               onBack={onBack}
-              onRefresh={() => {
-                void handleRefresh();
-              }}
+              onRefresh={() => void backend.handleRefresh()}
             />
-
-            {!hasSupabaseEnv ? (
-              <AdminSupabaseSetupNotice styles={st} />
-            ) : null}
-
-            {notice ? (
+            {!hasSupabaseEnv ? <AdminSupabaseSetupNotice styles={st} /> : null}
+            {status.notice ? (
               <AdminNoticePanel
-                notice={notice}
+                notice={status.notice}
                 styles={st}
-                onDismiss={() => setNotice(null)}
+                onDismiss={() => status.setNotice(null)}
               />
             ) : null}
-
-            {!authUser ? (
+            {!backend.authUser ? (
               <View style={st.authStage}>
                 <AdminSignInPanel
-                  email={authEmail}
-                  password={authPassword}
-                  loading={authLoading}
+                  email={auth.authEmail}
+                  password={auth.authPassword}
+                  loading={backend.loading.auth}
                   styles={st}
-                  onEmailChange={setAuthEmail}
-                  onPasswordChange={setAuthPassword}
-                  onSignIn={handleSignIn}
+                  onEmailChange={auth.setAuthEmail}
+                  onPasswordChange={auth.setAuthPassword}
+                  onSignIn={actions.handleSignIn}
                 />
               </View>
-            ) : !hasAdminAccess ? (
+            ) : !backend.hasAdminAccess ? (
               <AdminNoAccessPanel
                 styles={st}
                 onBack={onBack}
-                onSignOut={() => {
-                  void handleSignOut();
-                }}
+                onSignOut={() => void actions.handleSignOut()}
               />
             ) : (
               <>
                 {!isLg ? (
                   <AdminMobileMenu
-                    activeMenu={activeMenu}
-                    sectionMenu={sectionMenu}
+                    activeMenu={adminUi.activeMenu}
+                    sectionMenu={data.sectionMenu}
                     styles={st}
-                    onSelectMenu={setActiveMenu}
+                    onSelectMenu={adminUi.setActiveMenu}
                   />
                 ) : null}
-
-                {activeMenu !== "overview" ? (
-                  <Text style={st.panelTitle}>{panelTitle}</Text>
-                ) : null}
-
-                {activeMenu === "overview" ? (
-                  <AdminOverviewPanel
-                    cards={overviewCards}
-                    products={products}
-                    productsLoading={productsLoading}
-                    productDataHealth={productDataHealth}
-                    schemaReadiness={schemaReadiness}
-                    schemaReadinessLoading={
-                      schemaReadinessQuery.isLoading || schemaReadinessQuery.isFetching
-                    }
-                    productIdentityReviews={productIdentityReviews}
-                    productIdentityReviewsLoading={productIdentityReviewsLoading}
-                    resolvingReviewId={resolvingReviewId}
-                    styles={st}
-                    onManageProducts={() => setActiveMenu("products")}
-                    onResolveReview={(reviewId) => {
-                      void handleResolveIdentityReview(reviewId);
-                    }}
-                    onMergeReview={(reviewId, candidateProductIds, targetProductId) => {
-                      void handleMergeProducts(candidateProductIds, targetProductId, reviewId);
-                    }}
-                  />
-                ) : null}
-
-                {activeMenu === "users" ? (
-                  <AdminUsersPanel
-                    users={users}
-                    loading={usersLoading}
-                    styles={st}
-                  />
-                ) : null}
-
-                {activeMenu === "products" ? (
-                  <AdminProductsPanel
-                    products={products}
-                    filteredProducts={filteredProducts}
-                    loading={productsLoading}
-                    submitting={submitting}
-                    deletingKey={deletingKey}
-                    productSearchQuery={productSearchQuery}
-                    productCategoryFilter={productCategoryFilter}
-                    productBrandFilter={productBrandFilter}
-                    productStoreFilter={productStoreFilter}
-                    productSaleDateFilter={productSaleDateFilter}
-                    productOnSaleOnly={productOnSaleOnly}
-                    productSort={productSort}
-                    productCategoryOptions={productFilterCategoryOptions}
-                    productBrandOptions={productBrandFilterOptions}
-                    productStoreOptions={productStoreFilterOptions}
-                    productSortOptions={productSortOptions}
-                    productActiveFilterCount={productActiveFilterCount}
-                    productPriceStats={productPriceStats}
-                    styles={st}
-                    onImportProductsCsv={handleImportProductsCsv}
-                    onDownloadProductCsvTemplate={handleDownloadProductCsvTemplate}
-                    onExportProductsCsv={handleExportProductsCsv}
-                    onOpenAddProduct={handleOpenAddProduct}
-                    onProductSearchChange={setProductSearchQuery}
-                    onProductCategoryChange={setProductCategoryFilter}
-                    onProductBrandChange={setProductBrandFilter}
-                    onProductStoreChange={setProductStoreFilter}
-                    onProductSaleDateChange={setProductSaleDateFilter}
-                    onProductOnSaleOnlyChange={setProductOnSaleOnly}
-                    onProductSortChange={setProductSort}
-                    onResetProductFilters={handleResetProductFilters}
-                    onEditProduct={handleOpenEditProduct}
-                    onDeleteProduct={handleDeleteProduct}
-                    onDeleteProducts={handleDeleteProducts}
-                    onMergeProducts={handleMergeProducts}
-                  />
-                ) : null}
-
-                {activeMenu === "stores" ? (
-                  <AdminStoresPanel
-                    stores={displayStores}
-                    filteredStores={filteredStores}
-                    selectedStore={selectedStoreForMap}
-                    storePriceStats={storePriceStats}
-                    storeAuditLogs={storeAuditLogs}
-                    storeSearchQuery={storeSearchQuery}
-                    storeBrandFilter={storeBrandFilter}
-                    storeStatusFilter={storeStatusFilter}
-                    storeTypeFilter={storeTypeFilter}
-                    storeBrandOptions={storeBrandOptions}
-                    storeTypeOptions={storeTypeOptions}
-                    storeActiveFilterCount={storeActiveFilterCount}
-                    deletingKey={deletingKey}
-                    submitting={submitting}
-                    styles={st}
-                    onOpenAddStore={handleOpenAddStore}
-                    onImportStoresCsv={handleImportStoresCsv}
-                    onExportStoresCsv={handleExportStoresCsv}
-                    onStoreSearchChange={setStoreSearchQuery}
-                    onStoreBrandChange={setStoreBrandFilter}
-                    onStoreStatusChange={setStoreStatusFilter}
-                    onStoreTypeChange={setStoreTypeFilter}
-                    onResetStoreFilters={() => {
-                      setStoreSearchQuery("");
-                      setStoreBrandFilter("all");
-                      setStoreStatusFilter("all");
-                      setStoreTypeFilter("all");
-                    }}
-                    onOpenMapUrl={handleOpenMapUrl}
-                    onSelectStore={(storeId) =>
-                      setSelectedStoreMapId((current) => (current === storeId ? null : storeId))
-                    }
-                    onEditStore={handleOpenEditStore}
-                    onRequestDeleteStore={handleRequestDeleteStore}
-                  />
-                ) : null}
-
-                {activeMenu === "flyer" ? (
-                  <AdminFlyerPanel
-                    rows={flyerRows}
-                    processing={flyerProcessing}
-                    progress={flyerProgress}
-                    selectedCount={flyerSelectedCount}
-                    styles={st}
-                    onPickFile={handlePickFlyerFile}
-                    onAddRow={handleAddFlyerRow}
-                    onRemoveSelected={handleRemoveSelectedFlyerRows}
-                    onExportCsv={handleExportFlyerCsv}
-                    onExportProductCsv={handleExportFlyerProductCsv}
-                    onSaveSelectedImages={handleSaveSelectedFlyerImages}
-                    onClear={handleClearFlyerImport}
-                    onUpdateRow={updateFlyerRow}
-                  />
-                ) : null}
-
+                <AdminWorkspacePanels data={data} actions={actions} />
               </>
             )}
           </ScrollView>
         </View>
       </View>
-
-      <AdminStoreImportPreviewModal
-        visible={storeImportPreviewOpen}
-        rows={storeImportPreviewRows}
-        submitting={submitting}
-        styles={st}
-        onClose={() => setStoreImportPreviewOpen(false)}
-        onConfirm={() => {
-          void handleConfirmStoreImport();
-        }}
-      />
-
-      <AdminStoreDeleteModal
-        store={storeDeleteCandidate}
-        priceStats={storePriceStats}
-        submitting={submitting}
-        styles={st}
-        onClose={() => setStoreDeleteCandidate(null)}
-        onConfirm={() => {
-          void handleConfirmDeleteStore();
-        }}
-      />
-
-      <AdminStoreFormModal
-        visible={storeModalOpen}
-        isLg={isLg}
-        editingStoreId={editingStoreId}
-        submitting={submitting}
-        brand={storeBrand}
-        name={storeName}
-        latitude={storeLatitude}
-        longitude={storeLongitude}
-        priceNote={storePriceNote}
-        address={storeAddress}
-        placeId={storePlaceId}
-        phone={storePhone}
-        website={storeWebsite}
-        hours={storeHours}
-        storeType={storeType}
-        isActive={storeIsActive}
-        styles={st}
-        onBrandChange={setStoreBrand}
-        onNameChange={setStoreName}
-        onLatitudeChange={setStoreLatitude}
-        onLongitudeChange={setStoreLongitude}
-        onPriceNoteChange={setStorePriceNote}
-        onAddressChange={setStoreAddress}
-        onPlaceIdChange={setStorePlaceId}
-        onPhoneChange={setStorePhone}
-        onWebsiteChange={setStoreWebsite}
-        onHoursChange={setStoreHours}
-        onStoreTypeChange={setStoreType}
-        onActiveChange={setStoreIsActive}
-        onClose={() => {
-          setStoreModalOpen(false);
-          resetStoreForm();
-        }}
-        onOpenMapUrl={handleOpenMapUrl}
-        onSave={() => {
-          void handleSaveStore();
-        }}
-      />
-
-      <AdminProductFormModal
-        visible={productModalOpen}
-        editingProductId={editingProductId}
-        submitting={submitting}
-        imageUploading={productImageUploading}
-        productName={productName}
-        productEnglishName={productEnglishName}
-        productBrand={productBrand}
-        productGtin={productGtin}
-        productUnit={productUnit}
-        productCategory={productCategory}
-        productCategoryCustom={productCategoryCustom}
-        productThumb={productThumb}
-        storePriceSets={productStorePriceSets}
-        categoryOptions={categoryOptions}
-        storeOptions={productFormStoreOptions}
-        styles={st}
-        onNameChange={setProductName}
-        onEnglishNameChange={setProductEnglishName}
-        onBrandChange={setProductBrand}
-        onGtinChange={setProductGtin}
-        onUnitChange={setProductUnit}
-        onCategoryChange={setProductCategory}
-        onCategoryCustomChange={setProductCategoryCustom}
-        onThumbChange={setProductThumb}
-        onUploadImage={() => {
-          void handleUploadProductImage();
-        }}
-        onPasteImage={() => {
-          void handlePasteProductImage();
-        }}
-        onPasteImageEvent={handleProductImagePasteEvent}
-        onAddStorePriceSet={addStorePriceSet}
-        onRemoveStorePriceSet={removeStorePriceSet}
-        onUpdateStorePriceSet={updateStorePriceSet}
-        onClose={() => {
-          setProductModalOpen(false);
-          resetProductForm();
-        }}
-        onSave={handleCreateProduct}
-      />
+      <AdminWorkspaceModals data={data} actions={actions} />
     </View>
   );
 }
