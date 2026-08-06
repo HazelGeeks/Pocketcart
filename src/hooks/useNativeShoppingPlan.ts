@@ -1,20 +1,23 @@
 import React from "react";
 import type { NativeTabId } from "../screens/nativeAppData";
-import { listLatestStorePricesForProduct } from "../services/marketData";
+import { listLatestStorePricesForProduct, type MarketProduct } from "../services/marketData";
 import { settleLatestListResults } from "../utils/asyncRequestResults";
 import { buildShoppingRecommendation } from "../utils/shoppingOptimizer";
+import { productDisplayName } from "../utils/productNames";
 import useShoppingList from "./useShoppingList";
 
 type UseNativeShoppingPlanOptions = {
   activeTab: NativeTabId;
   favoriteStoreIds: string[];
   profileId: string | null;
+  productById: Map<string, MarketProduct>;
 };
 
 export default function useNativeShoppingPlan({
   activeTab,
   favoriteStoreIds,
   profileId,
+  productById,
 }: UseNativeShoppingPlanOptions) {
   const [prices, setPrices] = React.useState<
     Awaited<ReturnType<typeof listLatestStorePricesForProduct>>["data"]
@@ -40,9 +43,16 @@ export default function useNativeShoppingPlan({
     () => [...productIds].sort().join("|"),
     [productIds],
   );
+  const displayItems = React.useMemo(
+    () => items.map((item) => {
+      const product = productById.get(item.productId);
+      return product ? { ...item, name: productDisplayName(product) } : item;
+    }),
+    [items, productById],
+  );
   const recommendation = React.useMemo(
     () => buildShoppingRecommendation(
-      items,
+      displayItems,
       prices.map((price) => ({
         productId: price.product_id,
         storeId: price.store_id,
@@ -52,7 +62,7 @@ export default function useNativeShoppingPlan({
       })),
       favoriteStoreIds,
     ),
-    [favoriteStoreIds, items, prices],
+    [displayItems, favoriteStoreIds, prices],
   );
 
   const loadPrices = React.useCallback(async () => {
@@ -92,7 +102,7 @@ export default function useNativeShoppingPlan({
     addProduct,
     changeQuantity,
     clear,
-    items,
+    items: displayItems,
     loadPrices,
     message,
     productIds,

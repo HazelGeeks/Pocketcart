@@ -1,5 +1,6 @@
 import type { AdminProduct } from "../services/adminBackoffice";
 import { isValidGtin, normalizeGtin } from "./productIdentity";
+import { productDisplayName } from "./productNames";
 
 export type ProductDuplicateMethod = "gtin" | "name_and_unit";
 
@@ -21,7 +22,7 @@ function normalizeIdentityText(value: string | null | undefined): string {
 function productNameKeys(product: AdminProduct): string[] {
   return [
     ...new Set(
-      [product.name, product.english_name]
+      [product.english_name, product.korean_name]
         .map(normalizeIdentityText)
         .filter((value) => value.length >= 3),
     ),
@@ -41,7 +42,7 @@ function uniqueProducts(products: AdminProduct[]): AdminProduct[] {
   return [
     ...new Map(products.map((product) => [product.id, product])).values(),
   ].sort((left, right) =>
-    left.name.localeCompare(right.name, undefined, { sensitivity: "base" }),
+    productDisplayName(left).localeCompare(productDisplayName(right), undefined, { sensitivity: "base" }),
   );
 }
 
@@ -82,7 +83,7 @@ function nameAndUnitGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
       const identity = `${nameKey}|${unit}`;
       const existing = byIdentity.get(identity);
       byIdentity.set(identity, {
-        label: existing?.label ?? product.english_name?.trim() ?? product.name.trim(),
+        label: existing?.label ?? productDisplayName(product),
         products: [...(existing?.products ?? []), product],
       });
     });

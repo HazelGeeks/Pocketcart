@@ -29,7 +29,7 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
 
   const resetProductForm = React.useCallback(() => {
     params.setEditingProductId(null);
-    params.setProductName("");
+    params.setProductKoreanName("");
     params.setProductEnglishName("");
     params.setProductBrand("");
     params.setProductGtin("");
@@ -59,7 +59,7 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
         });
       });
     params.setEditingProductId(product.id);
-    params.setProductName(product.name);
+    params.setProductKoreanName(product.korean_name);
     params.setProductEnglishName(product.english_name ?? "");
     params.setProductBrand(product.brand ?? "");
     params.setProductGtin(product.gtin ?? "");

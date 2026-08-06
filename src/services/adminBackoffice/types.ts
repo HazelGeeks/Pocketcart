@@ -58,7 +58,7 @@ export type AdminDirectoryUserRow = {
 
 export type AdminProduct = {
   id: string;
-  name: string;
+  korean_name: string;
   english_name: string | null;
   brand: string | null;
   gtin: string | null;
@@ -170,8 +170,8 @@ export type StoreRow = {
 };
 
 export type JoinedName =
-  | { name?: string | null; brand?: string | null }
-  | Array<{ name?: string | null; brand?: string | null }>
+  | { korean_name?: string | null; english_name?: string | null; name?: string | null; brand?: string | null }
+  | Array<{ korean_name?: string | null; english_name?: string | null; name?: string | null; brand?: string | null }>
   | null;
 
 export type PriceRow = {

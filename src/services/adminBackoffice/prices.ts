@@ -4,7 +4,9 @@ import { isMissingColumnError, missingEnvResult, parseNumber, priceEntryFromRow 
 import type { AdminPriceEntry, PriceRow, ServiceResult } from "./types";
 
 const PRICE_WITH_PERIOD_SELECT =
-  "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(name), stores(brand,name)";
+  "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(korean_name,english_name), stores(brand,name)";
+const LEGACY_PRICE_WITH_PERIOD_SELECT =
+  "id, product_id, store_id, price, valid_from, valid_to, observed_at, created_at, products(name,english_name), stores(brand,name)";
 const PRICE_PAGE_SIZE = 1000;
 const PRICE_PERIOD_MIGRATION_ERROR =
   "Sale period columns are missing in Supabase. Run the product_prices valid_from/valid_to migration, then retry.";
@@ -70,6 +72,13 @@ function isDuplicatePricePeriodError(error: { code?: string; message?: string } 
   );
 }
 
+function isMissingKoreanNameColumn(error: { message?: string } | string | null | undefined): boolean {
+  const text = (typeof error === "string" ? error : error?.message ?? "").toLowerCase();
+  return text.includes("korean_name") && (
+    text.includes("does not exist") || text.includes("could not find") || text.includes("schema cache")
+  );
+}
+
 export async function listAdminPriceEntries(): Promise<ServiceResult<AdminPriceEntry[]>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult([]);
   const client = supabase;
@@ -102,7 +111,10 @@ export async function listAdminPriceEntries(): Promise<ServiceResult<AdminPriceE
     };
   }
 
-  const withPeriodRows = await fetchPriceRows(PRICE_WITH_PERIOD_SELECT);
+  let withPeriodRows = await fetchPriceRows(PRICE_WITH_PERIOD_SELECT);
+  if (withPeriodRows.error && isMissingKoreanNameColumn(withPeriodRows.error)) {
+    withPeriodRows = await fetchPriceRows(LEGACY_PRICE_WITH_PERIOD_SELECT);
+  }
 
   let rows: PriceRow[] = [];
   if (withPeriodRows.error) {
@@ -128,11 +140,19 @@ export async function createAdminPriceEntry(params: PricePayloadParams): Promise
   const payload = buildPricePayload(params);
   if ("error" in payload) return { data: null, error: payload.error ?? "Invalid price payload." };
 
-  const withPeriod = await supabase
+  let withPeriod = await supabase
     .from("product_prices")
     .insert(payload.payload)
     .select(PRICE_WITH_PERIOD_SELECT)
     .single();
+
+  if (withPeriod.error && isMissingKoreanNameColumn(withPeriod.error)) {
+    withPeriod = await supabase
+      .from("product_prices")
+      .insert(payload.payload)
+      .select(LEGACY_PRICE_WITH_PERIOD_SELECT)
+      .single();
+  }
 
   let row: PriceRow | null = null;
   if (withPeriod.error) {
@@ -143,7 +163,7 @@ export async function createAdminPriceEntry(params: PricePayloadParams): Promise
       return { data: null, error: withPeriod.error.message };
     }
 
-    const updatedExisting = await supabase
+    let updatedExisting = await supabase
       .from("product_prices")
       .update(payload.payload)
       .eq("product_id", payload.payload.product_id)
@@ -152,6 +172,18 @@ export async function createAdminPriceEntry(params: PricePayloadParams): Promise
       .eq("valid_to", payload.validTo)
       .select(PRICE_WITH_PERIOD_SELECT)
       .single();
+
+    if (updatedExisting.error && isMissingKoreanNameColumn(updatedExisting.error)) {
+      updatedExisting = await supabase
+        .from("product_prices")
+        .update(payload.payload)
+        .eq("product_id", payload.payload.product_id)
+        .eq("store_id", payload.payload.store_id)
+        .eq("valid_from", payload.observedAt)
+        .eq("valid_to", payload.validTo)
+        .select(LEGACY_PRICE_WITH_PERIOD_SELECT)
+        .single();
+    }
 
     if (updatedExisting.error) {
       if (isMissingColumnError(updatedExisting.error)) return { data: null, error: PRICE_PERIOD_MIGRATION_ERROR };
@@ -184,12 +216,21 @@ export async function updateAdminPriceEntry(
     return { data: null, error };
   }
 
-  const withPeriod = await supabase
+  let withPeriod = await supabase
     .from("product_prices")
     .update(payload.payload)
     .eq("id", id)
     .select(PRICE_WITH_PERIOD_SELECT)
     .single();
+
+  if (withPeriod.error && isMissingKoreanNameColumn(withPeriod.error)) {
+    withPeriod = await supabase
+      .from("product_prices")
+      .update(payload.payload)
+      .eq("id", id)
+      .select(LEGACY_PRICE_WITH_PERIOD_SELECT)
+      .single();
+  }
 
   let row: PriceRow | null = null;
   if (withPeriod.error) {

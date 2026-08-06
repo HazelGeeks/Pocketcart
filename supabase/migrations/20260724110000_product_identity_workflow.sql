@@ -19,7 +19,6 @@ begin
   with normalized_products as (
     select
       products.id,
-      products.name,
       products.english_name,
       products.unit,
       lower(regexp_replace(trim(products.english_name), '[^a-zA-Z0-9]+', '', 'g')) as name_key,
@@ -58,8 +57,8 @@ begin
     candidate_count,
     candidate_ids,
     jsonb_build_object(
-      'name', english_name,
       'english_name', english_name,
+      'korean_name', null,
       'unit', unit,
       'candidate_product_ids', to_jsonb(candidate_ids),
       'backfill_reason', 'Same normalized English name and unit'
@@ -111,7 +110,11 @@ begin
     raise exception 'Target product is required';
   end if;
 
-  select products.name, products.unit
+  select coalesce(
+    nullif(trim(products.english_name), ''),
+    nullif(trim(to_jsonb(products) ->> 'korean_name'), ''),
+    to_jsonb(products) ->> 'name'
+  ), products.unit
   into target_name, target_unit
   from public.products
   where products.id = p_target_product_id

@@ -1,6 +1,7 @@
 import type { MarketProduct } from "../../services/marketData";
 import { money } from "../../screens/nativeAppData";
 import { formatSignedPercent } from "./priceDisplay";
+import { productDisplayName } from "../../utils/productNames";
 
 export type HomeSortMode = "deals" | "lowestPrice" | "biggestDrop";
 
@@ -61,6 +62,6 @@ export function sortHomeProducts(
       const bPrice = displayPriceForProduct(b) ?? Number.MAX_VALUE;
       if (aPrice !== bPrice) return aPrice - bPrice;
     }
-    return a.name.localeCompare(b.name);
+    return productDisplayName(a).localeCompare(productDisplayName(b));
   });
 }

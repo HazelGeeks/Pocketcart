@@ -6,7 +6,7 @@ const {
 } = require("../.tmp-tests/screens/nativeAppData.js");
 
 function point(overrides) {
-  return {
+  const value = {
     id: "price-1",
     product_id: "product-1",
     price: 4.99,
@@ -16,6 +16,16 @@ function point(overrides) {
     store_name: "H-Mart",
     store_area: "Downtown",
     ...overrides,
+  };
+  return {
+    ...value,
+    store_prices: overrides.store_prices ?? [{
+      id: value.id,
+      price: value.price,
+      store_id: value.store_id,
+      store_name: value.store_name,
+      store_area: value.store_area,
+    }],
   };
 }
 
@@ -30,6 +40,22 @@ test("price chart keeps lowest-store metadata and sale-period labels", () => {
       store_id: "tnt",
       store_name: "T&T Market",
       store_area: "Richmond",
+      store_prices: [
+        {
+          id: "second-hmart",
+          price: 4.99,
+          store_id: "hmart",
+          store_name: "H-Mart",
+          store_area: "Downtown",
+        },
+        {
+          id: "second-tnt",
+          price: 5.29,
+          store_id: "tnt",
+          store_name: "T&T Market",
+          store_area: "Richmond",
+        },
+      ],
     }),
   ], 400, 20);
 
@@ -37,6 +63,10 @@ test("price chart keeps lowest-store metadata and sale-period labels", () => {
   assert.equal(chart.points[1].label, "Jul 8–Jul 14");
   assert.equal(chart.points[1].store_name, "T&T Market");
   assert.equal(chart.points[1].store_area, "Richmond");
+  assert.deepEqual(
+    chart.points[1].store_prices.map((row) => row.store_name),
+    ["H-Mart", "T&T Market"],
+  );
 });
 
 test("price chart uses elapsed sale dates for horizontal spacing", () => {

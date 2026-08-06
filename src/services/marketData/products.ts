@@ -5,32 +5,34 @@ import { matchesProductFilter } from "./shared";
 import type { MarketProduct, ProductRow, ServiceResult } from "./types";
 import { collectPagedRows } from "../../utils/paginatedQuery";
 
-const PRODUCT_SELECT_WITH_ENGLISH = "id, name, english_name, category, unit, thumbnail_url";
-const PRODUCT_SELECT_WITHOUT_ENGLISH = "id, name, category, unit, thumbnail_url";
+const PRODUCT_SELECT = "id, korean_name, english_name, category, unit, thumbnail_url";
+const LEGACY_PRODUCT_SELECT = "id, name, english_name, category, unit, thumbnail_url";
 
-type ProductRowWithOptionalEnglish = Omit<ProductRow, "english_name"> & {
-  english_name?: string | null;
+type ProductRowWithLegacyName = Omit<ProductRow, "korean_name"> & {
+  korean_name?: string | null;
+  name?: string | null;
 };
 
 type ProductQueryError = { message: string };
 
-function hasEnglishNameColumnError(message: string | undefined): boolean {
+function hasKoreanNameColumnError(message: string | undefined): boolean {
   const text = message?.toLowerCase() ?? "";
   return (
-    text.includes("english_name") &&
+    text.includes("korean_name") &&
     (text.includes("does not exist") ||
       text.includes("could not find") ||
       text.includes("schema cache"))
   );
 }
 
-function normalizeProductRow(row: ProductRowWithOptionalEnglish): MarketProduct {
+function normalizeProductRow(row: ProductRowWithLegacyName): MarketProduct {
+  const koreanName = row.korean_name?.trim() || row.name?.trim() || "";
   return {
     id: row.id,
-    name: row.name,
+    korean_name: koreanName,
     english_name: row.english_name ?? null,
     category: row.category,
-    unit: row.unit?.trim() ? row.unit.trim() : inferUnitFromName(row.name),
+    unit: row.unit?.trim() ? row.unit.trim() : inferUnitFromName(row.english_name || koreanName),
     thumbnail_url: row.thumbnail_url,
     current_price: null,
     previous_price: null,
@@ -86,28 +88,28 @@ export async function listProducts(params?: {
 
   const client = supabase;
   const fetchProductRows = (selectClause: string) =>
-    collectPagedRows<ProductRowWithOptionalEnglish, ProductQueryError>(
+    collectPagedRows<ProductRowWithLegacyName, ProductQueryError>(
       async (from, to) => {
         let query = client.from("products").select(selectClause);
         if (params?.category?.trim()) {
           query = query.eq("category", params.category.trim());
         }
         const response = await query
-          .order("name", { ascending: true })
+          .order(selectClause === PRODUCT_SELECT ? "english_name" : "name", { ascending: true, nullsFirst: false })
           .order("id", { ascending: true })
           .range(from, to);
         return {
-          data: (response.data ?? []) as unknown as ProductRowWithOptionalEnglish[],
+          data: (response.data ?? []) as unknown as ProductRowWithLegacyName[],
           error: response.error,
         };
       },
     );
 
-  let productsRows: ProductRowWithOptionalEnglish[] = [];
-  const productsQuery = await fetchProductRows(PRODUCT_SELECT_WITH_ENGLISH);
+  let productsRows: ProductRowWithLegacyName[] = [];
+  const productsQuery = await fetchProductRows(PRODUCT_SELECT);
   if (productsQuery.error) {
-    if (hasEnglishNameColumnError(productsQuery.error.message)) {
-      const fallbackQuery = await fetchProductRows(PRODUCT_SELECT_WITHOUT_ENGLISH);
+    if (hasKoreanNameColumnError(productsQuery.error.message)) {
+      const fallbackQuery = await fetchProductRows(LEGACY_PRODUCT_SELECT);
       if (fallbackQuery.error) {
         return {
           data: [],

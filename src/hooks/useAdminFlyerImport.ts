@@ -72,7 +72,7 @@ function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 function safeImageFileName(row: FlyerRow, index: number): string {
   const base = [
     row.martName,
-    row.name || row.englishName || `flyer-row-${index + 1}`,
+    row.englishName || row.koreanName || `flyer-row-${index + 1}`,
   ]
     .filter(Boolean)
     .join("-")

@@ -30,6 +30,7 @@ type Props = {
   products: AdminProduct[];
   filteredProducts: AdminProduct[];
   loading: boolean;
+  loadError: string | null;
   submitting: boolean;
   deletingKey: string | null;
   productSearchQuery: string;
@@ -68,6 +69,7 @@ export default function AdminProductsPanel({
   products,
   filteredProducts,
   loading,
+  loadError,
   submitting,
   deletingKey,
   productSearchQuery,
@@ -142,12 +144,6 @@ export default function AdminProductsPanel({
     () => onExportProductsCsv(selectedProducts),
     [onExportProductsCsv, selectedProducts],
   );
-  const handleExportIdentityGaps = React.useCallback(
-    () => onExportProductsCsv(
-      products.filter((product) => !product.brand?.trim() || !product.gtin?.trim()),
-    ),
-    [onExportProductsCsv, products],
-  );
   const handleMerge = React.useCallback(async (targetProductId: string) => {
     setMerging(true);
     const merged = await onMergeProducts(
@@ -192,15 +188,15 @@ export default function AdminProductsPanel({
           onImportProductsCsv={onImportProductsCsv}
           onDownloadProductCsvTemplate={onDownloadProductCsvTemplate}
           onExportProductsCsv={handleExportSelectedProducts}
-          onExportIdentityGapsCsv={handleExportIdentityGaps}
           onOpenAddProduct={onOpenAddProduct}
         />
 
         <AdminProductIdentityWorkbench
           products={products}
           priceStats={productPriceStats}
+          loading={loading}
+          error={loadError}
           styles={st}
-          onExportIdentityGaps={handleExportIdentityGaps}
           onReviewGroup={(group) => setMergeCandidates(group.products)}
         />
 

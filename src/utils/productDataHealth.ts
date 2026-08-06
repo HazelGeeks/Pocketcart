@@ -1,9 +1,11 @@
 import { isValidGtin } from "./productIdentity";
 import { saleSessionKey, saleSessionStart } from "./saleSession";
+import { productDisplayName } from "./productNames";
 
 export type DataHealthProduct = {
   id: string;
-  name: string;
+  korean_name: string;
+  english_name?: string | null;
   brand?: string | null;
   gtin: string | null;
   unit: string | null;
@@ -27,8 +29,6 @@ export type HistoryCollectionProduct = {
   sessionCount: number;
   latestSessionAt: string | null;
   activeNow: boolean;
-  missingGtin: boolean;
-  missingBrand: boolean;
   invalidGtin: boolean;
   missingUnit: boolean;
 };
@@ -40,8 +40,6 @@ export type ProductDataHealth = {
   twoPlusSessions: number;
   fourPlusSessions: number;
   eightPlusSessions: number;
-  missingGtin: number;
-  missingBrand: number;
   invalidGtin: number;
   missingUnit: number;
   missingSalePeriodRows: number;
@@ -141,8 +139,6 @@ export function buildProductDataHealth(
   const comparableMultiBrandSessions = Array.from(sessionPriceRows.values()).filter(
     (session) => session.brands.size > 1,
   ).length;
-  const missingGtin = products.filter((product) => !product.gtin?.trim()).length;
-  const missingBrand = products.filter((product) => !product.brand?.trim()).length;
   const invalidGtin = products.filter(
     (product) => Boolean(product.gtin?.trim()) && !isValidGtin(product.gtin),
   ).length;
@@ -157,17 +153,15 @@ export function buildProductDataHealth(
       if (a.sessionCount !== b.sessionCount) return b.sessionCount - a.sessionCount;
       const latestDifference = time(b.latestSessionAt) - time(a.latestSessionAt);
       if (latestDifference !== 0) return latestDifference;
-      return a.product.name.localeCompare(b.product.name);
+      return productDisplayName(a.product).localeCompare(productDisplayName(b.product));
     })
     .slice(0, 100)
     .map(({ product, sessionCount, latestSessionAt }) => ({
       id: product.id,
-      name: product.name,
+      name: productDisplayName(product),
       sessionCount,
       latestSessionAt,
       activeNow: activeProductIds.has(product.id),
-      missingGtin: !product.gtin?.trim(),
-      missingBrand: !product.brand?.trim(),
       invalidGtin: Boolean(product.gtin?.trim()) && !isValidGtin(product.gtin),
       missingUnit: !product.unit?.trim(),
     }));
@@ -179,8 +173,6 @@ export function buildProductDataHealth(
     twoPlusSessions: sessionCounts.filter(({ sessionCount }) => sessionCount >= 2).length,
     fourPlusSessions: sessionCounts.filter(({ sessionCount }) => sessionCount >= 4).length,
     eightPlusSessions: sessionCounts.filter(({ sessionCount }) => sessionCount >= 8).length,
-    missingGtin,
-    missingBrand,
     invalidGtin,
     missingUnit,
     missingSalePeriodRows,
@@ -190,8 +182,6 @@ export function buildProductDataHealth(
     comparableMultiStoreSessions,
     comparableMultiBrandSessions,
     issueCount:
-      missingGtin +
-      missingBrand +
       invalidGtin +
       missingUnit +
       missingSalePeriodRows +

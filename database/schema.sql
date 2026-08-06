@@ -181,7 +181,7 @@ using (public.is_admin());
 -- products
 create table if not exists public.products (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
+  korean_name text not null,
   category text not null,
   unit text,
   english_name text,
@@ -190,6 +190,20 @@ create table if not exists public.products (
   thumbnail_url text,
   created_at timestamptz not null default now()
 );
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'products' and column_name = 'name'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'products' and column_name = 'korean_name'
+  ) then
+    alter table public.products rename column name to korean_name;
+  end if;
+end;
+$$;
 
 alter table public.products
   add column if not exists unit text,
@@ -201,7 +215,7 @@ drop index if exists public.products_identity_key;
 create unique index products_identity_key
   on public.products (
     lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),
-    lower(regexp_replace(trim(name), '\s+', ' ', 'g')),
+    lower(regexp_replace(trim(korean_name), '\s+', ' ', 'g')),
     lower(regexp_replace(trim(coalesce(unit, '')), '\s+', ' ', 'g')),
     lower(regexp_replace(trim(category), '\s+', ' ', 'g'))
   );
@@ -1213,8 +1227,8 @@ begin
     candidate_count,
     candidate_ids,
     jsonb_build_object(
-      'name', english_name,
       'english_name', english_name,
+      'korean_name', null,
       'unit', unit,
       'candidate_product_ids', to_jsonb(candidate_ids),
       'backfill_reason', 'Same normalized English name and unit'
@@ -1266,7 +1280,7 @@ begin
     raise exception 'Target product is required';
   end if;
 
-  select products.name, products.unit
+  select coalesce(nullif(trim(products.english_name), ''), products.korean_name), products.unit
   into target_name, target_unit
   from public.products
   where products.id = p_target_product_id
@@ -1506,6 +1520,18 @@ $$;
 
 revoke all on function public.merge_products(uuid[], uuid, uuid) from public, anon;
 grant execute on function public.merge_products(uuid[], uuid, uuid) to authenticated;
+
+update public.shopping_list_items as item
+set name = coalesce(nullif(trim(product.english_name), ''), product.korean_name)
+from public.products as product
+where item.product_id = product.id
+  and item.name is distinct from coalesce(nullif(trim(product.english_name), ''), product.korean_name);
+
+update public.watchlist_items as item
+set name = coalesce(nullif(trim(product.english_name), ''), product.korean_name)
+from public.products as product
+where item.product_id = product.id
+  and item.name is distinct from coalesce(nullif(trim(product.english_name), ''), product.korean_name);
 
 select public.seed_existing_product_identity_reviews();
 

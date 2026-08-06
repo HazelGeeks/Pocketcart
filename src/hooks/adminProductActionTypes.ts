@@ -15,7 +15,7 @@ export type Mutation<TParams, TResult> = {
 };
 
 export type UseAdminProductActionsParams = {
-  productName: string;
+  productKoreanName: string;
   productEnglishName: string;
   productBrand: string;
   productGtin: string;
@@ -29,7 +29,7 @@ export type UseAdminProductActionsParams = {
   prices: AdminPriceEntry[];
   productPriceStats: Map<string, ProductPriceStats>;
   stores: AdminStore[];
-  setProductName: (value: string) => void;
+  setProductKoreanName: (value: string) => void;
   setProductEnglishName: (value: string) => void;
   setProductBrand: (value: string) => void;
   setProductGtin: (value: string) => void;
@@ -47,7 +47,7 @@ export type UseAdminProductActionsParams = {
   resetProductFilters: () => void;
   loadAll: (keepNotice?: boolean) => Promise<void>;
   createProductMutation: Mutation<{
-    name: string;
+    koreanName: string;
     englishName?: string;
     brand?: string;
     gtin?: string;
@@ -57,7 +57,7 @@ export type UseAdminProductActionsParams = {
   }, AdminProduct | null>;
   updateProductMutation: Mutation<{
     id: string;
-    name: string;
+    koreanName: string;
     englishName?: string;
     brand?: string;
     gtin?: string;

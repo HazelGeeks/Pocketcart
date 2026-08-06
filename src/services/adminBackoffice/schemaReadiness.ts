@@ -18,7 +18,7 @@ const SCHEMA_PROBES: SchemaProbe[] = [
     id: "product_identity",
     label: "Product details",
     table: "products",
-    columns: "id,brand,gtin",
+    columns: "id,english_name,korean_name,brand,gtin",
   },
   {
     id: "price_history",

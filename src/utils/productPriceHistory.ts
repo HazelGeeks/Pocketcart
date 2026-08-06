@@ -18,6 +18,7 @@ export type ProductPriceHistoryCandidate = {
 
 export type LowestPriceHistoryPoint = ProductPriceHistoryCandidate & {
   sessionStartedAt: string;
+  storePrices: ProductPriceHistoryCandidate[];
 };
 
 function timestamp(value: string): number {
@@ -42,6 +43,10 @@ export function selectLowestPricePerSaleSession(
   nowMs = Date.now(),
 ): LowestPriceHistoryPoint[] {
   const bestBySession = new Map<string, LowestPriceHistoryPoint>();
+  const storePricesBySession = new Map<
+    string,
+    Map<string, ProductPriceHistoryCandidate>
+  >();
 
   for (const row of rows) {
     if (!Number.isFinite(row.price) || row.price < 0) continue;
@@ -57,7 +62,22 @@ export function selectLowestPricePerSaleSession(
       validTo: normalizeSessionDate(row.validTo),
       observedAt: normalizeSessionDate(row.observedAt) ?? row.observedAt,
       sessionStartedAt,
+      storePrices: [],
     };
+    const storeKey =
+      candidate.storeId ??
+      `${candidate.storeName}\u0000${candidate.storeArea ?? ""}`;
+    const storePrices = storePricesBySession.get(sessionKey) ?? new Map();
+    const existingStorePrice = storePrices.get(storeKey);
+    if (
+      !existingStorePrice ||
+      candidate.price < existingStorePrice.price ||
+      (candidate.price === existingStorePrice.price &&
+        tieBreakKey(candidate).localeCompare(tieBreakKey(existingStorePrice)) < 0)
+    ) {
+      storePrices.set(storeKey, candidate);
+    }
+    storePricesBySession.set(sessionKey, storePrices);
     const existing = bestBySession.get(sessionKey);
 
     if (
@@ -70,11 +90,22 @@ export function selectLowestPricePerSaleSession(
     }
   }
 
-  return Array.from(bestBySession.values()).sort(
-    (a, b) =>
-      timestamp(a.sessionStartedAt) - timestamp(b.sessionStartedAt) ||
-      a.sessionStartedAt.localeCompare(b.sessionStartedAt) ||
-      (a.validTo ?? "").localeCompare(b.validTo ?? "") ||
-      a.id.localeCompare(b.id),
-  );
+  return Array.from(bestBySession.entries())
+    .map(([sessionKey, point]) => ({
+      ...point,
+      storePrices: [
+        ...(storePricesBySession.get(sessionKey)?.values() ?? []),
+      ].sort(
+        (left, right) =>
+          left.price - right.price ||
+          tieBreakKey(left).localeCompare(tieBreakKey(right)),
+      ),
+    }))
+    .sort(
+      (a, b) =>
+        timestamp(a.sessionStartedAt) - timestamp(b.sessionStartedAt) ||
+        a.sessionStartedAt.localeCompare(b.sessionStartedAt) ||
+        (a.validTo ?? "").localeCompare(b.validTo ?? "") ||
+        a.id.localeCompare(b.id),
+    );
 }

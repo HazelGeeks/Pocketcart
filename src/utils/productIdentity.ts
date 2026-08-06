@@ -1,21 +1,24 @@
 import type { AdminProduct } from "../services/adminBackoffice";
 
 export type ProductIdentityInput = {
-  name: string;
+  koreanName: string;
+  englishName?: string | null;
   unit?: string | null;
   category: string;
 };
 
 export type ProductMatchInput = ProductIdentityInput & {
   productId?: string | null;
-  englishName?: string | null;
   brand?: string | null;
   gtin?: string | null;
 };
 
-type ProductMatchCandidate = ProductIdentityInput & {
+type ProductMatchCandidate = {
   id: string;
+  korean_name: string;
   english_name?: string | null;
+  unit?: string | null;
+  category: string;
   brand?: string | null;
   gtin?: string | null;
 };
@@ -89,9 +92,12 @@ export function gtinValidationMessage(value: string | null | undefined): string 
   return null;
 }
 
-export function productIdentityKey(product: ProductIdentityInput): string {
+export function productIdentityKey(product: ProductIdentityInput | ProductMatchCandidate): string {
+  const primaryName = "koreanName" in product
+    ? product.englishName || product.koreanName
+    : product.english_name || product.korean_name;
   return [
-    normalizeIdentityPart(product.name),
+    normalizeIdentityPart(primaryName),
     normalizeIdentityPart(product.unit),
     normalizeIdentityPart(product.category),
   ].join("|");
@@ -112,12 +118,13 @@ export function findMatchingProduct(
 }
 
 function candidateNames(product: {
-  name: string;
+  koreanName?: string | null;
+  korean_name?: string | null;
   englishName?: string | null;
   english_name?: string | null;
 }): Set<string> {
   return new Set(
-    [product.name, product.englishName, product.english_name]
+    [product.englishName, product.english_name, product.koreanName, product.korean_name]
       .map(normalizeLooseIdentityPart)
       .filter(Boolean),
   );

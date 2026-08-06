@@ -1,5 +1,6 @@
 import type { MarketProduct, MarketStorePrice } from "../services/marketData";
 import type { WatchlistItem } from "../services/watchlist";
+import { productDisplayName } from "./productNames";
 
 export type SaleAlertCandidate = {
   alertKey: string;
@@ -106,9 +107,10 @@ export function buildSaleAlertCandidates(params: {
         priceDelta < 0 &&
         previousPrice !== null;
       const title = hasDrop ? "Sale started" : "Watched item is on sale";
+      const productName = productDisplayName(product);
       const body = hasDrop
-        ? `${product.name} is now $${currentPrice.toFixed(2)} at ${storeName}, down from $${previousPrice!.toFixed(2)}.`
-        : `${product.name} is currently on sale for $${currentPrice.toFixed(2)} at ${storeName}.`;
+        ? `${productName} is now $${currentPrice.toFixed(2)} at ${storeName}, down from $${previousPrice!.toFixed(2)}.`
+        : `${productName} is currently on sale for $${currentPrice.toFixed(2)} at ${storeName}.`;
 
       return {
         alertKey,

@@ -6,7 +6,7 @@ const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Pick<
   | "regionBranch"
   | "saleStartDate"
   | "saleEndDate"
-  | "name"
+  | "koreanName"
   | "englishName"
   | "mainCategory"
   | "brand"
@@ -18,8 +18,8 @@ const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Pick<
   { label: "store_name", key: "regionBranch" },
   { label: "sale_start_date", key: "saleStartDate" },
   { label: "sale_end_date", key: "saleEndDate" },
-  { label: "name", key: "name" },
   { label: "english_name", key: "englishName" },
+  { label: "korean_name", key: "koreanName" },
   { label: "category", key: "mainCategory" },
   { label: "product_brand", key: "brand" },
   { label: "price", key: "price" },
@@ -49,8 +49,8 @@ export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
     "store_name",
     "sale_start_date",
     "sale_end_date",
-    "name",
     "english_name",
+    "korean_name",
     "category",
     "thumbnail_url",
     "product_brand",
@@ -64,8 +64,8 @@ export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
       row.regionBranch || row.martName,
       row.saleStartDate,
       row.saleEndDate,
-      row.name,
       row.englishName ?? "",
+      row.koreanName,
       row.mainCategory || row.subCategory || "Uncategorized",
       row.thumbnailUrl ?? "",
       row.brand,

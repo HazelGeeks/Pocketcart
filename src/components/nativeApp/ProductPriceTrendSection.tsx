@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import {
   money,
@@ -21,12 +21,17 @@ export function ProductPriceTrendSection({
   historyLoading,
 }: ProductPriceTrendSectionProps) {
   const lowestStoresByPeriod = chart ? [...chart.points].reverse() : [];
+  const [expandedPeriod, setExpandedPeriod] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setExpandedPeriod(null);
+  }, [chart?.points.at(-1)?.id]);
 
   return (
     <View style={st.productTrendCard}>
-      <Text style={st.productTrendHeading}>Price trend</Text>
+      <Text style={st.productTrendHeading}>Lowest price trend</Text>
       {historyLoading ? (
-        <Text style={st.itemMeta}>Loading price trend...</Text>
+        <Text style={st.itemMeta}>Loading lowest price trend...</Text>
       ) : !chart ? (
         <Text style={st.itemMeta}>
           No price history yet. We will chart it after the next weekly update.
@@ -94,32 +99,84 @@ export function ProductPriceTrendSection({
             </Text>
           </View>
 
-          <Text style={st.historyTitle}>Lowest store by sale period</Text>
-          {lowestStoresByPeriod.map((point, index) => (
-            <View
-              key={`lowest-store-${point.observed_at}-${point.id ?? index}`}
-              style={[st.periodLowestRow, index === 0 && st.bestStoreRow]}
-            >
-              <View style={st.periodLowestMain}>
-                <View style={st.periodLowestLabelRow}>
-                  <Text style={st.historyLabel}>{point.label}</Text>
-                  {index === 0 ? (
-                    <Text style={st.periodLatestBadge}>Latest</Text>
-                  ) : null}
-                </View>
-                <Text style={st.periodLowestStore} numberOfLines={1}>
-                  {point.store_name}
-                  {point.store_area ? ` · ${point.store_area}` : ""}
-                </Text>
+          <Text style={st.historyTitle}>Store prices by sale period</Text>
+          <Text style={st.itemMeta}>
+            Lowest price shown first. Tap a period to compare stores.
+          </Text>
+          {lowestStoresByPeriod.map((point, index) => {
+            const periodKey = `${point.observed_at}\u0000${point.sale_end_at ?? "open"}`;
+            const storePrices = point.store_prices ?? [];
+            const hasStoreComparison = storePrices.length > 1;
+            const expanded = expandedPeriod === periodKey;
+            return (
+              <View
+                key={`lowest-store-${point.observed_at}-${point.id ?? index}`}
+                style={st.periodHistoryGroup}
+              >
+                <Pressable
+                  accessibilityRole={hasStoreComparison ? "button" : undefined}
+                  accessibilityState={
+                    hasStoreComparison ? { expanded } : undefined
+                  }
+                  onPress={
+                    hasStoreComparison
+                      ? () =>
+                          setExpandedPeriod((current) =>
+                            current === periodKey ? null : periodKey,
+                          )
+                      : undefined
+                  }
+                  style={[st.periodLowestRow, index === 0 && st.bestStoreRow]}
+                >
+                  <View style={st.periodLowestMain}>
+                    <View style={st.periodLowestLabelRow}>
+                      <Text style={st.historyLabel}>{point.label}</Text>
+                      {index === 0 ? (
+                        <Text style={st.periodLatestBadge}>Latest</Text>
+                      ) : null}
+                    </View>
+                    <Text style={st.periodLowestStore} numberOfLines={1}>
+                      {point.store_name}
+                      {point.store_area ? ` · ${point.store_area}` : ""}
+                    </Text>
+                  </View>
+                  <View style={st.periodLowestPriceBlock}>
+                    <Text style={st.historyPrice}>
+                      {money.format(point.value)}
+                    </Text>
+                    <Text style={st.storeCompareLowest}>
+                      {hasStoreComparison
+                        ? `${expanded ? "Hide" : "View"} ${storePrices.length} stores ${expanded ? "▴" : "▾"}`
+                        : "Lowest"}
+                    </Text>
+                  </View>
+                </Pressable>
+                {expanded ? (
+                  <View style={st.periodStoreList}>
+                    {storePrices.map((storePrice, storeIndex) => (
+                      <View
+                        key={`${storePrice.store_id ?? storePrice.store_name}-${storePrice.id}`}
+                        style={st.periodStoreRow}
+                      >
+                        <View style={st.periodStoreMain}>
+                          <Text style={st.periodStoreName} numberOfLines={1}>
+                            {storePrice.store_name}
+                            {storePrice.store_area ? ` · ${storePrice.store_area}` : ""}
+                          </Text>
+                          {storeIndex === 0 ? (
+                            <Text style={st.storeCompareLowest}>Lowest</Text>
+                          ) : null}
+                        </View>
+                        <Text style={st.historyPrice}>
+                          {money.format(storePrice.price)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
               </View>
-              <View style={st.periodLowestPriceBlock}>
-                <Text style={st.historyPrice}>
-                  {money.format(point.value)}
-                </Text>
-                <Text style={st.storeCompareLowest}>Lowest</Text>
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </>
       )}
 

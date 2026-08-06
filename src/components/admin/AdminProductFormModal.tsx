@@ -9,7 +9,7 @@ type Props = {
   editingProductId: string | null;
   submitting: boolean;
   imageUploading: boolean;
-  productName: string;
+  productKoreanName: string;
   productEnglishName: string;
   productBrand: string;
   productGtin: string;
@@ -21,7 +21,7 @@ type Props = {
   categoryOptions: string[];
   storeOptions: AdminStore[];
   styles: any;
-  onNameChange: (value: string) => void;
+  onKoreanNameChange: (value: string) => void;
   onEnglishNameChange: (value: string) => void;
   onBrandChange: (value: string) => void;
   onGtinChange: (value: string) => void;
@@ -44,7 +44,7 @@ export default function AdminProductFormModal({
   editingProductId,
   submitting,
   imageUploading,
-  productName,
+  productKoreanName,
   productEnglishName,
   productBrand,
   productGtin,
@@ -56,7 +56,7 @@ export default function AdminProductFormModal({
   categoryOptions,
   storeOptions,
   styles: st,
-  onNameChange,
+  onKoreanNameChange,
   onEnglishNameChange,
   onBrandChange,
   onGtinChange,
@@ -192,18 +192,23 @@ export default function AdminProductFormModal({
                 <View style={st.productDetailsTopSection}>
                   <View style={st.modalTopGrid}>
                     <View style={[st.modalTopCell, st.modalTopCellHalf]}>
-                      <Text style={st.fieldLabel}>Product Name</Text>
-                      <TextInput value={productName} onChangeText={onNameChange} placeholder="Product name" placeholderTextColor={C.textMuted} style={st.input} />
-                    </View>
-                    <View style={[st.modalTopCell, st.modalTopCellHalf]}>
-                      <Text style={st.fieldLabel}>English Name</Text>
+                      <Text style={st.fieldLabel}>English Name (Primary)</Text>
                       <TextInput
                         value={productEnglishName}
                         onChangeText={onEnglishNameChange}
                         placeholder="Product name in English"
                         placeholderTextColor={C.textMuted}
-                        autoCapitalize="none"
                         autoCorrect={false}
+                        style={st.input}
+                      />
+                    </View>
+                    <View style={[st.modalTopCell, st.modalTopCellHalf]}>
+                      <Text style={st.fieldLabel}>Korean Name</Text>
+                      <TextInput
+                        value={productKoreanName}
+                        onChangeText={onKoreanNameChange}
+                        placeholder="한국어 상품명"
+                        placeholderTextColor={C.textMuted}
                         style={st.input}
                       />
                     </View>

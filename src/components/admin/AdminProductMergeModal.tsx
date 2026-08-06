@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
+import { productDisplayName } from "../../utils/productNames";
 
 type Props = {
   products: AdminProduct[];
@@ -42,7 +43,7 @@ export default function AdminProductMergeModal({
                 disabled={merging}
               >
                 <Text style={st.btnGhostText} numberOfLines={2}>
-                  Keep {product.name}
+                  Keep {productDisplayName(product)}
                   {product.unit ? ` · ${product.unit}` : ""}
                 </Text>
               </Pressable>

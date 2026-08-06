@@ -1,5 +1,5 @@
 import type { Region } from "react-native-maps";
-import type { MarketPricePoint } from "../services/marketData";
+import type { MarketPeriodStorePrice, MarketPricePoint } from "../services/marketData";
 import { BUSINESS_TIME_ZONE } from "../utils/businessDateTime";
 
 export type NativeTabId = "home" | "shopping" | "map" | "alerts" | "more";
@@ -16,6 +16,7 @@ type PriceChartPoint = {
   store_id: string | null;
   store_name: string;
   store_area: string | null;
+  store_prices: MarketPeriodStorePrice[];
 };
 
 export type PriceChart = {
@@ -104,6 +105,7 @@ export function buildPriceChart(
       store_id: point.store_id,
       store_name: point.store_name,
       store_area: point.store_area,
+      store_prices: point.store_prices,
     };
   });
 

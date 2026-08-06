@@ -1,8 +1,11 @@
+import { productDisplayName } from "./productNames";
+
 export type ProductDeleteMode = "single" | "bulk";
 
 export type ProductDeleteTarget = {
   id: string;
-  name: string;
+  english_name?: string | null;
+  korean_name: string;
 };
 
 export type ProductDeleteConfirmation = {
@@ -26,7 +29,7 @@ export function buildProductDeleteConfirmation(
   products.forEach((product) => {
     const id = product.id.trim();
     if (!id || uniqueProducts.has(id)) return;
-    uniqueProducts.set(id, product.name.trim() || "Unnamed product");
+    uniqueProducts.set(id, productDisplayName(product));
   });
 
   const entries = Array.from(uniqueProducts.entries());

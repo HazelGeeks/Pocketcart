@@ -26,6 +26,13 @@ export async function listProductPriceHistory(
           store_id: null,
           store_name: "Store not linked",
           store_area: null,
+          store_prices: [{
+            id: `${productId}-${index}`,
+            price: value,
+            store_id: null,
+            store_name: "Store not linked",
+            store_area: null,
+          }],
         };
       }),
       error: null,
@@ -61,6 +68,13 @@ export async function listProductPriceHistory(
       store_id: row.storeId,
       store_name: row.storeName,
       store_area: row.storeArea,
+      store_prices: row.storePrices.map((storePrice) => ({
+        id: storePrice.id,
+        price: storePrice.price,
+        store_id: storePrice.storeId,
+        store_name: storePrice.storeName,
+        store_area: storePrice.storeArea,
+      })),
     })),
     error: null,
   };

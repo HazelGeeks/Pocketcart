@@ -72,7 +72,7 @@ export default function AdminWorkspaceModals({ data, actions }: Props) {
         editingProductId={product.editingProductId}
         submitting={status.submitting}
         imageUploading={product.productImageUploading}
-        productName={product.productName}
+        productKoreanName={product.productKoreanName}
         productEnglishName={product.productEnglishName}
         productBrand={product.productBrand}
         productGtin={product.productGtin}
@@ -84,7 +84,7 @@ export default function AdminWorkspaceModals({ data, actions }: Props) {
         categoryOptions={dashboard.categoryOptions}
         storeOptions={dashboard.productFormStoreOptions}
         styles={st}
-        onNameChange={product.setProductName}
+        onKoreanNameChange={product.setProductKoreanName}
         onEnglishNameChange={product.setProductEnglishName}
         onBrandChange={product.setProductBrand}
         onGtinChange={product.setProductGtin}

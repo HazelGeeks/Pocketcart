@@ -10,7 +10,7 @@ export default function useAdminWorkspaceActions(data: AdminWorkspaceData) {
   const store = state.store;
   const status = state.status;
   const productActions = useAdminProductActions({
-    productName: product.productName,
+    productKoreanName: product.productKoreanName,
     productEnglishName: product.productEnglishName,
     productBrand: product.productBrand,
     productGtin: product.productGtin,
@@ -24,7 +24,7 @@ export default function useAdminWorkspaceActions(data: AdminWorkspaceData) {
     prices: backend.prices,
     stores: dashboard.displayStores,
     productPriceStats: dashboard.productPriceStats,
-    setProductName: product.setProductName,
+    setProductKoreanName: product.setProductKoreanName,
     setProductEnglishName: product.setProductEnglishName,
     setProductBrand: product.setProductBrand,
     setProductGtin: product.setProductGtin,

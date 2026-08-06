@@ -3,8 +3,8 @@ import type { MarketProduct, MarketStore } from "./types";
 export const FALLBACK_PRODUCTS: MarketProduct[] = [
   {
     id: "rice-10kg",
-    name: "Premium Rice 10kg",
-    english_name: null,
+    korean_name: "프리미엄 쌀 10kg",
+    english_name: "Premium Rice 10kg",
     unit: "10kg",
     category: "Grains",
     thumbnail_url: null,
@@ -30,8 +30,8 @@ export const FALLBACK_PRODUCTS: MarketProduct[] = [
   },
   {
     id: "olive-oil-1l",
-    name: "Olive Oil 1L",
-    english_name: null,
+    korean_name: "올리브 오일 1L",
+    english_name: "Olive Oil 1L",
     unit: "1L",
     category: "Cooking",
     thumbnail_url: null,
@@ -57,8 +57,8 @@ export const FALLBACK_PRODUCTS: MarketProduct[] = [
   },
   {
     id: "whole-bean-coffee-1kg",
-    name: "Whole Bean Coffee 1kg",
-    english_name: null,
+    korean_name: "원두 커피 1kg",
+    english_name: "Whole Bean Coffee 1kg",
     unit: "1kg",
     category: "Beverage",
     thumbnail_url: null,
@@ -84,8 +84,8 @@ export const FALLBACK_PRODUCTS: MarketProduct[] = [
   },
   {
     id: "baby-formula-900g",
-    name: "Baby Formula 900g",
-    english_name: null,
+    korean_name: "분유 900g",
+    english_name: "Baby Formula 900g",
     unit: "900g",
     category: "Baby",
     thumbnail_url: null,
@@ -111,8 +111,8 @@ export const FALLBACK_PRODUCTS: MarketProduct[] = [
   },
   {
     id: "dish-soap-4l",
-    name: "Dish Soap 4L",
-    english_name: null,
+    korean_name: "주방 세제 4L",
+    english_name: "Dish Soap 4L",
     unit: "4L",
     category: "Household",
     thumbnail_url: null,
@@ -138,8 +138,8 @@ export const FALLBACK_PRODUCTS: MarketProduct[] = [
   },
   {
     id: "milk-2l",
-    name: "Milk 2L",
-    english_name: null,
+    korean_name: "우유 2L",
+    english_name: "Milk 2L",
     unit: "2L",
     category: "Dairy",
     thumbnail_url: null,

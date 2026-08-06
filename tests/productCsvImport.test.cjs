@@ -73,8 +73,8 @@ test("product CSV store resolver ignores brand spacing and punctuation differenc
 test("product CSV record parser treats a duplicated store_brand header as store_name", () => {
   const record = productCsvRecordFromRow(
     [
-      "name",
       "english_name",
+      "korean_name",
       "category",
       "unit",
       "thumbnail_url",
@@ -86,8 +86,8 @@ test("product CSV record parser treats a duplicated store_brand header as store_
       "sale_end_date",
     ],
     [
-      "청정원 고소한 마요네즈",
       "CJW Rich Mayonnaise",
+      "청정원 고소한 마요네즈",
       "Sauce",
       "500 g",
       "",
@@ -100,6 +100,8 @@ test("product CSV record parser treats a duplicated store_brand header as store_
     ],
   );
 
+  assert.equal(record.english_name, "CJW Rich Mayonnaise");
+  assert.equal(record.korean_name, "청정원 고소한 마요네즈");
   assert.equal(record.store_brand, "Market Ribbon");
   assert.equal(record.store_name, "Burnaby | Coquitlam");
   assert.equal(record.price, "4.99");

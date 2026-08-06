@@ -103,16 +103,10 @@ export const adminProductGridStyles: Record<string, any> = {
     height: 62,
     borderRadius: 10,
     borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#d4dce8",
-    backgroundColor: "#f5f7fa",
+    borderColor: "#dce4ef",
+    backgroundColor: "#eef8f3",
     alignItems: "center",
     justifyContent: "center",
-  },
-  productGridThumbnailPlaceholderText: {
-    color: "#8a96a8",
-    fontSize: 9,
-    fontWeight: "700",
   },
   productGridMetrics: {
     flexDirection: "row",

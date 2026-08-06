@@ -5,6 +5,9 @@ import type { MarketProduct } from "../../services/marketData";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
+import { categoryToIconVariant } from "../../utils/categoryIcon";
+import { productDisplayName, productSecondaryName } from "../../utils/productNames";
+import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 import { formatSignedPercent } from "./priceDisplay";
 import type { ProductPriceView } from "./productDetailData";
 
@@ -39,6 +42,8 @@ export function ProductDetailHero({
     storeLine,
     decisionText,
   } = priceView;
+  const displayName = productDisplayName(product);
+  const secondaryName = productSecondaryName(product);
 
   return (
     <View style={st.productHeroCard}>
@@ -50,10 +55,10 @@ export function ProductDetailHero({
         />
       ) : (
         <View style={st.productHeroPlaceholder}>
+          <CategoryPlaceholderIcon variant={categoryToIconVariant(product.category)} />
           <Text style={st.productHeroPlaceholderText}>
             {product.category || "Product"}
           </Text>
-          <Text style={st.productHeroPlaceholderSub}>Image unavailable</Text>
         </View>
       )}
 
@@ -61,11 +66,11 @@ export function ProductDetailHero({
         <View style={st.productHeroTitleRow}>
           <View style={st.productHeroTitleBlock}>
             <Text style={st.productHeroName} numberOfLines={2}>
-              {product.name}
+              {displayName}
             </Text>
-            {product.english_name ? (
+            {secondaryName ? (
               <Text style={st.itemMeta} numberOfLines={1}>
-                {product.english_name}
+                {secondaryName}
               </Text>
             ) : null}
           </View>

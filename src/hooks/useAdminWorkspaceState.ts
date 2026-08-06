@@ -16,7 +16,7 @@ export default function useAdminWorkspaceState() {
   const [resolvingReviewId, setResolvingReviewId] = React.useState<string | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const [productName, setProductName] = React.useState("");
+  const [productKoreanName, setProductKoreanName] = React.useState("");
   const [productEnglishName, setProductEnglishName] = React.useState("");
   const [productBrand, setProductBrand] = React.useState("");
   const [productGtin, setProductGtin] = React.useState("");
@@ -58,7 +58,7 @@ export default function useAdminWorkspaceState() {
     auth: { authEmail, setAuthEmail, authPassword, setAuthPassword },
     status: { notice, setNotice, submitting, setSubmitting, deletingKey, setDeletingKey, resolvingReviewId, setResolvingReviewId, refreshing, setRefreshing },
     product: {
-      productName, setProductName, productEnglishName, setProductEnglishName,
+      productKoreanName, setProductKoreanName, productEnglishName, setProductEnglishName,
       productBrand, setProductBrand, productGtin, setProductGtin,
       productUnit, setProductUnit, productCategory, setProductCategory,
       productCategoryCustom, setProductCategoryCustom, productThumb, setProductThumb,

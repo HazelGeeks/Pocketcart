@@ -1,6 +1,6 @@
 export type MarketProduct = {
   id: string;
-  name: string;
+  korean_name: string;
   english_name: string | null;
   category: string;
   thumbnail_url: string | null;
@@ -26,6 +26,14 @@ export type MarketProduct = {
   preferred_price_compare_current_batch: string | null;
 };
 
+export type MarketPeriodStorePrice = {
+  id: string;
+  price: number;
+  store_id: string | null;
+  store_name: string;
+  store_area: string | null;
+};
+
 export type MarketPricePoint = {
   id: string;
   product_id: string;
@@ -35,6 +43,7 @@ export type MarketPricePoint = {
   store_id: string | null;
   store_name: string;
   store_area: string | null;
+  store_prices: MarketPeriodStorePrice[];
 };
 
 export type MarketStorePrice = {
@@ -73,7 +82,7 @@ export type ServiceResult<T> = {
 
 export type ProductRow = {
   id: string;
-  name: string;
+  korean_name: string;
   english_name: string | null;
   category: string;
   unit: string | null;

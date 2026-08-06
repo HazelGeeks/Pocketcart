@@ -4,6 +4,7 @@ import type { MarketProduct } from "../../services/marketData";
 import type { WatchlistItem } from "../../services/watchlist";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
+import { productDisplayName } from "../../utils/productNames";
 
 type WatchlistPanelProps = {
   hasSupabaseEnv: boolean;
@@ -38,6 +39,7 @@ export function WatchlistPanel({
           return {
             item,
             product,
+            displayName: product ? productDisplayName(product) : item.name,
             currentPrice,
             previousPrice,
             priceDelta,
@@ -98,7 +100,7 @@ export function WatchlistPanel({
             <View key={entry.item.id} style={st.rowCard}>
               <View style={st.watchRowTop}>
                 <View style={st.watchRowMain}>
-                  <Text style={st.itemName}>{entry.item.name}</Text>
+                  <Text style={st.itemName}>{entry.displayName}</Text>
                   <Text style={st.itemMeta}>
                     {entry.product?.best_store_name || entry.item.store}
                     {entry.unit ? ` · ${entry.unit}` : ""}

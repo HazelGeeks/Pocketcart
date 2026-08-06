@@ -12,8 +12,8 @@ type FlyerRow = {
   regionBranch: string;
   saleStartDate: string;
   saleEndDate: string;
-  name: string;
   englishName: string;
+  koreanName: string;
   mainCategory: string;
   subCategory: string;
   brand: string;
@@ -84,8 +84,8 @@ const schema = {
           regionBranch: { type: "string" },
           saleStartDate: { type: "string" },
           saleEndDate: { type: "string" },
-          name: { type: "string" },
           englishName: { type: "string" },
+          koreanName: { type: "string" },
           mainCategory: { type: "string" },
           subCategory: { type: "string" },
           brand: { type: "string" },
@@ -122,8 +122,8 @@ const schema = {
           "regionBranch",
           "saleStartDate",
           "saleEndDate",
-          "name",
           "englishName",
+          "koreanName",
           "mainCategory",
           "subCategory",
           "brand",
@@ -230,8 +230,8 @@ function normalizeRows(value: unknown): FlyerRow[] {
         regionBranch: text("regionBranch"),
         saleStartDate: text("saleStartDate"),
         saleEndDate: text("saleEndDate"),
-        name: text("name"),
         englishName: text("englishName"),
+        koreanName: text("koreanName"),
         mainCategory: text("mainCategory"),
         subCategory: text("subCategory"),
         brand: text("brand"),
@@ -240,7 +240,7 @@ function normalizeRows(value: unknown): FlyerRow[] {
         memo: text("memo"),
       };
     })
-    .filter((row) => row.name || row.price || row.memo);
+    .filter((row) => row.englishName || row.koreanName || row.price || row.memo);
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -312,8 +312,8 @@ function parseFlyerTextRows(text: string): FlyerRow[] {
       regionBranch: "",
       saleStartDate: "",
       saleEndDate: "",
-      name,
-      englishName: "",
+      englishName: /[가-힣]/.test(name) ? "" : name,
+      koreanName: /[가-힣]/.test(name) ? name : "",
       mainCategory: inferFlyerMainCategory(name),
       subCategory: "",
       brand: "",
@@ -495,8 +495,8 @@ Deno.serve(async (request: Request) => {
     "2. 지점명 또는 매장명 -> regionBranch",
     "3. 세일 시작일 -> saleStartDate",
     "4. 세일 종료일 -> saleEndDate",
-    "5. 한국어 상품명 -> name",
-    "6. 영어 상품명 -> englishName",
+    "5. 영어 상품명 -> englishName",
+    "6. 한국어 상품명 -> koreanName",
     "7. 카테고리 -> mainCategory",
     "8. 호환용 빈 필드 -> subCategory",
     "9. 상품 브랜드 -> brand",
@@ -516,7 +516,7 @@ Deno.serve(async (request: Request) => {
     "Use one category only. Do not split products into main category and subcategory. Put the category in mainCategory and always return subCategory as an empty string.",
     "Use Korean category text for Korean flyers. Example categories: 신선식품, 정육, 수산, 유제품, 냉동식품, 가공식품, 음료, 생활용품.",
     "Product brand should contain only the product brand, not the store brand. If product brand is not visible, leave it empty.",
-    "If both Korean and English product names are visible, put Korean text in name and English text in englishName. If only one language is visible, fill the matching field and leave the other empty.",
+    "If both Korean and English product names are visible, put English text in englishName and Korean text in koreanName. If only one language is visible, fill the matching field and leave the other empty.",
     "Do not invent values. If a field is not visible or cannot be inferred confidently, return an empty string and put uncertainty or original OCR fragments in memo.",
   ].join("\n");
 

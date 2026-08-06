@@ -28,7 +28,7 @@ export type FlyerRow = {
   regionBranch: string;
   saleStartDate: string;
   saleEndDate: string;
-  name: string;
+  koreanName: string;
   englishName: string;
   mainCategory: string;
   subCategory: string;
@@ -53,7 +53,7 @@ export function createFlyerRow(seed?: Partial<FlyerRow>): FlyerRow {
     regionBranch: seed?.regionBranch ?? "",
     saleStartDate: seed?.saleStartDate ?? "",
     saleEndDate: seed?.saleEndDate ?? "",
-    name: seed?.name ?? "",
+    koreanName: seed?.koreanName ?? "",
     englishName: seed?.englishName ?? "",
     mainCategory: seed?.mainCategory ?? "",
     subCategory: seed?.subCategory ?? "",

@@ -127,8 +127,8 @@ export default function AdminFlyerPanel({
             <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Branch / Store Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale Start</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale End</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Korean Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellName]}>English Name</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Korean Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Category</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>Product Brand</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>Price</Text>
@@ -218,16 +218,16 @@ export default function AdminFlyerPanel({
                   style={[st.flyerInputCell, st.flyerCellDate, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
-                  value={row.name}
-                  onChangeText={(value) => onUpdateRow(row.id, "name", value)}
-                  placeholder="Korean name"
+                  value={row.englishName}
+                  onChangeText={(value) => onUpdateRow(row.id, "englishName", value)}
+                  placeholder="English name"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
-                  value={row.englishName}
-                  onChangeText={(value) => onUpdateRow(row.id, "englishName", value)}
-                  placeholder="English name"
+                  value={row.koreanName}
+                  onChangeText={(value) => onUpdateRow(row.id, "koreanName", value)}
+                  placeholder="Korean name"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
                 />

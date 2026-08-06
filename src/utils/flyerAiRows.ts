@@ -70,7 +70,7 @@ function normalizeFlyerAiRow(row: Partial<FlyerRow> & Record<string, unknown>): 
     regionBranch: rowValue(row, "regionBranch", "region_branch", "storeName", "store_name", "branchName", "branch_name", "지역/지점", "branch", "location"),
     saleStartDate: rowValue(row, "saleStartDate", "sale_start_date", "세일 시작일", "startDate"),
     saleEndDate: rowValue(row, "saleEndDate", "sale_end_date", "세일 종료일", "endDate"),
-    name: rowValue(row, "name", "koreanName", "korean_name", "한글명", "한국어명", "이름", "productName", "product_name"),
+    koreanName: rowValue(row, "koreanName", "korean_name", "name", "한글명", "한국어명", "이름", "productName", "product_name"),
     englishName: rowValue(row, "englishName", "english_name", "영문명", "영어명", "englishProductName", "english_product_name"),
     mainCategory: rowValue(row, "mainCategory", "main_category", "category", "카테고리", "대분류"),
     subCategory: rowValue(row, "subCategory", "sub_category", "중분류"),
@@ -82,5 +82,5 @@ function normalizeFlyerAiRow(row: Partial<FlyerRow> & Record<string, unknown>): 
 }
 
 export function normalizeFlyerAiRows(rows: Array<Partial<FlyerRow> & Record<string, unknown>>): FlyerRow[] {
-  return rows.map((row) => normalizeFlyerAiRow(row)).filter((row) => row.name || row.price);
+  return rows.map((row) => normalizeFlyerAiRow(row)).filter((row) => row.englishName || row.koreanName || row.price);
 }

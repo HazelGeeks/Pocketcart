@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import type { MarketProduct } from "../services/marketData";
+import { productDisplayName } from "../utils/productNames";
 import {
   listSyncedShoppingListItems,
   replaceSyncedShoppingListItems,
@@ -136,7 +137,11 @@ export default function useShoppingList(profileId: string | null) {
   }, [guestKey, items, key, loadedKey, profileId, syncReadyKey]);
 
   const addProduct = React.useCallback((product: MarketProduct) => {
-    mutateItems((current) => addShoppingListProduct(current, product));
+    mutateItems((current) => addShoppingListProduct(current, {
+      id: product.id,
+      name: productDisplayName(product),
+      unit: product.unit,
+    }));
   }, [mutateItems]);
 
   const changeQuantity = React.useCallback((productId: string, delta: number) => {

@@ -10,25 +10,25 @@ const {
   resolveProductMatch,
 } = require("../.tmp-tests/utils/productIdentity.js");
 
-test("productIdentityKey normalizes name, unit, and category", () => {
+test("productIdentityKey normalizes the English-first name, unit, and category", () => {
   assert.equal(
-    productIdentityKey({ name: "  Fresh   Strawberry ", unit: " 1LB ", category: " Produce " }),
-    productIdentityKey({ name: "fresh strawberry", unit: "1lb", category: "produce" }),
+    productIdentityKey({ koreanName: "딸기", englishName: "  Fresh   Strawberry ", unit: " 1LB ", category: " Produce " }),
+    productIdentityKey({ koreanName: "딸기", englishName: "fresh strawberry", unit: "1lb", category: "produce" }),
   );
 });
 
 test("findMatchingProduct matches same product identity but keeps different units separate", () => {
   const products = [
-    { id: "strawberry-1lb", name: "Strawberry", unit: "1lb", category: "Produce" },
-    { id: "strawberry-2lb", name: "Strawberry", unit: "2lb", category: "Produce" },
+    { id: "strawberry-1lb", korean_name: "딸기", english_name: "Strawberry", unit: "1lb", category: "Produce" },
+    { id: "strawberry-2lb", korean_name: "딸기", english_name: "Strawberry", unit: "2lb", category: "Produce" },
   ];
 
   assert.equal(
-    findMatchingProduct(products, { name: " strawberry ", unit: "1LB", category: "produce" }).id,
+    findMatchingProduct(products, { koreanName: "딸기", englishName: " strawberry ", unit: "1LB", category: "produce" }).id,
     "strawberry-1lb",
   );
   assert.equal(
-    findMatchingProduct(products, { name: "Strawberry", unit: "500g", category: "Produce" }),
+    findMatchingProduct(products, { koreanName: "딸기", englishName: "Strawberry", unit: "500g", category: "Produce" }),
     null,
   );
 });
@@ -37,7 +37,7 @@ test("resolveProductMatch gives product_id priority over changing CSV text", () 
   const products = [
     {
       id: "product-1",
-      name: "Original Name",
+      korean_name: "기존 이름",
       english_name: "Original Name",
       brand: "Brand A",
       gtin: null,
@@ -48,7 +48,7 @@ test("resolveProductMatch gives product_id priority over changing CSV text", () 
 
   const result = resolveProductMatch(products, {
     productId: "PRODUCT-1",
-    name: "Updated Flyer Name",
+    koreanName: "업데이트 이름",
     englishName: "Updated Name",
     brand: "Brand B",
     unit: "0.5 kg",
@@ -64,7 +64,7 @@ test("resolveProductMatch normalizes UPC and GTIN punctuation", () => {
   const products = [
     {
       id: "product-1",
-      name: "Sparkling Water",
+      korean_name: "탄산수",
       english_name: "Sparkling Water",
       brand: "Clear",
       gtin: "0 12345-67890 5",
@@ -75,7 +75,7 @@ test("resolveProductMatch normalizes UPC and GTIN punctuation", () => {
 
   assert.equal(normalizeGtin("0 12345-67890 5"), "012345678905");
   const result = resolveProductMatch(products, {
-    name: "Completely Different Flyer Label",
+    koreanName: "완전히 다른 전단 이름",
     gtin: "012345678905",
     unit: "12 pack",
     category: "Drinks",
@@ -95,14 +95,14 @@ test("resolveProductMatch does not trust a malformed stored barcode", () => {
   const result = resolveProductMatch([
     {
       id: "product-1",
-      name: "Stored product",
+      korean_name: "저장 상품",
       brand: "Brand",
       gtin: "OCR-012345678905",
       unit: "1 ea",
       category: "Pantry",
     },
   ], {
-    name: "Different product",
+    koreanName: "다른 상품",
     gtin: "012345678905",
     unit: "2 ea",
     category: "Other",
@@ -116,7 +116,7 @@ test("resolveProductMatch accepts one canonical name and unit match across categ
   const products = [
     {
       id: "product-1",
-      name: "코카콜라 오리지널",
+      korean_name: "코카콜라 오리지널",
       english_name: "Coca-Cola Original",
       brand: "Coca-Cola",
       gtin: null,
@@ -126,7 +126,8 @@ test("resolveProductMatch accepts one canonical name and unit match across categ
   ];
 
   const result = resolveProductMatch(products, {
-    name: "Coca Cola Original",
+    koreanName: "코카콜라 오리지널",
+    englishName: "Coca Cola Original",
     brand: "Coca Cola",
     unit: "2L",
     category: "Soft Drinks",
@@ -139,7 +140,7 @@ test("canonical identity keeps accented and CJK product names", () => {
   const products = [
     {
       id: "product-1",
-      name: "Crème fraîche",
+      korean_name: "크렘 프레슈",
       english_name: "Fresh Cream",
       brand: "Québec Lait",
       gtin: null,
@@ -148,7 +149,7 @@ test("canonical identity keeps accented and CJK product names", () => {
     },
     {
       id: "product-2",
-      name: "上海青",
+      korean_name: "上海青",
       english_name: "Bok Choy",
       brand: null,
       gtin: null,
@@ -159,7 +160,8 @@ test("canonical identity keeps accented and CJK product names", () => {
 
   assert.equal(
     resolveProductMatch(products, {
-      name: "Crème-fraîche",
+      koreanName: "크렘 프레슈",
+      englishName: "Crème-fraîche",
       brand: "Québec Lait",
       unit: "250ml",
       category: "Special",
@@ -168,7 +170,7 @@ test("canonical identity keeps accented and CJK product names", () => {
   );
   assert.equal(
     resolveProductMatch(products, {
-      name: "上海青",
+      koreanName: "上海青",
       unit: "1lb",
       category: "Vegetables",
     }).status,
@@ -180,7 +182,8 @@ test("resolveProductMatch refuses ambiguous text candidates", () => {
   const products = [
     {
       id: "product-1",
-      name: "Apple Juice",
+      korean_name: "사과 주스",
+      english_name: "Apple Juice",
       brand: null,
       gtin: null,
       unit: "1 L",
@@ -188,7 +191,8 @@ test("resolveProductMatch refuses ambiguous text candidates", () => {
     },
     {
       id: "product-2",
-      name: "Apple Juice",
+      korean_name: "사과 주스",
+      english_name: "Apple Juice",
       brand: null,
       gtin: null,
       unit: "1L",
@@ -197,7 +201,8 @@ test("resolveProductMatch refuses ambiguous text candidates", () => {
   ];
 
   const result = resolveProductMatch(products, {
-    name: "Apple Juice",
+    koreanName: "사과 주스",
+    englishName: "Apple Juice",
     unit: "1L",
     category: "Specials",
   });
@@ -210,7 +215,7 @@ test("resolveProductMatch sends a small same-unit name variation to review", () 
   const products = [
     {
       id: "product-1",
-      name: "Strawberry Yogurt",
+      korean_name: "딸기 요거트",
       english_name: "Strawberry Yogurt",
       brand: "Dairy Best",
       gtin: null,
@@ -220,7 +225,8 @@ test("resolveProductMatch sends a small same-unit name variation to review", () 
   ];
 
   const result = resolveProductMatch(products, {
-    name: "Strawbery Yogurt",
+    koreanName: "",
+    englishName: "Strawbery Yogurt",
     brand: "Dairy Best",
     unit: "650g",
     category: "Weekly Sale",
@@ -235,7 +241,8 @@ test("resolveProductMatch does not flag a near name when the unit differs", () =
   const products = [
     {
       id: "product-1",
-      name: "Strawberry Yogurt",
+      korean_name: "딸기 요거트",
+      english_name: "Strawberry Yogurt",
       brand: null,
       gtin: null,
       unit: "650 g",
@@ -244,7 +251,8 @@ test("resolveProductMatch does not flag a near name when the unit differs", () =
   ];
 
   const result = resolveProductMatch(products, {
-    name: "Strawbery Yogurt",
+    koreanName: "딸기 요거트",
+    englishName: "Strawbery Yogurt",
     unit: "1 kg",
     category: "Weekly Sale",
   });
@@ -256,7 +264,8 @@ test("resolveProductMatch does not merge two known, different brands", () => {
   const products = [
     {
       id: "product-1",
-      name: "Apple Juice",
+      korean_name: "사과 주스",
+      english_name: "Apple Juice",
       brand: "Brand A",
       gtin: null,
       unit: "1L",
@@ -265,7 +274,8 @@ test("resolveProductMatch does not merge two known, different brands", () => {
   ];
 
   const result = resolveProductMatch(products, {
-    name: "Apple Juice",
+    koreanName: "사과 주스",
+    englishName: "Apple Juice",
     brand: "Brand B",
     unit: "1L",
     category: "Juice",
@@ -278,7 +288,8 @@ test("resolveProductMatch does not fall back when an explicit product_id is stal
   const products = [
     {
       id: "product-1",
-      name: "Milk",
+      korean_name: "우유",
+      english_name: "Milk",
       brand: null,
       gtin: null,
       unit: "2L",
@@ -288,7 +299,8 @@ test("resolveProductMatch does not fall back when an explicit product_id is stal
 
   const result = resolveProductMatch(products, {
     productId: "missing-id",
-    name: "Milk",
+    koreanName: "우유",
+    englishName: "Milk",
     unit: "2L",
     category: "Dairy",
   });

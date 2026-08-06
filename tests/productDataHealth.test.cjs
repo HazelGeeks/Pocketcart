@@ -6,9 +6,9 @@ const {
 } = require("../.tmp-tests/utils/productDataHealth.js");
 
 const products = [
-  { id: "a", name: "Apples", brand: "Orchard", gtin: "012345678905", unit: "1 lb" },
-  { id: "b", name: "Bread", brand: null, gtin: null, unit: "1 loaf" },
-  { id: "c", name: "Coffee", brand: "Roaster", gtin: "4006381333931", unit: null },
+  { id: "a", korean_name: "사과", english_name: "Apples", brand: "Orchard", gtin: "012345678905", unit: "1 lb" },
+  { id: "b", korean_name: "빵", english_name: "Bread", brand: null, gtin: null, unit: "1 loaf" },
+  { id: "c", korean_name: "커피", english_name: "Coffee", brand: "Roaster", gtin: "4006381333931", unit: null },
 ];
 
 function price(overrides) {
@@ -53,17 +53,22 @@ test("data health detects cross-store price differences and identity gaps", () =
   assert.equal(result.crossStorePriceDifferenceSessions, 1);
   assert.equal(result.comparableMultiStoreSessions, 1);
   assert.equal(result.comparableMultiBrandSessions, 1);
-  assert.equal(result.missingGtin, 1);
-  assert.equal(result.missingBrand, 1);
   assert.equal(result.missingUnit, 1);
+});
+
+test("data health treats missing product brand and GTIN as optional", () => {
+  const result = buildProductDataHealth([
+    { id: "optional-identity", korean_name: "사과", english_name: "Apple", brand: null, gtin: null, unit: "1 lb" },
+  ], [], Date.parse("2026-07-03T00:00:00.000Z"));
+
+  assert.equal(result.issueCount, 0);
 });
 
 test("data health counts malformed GTIN values separately", () => {
   const result = buildProductDataHealth([
-    { id: "bad", name: "Bad code", brand: "Brand", gtin: "123", unit: "1 ea" },
+    { id: "bad", korean_name: "잘못된 코드", english_name: "Bad code", brand: "Brand", gtin: "123", unit: "1 ea" },
   ], [], Date.parse("2026-07-03T00:00:00.000Z"));
 
-  assert.equal(result.missingGtin, 0);
   assert.equal(result.invalidGtin, 1);
   assert.equal(result.issueCount, 1);
 });

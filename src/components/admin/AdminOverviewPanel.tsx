@@ -5,6 +5,7 @@ import type {
   AdminProductIdentityReview,
   AdminSchemaReadiness,
 } from "../../services/adminBackoffice";
+import { productDisplayName } from "../../utils/productNames";
 import {
   toDateOnlyLabel,
   type OverviewCard,
@@ -143,8 +144,9 @@ export default function AdminOverviewPanel({
           <View style={st.productReviewList}>
             {productIdentityReviews.slice(0, 8).map((review) => {
               const productName =
-                payloadText(review, "name") ??
                 payloadText(review, "english_name") ??
+                payloadText(review, "korean_name") ??
+                payloadText(review, "name") ??
                 "Unnamed spreadsheet product";
               const unit = payloadText(review, "unit");
               const brand = payloadText(review, "product_brand");
@@ -187,7 +189,7 @@ export default function AdminOverviewPanel({
                             disabled={resolving}
                           >
                             <Text style={st.btnGhostText}>
-                              Keep {candidate.name}
+                              Keep {productDisplayName(candidate)}
                               {candidate.unit ? ` · ${candidate.unit}` : ""}
                             </Text>
                           </Pressable>
@@ -283,8 +285,6 @@ export default function AdminOverviewPanel({
         </View>
 
         <View style={st.dataHealthIssueRow}>
-          <Text style={st.dataHealthIssueText}>No barcode number · {productDataHealth.missingGtin}</Text>
-          <Text style={st.dataHealthIssueText}>No product brand name · {productDataHealth.missingBrand}</Text>
           <Text style={st.dataHealthIssueText}>Barcode number needs correction · {productDataHealth.invalidGtin}</Text>
           <Text style={st.dataHealthIssueText}>No package size or unit · {productDataHealth.missingUnit}</Text>
           <Text style={st.dataHealthIssueText}>
@@ -332,11 +332,9 @@ export default function AdminOverviewPanel({
                   <Text style={st.dataHealthSessionBadge}>
                     {item.sessionCount}/4 sale periods
                   </Text>
-                  {item.missingGtin || item.missingBrand || item.invalidGtin || item.missingUnit ? (
+                  {item.invalidGtin || item.missingUnit ? (
                     <Text style={st.dataHealthIdentityWarning}>
                       {[
-                        item.missingGtin ? "No barcode number" : null,
-                        item.missingBrand ? "No brand name" : null,
                         item.invalidGtin ? "Barcode needs correction" : null,
                         item.missingUnit ? "No size or unit" : null,
                       ].filter(Boolean).join(" · ")}
@@ -370,7 +368,7 @@ export default function AdminOverviewPanel({
             {products.slice(0, 6).map((item) => (
               <View key={item.id} style={[st.dataRow, st.recentProductRow]}>
                 <View style={st.dataRowMain}>
-                  <Text style={st.dataRowTitle}>{item.name}</Text>
+                  <Text style={st.dataRowTitle}>{productDisplayName(item)}</Text>
                   <Text style={st.dataMuted}>{item.category}</Text>
                 </View>
                 <Text style={st.dataMeta}>{toDateOnlyLabel(item.created_at)}</Text>

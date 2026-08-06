@@ -26,7 +26,8 @@ test("buildSaleAlertCandidates creates alerts for watched products on sale", () 
     products: [
       {
         id: "product-1",
-        name: "Milk",
+        korean_name: "우유",
+        english_name: "Milk",
         current_price: 3.99,
         previous_price: 4.99,
         price_delta: -1,
@@ -36,7 +37,8 @@ test("buildSaleAlertCandidates creates alerts for watched products on sale", () 
       },
       {
         id: "product-2",
-        name: "Eggs",
+        korean_name: "달걀",
+        english_name: "Eggs",
         current_price: null,
         previous_price: null,
         price_delta: null,
@@ -50,6 +52,7 @@ test("buildSaleAlertCandidates creates alerts for watched products on sale", () 
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0].alertKey, "product-1|jun 28, 2026|store-1");
   assert.equal(alerts[0].title, "Sale started");
+  assert.match(alerts[0].body, /^Milk is now/);
   assert.match(alerts[0].body, /Safeway - Robson/);
 });
 
@@ -68,7 +71,8 @@ test("buildSaleAlertCandidates prefers the cheapest saved My store price", () =>
     products: [
       {
         id: "product-1",
-        name: "Milk",
+        korean_name: "우유",
+        english_name: "Milk",
         current_price: 2.99,
         previous_price: 3.49,
         price_delta: -0.5,
@@ -116,7 +120,8 @@ test("buildSaleAlertCandidates honors an explicitly watched store over My stores
     products: [
       {
         id: "product-1",
-        name: "Milk",
+        korean_name: "우유",
+        english_name: "Milk",
         current_price: 2.99,
         previous_price: 3.49,
         price_delta: -0.5,
@@ -175,7 +180,8 @@ test("buildSaleAlertCandidates removes duplicate keys after product merges", () 
     products: [
       {
         id: "product-1",
-        name: "Milk",
+        korean_name: "우유",
+        english_name: "Milk",
         current_price: 3.49,
         previous_price: 3.99,
         price_delta: -0.5,

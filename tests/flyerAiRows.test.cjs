@@ -12,8 +12,8 @@ test("normalizeFlyerAiRows preserves crop metadata from imageBox", () => {
       regionBranch: "Downtown",
       saleStartDate: "2026-07-01",
       saleEndDate: "2026-07-07",
-      name: "딸기",
       englishName: "Strawberry",
+      koreanName: "딸기",
       mainCategory: "Produce",
       brand: "",
       price: "4.99",
@@ -32,6 +32,8 @@ test("normalizeFlyerAiRows preserves crop metadata from imageBox", () => {
   ]);
 
   assert.equal(row.imageSelected, true);
+  assert.equal(row.englishName, "Strawberry");
+  assert.equal(row.koreanName, "딸기");
   assert.equal(row.imageStatus, "candidate");
   assert.deepEqual(row.cropCandidate, {
     pageIndex: 2,
@@ -47,7 +49,8 @@ test("normalizeFlyerAiRows preserves crop metadata from imageBox", () => {
 test("normalizeFlyerAiRows keeps rows without crop candidates", () => {
   const [row] = normalizeFlyerAiRows([
     {
-      name: "Milk",
+      englishName: "Milk",
+      koreanName: "우유",
       price: "3.99",
       imageBox: null,
     },

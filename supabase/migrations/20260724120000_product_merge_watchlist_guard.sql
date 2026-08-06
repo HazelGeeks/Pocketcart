@@ -110,7 +110,11 @@ begin
     raise exception 'Target product is required';
   end if;
 
-  select products.name, products.unit
+  select coalesce(
+    nullif(trim(products.english_name), ''),
+    nullif(trim(to_jsonb(products) ->> 'korean_name'), ''),
+    to_jsonb(products) ->> 'name'
+  ), products.unit
   into target_name, target_unit
   from public.products
   where products.id = p_target_product_id

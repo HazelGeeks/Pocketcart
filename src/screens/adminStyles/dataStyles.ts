@@ -20,6 +20,14 @@ export const adminDataStyles = {
     padding: 14,
     gap: 10,
   },
+  productReviewCardError: {
+    borderColor: "#d76b6b",
+    backgroundColor: "#fff3f3",
+  },
+  productReviewCardReady: {
+    borderColor: "#9bc9ae",
+    backgroundColor: "#f2fbf5",
+  },
   productReviewHeading: {
     flex: 1,
     minWidth: 240,
@@ -30,10 +38,22 @@ export const adminDataStyles = {
     fontSize: 16,
     fontWeight: "800",
   },
+  productReviewTitleError: {
+    color: "#a52828",
+  },
+  productReviewTitleReady: {
+    color: "#176b3a",
+  },
   productReviewDescription: {
     color: "#8a6728",
     fontSize: 12,
     lineHeight: 17,
+  },
+  productReviewDescriptionError: {
+    color: "#8e3030",
+  },
+  productReviewDescriptionReady: {
+    color: "#3a7752",
   },
   productReviewList: {
     gap: 7,

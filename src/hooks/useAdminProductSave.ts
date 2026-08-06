@@ -15,15 +15,15 @@ type Params = UseAdminProductActionsParams & { resetProductForm: () => void };
 export default function useAdminProductSave(params: Params) {
   const handleCreateProduct = React.useCallback(async () => {
     const input: ProductSaveInput = {
-      name: params.productName.trim(),
+      koreanName: params.productKoreanName.trim(),
       englishName: params.productEnglishName.trim(),
       brand: params.productBrand.trim(),
       gtin: normalizeGtin(params.productGtin.trim()),
       unit: params.productUnit.trim(),
       category: params.productCategory.trim(),
     };
-    if (!input.name || !input.category) {
-      params.setNotice("Product name and category are required.");
+    if (!input.englishName || !input.koreanName || !input.category) {
+      params.setNotice("English name, Korean name, and category are required.");
       return;
     }
     const gtinError = gtinValidationMessage(params.productGtin.trim());
@@ -56,7 +56,7 @@ export default function useAdminProductSave(params: Params) {
           }
           const uploaded = await params.uploadProductImageMutation.mutateAsync({
             file: blob,
-            fileName: safeProductImageName(input.name, blob.type),
+            fileName: safeProductImageName(input.englishName, blob.type),
             contentType: blob.type,
           });
           if (!uploaded?.publicUrl) throw new Error("Image upload returned no public URL.");
@@ -93,7 +93,7 @@ export default function useAdminProductSave(params: Params) {
         : matchingProduct
           ? await params.updateProductMutation.mutateAsync({
               id: matchingProduct.id,
-              name: matchingProduct.name,
+              koreanName: matchingProduct.korean_name,
               englishName: matchingProduct.english_name?.trim() || input.englishName,
               brand: matchingProduct.brand?.trim() || input.brand,
               gtin: candidate.existingGtin || input.gtin,

@@ -8,7 +8,7 @@ const {
 
 test("single product deletion names the product and uses a specific confirm label", () => {
   const confirmation = buildProductDeleteConfirmation(
-    [{ id: "product-1", name: "Organic Milk" }],
+    [{ id: "product-1", english_name: "Organic Milk", korean_name: "유기농 우유" }],
     "single",
   );
 
@@ -26,13 +26,13 @@ test("single product deletion names the product and uses a specific confirm labe
 test("bulk product deletion deduplicates products and summarizes long selections", () => {
   const confirmation = buildProductDeleteConfirmation(
     [
-      { id: "p1", name: "Apples" },
-      { id: "p2", name: "Bananas" },
-      { id: "p3", name: "Carrots" },
-      { id: "p4", name: "Dates" },
-      { id: "p5", name: "Eggs" },
-      { id: "p6", name: "Flour" },
-      { id: "p1", name: "Duplicate Apples" },
+      { id: "p1", english_name: "Apples", korean_name: "사과" },
+      { id: "p2", english_name: "Bananas", korean_name: "바나나" },
+      { id: "p3", english_name: "Carrots", korean_name: "당근" },
+      { id: "p4", english_name: "Dates", korean_name: "대추야자" },
+      { id: "p5", english_name: "Eggs", korean_name: "달걀" },
+      { id: "p6", english_name: "Flour", korean_name: "밀가루" },
+      { id: "p1", english_name: "Duplicate Apples", korean_name: "중복 사과" },
     ],
     "bulk",
   );
@@ -47,7 +47,7 @@ test("bulk product deletion deduplicates products and summarizes long selections
 
 test("bulk deletion keeps singular copy when one product is selected", () => {
   const confirmation = buildProductDeleteConfirmation(
-    [{ id: "p1", name: "Apples" }],
+    [{ id: "p1", english_name: "Apples", korean_name: "사과" }],
     "bulk",
   );
 

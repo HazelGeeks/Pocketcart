@@ -10,7 +10,7 @@ import type { UseAdminProductActionsParams } from "./adminProductActionTypes";
 import { extensionFromType } from "./useAdminProductImageUpload";
 
 export type ProductSaveInput = {
-  name: string;
+  koreanName: string;
   englishName: string;
   brand: string;
   gtin: string;
@@ -74,7 +74,7 @@ export async function resolveProductCandidate(params: {
       matchMethod: match.method,
       candidateCount: match.candidateCount,
       payload: {
-        name: params.input.name,
+        korean_name: params.input.koreanName,
         english_name: params.input.englishName || null,
         product_brand: params.input.brand || null,
         gtin: params.input.gtin || null,
@@ -99,7 +99,7 @@ export async function resolveProductCandidate(params: {
       matchMethod: match.status === "matched" ? match.method : undefined,
       candidateCount: 1,
       payload: {
-        name: params.input.name,
+        korean_name: params.input.koreanName,
         product_brand: params.input.brand || null,
         existing_gtin: rawExistingGtin,
         validation_error: gtinValidationMessage(rawExistingGtin),
@@ -117,7 +117,7 @@ export async function resolveProductCandidate(params: {
       matchMethod: match.status === "matched" ? match.method : undefined,
       candidateCount: 1,
       payload: {
-        name: params.input.name,
+        korean_name: params.input.koreanName,
         product_brand: params.input.brand || null,
         supplied_gtin: params.input.gtin,
         existing_gtin: existingGtin,

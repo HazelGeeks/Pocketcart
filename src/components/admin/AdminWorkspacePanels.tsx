@@ -42,6 +42,7 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           products={backend.products}
           filteredProducts={dashboard.filteredProducts}
           loading={backend.loading.products}
+          loadError={backend.errors.products}
           submitting={status.submitting}
           deletingKey={status.deletingKey}
           productSearchQuery={adminUi.productSearchQuery}

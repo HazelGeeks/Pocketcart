@@ -81,6 +81,7 @@ export default function NativeAppScreen() {
     activeTab: shell.activeTab,
     favoriteStoreIds: favoriteStores.storeIds,
     profileId: account.profile?.id ?? null,
+    productById: catalog.productById,
   });
   const navigation = useNativeBackNavigation({ account, catalog, map, shell });
   const productActions = useNativeProductActions({

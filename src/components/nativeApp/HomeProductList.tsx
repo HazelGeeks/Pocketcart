@@ -4,6 +4,7 @@ import type { MarketProduct } from "../../services/marketData";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
+import { productDisplayName, productSecondaryName } from "../../utils/productNames";
 import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 import {
   displayPriceForProduct,
@@ -45,6 +46,8 @@ export function HomeProductList({
         <Text style={st.itemMeta}>Showing {Math.min(visibleCount, sortedProducts.length)} of {sortedProducts.length}</Text>
       </View>
       {sortedProducts.slice(0, visibleCount).map((product) => {
+        const displayName = productDisplayName(product);
+        const secondaryName = productSecondaryName(product);
         const preferred = product.preferred_store_price !== null;
         const effectiveDelta = preferred ? product.preferred_price_delta : product.price_delta;
         const displayPrice = displayPriceForProduct(product);
@@ -62,10 +65,11 @@ export function HomeProductList({
             )}
             <View style={st.homeProductMain}>
               <View style={st.homeProductTitleRow}>
-                <Text style={[st.itemName, st.homeProductName]} numberOfLines={2}>{product.name}</Text>
+                <Text style={[st.itemName, st.homeProductName]} numberOfLines={2}>{displayName}</Text>
                 {effectiveDelta !== null && effectiveDelta < 0 ? <Text style={st.tag}>Deal</Text> : null}
                 {favorite ? <Text style={st.homeFavoriteTag}>My store</Text> : null}
               </View>
+              {secondaryName ? <Text style={st.itemMeta} numberOfLines={1}>{secondaryName}</Text> : null}
               <Text style={st.itemMeta} numberOfLines={1}>{product.category}{product.unit ? ` / ${product.unit}` : ""}</Text>
               <Text style={st.homeStoreLine} numberOfLines={1}>{storeName ? `${storeName}${storeArea ? ` · ${storeArea}` : ""}` : "Store not linked yet"}</Text>
               <View style={st.homeProductMetaRow}>

@@ -1,12 +1,15 @@
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
+import { categoryToIconVariant } from "../../utils/categoryIcon";
 import {
   dateInputValue,
   toDateOnlyLabel,
   type ProductPriceStats,
 } from "../../utils/adminScreenHelpers";
 import { AdminTechnicalDetailsPanel } from "./AdminTechnicalDetails";
+import { productDisplayName, productSecondaryName } from "../../utils/productNames";
+import { CategoryPlaceholderIcon } from "../nativeApp/CategoryPlaceholderIcon";
 
 type Props = {
   product: AdminProduct;
@@ -47,6 +50,8 @@ export default function AdminProductCard({
     : null;
   const currentSaleStoreBrands = stats?.currentSaleStoreBrands ?? [];
   const disabled = deleting || bulkDeleting || submitting;
+  const displayName = productDisplayName(product);
+  const secondaryName = productSecondaryName(product);
 
   return (
     <View
@@ -58,7 +63,7 @@ export default function AdminProductCard({
       <View style={st.productGridCardHeader}>
         <Pressable
           accessibilityRole="checkbox"
-          accessibilityLabel={`Select ${product.name}`}
+          accessibilityLabel={`Select ${displayName}`}
           accessibilityState={{ checked: selected }}
           onPress={onToggle}
           style={[st.productCheckboxHitArea, disabled && st.btnDisabled]}
@@ -75,9 +80,9 @@ export default function AdminProductCard({
         </Pressable>
 
         <View style={st.productGridIdentity}>
-          <Text style={st.productGridTitle}>{product.name}</Text>
-          {product.english_name ? (
-            <Text style={st.productGridSubtitle}>{product.english_name}</Text>
+          <Text style={st.productGridTitle}>{displayName}</Text>
+          {secondaryName ? (
+            <Text style={st.productGridSubtitle}>{secondaryName}</Text>
           ) : null}
           <Text style={st.productGridCategory}>
             {product.category}
@@ -93,7 +98,7 @@ export default function AdminProductCard({
           />
         ) : (
           <View style={st.productGridThumbnailPlaceholder}>
-            <Text style={st.productGridThumbnailPlaceholderText}>No image</Text>
+            <CategoryPlaceholderIcon variant={categoryToIconVariant(product.category)} />
           </View>
         )}
       </View>
@@ -150,7 +155,7 @@ export default function AdminProductCard({
         <View style={st.productGridActions}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${detailsExpanded ? "Hide" : "Show"} technical details for ${product.name}`}
+            accessibilityLabel={`${detailsExpanded ? "Hide" : "Show"} technical details for ${displayName}`}
             accessibilityState={{ expanded: detailsExpanded }}
             onPress={() => setDetailsExpanded((current) => !current)}
             style={[

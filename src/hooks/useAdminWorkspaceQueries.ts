@@ -130,6 +130,12 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
       schema: schemaQuery.isLoading || schemaQuery.isFetching,
       auth: adminUserQuery.isLoading || mutations.signIn.isPending || mutations.signOut.isPending,
     },
+    errors: {
+      products:
+        productsQuery.error instanceof Error
+          ? productsQuery.error.message
+          : null,
+    },
     queries: { productsQuery, pricesQuery, auditLogsQuery, reviewsQuery },
     mutations,
     loadAll,

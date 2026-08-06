@@ -1,4 +1,5 @@
 import type { MarketProduct, MarketStore } from "./types";
+import { productNameSearchText } from "../../utils/productNames";
 
 export function parseNumber(value: number | string | null | undefined): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -19,7 +20,7 @@ export function matchesProductFilter(
 
   const passSearch =
     q.length === 0 ||
-    `${product.name} ${product.category}`.toLowerCase().includes(q);
+    `${productNameSearchText(product)} ${product.category}`.toLowerCase().includes(q);
 
   const passCategory =
     c.length === 0 || c === "all" || product.category.toLowerCase() === c;

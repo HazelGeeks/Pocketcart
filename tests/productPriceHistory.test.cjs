@@ -37,6 +37,10 @@ test("one sale session becomes one point using its lowest-priced store", () => {
   assert.equal(result[0].storeId, "hmart");
   assert.equal(result[0].storeName, "H-Mart");
   assert.equal(result[0].sessionStartedAt, "2026-07-10T00:00:00.000Z");
+  assert.deepEqual(
+    result[0].storePrices.map((row) => [row.storeName, row.price]),
+    [["H-Mart", 4.99], ["T&T Market", 5.49]],
+  );
 });
 
 test("different sale sessions remain separate and chronological", () => {
@@ -56,6 +60,24 @@ test("different sale sessions remain separate and chronological", () => {
       ["2026-07-10T00:00:00.000Z", 4.99],
       ["2026-07-17T00:00:00.000Z", 5.29],
     ],
+  );
+});
+
+test("one store appears once per session using its lowest duplicate price", () => {
+  const result = selectLowestPricePerSaleSession([
+    candidate({ id: "tnt-high", price: 5.79 }),
+    candidate({ id: "tnt-low", price: 5.49 }),
+    candidate({
+      id: "hmart",
+      storeId: "hmart",
+      storeName: "H-Mart",
+      price: 4.99,
+    }),
+  ], Date.parse("2026-07-20T00:00:00.000Z"));
+
+  assert.deepEqual(
+    result[0].storePrices.map((row) => [row.storeName, row.price]),
+    [["H-Mart", 4.99], ["T&T Market", 5.49]],
   );
 });
 

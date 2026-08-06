@@ -23,6 +23,7 @@ import {
   type StorePriceStats,
 } from "../utils/adminScreenHelpers";
 import { buildProductDataHealth } from "../utils/productDataHealth";
+import { productDisplayName, productNameSearchText } from "../utils/productNames";
 
 type AdminDashboardDataParams = {
   products: AdminProduct[];
@@ -379,8 +380,7 @@ export default function useAdminDashboardData({
       if (query) {
         const storeNames = stats?.storeNames.join(" ").toLowerCase() ?? "";
         const storeBrands = stats?.storeBrands.join(" ").toLowerCase() ?? "";
-        const englishName = item.english_name?.trim() || "";
-        const haystack = `${item.name} ${englishName} ${item.brand ?? ""} ${item.gtin ?? ""} ${item.category} ${item.id} ${storeNames} ${storeBrands}`.toLowerCase();
+        const haystack = `${productNameSearchText(item)} ${item.brand ?? ""} ${item.gtin ?? ""} ${item.category} ${item.id} ${storeNames} ${storeBrands}`.toLowerCase();
         if (!haystack.includes(query)) return false;
       }
       if (categoryFilter !== "all" && category !== categoryFilter) return false;
@@ -411,7 +411,7 @@ export default function useAdminDashboardData({
     });
 
     filtered.sort((a, b) => {
-      if (productSort === "name") return a.name.localeCompare(b.name);
+      if (productSort === "name") return productDisplayName(a).localeCompare(productDisplayName(b));
       if (productSort === "priceLow" || productSort === "priceHigh") {
         const aPrice = productPriceStats.get(a.id)?.latestPrice ?? Number.POSITIVE_INFINITY;
         const bPrice = productPriceStats.get(b.id)?.latestPrice ?? Number.POSITIVE_INFINITY;

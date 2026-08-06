@@ -39,7 +39,7 @@ type Params = {
   loadAll: (keepNotice?: boolean) => Promise<void>;
   createProductMutation: Mutation<
     {
-      name: string;
+      koreanName: string;
       englishName?: string;
       brand?: string;
       gtin?: string;
@@ -52,7 +52,7 @@ type Params = {
   updateProductMutation: Mutation<
     {
       id: string;
-      name: string;
+      koreanName: string;
       englishName?: string;
       brand?: string;
       gtin?: string;
@@ -182,7 +182,8 @@ export default function useAdminProductCsvActions({
 
           const headers = headerRow.map(csvHeaderKey);
           const missingRequiredColumns = [
-            !hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.name) ? "name" : "",
+            !hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.englishName) ? "english_name" : "",
+            !hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.koreanName) ? "korean_name" : "",
             !hasCsvHeader(headers, PRODUCT_IMPORT_HEADERS.category) ? "category" : "",
           ].filter(Boolean);
           if (missingRequiredColumns.length > 0) {
@@ -213,7 +214,7 @@ export default function useAdminProductCsvActions({
             const record = productCsvRecordFromRow(headers, values);
 
             const productId = csvRowValue(record, PRODUCT_IMPORT_HEADERS.productId);
-            const name = csvRowValue(record, PRODUCT_IMPORT_HEADERS.name);
+            const koreanName = csvRowValue(record, PRODUCT_IMPORT_HEADERS.koreanName);
             const englishName = csvRowValue(record, PRODUCT_IMPORT_HEADERS.englishName);
             const productBrand = csvRowValue(record, PRODUCT_IMPORT_HEADERS.productBrand);
             const rawGtin = csvRowValue(record, PRODUCT_IMPORT_HEADERS.gtin);
@@ -230,8 +231,8 @@ export default function useAdminProductCsvActions({
             const periodEnd = csvRowValue(record, PRODUCT_IMPORT_HEADERS.periodEnd);
             const reviewPayload = {
               supplied_product_id: productId || null,
-              name,
               english_name: englishName || null,
+              korean_name: koreanName,
               product_brand: productBrand || null,
               gtin: gtin || null,
               category,
@@ -244,7 +245,7 @@ export default function useAdminProductCsvActions({
               sale_end_date: periodEnd || null,
             };
 
-            if (!name || !category) {
+            if (!englishName || !koreanName || !category) {
               skipped.push(`row ${index + 2}`);
               continue;
             }
@@ -276,7 +277,7 @@ export default function useAdminProductCsvActions({
 
               const match = resolveProductMatch(knownProducts, {
                 productId,
-                name,
+                koreanName,
                 englishName,
                 brand: productBrand,
                 gtin,
@@ -407,7 +408,7 @@ export default function useAdminProductCsvActions({
                 if (needsEnrichment) {
                   const updated = await updateProductMutation.mutateAsync({
                     id: product.id,
-                    name: product.name,
+                    koreanName: product.korean_name,
                     englishName: mergedEnglishName,
                     brand: mergedBrand,
                     gtin: mergedGtin,
@@ -426,7 +427,7 @@ export default function useAdminProductCsvActions({
                 }
               } else {
                 product = await createProductMutation.mutateAsync({
-                  name,
+                  koreanName,
                   englishName,
                   brand: productBrand,
                   gtin,

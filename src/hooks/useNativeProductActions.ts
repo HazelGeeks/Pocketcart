@@ -7,6 +7,7 @@ import type useNativeShoppingPlan from "./useNativeShoppingPlan";
 import type { MarketProduct } from "../services/marketData";
 import { addWatchlistItem } from "../services/watchlist";
 import { isSignInRequiredMessage } from "../utils/serviceErrors";
+import { productDisplayName } from "../utils/productNames";
 
 type Options = {
   account: ReturnType<typeof useNativeAccount>;
@@ -29,7 +30,7 @@ export default function useNativeProductActions({
       const { error } = await addWatchlistItem({
         productId: product.id,
         storeId: product.best_store_id,
-        name: product.name,
+        name: productDisplayName(product),
         store: product.best_store_name ?? "Unknown store",
       });
       catalog.setAddSubmitting(false);

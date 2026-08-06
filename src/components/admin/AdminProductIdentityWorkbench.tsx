@@ -6,12 +6,14 @@ import {
   buildProductDuplicateGroups,
   type ProductDuplicateGroup,
 } from "../../utils/productDuplicateGroups";
+import { productDisplayName } from "../../utils/productNames";
 
 type Props = {
   products: AdminProduct[];
   priceStats: Map<string, ProductPriceStats>;
+  loading: boolean;
+  error: string | null;
   styles: Record<string, any>;
-  onExportIdentityGaps: () => void;
   onReviewGroup: (group: ProductDuplicateGroup) => void;
 };
 
@@ -31,8 +33,9 @@ function groupStoreBrands(
 export default function AdminProductIdentityWorkbench({
   products,
   priceStats,
+  loading,
+  error,
   styles: st,
-  onExportIdentityGaps,
   onReviewGroup,
 }: Props) {
   const [expanded, setExpanded] = React.useState(false);
@@ -40,53 +43,98 @@ export default function AdminProductIdentityWorkbench({
     () => buildProductDuplicateGroups(products),
     [products],
   );
-  const missingGtin = products.filter((product) => !product.gtin?.trim()).length;
-  const missingBrand = products.filter((product) => !product.brand?.trim()).length;
-  const missingImage = products.filter((product) => !product.thumbnail_url?.trim()).length;
+  const missingImage = products.filter(
+    (product) => !product.thumbnail_url?.trim(),
+  ).length;
+  const hasDuplicateGroups = duplicateGroups.length > 0;
+  const isReady = !loading && !error && !hasDuplicateGroups;
+  const statusDescription = error
+    ? `Error: Products could not be loaded, so duplicate groups could not be checked. ${error}`
+    : loading
+      ? "Checking products for possible duplicates…"
+      : hasDuplicateGroups
+        ? `${duplicateGroups.length} possible duplicate groups need review. Confirm the product name and package size before merging. Nothing is merged automatically.`
+        : "No duplicate product candidates were found.";
+
+  React.useEffect(() => {
+    if (loading || error || !hasDuplicateGroups) setExpanded(false);
+  }, [error, hasDuplicateGroups, loading]);
 
   return (
-    <View style={st.productReviewCard}>
+    <View
+      style={[
+        st.productReviewCard,
+        error
+          ? st.productReviewCardError
+          : isReady
+            ? st.productReviewCardReady
+            : null,
+      ]}
+    >
       <View style={st.dataCardHeader}>
         <View style={st.productReviewHeading}>
-          <Text style={st.productReviewTitle}>Product identity workbench</Text>
-          <Text style={st.productReviewDescription}>
-            Review products that share a GTIN or the same normalized name and unit before merging their price history.
+          <Text
+            style={[
+              st.productReviewTitle,
+              error
+                ? st.productReviewTitleError
+                : isReady
+                  ? st.productReviewTitleReady
+                  : null,
+            ]}
+          >
+            {error ? "Duplicate check failed" : "Product identity workbench"}
+          </Text>
+          <Text
+            accessibilityRole={error ? "alert" : undefined}
+            style={[
+              st.productReviewDescription,
+              error
+                ? st.productReviewDescriptionError
+                : isReady
+                  ? st.productReviewDescriptionReady
+                  : null,
+            ]}
+          >
+            {statusDescription}
           </Text>
         </View>
-        <View style={st.productReviewActions}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onExportIdentityGaps}
-            style={[st.btn, st.btnGhost]}
-          >
-            <Text style={st.btnGhostText}>Export missing info</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded }}
-            onPress={() => setExpanded((current) => !current)}
-            style={[st.btn, duplicateGroups.length > 0 ? st.btnPrimary : st.btnGhost]}
-            disabled={duplicateGroups.length === 0}
-          >
-            <Text
-              style={duplicateGroups.length > 0 ? st.btnPrimaryText : st.btnGhostText}
+        {!loading && !error ? (
+          <View style={st.productReviewActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded }}
+              onPress={() => setExpanded((current) => !current)}
+              style={[
+                st.btn,
+                hasDuplicateGroups ? st.btnPrimary : st.btnGhost,
+              ]}
+              disabled={!hasDuplicateGroups}
             >
-              {duplicateGroups.length > 0
-                ? `${expanded ? "Hide" : "Review"} ${duplicateGroups.length} groups`
-                : "No exact matches"}
-            </Text>
-          </Pressable>
+              <Text
+                style={
+                  hasDuplicateGroups ? st.btnPrimaryText : st.btnGhostText
+                }
+              >
+                {hasDuplicateGroups
+                  ? `${expanded ? "Hide" : "Review"} ${duplicateGroups.length} groups`
+                  : "No exact matches"}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
+
+      {!loading && !error ? (
+        <View style={st.dataHealthIssueRow}>
+          <Text style={st.dataHealthIssueText}>
+            Possible duplicate groups {duplicateGroups.length}
+          </Text>
+          <Text style={st.dataHealthIssueText}>Missing image {missingImage}</Text>
         </View>
-      </View>
+      ) : null}
 
-      <View style={st.dataHealthIssueRow}>
-        <Text style={st.dataHealthIssueText}>Possible duplicate groups {duplicateGroups.length}</Text>
-        <Text style={st.dataHealthIssueText}>Missing GTIN {missingGtin}</Text>
-        <Text style={st.dataHealthIssueText}>Missing product brand {missingBrand}</Text>
-        <Text style={st.dataHealthIssueText}>Missing image {missingImage}</Text>
-      </View>
-
-      {expanded ? (
+      {expanded && hasDuplicateGroups && !loading && !error ? (
         <View style={st.productReviewList}>
           {duplicateGroups.slice(0, 12).map((group) => {
             const storeBrands = groupStoreBrands(group, priceStats);
@@ -103,7 +151,7 @@ export default function AdminProductIdentityWorkbench({
                   </Text>
                   <Text style={st.dataMuted}>
                     {group.products
-                      .map((product) => `${product.name}${product.unit ? ` · ${product.unit}` : ""}`)
+                      .map((product) => `${productDisplayName(product)}${product.unit ? ` · ${product.unit}` : ""}`)
                       .join(" / ")}
                   </Text>
                   {storeBrands.length > 0 ? (

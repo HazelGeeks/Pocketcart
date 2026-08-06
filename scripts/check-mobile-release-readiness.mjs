@@ -74,6 +74,7 @@ const requiredFiles = [
   "supabase/migrations/20260724110000_product_identity_workflow.sql",
   "supabase/migrations/20260724120000_product_merge_watchlist_guard.sql",
   "supabase/migrations/20260803093000_admin_audit_logs.sql",
+  "supabase/migrations/20260805120000_english_first_product_names.sql",
 ];
 
 const findings = [];
@@ -724,6 +725,16 @@ includes(
 );
 includes(
   "database/schema.sql",
+  "korean_name text not null",
+  "Supabase schema names the Korean product field explicitly",
+);
+includes(
+  "supabase/migrations/20260805120000_english_first_product_names.sql",
+  "alter table public.products rename column name to korean_name",
+  "Supabase migration preserves product data while renaming the Korean field",
+);
+includes(
+  "database/schema.sql",
   "create table if not exists public.product_identity_reviews",
   "Supabase schema includes the product identity review queue",
 );
@@ -1051,6 +1062,11 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "20260803093000_admin_audit_logs.sql",
   "Supabase schema workflow applies the admin audit logs migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260805120000_english_first_product_names.sql",
+  "Supabase schema workflow applies the English-first product names migration",
 );
 includes(
   ".gitignore",

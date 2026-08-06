@@ -322,3 +322,26 @@ jobs:
             echo "Supabase schema deploy failed with HTTP $status"
             exit 1
           }
+
+      - name: Apply English-first product names migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-names-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-names-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260805120000_english_first_product_names.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase schema deploy failed with HTTP $status"
+            exit 1
+          }
