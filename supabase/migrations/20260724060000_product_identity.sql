@@ -3,6 +3,7 @@ alter table public.products
   add column if not exists gtin text;
 
 drop index if exists public.products_identity_key;
+drop index if exists public.products_identity_lookup_idx;
 do $migration$
 begin
   if exists (
@@ -10,7 +11,7 @@ begin
     where table_schema = 'public' and table_name = 'products' and column_name = 'korean_name'
   ) then
     execute $sql$
-      create unique index products_identity_key
+      create index products_identity_lookup_idx
         on public.products (
           lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),
           lower(regexp_replace(trim(korean_name), '\s+', ' ', 'g')),
@@ -20,7 +21,7 @@ begin
     $sql$;
   else
     execute $sql$
-      create unique index products_identity_key
+      create index products_identity_lookup_idx
         on public.products (
           lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),
           lower(regexp_replace(trim(name), '\s+', ' ', 'g')),

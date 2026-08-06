@@ -1,25 +1,18 @@
-do $migration$
-begin
-  if exists (
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'products'
-      and column_name = 'name'
-  ) and not exists (
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'products'
-      and column_name = 'korean_name'
-  ) then
-    alter table public.products rename column name to korean_name;
-  end if;
-end;
-$migration$;
+-- Correct legacy rows where the English and Korean product names were imported
+-- into the opposite columns. Keep resulting duplicate candidates separate so
+-- an admin can review and merge their price histories explicitly.
 
 drop index if exists public.products_identity_key;
 drop index if exists public.products_identity_lookup_idx;
+
+update public.products
+set
+  korean_name = english_name,
+  english_name = korean_name
+where english_name ~ '[가-힣]'
+  and korean_name !~ '[가-힣]'
+  and korean_name ~ '[A-Za-z]';
+
 create index products_identity_lookup_idx
   on public.products (
     lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),

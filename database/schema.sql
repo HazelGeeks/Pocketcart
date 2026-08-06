@@ -212,7 +212,17 @@ alter table public.products
   add column if not exists gtin text;
 
 drop index if exists public.products_identity_key;
-create unique index products_identity_key
+drop index if exists public.products_identity_lookup_idx;
+
+update public.products
+set
+  korean_name = english_name,
+  english_name = korean_name
+where english_name ~ '[가-힣]'
+  and korean_name !~ '[가-힣]'
+  and korean_name ~ '[A-Za-z]';
+
+create index products_identity_lookup_idx
   on public.products (
     lower(regexp_replace(trim(coalesce(brand, '')), '\s+', ' ', 'g')),
     lower(regexp_replace(trim(korean_name), '\s+', ' ', 'g')),
