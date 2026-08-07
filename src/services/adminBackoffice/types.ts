@@ -169,9 +169,14 @@ export type StoreRow = {
   created_at: string;
 };
 
-export type JoinedName =
-  | { korean_name?: string | null; english_name?: string | null; name?: string | null; brand?: string | null }
-  | Array<{ korean_name?: string | null; english_name?: string | null; name?: string | null; brand?: string | null }>
+export type JoinedProductName =
+  | { korean_name: string; english_name?: string | null }
+  | Array<{ korean_name: string; english_name?: string | null }>
+  | null;
+
+export type JoinedStoreName =
+  | { name?: string | null; brand?: string | null }
+  | Array<{ name?: string | null; brand?: string | null }>
   | null;
 
 export type PriceRow = {
@@ -183,8 +188,8 @@ export type PriceRow = {
   valid_to?: string | null;
   observed_at: string;
   created_at: string;
-  products?: JoinedName;
-  stores?: JoinedName;
+  products?: JoinedProductName;
+  stores?: JoinedStoreName;
 };
 
 export type AuditLogRow = {

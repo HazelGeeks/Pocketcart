@@ -114,9 +114,11 @@ export function AdminNoAccessPanel({
   return (
     <View style={st.infoCard}>
       <Text style={st.infoTitle}>No admin access</Text>
-      <Text style={st.infoBody}>This account is signed in but not on admin allowlist.</Text>
       <Text style={st.infoBody}>
-        Set EXPO_PUBLIC_ADMIN_EMAILS with comma-separated admin emails.
+        This account is signed in but is not registered as a PocketCart administrator.
+      </Text>
+      <Text style={st.infoBody}>
+        Add the account to Supabase admin_users and keep its email in EXPO_PUBLIC_ADMIN_EMAILS.
       </Text>
       <View style={st.inlineRow}>
         <Pressable accessibilityRole="button" onPress={onSignOut} style={[st.btn, st.btnGhost]}>

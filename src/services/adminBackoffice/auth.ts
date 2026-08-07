@@ -18,6 +18,14 @@ export async function getAdminUser(): Promise<ServiceResult<AdminUser | null>> {
   return { data: userFromAuth(user), error: null };
 }
 
+export async function getAdminAccess(): Promise<ServiceResult<boolean>> {
+  if (!hasSupabaseEnv || !supabase) return missingEnvResult(false);
+
+  const { data, error } = await supabase.rpc("is_admin");
+  if (error) return { data: false, error: error.message };
+  return { data: data === true, error: null };
+}
+
 export async function signInAdmin(params: {
   email: string;
   password: string;

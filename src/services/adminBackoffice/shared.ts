@@ -3,7 +3,8 @@ import type {
   AdminPriceEntry,
   AdminStore,
   AdminUser,
-  JoinedName,
+  JoinedProductName,
+  JoinedStoreName,
   PriceRow,
   ServiceResult,
   StoreRow,
@@ -91,24 +92,24 @@ export function userFromAuth(user: User | null): AdminUser | null {
   };
 }
 
-function joinedName(value: JoinedName | undefined): string | null {
+function joinedName(value: JoinedStoreName | undefined): string | null {
   if (!value) return null;
   if (Array.isArray(value)) return value[0]?.name ?? null;
   return value.name ?? null;
 }
 
-function joinedProductName(value: JoinedName | undefined): string | null {
+function joinedProductName(value: JoinedProductName | undefined): string | null {
   if (!value) return null;
   const product = Array.isArray(value) ? value[0] : value;
   if (!product) return null;
   const displayName = productDisplayName({
     english_name: product.english_name,
-    korean_name: product.korean_name ?? product.name,
+    korean_name: product.korean_name,
   });
   return displayName === "Unnamed product" ? null : displayName;
 }
 
-function joinedBrand(value: JoinedName | undefined): string | null {
+function joinedBrand(value: JoinedStoreName | undefined): string | null {
   if (!value) return null;
   if (Array.isArray(value)) return value[0]?.brand ?? null;
   return value.brand ?? null;

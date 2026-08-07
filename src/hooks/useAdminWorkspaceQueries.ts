@@ -10,6 +10,7 @@ import type {
 } from "../services/adminBackoffice";
 import { ADMIN_EMAIL_ALLOWLIST } from "../utils/adminScreenHelpers";
 import {
+  useAdminAccessQuery,
   useAdminAuditLogsQuery,
   useAdminPricesQuery,
   useAdminProductsQuery,
@@ -41,10 +42,12 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
   const adminUserQuery = useAdminUserQuery();
   const authUser = adminUserQuery.data ?? null;
   const allowlistEnabled = ADMIN_EMAIL_ALLOWLIST.length > 0;
-  const hasAdminAccess = authUser
+  const emailAllowed = authUser
     ? !allowlistEnabled || ADMIN_EMAIL_ALLOWLIST.includes(authUser.email.trim().toLowerCase())
     : false;
-  const enabled = Boolean(authUser && hasAdminAccess);
+  const adminAccessQuery = useAdminAccessQuery(Boolean(authUser && emailAllowed), authUser?.id ?? "signed-out");
+  const hasAdminAccess = Boolean(authUser && emailAllowed && adminAccessQuery.data === true);
+  const enabled = hasAdminAccess;
 
   const usersQuery = useAdminUsersQuery(enabled);
   const productsQuery = useAdminProductsQuery(enabled);
@@ -80,6 +83,24 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
   const reviews = React.useMemo<AdminProductIdentityReview[]>(() => reviewsQuery.data ?? [], [reviewsQuery.data]);
   const schemaReadiness = React.useMemo<AdminSchemaReadiness | null>(() => schemaQuery.data ?? null, [schemaQuery.data]);
 
+  const queryErrorNoticeRef = React.useRef<string | null>(null);
+  const syncQueryErrorNotice = React.useCallback((errors: string[], clearOtherNotice = false) => {
+    if (errors.length) {
+      const nextNotice = errors.join(" | ");
+      queryErrorNoticeRef.current = nextNotice;
+      setNotice(nextNotice);
+      return;
+    }
+
+    const previousQueryNotice = queryErrorNoticeRef.current;
+    queryErrorNoticeRef.current = null;
+    if (previousQueryNotice) {
+      setNotice((current) => current === previousQueryNotice ? null : current);
+    } else if (clearOtherNotice) {
+      setNotice(null);
+    }
+  }, [setNotice]);
+
   const loadAll = React.useCallback(async (keepNotice = false) => {
     const results = await Promise.all([
       usersQuery.refetch(), productsQuery.refetch(), storesQuery.refetch(),
@@ -89,15 +110,14 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
     const errors = results
       .map((item) => item.error instanceof Error ? item.error.message : null)
       .filter((item): item is string => Boolean(item));
-    if (errors.length) setNotice(errors.join(" | "));
-    else if (!keepNotice) setNotice(null);
-  }, [auditLogsQuery, pricesQuery, productsQuery, reviewsQuery, schemaQuery, setNotice, storesQuery, usersQuery]);
+    syncQueryErrorNotice(errors, !keepNotice);
+  }, [auditLogsQuery, pricesQuery, productsQuery, reviewsQuery, schemaQuery, storesQuery, syncQueryErrorNotice, usersQuery]);
 
   const handleRefresh = React.useCallback(async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await loadAll(true);
+      await loadAll(false);
     } finally {
       setRefreshing(false);
     }
@@ -105,13 +125,13 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
 
   React.useEffect(() => {
     const errors = [
-      adminUserQuery.error, usersQuery.error, productsQuery.error,
+      adminUserQuery.error, adminAccessQuery.error, usersQuery.error, productsQuery.error,
       storesQuery.error, pricesQuery.error, auditLogsQuery.error, reviewsQuery.error,
     ]
       .map((error) => error instanceof Error ? error.message : null)
       .filter((item): item is string => Boolean(item));
-    if (errors.length) setNotice(errors.join(" | "));
-  }, [adminUserQuery.error, auditLogsQuery.error, pricesQuery.error, productsQuery.error, reviewsQuery.error, setNotice, storesQuery.error, usersQuery.error]);
+    syncQueryErrorNotice(errors);
+  }, [adminAccessQuery.error, adminUserQuery.error, auditLogsQuery.error, pricesQuery.error, productsQuery.error, reviewsQuery.error, storesQuery.error, syncQueryErrorNotice, usersQuery.error]);
 
   return {
     authUser,
@@ -128,7 +148,7 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
       users: usersQuery.isLoading || usersQuery.isFetching,
       reviews: reviewsQuery.isLoading || reviewsQuery.isFetching,
       schema: schemaQuery.isLoading || schemaQuery.isFetching,
-      auth: adminUserQuery.isLoading || mutations.signIn.isPending || mutations.signOut.isPending,
+      auth: adminUserQuery.isLoading || adminAccessQuery.isLoading || adminAccessQuery.isFetching || mutations.signIn.isPending || mutations.signOut.isPending,
     },
     errors: {
       products:

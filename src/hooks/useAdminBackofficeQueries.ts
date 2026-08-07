@@ -7,6 +7,7 @@ import {
   createAdminProduct,
   deleteAdminProduct,
   deleteAdminStore,
+  getAdminAccess,
   getAdminUser,
   getAdminSchemaReadiness,
   listAdminUsers,
@@ -43,6 +44,7 @@ type ServiceResult<T> = {
 
 const adminQueryKeys = {
   user: ["admin", "user"] as const,
+  access: (userId: string) => ["admin", "access", userId] as const,
   users: ["admin", "users"] as const,
   products: ["admin", "products"] as const,
   stores: ["admin", "stores"] as const,
@@ -64,6 +66,15 @@ export function useAdminUserQuery() {
     queryKey: adminQueryKeys.user,
     queryFn: async () => unwrap(await getAdminUser()),
     enabled: hasSupabaseEnv,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useAdminAccessQuery(enabled: boolean, userId: string) {
+  return useQuery<boolean>({
+    queryKey: adminQueryKeys.access(userId),
+    queryFn: async () => unwrap(await getAdminAccess()),
+    enabled,
     staleTime: 1000 * 60 * 5,
   });
 }

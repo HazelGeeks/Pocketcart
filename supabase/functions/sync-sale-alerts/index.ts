@@ -19,9 +19,8 @@ type WatchlistRow = {
 
 type ProductRow = {
   id: string;
-  korean_name?: string | null;
+  korean_name: string;
   english_name?: string | null;
-  name?: string | null;
 };
 
 type PriceRow = {
@@ -228,18 +227,10 @@ Deno.serve(async (request) => {
   const productRows: ProductRow[] = [];
   const priceRows: PriceRow[] = [];
   for (const productIdChunk of chunkStrings(productIds)) {
-    let { data: productPage, error: productError } = await adminClient
+    const { data: productPage, error: productError } = await adminClient
       .from("products")
       .select("id, korean_name, english_name")
       .in("id", productIdChunk);
-    if (productError?.message.toLowerCase().includes("korean_name")) {
-      const legacyResult = await adminClient
-        .from("products")
-        .select("id, name, english_name")
-        .in("id", productIdChunk);
-      productPage = legacyResult.data;
-      productError = legacyResult.error;
-    }
     if (productError) return jsonResponse({ error: productError.message }, 500);
     productRows.push(...((productPage ?? []) as ProductRow[]));
 
@@ -284,7 +275,7 @@ Deno.serve(async (request) => {
   const productNameById = new Map(
     productRows.map((product) => [
       product.id,
-      product.english_name?.trim() || product.korean_name?.trim() || product.name?.trim() || "Unnamed product",
+      product.english_name?.trim() || product.korean_name.trim() || "Unnamed product",
     ]),
   );
   const pricesByProduct = new Map<string, PriceMeta[]>();

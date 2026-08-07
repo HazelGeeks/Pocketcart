@@ -103,6 +103,10 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                   onSignIn={actions.handleSignIn}
                 />
               </View>
+            ) : backend.loading.auth ? (
+              <View style={st.infoCard}>
+                <Text style={st.infoTitle}>Checking admin access…</Text>
+              </View>
             ) : !backend.hasAdminAccess ? (
               <AdminNoAccessPanel
                 styles={st}

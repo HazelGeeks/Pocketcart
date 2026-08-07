@@ -6,27 +6,11 @@ import type { MarketProduct, ProductRow, ServiceResult } from "./types";
 import { collectPagedRows } from "../../utils/paginatedQuery";
 
 const PRODUCT_SELECT = "id, korean_name, english_name, category, unit, thumbnail_url";
-const LEGACY_PRODUCT_SELECT = "id, name, english_name, category, unit, thumbnail_url";
-
-type ProductRowWithLegacyName = Omit<ProductRow, "korean_name"> & {
-  korean_name?: string | null;
-  name?: string | null;
-};
 
 type ProductQueryError = { message: string };
 
-function hasKoreanNameColumnError(message: string | undefined): boolean {
-  const text = message?.toLowerCase() ?? "";
-  return (
-    text.includes("korean_name") &&
-    (text.includes("does not exist") ||
-      text.includes("could not find") ||
-      text.includes("schema cache"))
-  );
-}
-
-function normalizeProductRow(row: ProductRowWithLegacyName): MarketProduct {
-  const koreanName = row.korean_name?.trim() || row.name?.trim() || "";
+function normalizeProductRow(row: ProductRow): MarketProduct {
+  const koreanName = row.korean_name.trim();
   return {
     id: row.id,
     korean_name: koreanName,
@@ -87,44 +71,28 @@ export async function listProducts(params?: {
   }
 
   const client = supabase;
-  const fetchProductRows = (selectClause: string) =>
-    collectPagedRows<ProductRowWithLegacyName, ProductQueryError>(
-      async (from, to) => {
-        let query = client.from("products").select(selectClause);
-        if (params?.category?.trim()) {
-          query = query.eq("category", params.category.trim());
-        }
-        const response = await query
-          .order(selectClause === PRODUCT_SELECT ? "english_name" : "name", { ascending: true, nullsFirst: false })
-          .order("id", { ascending: true })
-          .range(from, to);
-        return {
-          data: (response.data ?? []) as unknown as ProductRowWithLegacyName[],
-          error: response.error,
-        };
-      },
-    );
-
-  let productsRows: ProductRowWithLegacyName[] = [];
-  const productsQuery = await fetchProductRows(PRODUCT_SELECT);
-  if (productsQuery.error) {
-    if (hasKoreanNameColumnError(productsQuery.error.message)) {
-      const fallbackQuery = await fetchProductRows(LEGACY_PRODUCT_SELECT);
-      if (fallbackQuery.error) {
-        return {
-          data: [],
-          error: fallbackQuery.error.message,
-        };
+  const productsQuery = await collectPagedRows<ProductRow, ProductQueryError>(
+    async (from, to) => {
+      let query = client.from("products").select(PRODUCT_SELECT);
+      if (params?.category?.trim()) {
+        query = query.eq("category", params.category.trim());
       }
-      productsRows = fallbackQuery.data;
-    } else {
+      const response = await query
+        .order("english_name", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(from, to);
       return {
-        data: [],
-        error: productsQuery.error.message,
+        data: (response.data ?? []) as unknown as ProductRow[],
+        error: response.error,
       };
-    }
-  } else {
-    productsRows = productsQuery.data;
+    },
+  );
+
+  if (productsQuery.error) {
+    return {
+      data: [],
+      error: productsQuery.error.message,
+    };
   }
 
   const [priceSummaries, preferredPriceSummaries] = await Promise.all([
@@ -134,7 +102,7 @@ export async function listProducts(params?: {
       : Promise.resolve({ data: new Map(), error: null }),
   ]);
 
-  const products: MarketProduct[] = productsRows
+  const products: MarketProduct[] = productsQuery.data
     .map((row) => {
       const summary = priceSummaries.data.get(row.id);
       const preferredSummary = preferredPriceSummaries.data.get(row.id);

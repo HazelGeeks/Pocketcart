@@ -9,27 +9,10 @@ import type { AdminProduct, AdminUploadedImage, ProductRow, ServiceResult } from
 
 const PRODUCT_SELECT =
   "id, korean_name, english_name, brand, gtin, category, unit, thumbnail_url, created_at";
-const LEGACY_PRODUCT_SELECT =
-  "id, name, english_name, brand, gtin, category, unit, thumbnail_url, created_at";
-
-type ProductRowWithLegacyName = Omit<ProductRow, "korean_name"> & {
-  korean_name?: string | null;
-  name?: string | null;
-};
 
 type ProductQueryError = { message: string };
 
-function hasKoreanNameColumnError(message: string | undefined): boolean {
-  const text = message?.toLowerCase() ?? "";
-  return (
-    text.includes("korean_name") &&
-    (text.includes("does not exist") ||
-      text.includes("could not find") ||
-      text.includes("schema cache"))
-  );
-}
-
-function normalizeAdminProductRow(row: ProductRowWithLegacyName | null): AdminProduct {
+function normalizeAdminProductRow(row: ProductRow | null): AdminProduct {
   const safeRow = row ?? null;
   if (!safeRow) {
     return {
@@ -47,7 +30,7 @@ function normalizeAdminProductRow(row: ProductRowWithLegacyName | null): AdminPr
 
   return {
     id: safeRow.id,
-    korean_name: safeRow.korean_name?.trim() || safeRow.name?.trim() || "",
+    korean_name: safeRow.korean_name.trim(),
     english_name: safeRow.english_name ?? null,
     brand: safeRow.brand?.trim() ? safeRow.brand.trim() : null,
     gtin: safeRow.gtin?.trim() ? safeRow.gtin.trim() : null,
@@ -62,41 +45,27 @@ export async function listAdminProducts(): Promise<ServiceResult<AdminProduct[]>
   if (!hasSupabaseEnv || !supabase) return missingEnvResult([]);
   const client = supabase;
 
-  const fetchProducts = (selectClause: string) =>
-    collectPagedRows<ProductRowWithLegacyName, ProductQueryError>(
-      async (from, to) => {
-        const response = await client
-          .from("products")
-          .select(selectClause)
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-          .range(from, to);
-        return {
-          data: (response.data ?? []) as unknown as ProductRowWithLegacyName[],
-          error: response.error,
-        };
-      },
-    );
-
-  let productsRows: ProductRowWithLegacyName[] = [];
-  const productsQuery = await fetchProducts(PRODUCT_SELECT);
+  const productsQuery = await collectPagedRows<ProductRow, ProductQueryError>(
+    async (from, to) => {
+      const response = await client
+        .from("products")
+        .select(PRODUCT_SELECT)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
+      return {
+        data: (response.data ?? []) as unknown as ProductRow[],
+        error: response.error,
+      };
+    },
+  );
 
   if (productsQuery.error) {
-    if (hasKoreanNameColumnError(productsQuery.error.message)) {
-      const fallbackQuery = await fetchProducts(LEGACY_PRODUCT_SELECT);
-      if (fallbackQuery.error) {
-        return { data: [], error: fallbackQuery.error.message };
-      }
-      productsRows = fallbackQuery.data;
-    } else {
-      return { data: [], error: productsQuery.error.message };
-    }
-  } else {
-    productsRows = productsQuery.data;
+    return { data: [], error: productsQuery.error.message };
   }
 
   return {
-    data: productsRows.map(normalizeAdminProductRow),
+    data: productsQuery.data.map(normalizeAdminProductRow),
     error: null,
   };
 }
@@ -114,7 +83,7 @@ export async function createAdminProduct(params: {
   const gtinError = gtinValidationMessage(params.gtin);
   if (gtinError) return { data: null, error: gtinError };
 
-  const withIdentityPayload = {
+  const payload = {
     korean_name: params.koreanName.trim(),
     english_name: params.englishName?.trim() ? params.englishName.trim() : null,
     brand: params.brand?.trim() ? params.brand.trim() : null,
@@ -123,42 +92,19 @@ export async function createAdminProduct(params: {
     unit: params.unit?.trim() ? params.unit.trim() : null,
     thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
   };
-  const legacyPayload = {
-    ...withIdentityPayload,
-    name: withIdentityPayload.korean_name,
-  };
-  delete (legacyPayload as { korean_name?: string }).korean_name;
-
-  const insertedWithIdentity = await supabase
+  const inserted = await supabase
     .from("products")
-    .insert(withIdentityPayload)
+    .insert(payload)
     .select(PRODUCT_SELECT)
     .single();
 
-  if (insertedWithIdentity.error) {
-    if (hasKoreanNameColumnError(insertedWithIdentity.error.message)) {
-      const fallbackInsert = await supabase
-        .from("products")
-        .insert(legacyPayload)
-        .select(LEGACY_PRODUCT_SELECT)
-        .single();
-      if (fallbackInsert.error) {
-        return { data: null, error: fallbackInsert.error.message };
-      }
-      if (!fallbackInsert.data) {
-        return { data: null, error: "Product insert returned no data." };
-      }
-      return {
-        data: normalizeAdminProductRow(fallbackInsert.data as ProductRowWithLegacyName),
-        error: null,
-      };
-    }
-    return { data: null, error: insertedWithIdentity.error.message };
+  if (inserted.error) {
+    return { data: null, error: inserted.error.message };
   }
 
   return {
-    data: insertedWithIdentity.data
-      ? normalizeAdminProductRow(insertedWithIdentity.data as ProductRowWithLegacyName)
+    data: inserted.data
+      ? normalizeAdminProductRow(inserted.data as ProductRow)
       : null,
     error: null,
   };
@@ -181,7 +127,7 @@ export async function updateAdminProduct(params: {
   const gtinError = gtinValidationMessage(params.gtin);
   if (gtinError) return { data: null, error: gtinError };
 
-  const withIdentityPayload = {
+  const payload = {
     korean_name: params.koreanName.trim(),
     english_name: params.englishName?.trim() ? params.englishName.trim() : null,
     category: params.category.trim(),
@@ -194,44 +140,20 @@ export async function updateAdminProduct(params: {
       ? {}
       : { gtin: normalizeGtin(params.gtin) || null }),
   };
-  const legacyPayload = {
-    ...withIdentityPayload,
-    name: withIdentityPayload.korean_name,
-  };
-  delete (legacyPayload as { korean_name?: string }).korean_name;
-
-  const updatedWithIdentity = await supabase
+  const updated = await supabase
     .from("products")
-    .update(withIdentityPayload)
+    .update(payload)
     .eq("id", id)
     .select(PRODUCT_SELECT)
     .single();
 
-  if (updatedWithIdentity.error) {
-    if (hasKoreanNameColumnError(updatedWithIdentity.error.message)) {
-      const fallbackUpdate = await supabase
-        .from("products")
-        .update(legacyPayload)
-        .eq("id", id)
-        .select(LEGACY_PRODUCT_SELECT)
-        .single();
-      if (fallbackUpdate.error) {
-        return { data: null, error: fallbackUpdate.error.message };
-      }
-      if (!fallbackUpdate.data) {
-        return { data: null, error: "Product update returned no data." };
-      }
-      return {
-        data: normalizeAdminProductRow(fallbackUpdate.data as ProductRowWithLegacyName),
-        error: null,
-      };
-    }
-    return { data: null, error: updatedWithIdentity.error.message };
+  if (updated.error) {
+    return { data: null, error: updated.error.message };
   }
 
   return {
-    data: updatedWithIdentity.data
-      ? normalizeAdminProductRow(updatedWithIdentity.data as ProductRowWithLegacyName)
+    data: updated.data
+      ? normalizeAdminProductRow(updated.data as ProductRow)
       : null,
     error: null,
   };
