@@ -1,5 +1,6 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
+import useLayout from "../../hooks/useLayout";
 import type { AdminStore } from "../../services/adminBackoffice";
 import {
   toDateOnlyLabel,
@@ -34,6 +35,7 @@ export default function AdminStoreList({
   onEditStore,
   onRequestDeleteStore,
 }: AdminStoreListProps) {
+  const { isXl } = useLayout();
   const [expandedStoreIds, setExpandedStoreIds] = React.useState<Set<string>>(
     new Set(),
   );
@@ -47,7 +49,16 @@ export default function AdminStoreList({
   }
 
   return (
-    <View style={st.storeGrid}>
+    <View style={st.storeListTable}>
+      {isXl ? (
+        <View style={st.storeListColumnHeader}>
+          <Text style={[st.storeListColumnLabel, st.storeListStoreColumn]}>Store</Text>
+          <Text style={[st.storeListColumnLabel, st.storeListStatusColumn]}>Status · Type</Text>
+          <Text style={[st.storeListColumnLabel, st.storeListCoverageColumn]}>Coverage</Text>
+          <Text style={[st.storeListColumnLabel, st.storeListLatestColumn]}>Latest · Created</Text>
+          <Text style={[st.storeListColumnLabel, st.storeListActionsColumn]}>Actions</Text>
+        </View>
+      ) : null}
       {stores.map((store) => {
         const deleteKey = `store:${store.id}`;
         const deleting = deletingKey === deleteKey;
@@ -67,20 +78,27 @@ export default function AdminStoreList({
             accessibilityRole="button"
             accessibilityLabel={`Select ${store.brand ? `${store.brand} ` : ""}${store.name} on map`}
             onPress={() => onSelectStore(store.id)}
-            style={[st.storeGridCard, selectedOnMap && st.storeListRowActive]}
+            style={[st.storeListRow, selectedOnMap && st.storeListRowActive]}
             disabled={deleting || submitting}
           >
-            <View style={st.listMain}>
-              <Text style={st.listTitle}>{store.brand ?? store.name}</Text>
-              <Text style={st.dataMuted}>
-                {store.brand ? store.name : store.address || store.area || "Address unavailable"}
-              </Text>
-              <View style={st.storeInlineChipRow}>
-                {store.brand ? (
-                  <View style={st.storeMetaChip}>
-                    <Text style={st.storeMetaChipText}>Brand {store.brand}</Text>
-                  </View>
+            <View style={[st.storeListRowMain, !isXl && st.storeListRowMainCompact]}>
+              <View style={[st.storeListStoreColumn, !isXl && st.storeListStoreColumnCompact]}>
+                <Text numberOfLines={1} style={st.listTitle}>{store.brand ?? store.name}</Text>
+                {store.brand ? <Text numberOfLines={1} style={st.dataMuted}>{store.name}</Text> : null}
+                <Text numberOfLines={2} style={st.dataMuted}>
+                  {store.address || store.area || "Address unavailable"}
+                </Text>
+                {store.phone || store.website || store.hours ? (
+                  <Text numberOfLines={2} style={st.storeListSupportingText}>
+                    {[store.phone, store.website, store.hours].filter(Boolean).join(" | ")}
+                  </Text>
                 ) : null}
+                {store.price_note ? (
+                  <Text numberOfLines={2} style={st.storeListSupportingText}>{store.price_note}</Text>
+                ) : null}
+              </View>
+
+              <View style={[st.storeListStatusColumn, !isXl && st.storeListMetricCompact]}>
                 <View style={[st.storeMetaChip, !store.is_active && st.storeInactiveChip]}>
                   <Text style={[st.storeMetaChipText, !store.is_active && st.storeInactiveChipText]}>
                     {store.is_active ? "Active" : "Inactive"}
@@ -89,103 +107,107 @@ export default function AdminStoreList({
                 <View style={st.storeMetaChip}>
                   <Text style={st.storeMetaChipText}>{store.store_type}</Text>
                 </View>
-                <View style={st.storeMetaChip}>
-                  <Text style={st.storeMetaChipText}>Prices {priceCount}</Text>
+              </View>
+
+              <View style={[st.storeListCoverageColumn, !isXl && st.storeListMetricCompact]}>
+                <View style={st.storeListLabelValue}>
+                  <Text style={st.storeListMetricLabel}>Prices</Text>
+                  <Text style={st.storeListMetricValue}>{priceCount}</Text>
                 </View>
-                <View style={st.storeMetaChip}>
-                  <Text style={st.storeMetaChipText}>Products {productCount}</Text>
-                </View>
-                <View style={st.storeMetaChip}>
-                  <Text style={st.storeMetaChipText}>Latest {latestObserved}</Text>
+                <View style={st.storeListLabelValue}>
+                  <Text style={st.storeListMetricLabel}>Products</Text>
+                  <Text style={st.storeListMetricValue}>{productCount}</Text>
                 </View>
               </View>
-              {store.address && store.brand ? (
-                <Text style={st.dataMuted}>{store.address}</Text>
-              ) : null}
-              {store.phone || store.website || store.hours ? (
-                <Text style={st.dataMuted}>
-                  {[store.phone, store.website, store.hours].filter(Boolean).join(" | ")}
-                </Text>
-              ) : null}
-              {store.price_note ? (
-                <Text style={st.dataMuted}>{store.price_note}</Text>
-              ) : null}
-            </View>
-            <View style={st.storeListRight}>
-              <Text style={st.listDate}>{toDateOnlyLabel(store.created_at)}</Text>
-              <View style={st.storeActionRow}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    onOpenMap(store);
-                  }}
-                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
-                  disabled={deleting || submitting}
-                >
-                  <Text style={st.btnGhostText}>Map</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${detailsExpanded ? "Hide" : "Show"} technical details for ${
-                    store.brand ? `${store.brand} ` : ""
-                  }${store.name}`}
-                  accessibilityState={{ expanded: detailsExpanded }}
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    setExpandedStoreIds((current) => {
-                      const next = new Set(current);
-                      if (next.has(store.id)) next.delete(store.id);
-                      else next.add(store.id);
-                      return next;
-                    });
-                  }}
-                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
-                  disabled={deleting || submitting}
-                >
-                  <Text style={st.btnGhostText}>
-                    {detailsExpanded ? "Hide" : "Details"}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    onEditStore(store);
-                  }}
-                  style={[st.btn, st.btnGhost, st.storeActionBtn]}
-                  disabled={deleting || submitting}
-                >
-                  <Text style={st.btnGhostText}>Edit</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={(event) => {
-                    event.stopPropagation();
-                    onRequestDeleteStore(store);
-                  }}
-                  style={[st.btn, st.btnDanger, st.storeActionBtn, deleting && st.btnDisabled]}
-                  disabled={deleting || submitting}
-                >
-                  <Text style={st.btnDangerText}>{deleting ? "Deleting…" : "Delete"}</Text>
-                </Pressable>
+
+              <View style={[st.storeListLatestColumn, !isXl && st.storeListMetricCompact]}>
+                <View style={st.storeListLabelValue}>
+                  <Text style={st.storeListMetricLabel}>Latest price</Text>
+                  <Text style={st.storeListMetricValue}>{latestObserved}</Text>
+                </View>
+                <View style={st.storeListLabelValue}>
+                  <Text style={st.storeListMetricLabel}>Created</Text>
+                  <Text style={st.storeListMetricSecondary}>{toDateOnlyLabel(store.created_at)}</Text>
+                </View>
+              </View>
+
+              <View style={[st.storeListActionsColumn, !isXl && st.storeListActionsCompact]}>
+                <View style={st.storeActionRow}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      onOpenMap(store);
+                    }}
+                    style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                    disabled={deleting || submitting}
+                  >
+                    <Text style={st.btnGhostText}>Map</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${detailsExpanded ? "Hide" : "Show"} technical details for ${
+                      store.brand ? `${store.brand} ` : ""
+                    }${store.name}`}
+                    accessibilityState={{ expanded: detailsExpanded }}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      setExpandedStoreIds((current) => {
+                        const next = new Set(current);
+                        if (next.has(store.id)) next.delete(store.id);
+                        else next.add(store.id);
+                        return next;
+                      });
+                    }}
+                    style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                    disabled={deleting || submitting}
+                  >
+                    <Text style={st.btnGhostText}>
+                      {detailsExpanded ? "Hide" : "Details"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      onEditStore(store);
+                    }}
+                    style={[st.btn, st.btnGhost, st.storeActionBtn]}
+                    disabled={deleting || submitting}
+                  >
+                    <Text style={st.btnGhostText}>Edit</Text>
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      onRequestDeleteStore(store);
+                    }}
+                    style={[st.btn, st.btnDanger, st.storeActionBtn, deleting && st.btnDisabled]}
+                    disabled={deleting || submitting}
+                  >
+                    <Text style={st.btnDangerText}>{deleting ? "Deleting…" : "Delete"}</Text>
+                  </Pressable>
+                </View>
               </View>
             </View>
             {detailsExpanded ? (
-              <AdminTechnicalDetailsPanel
-                items={[
-                  { key: "store-id", label: "Store ID", value: store.id },
-                  ...(store.place_id
-                    ? [{ key: "place-id", label: "Google Place ID", value: store.place_id }]
-                    : []),
-                  {
-                    key: "coordinates",
-                    label: "Coordinates",
-                    value: `${store.latitude}, ${store.longitude}`,
-                  },
-                ]}
-                styles={st}
-              />
+              <View style={st.storeListDetailsPanel}>
+                <AdminTechnicalDetailsPanel
+                  items={[
+                    { key: "store-id", label: "Store ID", value: store.id },
+                    ...(store.place_id
+                      ? [{ key: "place-id", label: "Google Place ID", value: store.place_id }]
+                      : []),
+                    {
+                      key: "coordinates",
+                      label: "Coordinates",
+                      value: `${store.latitude}, ${store.longitude}`,
+                    },
+                  ]}
+                  styles={st}
+                />
+              </View>
             ) : null}
           </Pressable>
         );

@@ -1,5 +1,3 @@
-import { Platform } from "react-native";
-
 export const adminUserStyles: Record<string, any> = {
   userDirectoryStack: {
     gap: 12,
@@ -19,31 +17,106 @@ export const adminUserStyles: Record<string, any> = {
     justifyContent: "center",
     gap: 10,
   },
-  userDirectoryGrid: {
-    gap: 10,
-    ...(Platform.OS === "web"
-      ? ({
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 410px), 1fr))",
-          alignItems: "stretch",
-        } as any)
-      : {}),
-  },
-  userDirectoryCard: {
-    minWidth: 0,
+  userDirectoryList: {
+    width: "100%",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#dce3ed",
     backgroundColor: "#ffffff",
-    padding: 14,
+    overflow: "hidden",
+  },
+  userDirectoryColumnHeader: {
+    minHeight: 42,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#f3f6fa",
+  },
+  userDirectoryColumnLabel: {
+    color: "#6f7b8e",
+    fontSize: 10,
+    lineHeight: 14,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.35,
+  },
+  userDirectoryRow: {
+    minWidth: 0,
+    borderTopWidth: 1,
+    borderTopColor: "#e7ebf1",
+    backgroundColor: "#ffffff",
+  },
+  userDirectoryRowMain: {
+    minWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
-  userDirectoryCardHeader: {
+  userDirectoryRowMainCompact: {
+    flexWrap: "wrap",
+    alignItems: "stretch",
+    gap: 8,
+  },
+  userDirectoryUserColumn: {
+    flex: 1,
+    minWidth: 0,
+    gap: 7,
+  },
+  userDirectoryAccountColumn: {
+    width: 184,
+    minWidth: 184,
+    gap: 7,
+  },
+  userDirectoryProfileColumn: {
+    width: 142,
+    minWidth: 142,
+    gap: 7,
+  },
+  userDirectoryActivityColumn: {
+    width: 224,
+    minWidth: 224,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 5,
+  },
+  userDirectoryActionsColumn: {
+    width: 78,
+    minWidth: 78,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  userDirectoryColumnCompact: {
+    width: "100%",
+    minWidth: "100%",
+  },
+  userDirectoryCompactMetric: {
+    flex: 1,
+    width: "auto",
+    minWidth: 190,
+    borderRadius: 8,
+    backgroundColor: "#f3f6fa",
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  userDirectoryActivityColumnCompact: {
+    width: "100%",
+    minWidth: "100%",
+  },
+  userDirectoryActionsColumnCompact: {
+    width: "100%",
+    minWidth: "100%",
+  },
+  userDirectoryIdentityHeader: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 8,
   },
   userDirectoryIdentity: {
     flexGrow: 1,
@@ -86,10 +159,8 @@ export const adminUserStyles: Record<string, any> = {
     fontSize: 10,
     fontWeight: "800",
   },
-  userDirectoryMetaGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+  userDirectoryLabelValue: {
+    gap: 1,
   },
   userDirectoryMetaLabel: {
     color: "#8490a2",
@@ -104,16 +175,17 @@ export const adminUserStyles: Record<string, any> = {
     fontSize: 12,
     lineHeight: 17,
   },
-  userDirectoryPreferenceGroup: {
-    borderTopWidth: 1,
-    borderTopColor: "#edf0f5",
-    paddingTop: 9,
+  userDirectoryPreferencesInline: {
     gap: 2,
   },
-  userDirectoryActivityRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+  userDirectoryPreferenceText: {
+    color: "#5b687d",
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  userDirectoryPreferenceLabel: {
+    color: "#778397",
+    fontWeight: "800",
   },
   userDirectoryActivityText: {
     borderRadius: 7,
@@ -123,5 +195,21 @@ export const adminUserStyles: Record<string, any> = {
     paddingVertical: 5,
     fontSize: 10,
     fontWeight: "700",
+  },
+  userDirectoryDetailsButton: {
+    minWidth: 70,
+    minHeight: 34,
+    paddingHorizontal: 9,
+  },
+  userDirectoryDetailsButtonActive: {
+    borderColor: "#9bcfb2",
+    backgroundColor: "#edf9f2",
+  },
+  userDirectoryDetailsPanel: {
+    borderTopWidth: 1,
+    borderTopColor: "#edf0f5",
+    backgroundColor: "#fafbfd",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
 };

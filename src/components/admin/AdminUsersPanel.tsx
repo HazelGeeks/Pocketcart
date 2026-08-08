@@ -2,6 +2,7 @@ import React from "react";
 import {
   ActivityIndicator, Platform, Pressable, ScrollView, Text, TextInput, View,
 } from "react-native";
+import useLayout from "../../hooks/useLayout";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { AdminDirectoryUser } from "../../services/adminBackoffice";
 import {
@@ -16,7 +17,7 @@ import {
 } from "../../utils/adminProductPagination";
 import { WEB_FILTER_SELECT_STYLE } from "../../utils/adminScreenHelpers";
 import AdminProductPagination from "./AdminProductPagination";
-import AdminUserDirectoryCard from "./AdminUserDirectoryCard";
+import AdminUserDirectoryRow from "./AdminUserDirectoryRow";
 
 type Props = {
   users: AdminDirectoryUser[];
@@ -40,6 +41,7 @@ function SummaryCard({ label, value, hint, styles: st }: {
 }
 
 export default function AdminUsersPanel({ users, loading, styles: st }: Props) {
+  const { isXl } = useLayout();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState<AdminUserRoleFilter>("all");
   const [profileFilter, setProfileFilter] = React.useState<AdminUserProfileFilter>("all");
@@ -164,8 +166,24 @@ export default function AdminUsersPanel({ users, loading, styles: st }: Props) {
           </Text>
         </View>
       ) : (
-        <View style={st.userDirectoryGrid}>
-          {pageUsers.map((user) => <AdminUserDirectoryCard key={user.id} user={user} styles={st} />)}
+        <View style={st.userDirectoryList}>
+          {isXl ? (
+            <View style={st.userDirectoryColumnHeader}>
+              <Text style={[st.userDirectoryColumnLabel, st.userDirectoryUserColumn]}>User · Preferences</Text>
+              <Text style={[st.userDirectoryColumnLabel, st.userDirectoryAccountColumn]}>Account dates</Text>
+              <Text style={[st.userDirectoryColumnLabel, st.userDirectoryProfileColumn]}>Profile</Text>
+              <Text style={[st.userDirectoryColumnLabel, st.userDirectoryActivityColumn]}>Activity</Text>
+              <Text style={[st.userDirectoryColumnLabel, st.userDirectoryActionsColumn]}>Actions</Text>
+            </View>
+          ) : null}
+          {pageUsers.map((user) => (
+            <AdminUserDirectoryRow
+              key={user.id}
+              user={user}
+              compact={!isXl}
+              styles={st}
+            />
+          ))}
         </View>
       )}
       {filteredUsers.length > 0 ? <AdminProductPagination {...paginationProps} compact /> : null}

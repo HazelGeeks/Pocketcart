@@ -6,6 +6,7 @@ import { adminLayoutStyles } from "./adminStyles/layoutStyles";
 import { adminModalStyles } from "./adminStyles/modalStyles";
 import { adminPaginationStyles } from "./adminStyles/paginationStyles";
 import { adminProductListStyles } from "./adminStyles/productListStyles";
+import { adminStoreListStyles } from "./adminStyles/storeListStyles";
 import { adminUserStyles } from "./adminStyles/userStyles";
 
 export const st = StyleSheet.create({
@@ -16,5 +17,6 @@ export const st = StyleSheet.create({
   ...adminButtonStyles,
   ...adminPaginationStyles,
   ...adminProductListStyles,
+  ...adminStoreListStyles,
   ...adminUserStyles,
 });
