@@ -105,7 +105,7 @@ export default function AdminProductFilters({
               onChange={(event) => onBrandChange((event.target as HTMLSelectElement).value)}
               style={WEB_FILTER_SELECT_STYLE}
             >
-              <option value="all">Brand: All</option>
+              <option value="all">Store chain: All</option>
               {brandOptions.map((brand) => (
                 <option key={`filter-brand-${brand}`} value={brand}>
                   {brand}

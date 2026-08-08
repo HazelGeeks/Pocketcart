@@ -84,6 +84,7 @@ export function useAdminProductsQuery(enabled: boolean) {
     queryKey: adminQueryKeys.products,
     queryFn: async () => unwrap(await listAdminProducts()),
     enabled,
+    staleTime: 1000 * 30,
   });
 }
 
@@ -92,6 +93,7 @@ export function useAdminUsersQuery(enabled: boolean) {
     queryKey: adminQueryKeys.users,
     queryFn: async () => unwrap(await listAdminUsers()),
     enabled,
+    staleTime: 1000 * 30,
   });
 }
 
@@ -100,6 +102,7 @@ export function useAdminStoresQuery(enabled: boolean) {
     queryKey: adminQueryKeys.stores,
     queryFn: async () => unwrap(await listAdminStores()),
     enabled,
+    staleTime: 1000 * 30,
   });
 }
 
@@ -108,6 +111,7 @@ export function useAdminPricesQuery(enabled: boolean) {
     queryKey: adminQueryKeys.prices,
     queryFn: async () => unwrap(await listAdminPriceEntries()),
     enabled,
+    staleTime: 1000 * 30,
   });
 }
 
@@ -159,12 +163,8 @@ export function useAdminSignOutMutation() {
 }
 
 export function useCreateAdminProductMutation() {
-  const queryClient = useQueryClient();
   return useMutation<AdminProduct | null, Error, Parameters<typeof createAdminProduct>[0]>({
     mutationFn: async (params) => unwrap(await createAdminProduct(params)),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
-    },
   });
 }
 
@@ -179,12 +179,8 @@ export function useUpdateAdminProductMutation() {
 }
 
 export function useCreateAdminPriceEntryMutation() {
-  const queryClient = useQueryClient();
   return useMutation<AdminPriceEntry | null, Error, Parameters<typeof createAdminPriceEntry>[0]>({
     mutationFn: async (params) => unwrap(await createAdminPriceEntry(params)),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
-    },
   });
 }
 

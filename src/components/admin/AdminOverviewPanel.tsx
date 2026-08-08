@@ -2,6 +2,7 @@ import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type {
   AdminProduct,
+  AdminAuditLog,
   AdminProductIdentityReview,
   AdminSchemaReadiness,
 } from "../../services/adminBackoffice";
@@ -11,6 +12,7 @@ import {
   type OverviewCard,
 } from "../../utils/adminScreenHelpers";
 import type { ProductDataHealth } from "../../utils/productDataHealth";
+import AdminProductReviewQueue from "./AdminProductReviewQueue";
 
 type AdminOverviewPanelProps = {
   cards: OverviewCard[];
@@ -22,33 +24,13 @@ type AdminOverviewPanelProps = {
   productIdentityReviews: AdminProductIdentityReview[];
   productIdentityReviewsLoading: boolean;
   resolvingReviewId: string | null;
+  auditLogs: AdminAuditLog[];
+  auditLogsLoading: boolean;
   styles: Record<string, any>;
   onManageProducts: () => void;
   onResolveReview: (reviewId: string) => void;
-  onMergeReview: (
-    reviewId: string,
-    candidateProductIds: string[],
-    targetProductId: string,
-  ) => void;
+  onAssignReview: (review: AdminProductIdentityReview, targetProductId: string) => void;
 };
-
-function reviewReasonLabel(reason: string): string {
-  if (reason === "ambiguous_product_match") return "Multiple possible products";
-  if (reason === "ambiguous_manual_product_match") return "This entry may match multiple products";
-  if (reason === "product_id_not_found") return "The linked product was not found";
-  if (reason === "gtin_conflict") return "Barcode number does not match the saved product";
-  if (reason === "invalid_gtin") return "Barcode number is invalid";
-  if (reason === "existing_duplicate_candidates") return "Existing products may be duplicates";
-  return reason.replace(/_/g, " ");
-}
-
-function payloadText(
-  review: AdminProductIdentityReview,
-  key: string,
-): string | null {
-  const value = review.payload[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
 
 export default function AdminOverviewPanel({
   cards,
@@ -60,10 +42,12 @@ export default function AdminOverviewPanel({
   productIdentityReviews,
   productIdentityReviewsLoading,
   resolvingReviewId,
+  auditLogs,
+  auditLogsLoading,
   styles: st,
   onManageProducts,
   onResolveReview,
-  onMergeReview,
+  onAssignReview,
 }: AdminOverviewPanelProps) {
   const historyProgress =
     productDataHealth.totalProducts > 0
@@ -117,112 +101,16 @@ export default function AdminOverviewPanel({
         ) : null}
       </View>
 
-      {productIdentityReviewsLoading ? (
-        <View style={st.productReviewCard}>
-          <Text style={st.productReviewTitle}>Checking product match reviews…</Text>
-        </View>
-      ) : productIdentityReviews.length > 0 ? (
-        <View style={st.productReviewCard}>
-          <View style={st.dataCardHeader}>
-            <View style={st.productReviewHeading}>
-              <Text style={st.productReviewTitle}>
-                Products need review · {productIdentityReviews.length}
-              </Text>
-              <Text style={st.productReviewDescription}>
-                These spreadsheet rows were not added because they could not be confidently matched to a product.
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onManageProducts}
-              style={[st.btn, st.btnGhost]}
-            >
-              <Text style={st.btnGhostText}>Open Products</Text>
-            </Pressable>
-          </View>
-
-          <View style={st.productReviewList}>
-            {productIdentityReviews.slice(0, 8).map((review) => {
-              const productName =
-                payloadText(review, "english_name") ??
-                payloadText(review, "korean_name") ??
-                payloadText(review, "name") ??
-                "Unnamed spreadsheet product";
-              const unit = payloadText(review, "unit");
-              const brand = payloadText(review, "product_brand");
-              const resolving = resolvingReviewId === review.id;
-              const candidateProducts = review.candidate_product_ids
-                .map((productId) => products.find((product) => product.id === productId))
-                .filter((product): product is AdminProduct => Boolean(product));
-              const canMerge = candidateProducts.length > 1;
-
-              return (
-                <View key={review.id} style={st.productReviewRow}>
-                  <View style={st.dataRowMain}>
-                    <Text style={st.dataRowTitle}>{productName}</Text>
-                    <Text style={st.productReviewReason}>
-                      {reviewReasonLabel(review.reason)}
-                      {review.candidate_count > 1
-                        ? ` · ${review.candidate_count} possible matches`
-                        : ""}
-                    </Text>
-                    <Text style={st.dataMuted}>
-                      {[brand, unit, review.row_number ? `Spreadsheet row ${review.row_number}` : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </Text>
-                    {canMerge ? (
-                      <View style={st.productReviewActions}>
-                        {candidateProducts.slice(0, 4).map((candidate) => (
-                          <Pressable
-                            key={candidate.id}
-                            accessibilityRole="button"
-                            accessibilityState={{ busy: resolving, disabled: resolving }}
-                            onPress={() =>
-                              onMergeReview(
-                                review.id,
-                                candidateProducts.map((product) => product.id),
-                                candidate.id,
-                              )
-                            }
-                            style={[st.btn, st.btnGhost, resolving && st.btnDisabled]}
-                            disabled={resolving}
-                          >
-                            <Text style={st.btnGhostText}>
-                              Keep {productDisplayName(candidate)}
-                              {candidate.unit ? ` · ${candidate.unit}` : ""}
-                            </Text>
-                          </Pressable>
-                        ))}
-                      </View>
-                    ) : null}
-                  </View>
-                  <View style={st.productReviewActions}>
-                    <Text style={st.dataMeta}>{toDateOnlyLabel(review.created_at)}</Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityState={{ busy: resolving, disabled: resolving }}
-                      onPress={() => onResolveReview(review.id)}
-                      style={[st.btn, st.btnGhost, resolving && st.btnDisabled]}
-                      disabled={resolving}
-                    >
-                      <Text style={st.btnGhostText}>
-                        {resolving ? "Saving…" : canMerge ? "Dismiss" : "Mark reviewed"}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-
-          {productIdentityReviews.length > 8 ? (
-            <Text style={st.dataMuted}>
-              Showing 8 of {productIdentityReviews.length} pending reviews.
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
+      <AdminProductReviewQueue
+        products={products}
+        reviews={productIdentityReviews}
+        loading={productIdentityReviewsLoading}
+        resolvingReviewId={resolvingReviewId}
+        styles={st}
+        onManageProducts={onManageProducts}
+        onResolveReview={onResolveReview}
+        onAssignReview={onAssignReview}
+      />
 
       <View style={st.statGrid}>
         {cards.map((card) => (
@@ -232,6 +120,33 @@ export default function AdminOverviewPanel({
             <Text style={st.statHint}>{card.hint}</Text>
           </View>
         ))}
+      </View>
+
+      <View style={st.dataCard}>
+        <View style={st.dataCardHeader}>
+          <View>
+            <Text style={st.dataCardTitle}>Recent Admin Activity</Text>
+            <Text style={st.dataMuted}>Product, price import, merge, review, and store changes.</Text>
+          </View>
+          <Text style={st.dataMeta}>{auditLogs.length} recent entries</Text>
+        </View>
+        {auditLogsLoading && auditLogs.length === 0 ? (
+          <Text style={st.dataMuted}>Loading activity…</Text>
+        ) : auditLogs.length === 0 ? (
+          <Text style={st.dataMuted}>No admin activity has been recorded yet.</Text>
+        ) : (
+          <View>
+            {auditLogs.slice(0, 10).map((log) => (
+              <View key={log.id} style={st.dataRow}>
+                <View style={st.dataRowMain}>
+                  <Text style={st.dataRowTitle}>{log.summary}</Text>
+                  <Text style={st.dataMuted}>{log.action.replace(/_/g, " ")} · {log.actor_email || "Admin"}</Text>
+                </View>
+                <Text style={st.dataMeta}>{toDateOnlyLabel(log.created_at)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={st.dataHealthCard}>
@@ -285,7 +200,6 @@ export default function AdminOverviewPanel({
         </View>
 
         <View style={st.dataHealthIssueRow}>
-          <Text style={st.dataHealthIssueText}>Barcode number needs correction · {productDataHealth.invalidGtin}</Text>
           <Text style={st.dataHealthIssueText}>No package size or unit · {productDataHealth.missingUnit}</Text>
           <Text style={st.dataHealthIssueText}>
             Missing sale dates · {productDataHealth.missingSalePeriodRows}
@@ -332,10 +246,9 @@ export default function AdminOverviewPanel({
                   <Text style={st.dataHealthSessionBadge}>
                     {item.sessionCount}/4 sale periods
                   </Text>
-                  {item.invalidGtin || item.missingUnit ? (
+                  {item.missingUnit ? (
                     <Text style={st.dataHealthIdentityWarning}>
                       {[
-                        item.invalidGtin ? "Barcode needs correction" : null,
                         item.missingUnit ? "No size or unit" : null,
                       ].filter(Boolean).join(" · ")}
                     </Text>

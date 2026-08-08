@@ -194,11 +194,15 @@ export async function mergeAdminProducts(params: {
 }
 
 export async function resolveProductIdentityReview(
-  reviewId: string,
+  input: string | {
+    reviewId: string;
+    resolvedProductId: string;
+    resolutionAction: string;
+  },
 ): Promise<ServiceResult<AdminProductIdentityReview | null>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
 
-  const id = reviewId.trim();
+  const id = typeof input === "string" ? input.trim() : input.reviewId.trim();
   if (!id) return { data: null, error: "Review ID is required." };
 
   const {
@@ -208,12 +212,19 @@ export async function resolveProductIdentityReview(
   if (userError) return { data: null, error: userError.message };
   if (!user) return { data: null, error: "Signed-in admin user is required." };
 
+  const resolution = typeof input === "string"
+    ? {}
+    : {
+        resolved_product_id: input.resolvedProductId.trim(),
+        resolution_action: input.resolutionAction.trim(),
+      };
   const { data, error } = await supabase
     .from("product_identity_reviews")
     .update({
       status: "resolved",
       resolved_by: user.id,
       resolved_at: new Date().toISOString(),
+      ...resolution,
     })
     .eq("id", id)
     .select(REVIEW_SELECT)

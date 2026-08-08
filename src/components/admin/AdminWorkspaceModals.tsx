@@ -2,6 +2,7 @@ import React from "react";
 import type { AdminWorkspaceActions } from "../../hooks/useAdminWorkspaceActions";
 import type { AdminWorkspaceData } from "../../hooks/useAdminWorkspaceData";
 import { st } from "../../screens/adminScreenStyles";
+import AdminProductCsvImportModal from "./AdminProductCsvImportModal";
 import AdminProductFormModal from "./AdminProductFormModal";
 import AdminStoreDeleteModal from "./AdminStoreDeleteModal";
 import AdminStoreFormModal from "./AdminStoreFormModal";
@@ -14,6 +15,17 @@ export default function AdminWorkspaceModals({ data, actions }: Props) {
   const { product, store, status } = state;
   return (
     <>
+      <AdminProductCsvImportModal
+        preview={actions.productActions.productCsvPreview}
+        report={actions.productActions.productCsvReport}
+        progress={actions.productActions.productCsvProgress}
+        styles={st}
+        onClosePreview={() => actions.productActions.setProductCsvPreview(null)}
+        onCloseReport={() => actions.productActions.setProductCsvReport(null)}
+        onConfirm={() => void actions.productActions.handleConfirmProductCsvImport()}
+        onDownloadReviewRows={actions.productActions.handleDownloadProductCsvReviewRows}
+        onDownloadReport={actions.productActions.handleDownloadProductCsvReport}
+      />
       <AdminStoreImportPreviewModal
         visible={store.storeImportPreviewOpen}
         rows={store.storeImportPreviewRows}
@@ -74,8 +86,6 @@ export default function AdminWorkspaceModals({ data, actions }: Props) {
         imageUploading={product.productImageUploading}
         productKoreanName={product.productKoreanName}
         productEnglishName={product.productEnglishName}
-        productBrand={product.productBrand}
-        productGtin={product.productGtin}
         productUnit={product.productUnit}
         productCategory={product.productCategory}
         productCategoryCustom={product.productCategoryCustom}
@@ -86,8 +96,6 @@ export default function AdminWorkspaceModals({ data, actions }: Props) {
         styles={st}
         onKoreanNameChange={product.setProductKoreanName}
         onEnglishNameChange={product.setProductEnglishName}
-        onBrandChange={product.setProductBrand}
-        onGtinChange={product.setProductGtin}
         onUnitChange={product.setProductUnit}
         onCategoryChange={product.setProductCategory}
         onCategoryCustomChange={product.setProductCategoryCustom}

@@ -74,7 +74,6 @@ function normalizeFlyerAiRow(row: Partial<FlyerRow> & Record<string, unknown>): 
     englishName: rowValue(row, "englishName", "english_name", "영문명", "영어명", "englishProductName", "english_product_name"),
     mainCategory: rowValue(row, "mainCategory", "main_category", "category", "카테고리", "대분류"),
     subCategory: rowValue(row, "subCategory", "sub_category", "중분류"),
-    brand: rowValue(row, "brand", "productBrand", "product_brand", "상품브랜드", "상품 브랜드", "브랜드"),
     price: rowValue(row, "price", "가격"),
     unit: rowValue(row, "unit", "단위"),
     memo: rowValue(row, "memo", "메모", "note", "ocrNote"),

@@ -3,7 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import useLayout from "../../hooks/useLayout";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import type { ProductPriceStats } from "../../utils/adminScreenHelpers";
-import AdminProductCard from "./AdminProductCard";
+import AdminProductRow from "./AdminProductRow";
 
 type AdminProductListProps = {
   products: AdminProduct[];
@@ -106,15 +106,27 @@ export default function AdminProductList({
         <Text style={st.dataMuted}>{products.length} on this page</Text>
       </View>
 
-      <View style={[st.productGrid, !isXl && st.productGridSingle]}>
+      <View style={st.productListTable}>
+        {isXl ? (
+          <View style={st.productListColumnHeader}>
+            <View style={st.productListSelectColumn} />
+            <Text style={[st.productListColumnLabel, st.productListProductColumn]}>Product</Text>
+            <Text style={[st.productListColumnLabel, st.productListLatestColumn]}>Latest</Text>
+            <Text style={[st.productListColumnLabel, st.productListHistoryColumn]}>History</Text>
+            <Text style={[st.productListColumnLabel, st.productListRangeColumn]}>Stores · Range</Text>
+            <Text style={[st.productListColumnLabel, st.productListSaleColumn]}>Sale period · Current stores</Text>
+            <Text style={[st.productListColumnLabel, st.productListActionsColumn]}>Actions</Text>
+          </View>
+        ) : null}
         {products.map((item) => {
           const deleting = deletingKey === `product:${item.id}`;
           const bulkDeleting = deletingKey === "products:bulk";
           return (
-            <AdminProductCard
+            <AdminProductRow
               key={item.id}
               product={item}
               stats={priceStats.get(item.id)}
+              compact={!isXl}
               selected={selectedProductIds.has(item.id)}
               deleting={deleting}
               bulkDeleting={bulkDeleting}

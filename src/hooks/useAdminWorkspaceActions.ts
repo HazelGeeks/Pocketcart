@@ -48,6 +48,7 @@ export default function useAdminWorkspaceActions(data: AdminWorkspaceData) {
     updatePriceEntryMutation: backend.mutations.updatePrice,
     uploadProductImageMutation: backend.mutations.uploadProductImage,
     createIdentityReviewMutation: backend.mutations.createIdentityReview,
+    createAuditLogMutation: backend.mutations.createAuditLog,
   });
   const storeActions = useAdminStoreActions({
     displayStores: dashboard.displayStores,

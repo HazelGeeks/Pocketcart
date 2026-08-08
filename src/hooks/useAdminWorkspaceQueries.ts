@@ -48,14 +48,19 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
   const adminAccessQuery = useAdminAccessQuery(Boolean(authUser && emailAllowed), authUser?.id ?? "signed-out");
   const hasAdminAccess = Boolean(authUser && emailAllowed && adminAccessQuery.data === true);
   const enabled = hasAdminAccess;
+  const activeMenu = state.adminUi.activeMenu;
+  const overviewOrProducts = activeMenu === "overview" || activeMenu === "products";
+  const needsStoresAndPrices = overviewOrProducts || activeMenu === "stores";
 
-  const usersQuery = useAdminUsersQuery(enabled);
-  const productsQuery = useAdminProductsQuery(enabled);
-  const storesQuery = useAdminStoresQuery(enabled);
-  const pricesQuery = useAdminPricesQuery(enabled);
-  const auditLogsQuery = useAdminAuditLogsQuery(enabled);
-  const reviewsQuery = useProductIdentityReviewsQuery(enabled);
-  const schemaQuery = useAdminSchemaReadinessQuery(enabled);
+  const usersQuery = useAdminUsersQuery(enabled && activeMenu === "users");
+  const productsQuery = useAdminProductsQuery(enabled && overviewOrProducts);
+  const storesQuery = useAdminStoresQuery(enabled && needsStoresAndPrices);
+  const pricesQuery = useAdminPricesQuery(enabled && needsStoresAndPrices);
+  const auditLogsQuery = useAdminAuditLogsQuery(
+    enabled && (activeMenu === "overview" || activeMenu === "stores"),
+  );
+  const reviewsQuery = useProductIdentityReviewsQuery(enabled && activeMenu === "overview");
+  const schemaQuery = useAdminSchemaReadinessQuery(enabled && activeMenu === "overview");
 
   const mutations = {
     signIn: useAdminSignInMutation(),
@@ -102,16 +107,18 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
   }, [setNotice]);
 
   const loadAll = React.useCallback(async (keepNotice = false) => {
-    const results = await Promise.all([
-      usersQuery.refetch(), productsQuery.refetch(), storesQuery.refetch(),
-      pricesQuery.refetch(), auditLogsQuery.refetch(), reviewsQuery.refetch(),
-      schemaQuery.refetch(),
-    ]);
+    const requests: Array<Promise<{ error: unknown }>> = [];
+    if (overviewOrProducts) requests.push(productsQuery.refetch());
+    if (needsStoresAndPrices) requests.push(storesQuery.refetch(), pricesQuery.refetch());
+    if (activeMenu === "users") requests.push(usersQuery.refetch());
+    if (activeMenu === "overview" || activeMenu === "stores") requests.push(auditLogsQuery.refetch());
+    if (activeMenu === "overview") requests.push(reviewsQuery.refetch(), schemaQuery.refetch());
+    const results = await Promise.all(requests);
     const errors = results
       .map((item) => item.error instanceof Error ? item.error.message : null)
       .filter((item): item is string => Boolean(item));
     syncQueryErrorNotice(errors, !keepNotice);
-  }, [auditLogsQuery, pricesQuery, productsQuery, reviewsQuery, schemaQuery, storesQuery, syncQueryErrorNotice, usersQuery]);
+  }, [activeMenu, auditLogsQuery, needsStoresAndPrices, overviewOrProducts, pricesQuery, productsQuery, reviewsQuery, schemaQuery, storesQuery, syncQueryErrorNotice, usersQuery]);
 
   const handleRefresh = React.useCallback(async () => {
     if (refreshing) return;
@@ -148,6 +155,7 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
       users: usersQuery.isLoading || usersQuery.isFetching,
       reviews: reviewsQuery.isLoading || reviewsQuery.isFetching,
       schema: schemaQuery.isLoading || schemaQuery.isFetching,
+      audit: auditLogsQuery.isLoading || auditLogsQuery.isFetching,
       auth: adminUserQuery.isLoading || adminAccessQuery.isLoading || adminAccessQuery.isFetching || mutations.signIn.isPending || mutations.signOut.isPending,
     },
     errors: {

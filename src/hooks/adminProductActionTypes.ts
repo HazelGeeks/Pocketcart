@@ -81,6 +81,13 @@ export type UseAdminProductActionsParams = {
     observedAt?: string;
     periodEnd?: string;
   }, unknown>;
+  createAuditLogMutation: Mutation<{
+    action: string;
+    entityType: string;
+    entityId?: string;
+    summary: string;
+    metadata?: Record<string, unknown>;
+  }, unknown>;
   updatePriceEntryMutation: Mutation<{
     id: string;
     productId: string;

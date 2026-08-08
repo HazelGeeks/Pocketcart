@@ -32,7 +32,6 @@ export type FlyerRow = {
   englishName: string;
   mainCategory: string;
   subCategory: string;
-  brand: string;
   price: string;
   unit: string;
   memo: string;
@@ -57,7 +56,6 @@ export function createFlyerRow(seed?: Partial<FlyerRow>): FlyerRow {
     englishName: seed?.englishName ?? "",
     mainCategory: seed?.mainCategory ?? "",
     subCategory: seed?.subCategory ?? "",
-    brand: seed?.brand ?? "",
     price: seed?.price ?? "",
     unit: seed?.unit ?? "",
     memo: seed?.memo ?? "",

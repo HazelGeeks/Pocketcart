@@ -86,16 +86,27 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
     setNotice: params.setNotice,
     loadAll: params.loadAll,
     createProductMutation: params.createProductMutation,
-    updateProductMutation: params.updateProductMutation,
     createIdentityReviewMutation: params.createIdentityReviewMutation,
     createPriceEntryMutation: params.createPriceEntryMutation,
+    createAuditLogMutation: params.createAuditLogMutation,
   });
 
   const handleDeleteProduct = React.useCallback(async (id: string) => {
     params.setDeletingKey(`product:${id}`);
     try {
       await params.deleteProductMutation.mutateAsync(id);
-      params.setNotice("Product deleted.");
+      let auditWarning = "";
+      try {
+        await params.createAuditLogMutation.mutateAsync({
+          action: "delete_product",
+          entityType: "product",
+          entityId: id,
+          summary: "Deleted a product and its linked price entries.",
+        });
+      } catch (error) {
+        auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
+      }
+      params.setNotice(`Product deleted.${auditWarning}`);
       await params.loadAll(true);
       return true;
     } catch (error) {
@@ -123,9 +134,22 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
     } finally {
       params.setDeletingKey(null);
     }
-    params.setNotice(failed.length
+    let auditWarning = "";
+    if (deleted.length) {
+      try {
+        await params.createAuditLogMutation.mutateAsync({
+          action: "bulk_delete_products",
+          entityType: "product",
+          summary: `Deleted ${deleted.length} products in a bulk action.`,
+          metadata: { product_ids: deleted, failed_count: failed.length },
+        });
+      } catch (error) {
+        auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
+      }
+    }
+    params.setNotice((failed.length
       ? `Deleted ${deleted.length} products. Failed ${failed.length}: ${failed[0]}`
-      : `Deleted ${deleted.length} products.`);
+      : `Deleted ${deleted.length} products.`) + auditWarning);
     await params.loadAll(true);
     return deleted;
   }, [params]);

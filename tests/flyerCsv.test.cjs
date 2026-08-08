@@ -24,7 +24,6 @@ test("flyerRowsToProductCsv exports current product import columns", () => {
       koreanName: "스낵믹스",
       mainCategory: "Snacks",
       subCategory: "Chips",
-      brand: "No Name",
       price: "7.98",
       unit: "BOX",
       memo: "member price",
@@ -34,11 +33,11 @@ test("flyerRowsToProductCsv exports current product import columns", () => {
   const [header, row] = csv.trim().replace(/^\uFEFF/, "").split(/\r?\n/);
   assert.equal(
     header,
-    "store_brand,store_name,sale_start_date,sale_end_date,english_name,korean_name,category,thumbnail_url,product_brand,source_price,unit,memo",
+    "store_brand,store_name,sale_start_date,sale_end_date,english_name,korean_name,category,thumbnail_url,source_price,unit,memo",
   );
   assert.equal(
     row,
-    "Safeway,Robson,2026-06-28,2026-07-04,Snack Mix,스낵믹스,Snacks,https://example.com/product-images/snack-mix.webp,No Name,7.98,BOX,member price",
+    "Safeway,Robson,2026-06-28,2026-07-04,Snack Mix,스낵믹스,Snacks,https://example.com/product-images/snack-mix.webp,7.98,BOX,member price",
   );
 });
 
@@ -55,7 +54,6 @@ test("buildFlyerCsv preserves review table columns", () => {
       koreanName: "딸기",
       mainCategory: "Produce",
       subCategory: "Fruit",
-      brand: "",
       price: "2.98",
       unit: "LB",
       memo: "",
@@ -65,6 +63,6 @@ test("buildFlyerCsv preserves review table columns", () => {
   const [header] = csv.trim().replace(/^\uFEFF/, "").split(/\r?\n/);
   assert.equal(
     header,
-    "store_brand,store_name,sale_start_date,sale_end_date,english_name,korean_name,category,product_brand,price,unit,memo",
+    "store_brand,store_name,sale_start_date,sale_end_date,english_name,korean_name,category,price,unit,memo",
   );
 });

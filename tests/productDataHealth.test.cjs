@@ -64,13 +64,13 @@ test("data health treats missing product brand and GTIN as optional", () => {
   assert.equal(result.issueCount, 0);
 });
 
-test("data health counts malformed GTIN values separately", () => {
+test("data health ignores legacy GTIN values", () => {
   const result = buildProductDataHealth([
     { id: "bad", korean_name: "잘못된 코드", english_name: "Bad code", brand: "Brand", gtin: "123", unit: "1 ea" },
   ], [], Date.parse("2026-07-03T00:00:00.000Z"));
 
-  assert.equal(result.invalidGtin, 1);
-  assert.equal(result.issueCount, 1);
+  assert.equal(result.invalidGtin, undefined);
+  assert.equal(result.issueCount, 0);
 });
 
 test("data health treats different end dates as separate sale sessions", () => {

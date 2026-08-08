@@ -1,9 +1,13 @@
 import { spawnSync } from "node:child_process";
 
-// Expo SDK 55 / React Native 0.83 still resolve tooling through vulnerable
-// brace-expansion versions. Keep this exception scoped to the exact advisory;
-// any new high or critical advisory continues to fail CI.
-const TEMPORARILY_ALLOWED_ADVISORIES = new Set([1124334]);
+// Expo SDK 55 / React Native 0.83 still resolve build tooling through packages
+// with no patched compatible release. Keep exceptions scoped to exact advisory
+// IDs; runtime dependencies and every new high/critical advisory still fail CI.
+const TEMPORARILY_ALLOWED_ADVISORIES = new Set([
+  1124334, // brace-expansion in Expo tooling
+  1138808, // image-size ICNS parser used by Metro for trusted build assets
+  1138809, // image-size JXL/HEIF parsers used by Metro for trusted build assets
+]);
 
 const audit = spawnSync("npm", ["audit", "--omit=dev", "--json"], {
   encoding: "utf8",
@@ -24,26 +28,35 @@ if (!report.vulnerabilities || typeof report.vulnerabilities !== "object") {
 }
 
 const vulnerabilities = report.vulnerabilities;
-const advisoryMemo = new Map();
+const advisoryIdsByPackage = new Map(
+  Object.entries(vulnerabilities).map(([packageName, record]) => [
+    packageName,
+    new Set(
+      (record.via ?? [])
+        .filter((source) => typeof source?.source === "number")
+        .map((source) => source.source),
+    ),
+  ]),
+);
 
-function advisoryIdsFor(packageName, active = new Set()) {
-  if (advisoryMemo.has(packageName)) return advisoryMemo.get(packageName);
-  if (active.has(packageName)) return new Set();
-  const record = vulnerabilities[packageName];
-  if (!record) return new Set();
-
-  const nextActive = new Set(active);
-  nextActive.add(packageName);
-  const ids = new Set();
-  for (const source of record.via ?? []) {
-    if (typeof source === "string") {
-      for (const id of advisoryIdsFor(source, nextActive)) ids.add(id);
-    } else if (typeof source?.source === "number") {
-      ids.add(source.source);
+let advisoryGraphChanged = true;
+while (advisoryGraphChanged) {
+  advisoryGraphChanged = false;
+  for (const [packageName, record] of Object.entries(vulnerabilities)) {
+    const ids = advisoryIdsByPackage.get(packageName);
+    for (const source of record.via ?? []) {
+      if (typeof source !== "string") continue;
+      for (const id of advisoryIdsByPackage.get(source) ?? []) {
+        if (ids.has(id)) continue;
+        ids.add(id);
+        advisoryGraphChanged = true;
+      }
     }
   }
-  advisoryMemo.set(packageName, ids);
-  return ids;
+}
+
+function advisoryIdsFor(packageName) {
+  return advisoryIdsByPackage.get(packageName) ?? new Set();
 }
 
 const blocked = [];
@@ -76,8 +89,8 @@ if (blocked.length > 0) {
 
 if (allowed.length > 0) {
   console.warn(
-    `Temporarily allowing ${allowed.length} transitive finding(s) tied only to ` +
-      "GHSA-mh99-v99m-4gvg while PocketCart remains on Expo SDK 55 / React Native 0.83.",
+    `Temporarily allowing ${allowed.length} transitive build-tool finding(s) ` +
+      "tied only to exact Expo SDK 55 / React Native 0.83 advisory exceptions.",
   );
 }
 console.log("npm audit policy check passed; no unapproved high or critical advisories.");

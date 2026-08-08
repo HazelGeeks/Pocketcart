@@ -1,5 +1,5 @@
 import React from "react";
-import { gtinValidationMessage, normalizeGtin } from "../utils/productIdentity";
+import { normalizeGtin } from "../utils/productIdentity";
 import { prepareProductPriceSets } from "../utils/productStorePriceSets";
 import type { UseAdminProductActionsParams } from "./adminProductActionTypes";
 import {
@@ -26,11 +26,6 @@ export default function useAdminProductSave(params: Params) {
       params.setNotice("English name, Korean name, and category are required.");
       return;
     }
-    const gtinError = gtinValidationMessage(params.productGtin.trim());
-    if (gtinError) {
-      params.setNotice(gtinError);
-      return;
-    }
     const prepared = prepareProductPriceSets({
       sets: params.productStorePriceSets,
       stores: params.stores,
@@ -41,6 +36,7 @@ export default function useAdminProductSave(params: Params) {
     }
 
     let reusedExistingProduct = false;
+    let auditWarning = "";
     try {
       params.setSubmitting(true);
       let thumbnailUrl = params.productThumb.trim();
@@ -133,8 +129,26 @@ export default function useAdminProductSave(params: Params) {
           errors.push(`Set ${item.row}: ${error instanceof Error ? error.message : "Price entry failed."}`);
         }
       }
+      try {
+        await params.createAuditLogMutation.mutateAsync({
+          action: params.editingProductId
+            ? "update_product"
+            : reusedExistingProduct
+              ? "reuse_product"
+              : "create_product",
+          entityType: "product",
+          entityId: savedProduct.id,
+          summary: `${params.editingProductId ? "Updated" : reusedExistingProduct ? "Reused" : "Created"} ${savedProduct.english_name || savedProduct.korean_name}.`,
+          metadata: {
+            price_sets: prepared.activeSets.length,
+            price_failures: errors.length,
+          },
+        });
+      } catch (error) {
+        auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
+      }
       if (errors.length) {
-        params.setNotice(`Product saved, but ${errors.length} Store | Price set failed. ${errors[0]}`);
+        params.setNotice(`Product saved, but ${errors.length} Store | Price set failed. ${errors[0]}${auditWarning}`);
         await params.loadAll(true);
         return;
       }
@@ -150,9 +164,10 @@ export default function useAdminProductSave(params: Params) {
     params.resetProductForm();
     params.setProductModalOpen(false);
     const action = wasEditing ? "updated" : "created";
-    params.setNotice(reusedExistingProduct
+    const successNotice = reusedExistingProduct
       ? priceCount ? `Existing product reused; ${priceCount} Store Price set added or updated.` : "Existing product reused without new price data."
-      : priceCount ? `Product ${action} with ${priceCount} Store Price set.` : `Product ${action} without image or price data.`);
+      : priceCount ? `Product ${action} with ${priceCount} Store Price set.` : `Product ${action} without image or price data.`;
+    params.setNotice(successNotice + auditWarning);
     await params.loadAll(true);
   }, [params]);
 

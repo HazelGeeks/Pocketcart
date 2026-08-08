@@ -1,8 +1,7 @@
 import type { AdminProduct } from "../services/adminBackoffice";
-import { isValidGtin, normalizeGtin } from "./productIdentity";
 import { productDisplayName } from "./productNames";
 
-export type ProductDuplicateMethod = "gtin" | "name_and_unit";
+export type ProductDuplicateMethod = "name_and_unit";
 
 export type ProductDuplicateGroup = {
   id: string;
@@ -50,26 +49,6 @@ function groupSignature(products: AdminProduct[]): string {
   return products.map((product) => product.id).sort().join("|");
 }
 
-function gtinGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
-  const byGtin = new Map<string, AdminProduct[]>();
-  products.forEach((product) => {
-    if (!isValidGtin(product.gtin)) return;
-    const gtin = normalizeGtin(product.gtin);
-    byGtin.set(gtin, [...(byGtin.get(gtin) ?? []), product]);
-  });
-
-  return [...byGtin.entries()].flatMap(([gtin, candidates]) => {
-    const unique = uniqueProducts(candidates);
-    if (unique.length < 2) return [];
-    return [{
-      id: `gtin:${gtin}`,
-      method: "gtin" as const,
-      label: `GTIN ${gtin}`,
-      products: unique,
-    }];
-  });
-}
-
 function nameAndUnitGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
   const byIdentity = new Map<string, {
     label: string;
@@ -104,11 +83,7 @@ function nameAndUnitGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
 export function buildProductDuplicateGroups(
   products: AdminProduct[],
 ): ProductDuplicateGroup[] {
-  const groups = [
-    ...gtinGroups(products),
-    ...nameAndUnitGroups(products),
-  ].sort((left, right) => {
-    if (left.method !== right.method) return left.method === "gtin" ? -1 : 1;
+  const groups = nameAndUnitGroups(products).sort((left, right) => {
     if (left.products.length !== right.products.length) {
       return right.products.length - left.products.length;
     }
@@ -122,7 +97,6 @@ export function buildProductDuplicateGroups(
     if (seenProductSets.has(signature)) return false;
     const productIds = new Set(group.products.map((product) => product.id));
     if (
-      group.method === "name_and_unit" &&
       acceptedNameGroups.some((accepted) =>
         [...productIds].every((productId) => accepted.has(productId)),
       )
@@ -130,7 +104,7 @@ export function buildProductDuplicateGroups(
       return false;
     }
     seenProductSets.add(signature);
-    if (group.method === "name_and_unit") acceptedNameGroups.push(productIds);
+    acceptedNameGroups.push(productIds);
     return true;
   });
 }

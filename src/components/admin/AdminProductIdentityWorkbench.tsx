@@ -143,9 +143,7 @@ export default function AdminProductIdentityWorkbench({
                 <View style={st.dataRowMain}>
                   <Text style={st.dataRowTitle}>{group.label}</Text>
                   <Text style={st.productReviewReason}>
-                    {group.method === "gtin"
-                      ? "Same verified GTIN"
-                      : "Same normalized name and unit"}
+                    Same normalized name and unit
                     {" · "}
                     {group.products.length} products
                   </Text>

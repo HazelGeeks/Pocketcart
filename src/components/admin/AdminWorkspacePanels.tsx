@@ -27,11 +27,13 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           schemaReadinessLoading={backend.loading.schema}
           productIdentityReviews={backend.reviews}
           productIdentityReviewsLoading={backend.loading.reviews}
+          auditLogs={backend.auditLogs}
+          auditLogsLoading={backend.loading.audit}
           resolvingReviewId={status.resolvingReviewId}
           styles={st}
           onManageProducts={() => adminUi.setActiveMenu("products")}
           onResolveReview={(id) => void actions.handleResolveIdentityReview(id)}
-          onMergeReview={(id, candidates, target) => void actions.handleMergeProducts(candidates, target, id)}
+          onAssignReview={(review, target) => void actions.handleAssignIdentityReview(review, target)}
         />
       ) : null}
       {adminUi.activeMenu === "users" ? (

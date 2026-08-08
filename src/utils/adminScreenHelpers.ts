@@ -1,13 +1,16 @@
 import type React from "react";
-import { Platform } from "react-native";
-import type {
-  AdminProduct,
-  AdminStore,
-} from "../services/adminBackoffice";
+import type { AdminStore } from "../services/adminBackoffice";
 import { createFlyerRow } from "../state/adminStore";
 import type { FlyerRow } from "../state/adminStore";
 import { formatBusinessDate } from "./businessDateTime";
 import { looksLikeProductStoreRecord } from "./storeVisibility";
+export { PRODUCT_IMPORT_HEADERS } from "./productCsvHeaders";
+export {
+  downloadCsvFile,
+  productImportTemplateCsv,
+  productsToCsv,
+  storesToCsv,
+} from "./adminCsvFiles";
 
 export type OverviewCard = {
   id: string;
@@ -45,30 +48,6 @@ export type StorePriceStats = {
   productIds: Set<string>;
   latestObservedAtMs: number;
 };
-
-export function downloadCsvFile(prefix: string, csv: string): string | null {
-  if (Platform.OS !== "web") {
-    return "CSV export is currently available on web admin.";
-  }
-
-  const doc = (globalThis as { document?: any }).document;
-  const urlApi = (globalThis as { URL?: typeof URL }).URL;
-  if (!doc || typeof doc.createElement !== "function" || !urlApi?.createObjectURL) {
-    return "CSV export is not available in this browser.";
-  }
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const href = urlApi.createObjectURL(blob);
-  const link = doc.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
-  link.href = href;
-  link.download = `${prefix}-${date}.csv`;
-  doc.body.appendChild(link);
-  link.click();
-  link.remove();
-  urlApi.revokeObjectURL(href);
-  return null;
-}
 
 export const DEFAULT_PRODUCT_CATEGORIES = [
   "Produce",
@@ -111,82 +90,6 @@ export const WEB_FLYER_ACTION_BAR_STYLE: React.CSSProperties = {
   overflowX: "auto",
   padding: "5px 8px",
 };
-
-export const PRODUCT_IMPORT_HEADERS = {
-  productId: ["product_id", "productid", "product id", "id", "상품id", "상품_id"],
-  koreanName: ["korean_name", "koreanname", "korean name", "name", "product_name", "product", "이름", "상품명", "제품명"],
-  englishName: ["english_name", "englishname", "english name", "eng_name", "eng name", "영문명", "영문이름", "영문 이름"],
-  productBrand: ["product_brand", "product brand", "brand", "manufacturer", "제조사", "상품브랜드", "상품 브랜드"],
-  gtin: ["gtin", "upc", "ean", "barcode", "bar_code", "바코드"],
-  category: ["category", "main_category", "대분류", "카테고리", "분류"],
-  unit: ["unit", "size", "size_unit", "용량", "규격"],
-  thumbnailUrl: ["thumbnail_url", "thumbnail", "image_url", "image", "이미지", "이미지url"],
-  storeId: ["store_id", "storeid", "store id"],
-  storeName: ["store_name", "store", "stores", "summary_stores", "store name", "매장", "마트"],
-  storeBrand: ["store_brand", "store brand", "summary_store_brands", "mart_brand", "mart brand", "마트브랜드"],
-  storeAddress: ["store_address", "address", "store address", "주소"],
-  storePlaceId: ["store_place_id", "place_id", "placeid", "google_place_id", "google_place", "장소id"],
-  storeLatitude: ["store_latitude", "latitude", "lat", "위도"],
-  storeLongitude: ["store_longitude", "longitude", "lng", "lon", "경도"],
-  price: ["price", "current_price", "latest_price", "summary_latest_price", "source_price", "price_value", "가격"],
-  observedAt: ["observed_at", "observedat", "valid_from", "sale_start_date", "summary_sale_start_date", "date", "날짜", "시작일", "시작 날짜", "기준일"],
-  periodEnd: ["valid_to", "period_end", "sale_end_date", "summary_sale_end_date", "valid to", "종료일", "종료 날짜"],
-};
-
-export function productImportTemplateCsv(): string {
-  const header = [
-    "product_id",
-    "gtin",
-    "product_brand",
-    "english_name",
-    "korean_name",
-    "category",
-    "unit",
-    "thumbnail_url",
-    "store_brand",
-    "store_name",
-    "store_id",
-    "price",
-    "sale_start_date",
-    "sale_end_date",
-  ];
-  const rows = [
-    [
-      "",
-      "00012345678905",
-      "Example Farms",
-      "Organic Eggs",
-      "유기농 달걀",
-      "Dairy",
-      "12 ct",
-      "",
-      "Safeway",
-      "",
-      "",
-      "6.99",
-      "2026-06-28",
-      "2026-07-04",
-    ],
-    [
-      "",
-      "",
-      "",
-      "Bananas",
-      "바나나",
-      "Produce",
-      "1 lb",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ],
-  ];
-
-  return ["\uFEFF" + header.map(csvCell).join(","), ...rows.map((row) => row.map(csvCell).join(","))].join("\r\n") + "\r\n";
-}
 
 export const STORE_TYPE_OPTIONS = [
   { value: "grocery", label: "Grocery" },
@@ -236,95 +139,6 @@ export function createStorePriceSet(
     periodStartDate: seed?.periodStartDate ?? "",
     periodEndDate: seed?.periodEndDate ?? "",
   };
-}
-
-function csvCell(value: string): string {
-  const text = value.replace(/\r?\n/g, " ").trim();
-  if (/[",\n\r]/.test(text)) {
-    return `"${text.replace(/"/g, "\"\"")}"`;
-  }
-  return text;
-}
-
-export function productsToCsv(products: AdminProduct[], priceStats: Map<string, ProductPriceStats>): string {
-  const header = [
-    "id",
-    "gtin",
-    "product_brand",
-    "english_name",
-    "korean_name",
-    "category",
-    "unit",
-    "thumbnail_url",
-    "summary_latest_price",
-    "summary_sale_start_date",
-    "summary_sale_end_date",
-    "summary_min_price",
-    "summary_max_price",
-    "summary_store_brands",
-    "summary_stores",
-    "created_at",
-  ];
-  const rows = products.map((product) => {
-    const stats = priceStats.get(product.id);
-    return [
-      product.id,
-      product.gtin ?? "",
-      product.brand ?? "",
-      product.english_name ?? "",
-      product.korean_name,
-      product.category,
-      product.unit ?? "",
-      product.thumbnail_url ?? "",
-      stats?.latestPrice !== null && stats?.latestPrice !== undefined ? stats.latestPrice.toFixed(2) : "",
-      stats?.latestValidFrom ? dateInputValue(stats.latestValidFrom) : "",
-      stats?.latestValidTo ? dateInputValue(stats.latestValidTo) : "",
-      stats?.minPrice !== null && stats?.minPrice !== undefined ? stats.minPrice.toFixed(2) : "",
-      stats?.maxPrice !== null && stats?.maxPrice !== undefined ? stats.maxPrice.toFixed(2) : "",
-      stats?.storeBrands.join(" | ") ?? "",
-      stats?.storeNames.join(" | ") ?? "",
-      product.created_at,
-    ].map(csvCell).join(",");
-  });
-  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
-}
-
-export function storesToCsv(stores: AdminStore[]): string {
-  const header = [
-    "id",
-    "brand",
-    "name",
-    "latitude",
-    "longitude",
-    "price_note",
-    "address",
-    "place_id",
-    "phone",
-    "website",
-    "hours",
-    "store_type",
-    "is_active",
-    "created_at",
-  ];
-  const rows = stores.map((store) =>
-    [
-      store.id,
-      store.brand ?? "",
-      store.name,
-      String(store.latitude),
-      String(store.longitude),
-      store.price_note ?? "",
-      store.address ?? "",
-      store.place_id ?? "",
-      store.phone ?? "",
-      store.website ?? "",
-      store.hours ?? "",
-      store.store_type,
-      store.is_active ? "true" : "false",
-      store.created_at,
-    ].map(csvCell).join(","),
-  );
-  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
 }
 
 export function looksLikeProductStoreRow(store: AdminStore): boolean {

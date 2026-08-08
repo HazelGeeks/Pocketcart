@@ -31,7 +31,7 @@ test("finds translated products using English and Korean names", () => {
   assert.deepEqual(groups[0].products.map((item) => item.id).sort(), ["a", "b"]);
 });
 
-test("gives valid matching GTINs priority over text matches", () => {
+test("uses name and unit even when legacy GTIN values match", () => {
   const groups = buildProductDuplicateGroups([
     product({
       id: "a",
@@ -48,8 +48,8 @@ test("gives valid matching GTINs priority over text matches", () => {
   ]);
 
   assert.equal(groups.length, 1);
-  assert.equal(groups[0].method, "gtin");
-  assert.equal(groups[0].label, "GTIN 012345678905");
+  assert.equal(groups[0].method, "name_and_unit");
+  assert.equal(groups[0].label, "Sparkling Water");
 });
 
 test("keeps different units and known brands separate", () => {

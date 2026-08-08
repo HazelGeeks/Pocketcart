@@ -130,7 +130,6 @@ export default function AdminFlyerPanel({
             <Text style={[st.flyerHeaderCell, st.flyerCellName]}>English Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Korean Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Category</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellBrand]}>Product Brand</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>Price</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellUnit]}>Unit</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellMemo]}>Memo</Text>
@@ -237,13 +236,6 @@ export default function AdminFlyerPanel({
                   placeholder="Category"
                   placeholderTextColor={C.textMuted}
                   style={[st.flyerInputCell, st.flyerCellCategory, row.selected && st.flyerInputCellSelected]}
-                />
-                <TextInput
-                  value={row.brand}
-                  onChangeText={(value) => onUpdateRow(row.id, "brand", value)}
-                  placeholder="Product brand"
-                  placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellBrand, row.selected && st.flyerInputCellSelected]}
                 />
                 <TextInput
                   value={row.price}

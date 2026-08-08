@@ -13,6 +13,7 @@ type Props = {
   rangeEnd: number;
   totalItems: number;
   compact?: boolean;
+  itemLabel?: string;
   styles: Record<string, any>;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: AdminProductPageSize) => void;
@@ -26,6 +27,7 @@ export default function AdminProductPagination({
   rangeEnd,
   totalItems,
   compact = false,
+  itemLabel = "products",
   styles: st,
   onPageChange,
   onPageSizeChange,
@@ -35,7 +37,7 @@ export default function AdminProductPagination({
       {!compact ? (
         <View
           accessibilityRole="radiogroup"
-          accessibilityLabel="Products per page"
+          accessibilityLabel={`${itemLabel} per page`}
           style={st.productPaginationSizeGroup}
         >
           <Text style={st.productPaginationLabel}>Rows per page</Text>
@@ -45,7 +47,7 @@ export default function AdminProductPagination({
               <Pressable
                 key={size}
                 accessibilityRole="radio"
-                accessibilityLabel={`Show ${size} products per page`}
+                accessibilityLabel={`Show ${size} ${itemLabel} per page`}
                 accessibilityState={{ checked: selected }}
                 onPress={() => onPageSizeChange(size)}
                 style={[
@@ -68,13 +70,13 @@ export default function AdminProductPagination({
       ) : null}
 
       <Text accessibilityLiveRegion="polite" style={st.productPaginationSummary}>
-        {rangeStart}–{rangeEnd} of {totalItems} filtered products
+        {rangeStart}–{rangeEnd} of {totalItems} filtered {itemLabel}
       </Text>
 
       <View style={st.productPaginationNav}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Previous products page"
+          accessibilityLabel={`Previous ${itemLabel} page`}
           disabled={page <= 1}
           onPress={() => onPageChange(page - 1)}
           style={[
@@ -91,7 +93,7 @@ export default function AdminProductPagination({
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Next products page"
+          accessibilityLabel={`Next ${itemLabel} page`}
           disabled={page >= pageCount}
           onPress={() => onPageChange(page + 1)}
           style={[
