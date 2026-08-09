@@ -1,14 +1,15 @@
 import React from "react";
-import { Linking, Pressable, Switch, Text, TextInput, View } from "react-native";
-import Svg, { Circle, Path } from "react-native-svg";
+import { Linking, Pressable, Switch, Text, View } from "react-native";
 import type { UserProfile } from "../../services/userProfile";
-import { hasSupabaseEnv } from "../../services/supabaseClient";
 import {
   SHOPPING_FREQUENCY_LABELS,
   type ProfilePreferences,
 } from "../../services/profilePreferences";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
+import { AppIcon } from "../icons/AppIcon";
+import { SettingsLocationCard } from "./SettingsLocationCard";
+import { SettingsProfileCard } from "./SettingsProfileCard";
 
 const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
 const TERMS_URL = "https://pocketcart.pages.dev/terms";
@@ -44,7 +45,7 @@ type MorePanelProps = {
 export function MorePanel(props: MorePanelProps) {
   return (
     <View style={st.settingsPage}>
-      <ProfileCard {...props} />
+      <SettingsProfileCard {...props} />
 
       {props.message ? (
         <View style={st.settingsMessage} accessibilityRole="alert">
@@ -85,41 +86,14 @@ function PreferencesSection({
 }: MorePanelProps) {
   return (
     <SettingsSection label="Preferences">
-      <View style={st.settingsBlock}>
-        <View style={st.settingsKeyRow}>
-          <Text style={st.settingsRowTitle}>Location</Text>
-          <Text style={st.settingsRowValue} numberOfLines={1}>{locationLabel}</Text>
-        </View>
-        <Text style={st.settingsHelp}>Use your location or save a postal code to find nearby stores.</Text>
-        <TextInput
-          accessibilityLabel="Postal code"
-          value={settingsPostalCode}
-          onChangeText={onChangeSettingsPostalCode}
-          placeholder="Postal code"
-          placeholderTextColor={C.textMuted}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          style={st.settingsInput}
-        />
-        <View style={st.settingsButtonRow}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onShareLocation}
-            style={[st.settingsButton, st.settingsButtonSecondary]}
-            disabled={loading}
-          >
-            <Text style={st.settingsButtonSecondaryText}>Use Current Location</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onSetPostalLocation}
-            style={[st.settingsButton, st.settingsButtonPrimary]}
-            disabled={loading}
-          >
-            <Text style={st.settingsButtonPrimaryText}>Save Postal Code</Text>
-          </Pressable>
-        </View>
-      </View>
+      <SettingsLocationCard
+        locationLabel={locationLabel}
+        settingsPostalCode={settingsPostalCode}
+        loading={loading}
+        onChangeSettingsPostalCode={onChangeSettingsPostalCode}
+        onShareLocation={onShareLocation}
+        onSetPostalLocation={onSetPostalLocation}
+      />
 
       <View style={st.settingsDivider} />
 
@@ -202,7 +176,12 @@ function SettingsLinkRow({
       <Text style={[st.settingsRowTitle, destructive && st.settingsDangerText]}>{label}</Text>
       <View style={st.settingsLinkMeta}>
         {value ? <Text style={st.settingsRowValue}>{value}</Text> : null}
-        <Text style={[st.settingsChevron, destructive && st.settingsDangerText]}>›</Text>
+        <AppIcon
+          name="chevron-right"
+          color={destructive ? "#A83939" : C.textMuted}
+          size={20}
+          strokeWidth={2.1}
+        />
       </View>
     </Pressable>
   );
@@ -297,89 +276,6 @@ function PreferenceSummary({ label, value }: { label: string; value: string }) {
     <View style={st.settingsSummaryRow}>
       <Text style={st.settingsHelp}>{label}</Text>
       <Text style={st.settingsSummaryValue}>{value}</Text>
-    </View>
-  );
-}
-
-function ProfileCard({
-  profile,
-  loading,
-  onOpenSignIn,
-  onOpenSignUp,
-  onEditProfile,
-  onSignOut,
-}: MorePanelProps) {
-  if (!hasSupabaseEnv) {
-    return (
-      <View style={st.settingsProfileCard}>
-        <ProfileIdentity title="Account unavailable" subtitle="Account services are not configured." />
-      </View>
-    );
-  }
-
-  if (profile) {
-    return (
-      <View style={st.settingsProfileCard}>
-        <ProfileIdentity
-          title={profile.full_name?.trim() || "PocketCart member"}
-          subtitle={profile.email || "Signed in"}
-        />
-        <View style={st.settingsButtonRow}>
-          <Pressable accessibilityRole="button" onPress={onEditProfile} style={[st.settingsButton, st.settingsButtonPrimary]} disabled={loading}>
-            <Text style={st.settingsButtonPrimaryText}>Edit Profile</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={onSignOut} style={[st.settingsButton, st.settingsButtonSecondary]} disabled={loading}>
-            <Text style={st.settingsButtonSecondaryText}>{loading ? "Please wait..." : "Sign Out"}</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={st.settingsProfileCard}>
-      <ProfileIdentity
-        title="Your PocketCart account"
-        subtitle="Sign in to sync your shopping profile and price alerts."
-      />
-      <View style={st.settingsButtonRow}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onOpenSignIn}
-          style={[st.settingsButton, st.settingsButtonPrimary]}
-        >
-          <Text style={st.settingsButtonPrimaryText}>Sign In</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          onPress={onOpenSignUp}
-          style={[st.settingsButton, st.settingsButtonSecondary]}
-        >
-          <Text style={st.settingsButtonSecondaryText}>Create Account</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function ProfileIdentity({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <View style={st.settingsProfileIdentity}>
-      <View style={st.settingsAvatar} accessibilityElementsHidden>
-        <Svg width={27} height={27} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={8} r={3.5} stroke={C.primaryDeep} strokeWidth={2} />
-          <Path
-            d="M5.5 19c.7-4 3-6 6.5-6s5.8 2 6.5 6"
-            stroke={C.primaryDeep}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-        </Svg>
-      </View>
-      <View style={st.settingsProfileCopy}>
-        <Text style={st.settingsProfileTitle} numberOfLines={1}>{title}</Text>
-        <Text style={st.settingsProfileSubtitle}>{subtitle}</Text>
-      </View>
     </View>
   );
 }

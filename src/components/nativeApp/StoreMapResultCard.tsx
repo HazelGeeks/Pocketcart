@@ -3,6 +3,7 @@ import { Image, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { MarketStore } from "../../services/marketData";
 import { st } from "../../screens/nativeAppStyles";
+import { AppIcon } from "../icons/AppIcon";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { getStoreBrandLogoKey } from "../../utils/storeBrandLogo";
 import { formatStoreDistance } from "../../utils/storeDistanceScope";
@@ -135,7 +136,7 @@ export function StoreResultCard({
         style={st.storeResultDealsButton}
       >
         <Text style={st.storeResultDealsText}>View deals</Text>
-        <Text style={st.storeResultDealsArrow}>›</Text>
+        <AppIcon name="chevron-right" color={C.primaryDeep} size={18} strokeWidth={2.2} />
       </Pressable>
     </View>
   );

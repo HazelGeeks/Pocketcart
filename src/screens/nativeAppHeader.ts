@@ -17,7 +17,7 @@ export function getNativeHeaderContent(options: HeaderOptions) {
   if (options.activeTab === "home") {
     return options.homeRoute === "detail"
       ? { title: "Product Details", status: options.category ?? "Price history" }
-      : { title: "Discover", status: "Live prices" };
+      : { title: "Discover", status: "" };
   }
   if (options.activeTab === "shopping") {
     const count = options.shoppingItemCount;
@@ -45,7 +45,7 @@ export function getNativeHeaderContent(options: HeaderOptions) {
     resetPassword: { title: "New Password", status: "Secure" },
   };
   return accountHeaders[options.accountRoute] ?? {
-    title: "Account & Settings",
-    status: options.isSignedIn ? "Signed in" : "Guest",
+    title: "Settings",
+    status: "",
   };
 }

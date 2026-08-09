@@ -6,8 +6,9 @@ import useLayout from "../hooks/useLayout";
 import Blob from "../components/Blob";
 import s from "../styles";
 import { useSiteI18n } from "../i18n/siteI18n";
+import { AppIcon, type AppIconName } from "../components/icons/AppIcon";
 
-const FEATURE_ICONS = ["◎", "♡", "☰", "⚡"];
+const FEATURE_ICONS: AppIconName[] = ["map", "heart", "list", "bell"];
 
 export default function FeaturesSection() {
   const { isMd, isLg, pad } = useLayout();
@@ -148,7 +149,7 @@ export default function FeaturesSection() {
           ]}
         >
           {features.map((f, i) => {
-            const icon = FEATURE_ICONS[i] ?? "◎";
+            const icon = FEATURE_ICONS[i] ?? "map";
             const card = (
               <View
                 key={f.title}
@@ -159,7 +160,7 @@ export default function FeaturesSection() {
                 ]}
               >
                 <View style={s.featIconWrap}>
-                  <Text style={s.featIcon}>{icon}</Text>
+                  <AppIcon name={icon} color="#16784A" size={25} strokeWidth={2.1} />
                 </View>
                 <Text style={s.featTitle}>{f.title}</Text>
                 <Text style={s.featBody}>{f.body}</Text>
@@ -188,20 +189,9 @@ export default function FeaturesSection() {
                 }}
               >
                 <View style={[s.featCard, { marginTop: 0 }]}>
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1], rotate: [0, 3, -3, 0] }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                      delay: i * 0.8,
-                    }}
-                    style={{ alignSelf: "flex-start" }}
-                  >
-                    <View style={s.featIconWrap}>
-                      <Text style={s.featIcon}>{icon}</Text>
-                    </View>
-                  </motion.div>
+                  <View style={s.featIconWrap}>
+                    <AppIcon name={icon} color="#16784A" size={25} strokeWidth={2.1} />
+                  </View>
                   <Text style={s.featTitle}>{f.title}</Text>
                   <Text style={s.featBody}>{f.body}</Text>
                 </View>

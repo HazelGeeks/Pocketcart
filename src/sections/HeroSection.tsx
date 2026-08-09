@@ -11,6 +11,7 @@ import {
 import useLayout from "../hooks/useLayout";
 import Blob from "../components/Blob";
 import { BadgeRow } from "../components/StoreBadge";
+import { HeroGroceryPhoto } from "../components/HeroGroceryPhoto";
 import s from "../styles";
 import { useSiteI18n } from "../i18n/siteI18n";
 
@@ -18,7 +19,6 @@ export default function HeroSection() {
   const { isMd, isLg, pad } = useLayout();
   const { copy } = useSiteI18n();
   const pills = copy.hero.pills;
-  const priceRows = copy.hero.card.rows;
 
   return (
     <View role="banner" style={[s.heroWrap, { paddingHorizontal: pad }]}>
@@ -207,83 +207,30 @@ export default function HeroSection() {
           )}
         </View>
 
-        {/* Right — Animated decorative card (md+) */}
-        {isMd &&
-          (isWeb ? (
+        {/* Right — real grocery photography */}
+        {isWeb ? (
             <motion.div
               variants={slideLeft}
               initial="hidden"
-              animate={{
-                opacity: 1,
-                x: 0,
-                y: [0, -10, 0],
-              }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{
                 opacity: { duration: 0.7, ease: "easeOut" as const },
                 x: { duration: 0.7, ease: "easeOut" as const },
-                y: { duration: 4, repeat: Infinity, ease: "easeInOut" },
               }}
-              whileHover={{ y: -14, rotate: -1 }}
+              whileHover={{ y: -4 }}
               style={{
-                width: isLg ? 340 : 300,
-                minHeight: 340,
+                width: isLg ? 340 : isMd ? 300 : "100%",
+                minHeight: isMd ? 340 : 300,
                 position: "relative",
               }}
             >
-              <View style={s.heroCard}>
-                <View style={s.heroCardHeader}>
-                  <View style={s.heroCardDot} />
-                  <Text style={s.heroCardHeaderText}>{copy.hero.card.header}</Text>
-                </View>
-                {priceRows.map((r, ri) => (
-                  <motion.div
-                    key={r.store}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + ri * 0.15, duration: 0.4 }}
-                  >
-                    <View style={s.heroCardRow}>
-                      <Text style={s.heroCardStore}>{r.store}</Text>
-                      <Text style={s.heroCardPrice}>{r.price}</Text>
-                      <View style={s.heroCardDelta}>
-                        <Text style={s.heroCardDeltaText}>{r.delta}</Text>
-                      </View>
-                    </View>
-                  </motion.div>
-                ))}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.2, duration: 0.5 }}
-                >
-                  <View style={s.heroCardBottom}>
-                    <Text style={s.heroCardSaving}>{copy.hero.card.saving}</Text>
-                  </View>
-                </motion.div>
-              </View>
+              <HeroGroceryPhoto compact={!isMd} />
             </motion.div>
           ) : (
             <View style={s.heroCardWrap}>
-              <View style={s.heroCard}>
-                <View style={s.heroCardHeader}>
-                  <View style={s.heroCardDot} />
-                  <Text style={s.heroCardHeaderText}>{copy.hero.card.header}</Text>
-                </View>
-                {priceRows.map((r) => (
-                  <View key={r.store} style={s.heroCardRow}>
-                    <Text style={s.heroCardStore}>{r.store}</Text>
-                    <Text style={s.heroCardPrice}>{r.price}</Text>
-                    <View style={s.heroCardDelta}>
-                      <Text style={s.heroCardDeltaText}>{r.delta}</Text>
-                    </View>
-                  </View>
-                ))}
-                <View style={s.heroCardBottom}>
-                  <Text style={s.heroCardSaving}>{copy.hero.card.saving}</Text>
-                </View>
-              </View>
+              <HeroGroceryPhoto compact={!isMd} />
             </View>
-          ))}
+          )}
       </View>
     </View>
   );

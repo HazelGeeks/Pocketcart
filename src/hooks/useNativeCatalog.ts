@@ -12,6 +12,10 @@ import {
   type HomeRoute,
   type NativeTabId,
 } from "../screens/nativeAppData";
+import {
+  mergeCategoryImageUrls,
+  type CategoryImageUrls,
+} from "../utils/categoryImages";
 
 type UseNativeCatalogOptions = {
   activeTab: NativeTabId;
@@ -38,6 +42,7 @@ export default function useNativeCatalog({
   const [category, setCategory] = React.useState("All");
   const [products, setProducts] = React.useState<MarketProduct[]>([]);
   const [categories, setCategories] = React.useState<string[]>([]);
+  const [categoryImageUrls, setCategoryImageUrls] = React.useState<CategoryImageUrls>({});
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = React.useState("");
@@ -76,6 +81,10 @@ export default function useNativeCatalog({
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   );
+
+  React.useEffect(() => {
+    setCategoryImageUrls((current) => mergeCategoryImageUrls(current, products));
+  }, [products]);
 
   const chart = React.useMemo(() => {
     if (!selectedProduct || priceHistory.length === 0) return null;
@@ -195,6 +204,7 @@ export default function useNativeCatalog({
     actionMessage,
     addSubmitting,
     categories,
+    categoryImageUrls,
     category,
     chart,
     clearStoreFilter,

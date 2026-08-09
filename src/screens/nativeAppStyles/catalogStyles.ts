@@ -78,17 +78,6 @@ export const catalogStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sortPill: {
-    borderColor: C.line,
-    backgroundColor: C.white,
-  },
-  sortPillActive: {
-    borderColor: C.primary,
-    backgroundColor: C.primaryGhost,
-  },
-  sortPillTextActive: {
-    color: C.primaryDeep,
-  },
   inlinePillDisabled: {
     borderColor: C.line,
     backgroundColor: C.bg,
@@ -101,10 +90,6 @@ export const catalogStyles = StyleSheet.create({
   },
   inlinePillTextDisabled: {
     color: C.textMuted,
-  },
-  sortOptionsWrap: {
-    flexDirection: "row",
-    gap: 8,
   },
   dealSectionScroll: {
     gap: 10,
@@ -221,22 +206,6 @@ export const catalogStyles = StyleSheet.create({
   },
   homeListBtnTextActive: {
     color: C.text,
-  },
-  homeShowMoreBtn: {
-    minHeight: 46,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: C.primary,
-    backgroundColor: C.primaryGhost,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-  homeShowMoreText: {
-    color: C.primaryDeep,
-    fontSize: 13,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
   },
   dealCard: {
     width: "48.5%",

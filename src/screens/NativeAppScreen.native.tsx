@@ -1,5 +1,11 @@
 import React from "react";
-import { ScrollView, Text, View } from "react-native";
+import {
+  ScrollView,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeAccountTab } from "../components/nativeApp/NativeAccountTab";
 import { NativeHomeTab } from "../components/nativeApp/NativeHomeTab";
@@ -24,12 +30,15 @@ import useNativeShoppingPlan from "../hooks/useNativeShoppingPlan";
 import useNativeStoreMap from "../hooks/useNativeStoreMap";
 import { getNativeHeaderContent } from "./nativeAppHeader";
 import { st } from "./nativeAppStyles";
+import { isScrollNearEnd } from "../utils/infiniteScroll";
 
 export default function NativeAppScreen() {
   const { pad, w } = useLayout();
   const insets = useSafeAreaInsets();
   const shell = useNativeShellState();
   const onboarding = useNativeOnboarding();
+  const [homeLoadMoreSignal, setHomeLoadMoreSignal] = React.useState(0);
+  const homeWasNearEndRef = React.useRef(false);
 
   const alerts = useNativeSaleAlerts({
     activeTab: shell.activeTab,
@@ -107,6 +116,30 @@ export default function NativeAppScreen() {
     storeCount: map.filteredStores.length,
     unreadAlertCount: alerts.unreadAlertCount,
   });
+  const handleAppScroll = React.useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (shell.activeTab !== "home" || catalog.route !== "catalog") {
+        homeWasNearEndRef.current = false;
+        return;
+      }
+
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      const nearEnd = isScrollNearEnd({
+        contentHeight: contentSize.height,
+        scrollY: contentOffset.y,
+        viewportHeight: layoutMeasurement.height,
+      });
+      if (nearEnd && !homeWasNearEndRef.current) {
+        setHomeLoadMoreSignal((signal) => signal + 1);
+      }
+      homeWasNearEndRef.current = nearEnd;
+    },
+    [catalog.route, shell.activeTab],
+  );
+
+  React.useEffect(() => {
+    homeWasNearEndRef.current = false;
+  }, [catalog.category, catalog.query, catalog.sortMode, catalog.storeFilterName]);
 
   return (
     <View style={st.root}>
@@ -121,6 +154,12 @@ export default function NativeAppScreen() {
               ? account.closeSubpage
               : undefined
           }
+          onOpenAlerts={
+            shell.activeTab === "home" && catalog.route === "catalog"
+              ? openAlerts
+              : undefined
+          }
+          unreadAlertCount={alerts.unreadAlertCount}
         />
       ) : null}
 
@@ -148,6 +187,8 @@ export default function NativeAppScreen() {
             },
           ]}
           showsVerticalScrollIndicator={false}
+          onScroll={handleAppScroll}
+          scrollEventThrottle={100}
         >
           {shell.activeTab === "home" ? (
             <NativeHomeTab
@@ -157,10 +198,9 @@ export default function NativeAppScreen() {
               onAddProductToShoppingList={productActions.addProductToShoppingList}
               onAddSelectedToWatchlist={productActions.addSelectedToWatchlist}
               onAddShoppingProductFromHome={productActions.addShoppingProductFromHome}
-              onOpenAlerts={openAlerts}
               onOpenStoreOnMap={map.openStore}
               shopping={shopping}
-              unreadAlertCount={alerts.unreadAlertCount}
+              loadMoreSignal={homeLoadMoreSignal}
             />
           ) : null}
           <NativeListTabs

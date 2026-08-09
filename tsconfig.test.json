@@ -22,6 +22,8 @@
     "src/utils/adminProductSaleFilter.ts",
     "src/utils/adminUserDirectory.ts",
     "src/utils/categoryIcon.ts",
+    "src/utils/categoryImages.ts",
+    "src/utils/infiniteScroll.ts",
     "src/utils/flyerCsv.ts",
     "src/utils/flyerAiRows.ts",
     "src/utils/favoriteStoreState.ts",

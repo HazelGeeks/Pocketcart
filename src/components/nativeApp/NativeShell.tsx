@@ -4,6 +4,7 @@ import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { TABS, type NativeTabId } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
+import { AppIcon } from "../icons/AppIcon";
 
 type NativeBottomTabsProps = {
   activeTab: NativeTabId;
@@ -19,6 +20,8 @@ type NativeContextHeaderProps = {
   topInset: number;
   pad: number;
   onBack?: () => void;
+  onOpenAlerts?: () => void;
+  unreadAlertCount?: number;
 };
 
 export function NativeContextHeader({
@@ -27,6 +30,8 @@ export function NativeContextHeader({
   topInset,
   pad,
   onBack,
+  onOpenAlerts,
+  unreadAlertCount = 0,
 }: NativeContextHeaderProps) {
   return (
     <View
@@ -74,12 +79,34 @@ export function NativeContextHeader({
             {title}
           </Text>
         </View>
-        <View style={st.contextStatusPill}>
-          <View style={st.contextStatusDot} />
-          <Text style={st.contextStatusText} numberOfLines={1}>
-            {status}
-          </Text>
-        </View>
+        {onOpenAlerts ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              unreadAlertCount > 0
+                ? `${unreadAlertCount} unread price alerts`
+                : "Open price alerts"
+            }
+            onPress={onOpenAlerts}
+            style={st.headerAlertButton}
+          >
+            <AppIcon name="bell" color={C.primaryDeep} size={22} strokeWidth={2.2} />
+            {unreadAlertCount > 0 ? (
+              <View style={st.headerAlertBadge}>
+                <Text style={st.headerAlertBadgeText}>
+                  {unreadAlertCount > 9 ? "9+" : unreadAlertCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        ) : status ? (
+          <View style={st.contextStatusPill}>
+            <View style={st.contextStatusDot} />
+            <Text style={st.contextStatusText} numberOfLines={1}>
+              {status}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );

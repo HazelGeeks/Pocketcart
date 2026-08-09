@@ -12,6 +12,7 @@ import {
   type OverviewCard,
 } from "../../utils/adminScreenHelpers";
 import type { ProductDataHealth } from "../../utils/productDataHealth";
+import { AppIcon } from "../icons/AppIcon";
 import AdminProductReviewQueue from "./AdminProductReviewQueue";
 
 type AdminOverviewPanelProps = {
@@ -86,16 +87,29 @@ export default function AdminOverviewPanel({
         {schemaReadiness?.checks.length ? (
           <View style={st.dataHealthIssueRow}>
             {schemaReadiness.checks.map((check) => (
-              <Text
+              <View
                 key={check.id}
                 style={[
-                  st.dataHealthIssueText,
-                  check.ready ? st.dataHealthReadyText : null,
+                  st.dataHealthIssueChip,
+                  check.ready ? st.dataHealthReadyChip : null,
                 ]}
                 accessibilityHint={check.detail ?? undefined}
               >
-                {check.ready ? "✓" : "!"} {check.label}
-              </Text>
+                <AppIcon
+                  name={check.ready ? "check" : "alert"}
+                  color={check.ready ? "#16824b" : "#805513"}
+                  size={13}
+                  strokeWidth={2.2}
+                />
+                <Text
+                  style={[
+                    st.dataHealthIssueLabel,
+                    check.ready ? st.dataHealthReadyText : null,
+                  ]}
+                >
+                  {check.label}
+                </Text>
+              </View>
             ))}
           </View>
         ) : null}

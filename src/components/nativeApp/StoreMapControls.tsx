@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import { st } from "../../screens/nativeAppStyles";
+import { AppIcon } from "../icons/AppIcon";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { StoreStarIcon } from "./StoreMapResultCard";
 
@@ -91,7 +92,7 @@ export function StoreMapControls({
               onPress={() => onChangeQuery("")}
               style={st.storeMapClearButton}
             >
-              <Text style={st.storeMapClearText}>×</Text>
+              <AppIcon name="close" color={C.textMuted} size={17} strokeWidth={2.1} />
             </Pressable>
           ) : null}
         </View>

@@ -5,6 +5,10 @@ import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
 import { productDisplayName, productSecondaryName } from "../../utils/productNames";
+import {
+  HOME_PRODUCT_BATCH_SIZE,
+  nextVisibleProductCount,
+} from "../../utils/infiniteScroll";
 import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 import {
   displayPriceForProduct,
@@ -21,6 +25,7 @@ type Props = {
   shoppingProductIds: Set<string>;
   sortMode: HomeSortMode;
   resetKey: string;
+  loadMoreSignal: number;
   onSelectProduct: (productId: string) => void;
   onAddToShoppingList: (productId: string) => void;
 };
@@ -32,13 +37,25 @@ export function HomeProductList({
   shoppingProductIds,
   sortMode,
   resetKey,
+  loadMoreSignal,
   onSelectProduct,
   onAddToShoppingList,
 }: Props) {
-  const [visibleCount, setVisibleCount] = React.useState(6);
+  const [visibleCount, setVisibleCount] = React.useState(HOME_PRODUCT_BATCH_SIZE);
+  const lastLoadMoreSignalRef = React.useRef(loadMoreSignal);
   const favoriteStoreIdSet = React.useMemo(() => new Set(favoriteStoreIds), [favoriteStoreIds]);
   const sortedProducts = React.useMemo(() => sortHomeProducts(products, sortMode), [products, sortMode]);
-  React.useEffect(() => setVisibleCount(6), [resetKey]);
+  React.useEffect(() => {
+    setVisibleCount(HOME_PRODUCT_BATCH_SIZE);
+    lastLoadMoreSignalRef.current = loadMoreSignal;
+  }, [resetKey]);
+  React.useEffect(() => {
+    if (loadMoreSignal === lastLoadMoreSignalRef.current) return;
+    lastLoadMoreSignalRef.current = loadMoreSignal;
+    setVisibleCount((count) =>
+      nextVisibleProductCount(count, sortedProducts.length),
+    );
+  }, [loadMoreSignal, sortedProducts.length]);
 
   return (
     <View style={st.homeProductList}>
@@ -86,11 +103,6 @@ export function HomeProductList({
           </Pressable>
         );
       })}
-      {visibleCount < sortedProducts.length ? (
-        <Pressable accessibilityRole="button" onPress={() => setVisibleCount((count) => count + 6)} style={st.homeShowMoreBtn}><Text style={st.homeShowMoreText}>Show 6 more</Text></Pressable>
-      ) : sortedProducts.length > 6 ? (
-        <Pressable accessibilityRole="button" onPress={() => setVisibleCount(6)} style={st.homeShowMoreBtn}><Text style={st.homeShowMoreText}>Show less</Text></Pressable>
-      ) : null}
     </View>
   );
 }

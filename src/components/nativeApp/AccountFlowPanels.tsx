@@ -3,6 +3,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 import type { UserProfile } from "../../services/userProfile";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
+import { AppIcon } from "../icons/AppIcon";
 
 export function EmailVerificationPanel({
   email,
@@ -16,7 +17,9 @@ export function EmailVerificationPanel({
   return (
     <View style={st.authPage}>
       <View style={st.flowHeroCard}>
-        <View style={st.flowHeroIcon}><Text style={st.flowHeroIconText}>✓</Text></View>
+        <View style={st.flowHeroIcon}>
+          <AppIcon name="check" color={C.primaryDeep} size={26} strokeWidth={2.4} />
+        </View>
         <Text style={st.authTitle}>Check your email</Text>
         <Text style={st.authDescription}>
           We sent a verification link to {email || "your email address"}. Open it to finish securing your account.

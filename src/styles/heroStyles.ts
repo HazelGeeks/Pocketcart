@@ -45,83 +45,64 @@ export const heroStyles = {
     color: P.textSoft,
   },
 
-  /* Hero decorative card */
+  /* Photo-led grocery story */
   heroCardWrap: {
     width: 300,
     minHeight: 340,
     position: "relative",
   },
-  heroCard: {
+  heroPhotoCard: {
     backgroundColor: P.white,
     borderRadius: 28,
-    padding: 22,
-    gap: 14,
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: P.line,
     ...(Platform.OS === "web"
       ? ({ boxShadow: "0 12px 40px rgba(30,46,12,0.08)" } as any)
       : {}),
   },
-  heroCardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: P.line,
+  heroPhotoImage: {
+    minHeight: 420,
+    justifyContent: "flex-end",
   },
-  heroCardDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: P.primary,
+  heroPhotoImageSurface: {
+    borderRadius: 27,
   },
-  heroCardHeaderText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: P.text,
+  heroPhotoShade: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "rgba(5, 28, 16, 0.48)",
   },
-  heroCardRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: P.primaryGhost,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  heroPhotoCopy: {
+    padding: 24,
+    gap: 9,
   },
-  heroCardStore: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: P.textSoft,
-    flex: 1,
-  },
-  heroCardPrice: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: P.text,
-    marginRight: 10,
-  },
-  heroCardDelta: {
-    backgroundColor: "rgba(97,227,146,0.18)",
+  heroPhotoEyebrowWrap: {
+    alignSelf: "flex-start",
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  heroCardDeltaText: {
-    fontSize: 12,
-    fontWeight: "700",
+  heroPhotoEyebrow: {
     color: P.primaryDeep,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
-  heroCardBottom: {
-    borderTopWidth: 1,
-    borderTopColor: P.line,
-    paddingTop: 10,
+  heroPhotoTitle: {
+    color: P.white,
+    fontSize: 30,
+    lineHeight: 35,
+    fontWeight: "800",
   },
-  heroCardSaving: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: P.primaryDark,
-    textAlign: "center",
+  heroPhotoBody: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "600",
   },
 } as const;

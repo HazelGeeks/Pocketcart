@@ -14,10 +14,9 @@ type Props = {
   onAddProductToShoppingList: (product: MarketProduct) => void;
   onAddSelectedToWatchlist: () => void;
   onAddShoppingProductFromHome: (productId: string) => void;
-  onOpenAlerts: () => void;
   onOpenStoreOnMap: (storeId: string, storeName?: string) => void;
   shopping: ReturnType<typeof useNativeShoppingPlan>;
-  unreadAlertCount: number;
+  loadMoreSignal: number;
 };
 
 export function NativeHomeTab({
@@ -27,10 +26,9 @@ export function NativeHomeTab({
   onAddProductToShoppingList,
   onAddSelectedToWatchlist,
   onAddShoppingProductFromHome,
-  onOpenAlerts,
   onOpenStoreOnMap,
   shopping,
-  unreadAlertCount,
+  loadMoreSignal,
 }: Props) {
   if (catalog.route === "catalog") {
     return (
@@ -38,13 +36,14 @@ export function NativeHomeTab({
         query={catalog.query}
         category={catalog.category}
         categories={catalog.categories}
+        categoryImageUrls={catalog.categoryImageUrls}
         message={catalog.message}
         actionMessage={catalog.actionMessage}
         loading={catalog.loading}
         products={catalog.filteredProducts}
         favoriteStoreIds={favoriteStoreIds}
         shoppingProductIds={shopping.productIds}
-        unreadAlertCount={unreadAlertCount}
+        loadMoreSignal={loadMoreSignal}
         sortMode={catalog.sortMode}
         storeFilterName={catalog.storeFilterName}
         onClearStoreFilter={catalog.clearStoreFilter}
@@ -57,7 +56,6 @@ export function NativeHomeTab({
           catalog.setRoute("detail");
         }}
         onAddToShoppingList={onAddShoppingProductFromHome}
-        onOpenAlerts={onOpenAlerts}
       />
     );
   }
