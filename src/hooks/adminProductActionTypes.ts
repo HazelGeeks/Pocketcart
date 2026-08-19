@@ -96,6 +96,7 @@ export type UseAdminProductActionsParams = {
     observedAt?: string;
     periodEnd?: string;
   }, unknown>;
+  deletePriceEntryMutation: Mutation<string, unknown>;
   uploadProductImageMutation: Mutation<{
     file: Blob;
     fileName?: string;

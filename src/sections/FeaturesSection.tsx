@@ -3,7 +3,6 @@ import { Text, View } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb, fadeUp, scaleIn } from "../constants/variants";
 import useLayout from "../hooks/useLayout";
-import Blob from "../components/Blob";
 import s from "../styles";
 import { useSiteI18n } from "../i18n/siteI18n";
 import { AppIcon, type AppIconName } from "../components/icons/AppIcon";
@@ -27,60 +26,7 @@ export default function FeaturesSection() {
         isWeb && ({ scrollMarginTop: 96 } as any),
       ]}
     >
-      {isWeb ? (
-        <>
-          <motion.div
-            animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              position: "absolute",
-              top: -40,
-              left: isLg ? 100 : -40,
-              width: 340,
-              height: 340,
-              borderRadius: 170,
-              backgroundColor: "rgba(97,227,146,0.05)",
-              pointerEvents: "none" as const,
-            }}
-          />
-          <motion.div
-            animate={{ y: [0, -15, 0], scale: [1, 1.05, 1] }}
-            transition={{
-              duration: 11,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2,
-            }}
-            style={{
-              position: "absolute",
-              bottom: -60,
-              right: -40,
-              width: 260,
-              height: 260,
-              borderRadius: 130,
-              backgroundColor: "rgba(97,227,146,0.06)",
-              pointerEvents: "none" as const,
-            }}
-          />
-        </>
-      ) : (
-        <>
-          <Blob
-            size={340}
-            color="rgba(97,227,146,0.05)"
-            top={-40}
-            left={isLg ? 100 : -40}
-          />
-          <Blob
-            size={260}
-            color="rgba(97,227,146,0.06)"
-            bottom={-60}
-            right={-40}
-          />
-        </>
-      )}
-
-      <View style={[s.sectionInner, { maxWidth: 1200 }]}>
+      <View style={[s.sectionInner, { maxWidth: 1280 }]}>
         {isWeb ? (
           <>
             <motion.div
@@ -152,22 +98,26 @@ export default function FeaturesSection() {
             const icon = FEATURE_ICONS[i] ?? "map";
             const card = (
               <View
-                key={f.title}
                 style={[
                   s.featCard,
-                  isMd && { flexBasis: "47%", flexGrow: 1 },
-                  i % 2 === 1 && isMd && { marginTop: 28 },
+                  i === 0 && s.featCardFeatured,
+                  !isWeb && isMd && { flexBasis: "47%", flexGrow: 1 },
                 ]}
               >
-                <View style={s.featIconWrap}>
-                  <AppIcon name={icon} color="#16784A" size={25} strokeWidth={2.1} />
+                <View style={s.featCardTopline}>
+                  <View style={[s.featIconWrap, i === 0 && s.featIconWrapFeatured]}>
+                    <AppIcon name={icon} color={i === 0 ? "#CFF36B" : "#16784A"} size={25} strokeWidth={2.1} />
+                  </View>
+                  <Text style={[s.featIndex, i === 0 && s.featIndexFeatured]}>0{i + 1}</Text>
                 </View>
-                <Text style={s.featTitle}>{f.title}</Text>
-                <Text style={s.featBody}>{f.body}</Text>
+                <Text style={[s.featTitle, i === 0 && s.featTitleFeatured]}>{f.title}</Text>
+                <Text style={[s.featBody, i === 0 && s.featBodyFeatured]}>{f.body}</Text>
               </View>
             );
 
-            if (!isWeb) return card;
+            if (!isWeb) {
+              return <React.Fragment key={f.title}>{card}</React.Fragment>;
+            }
 
             return (
               <motion.div
@@ -185,16 +135,9 @@ export default function FeaturesSection() {
                 style={{
                   borderRadius: 24,
                   ...(isMd ? { flexBasis: "47%", flexGrow: 1 } : {}),
-                  ...(i % 2 === 1 && isMd ? { marginTop: 28 } : {}),
                 }}
               >
-                <View style={[s.featCard, { marginTop: 0 }]}>
-                  <View style={s.featIconWrap}>
-                    <AppIcon name={icon} color="#16784A" size={25} strokeWidth={2.1} />
-                  </View>
-                  <Text style={s.featTitle}>{f.title}</Text>
-                  <Text style={s.featBody}>{f.body}</Text>
-                </View>
+                {card}
               </motion.div>
             );
           })}

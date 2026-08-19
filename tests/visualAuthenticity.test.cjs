@@ -99,11 +99,11 @@ test("settings removes the guest header status and keeps sections compact", () =
   assert.doesNotMatch(locationCopy, /locationLatitude\.toFixed/);
 });
 
-test("consumer feature icons use the shared SVG icon set instead of emoji glyphs", () => {
+test("consumer feature icons use the shared Lucide icon set instead of emoji glyphs", () => {
   const features = read("src/sections/FeaturesSection.tsx");
   const appIcon = read("src/components/icons/AppIcon.tsx");
 
   assert.match(features, /<AppIcon/);
-  assert.match(appIcon, /react-native-svg/);
+  assert.match(appIcon, /lucide-react-native/);
   assert.doesNotMatch(features, /[◎♡☰⚡]/u);
 });

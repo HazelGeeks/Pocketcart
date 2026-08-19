@@ -1,6 +1,10 @@
 import React from "react";
 import { normalizeGtin } from "../utils/productIdentity";
-import { prepareProductPriceSets } from "../utils/productStorePriceSets";
+import {
+  excludeReusedPersistedPriceIds,
+  getRemovedPersistedPriceIds,
+  prepareProductPriceSets,
+} from "../utils/productStorePriceSets";
 import type { UseAdminProductActionsParams } from "./adminProductActionTypes";
 import {
   findExistingPriceForPeriod,
@@ -34,6 +38,14 @@ export default function useAdminProductSave(params: Params) {
       params.setNotice(prepared.error);
       return;
     }
+    const removedPriceIds = params.editingProductId
+      ? getRemovedPersistedPriceIds(
+          params.prices
+            .filter((price) => price.product_id === params.editingProductId)
+            .map((price) => price.id),
+          params.productStorePriceSets,
+        )
+      : [];
 
     let reusedExistingProduct = false;
     let auditWarning = "";
@@ -104,15 +116,19 @@ export default function useAdminProductSave(params: Params) {
       }
 
       const errors: string[] = [];
+      const reusedPriceIds = new Set<string>();
+      let deletedPriceCount = 0;
       for (const item of prepared.activeSets) {
         try {
-          const existing = findExistingPriceForPeriod({
-            prices: params.prices,
-            productId: savedProduct.id,
-            storeId: item.storeId,
-            periodStartDate: item.periodStartDate,
-            periodEndDate: item.periodEndDate,
-          });
+          const existing = item.persistedPriceId
+            ? params.prices.find((price) => price.id === item.persistedPriceId) ?? null
+            : findExistingPriceForPeriod({
+                prices: params.prices,
+                productId: savedProduct.id,
+                storeId: item.storeId,
+                periodStartDate: item.periodStartDate,
+                periodEndDate: item.periodEndDate,
+              });
           const payload = {
             productId: savedProduct.id,
             storeId: item.storeId,
@@ -122,11 +138,26 @@ export default function useAdminProductSave(params: Params) {
           };
           if (existing) {
             await params.updatePriceEntryMutation.mutateAsync({ id: existing.id, ...payload });
+            reusedPriceIds.add(existing.id);
           } else {
             await params.createPriceEntryMutation.mutateAsync(payload);
           }
         } catch (error) {
           errors.push(`Set ${item.row}: ${error instanceof Error ? error.message : "Price entry failed."}`);
+        }
+      }
+      if (!errors.length) {
+        const priceIdsToDelete = excludeReusedPersistedPriceIds(
+          removedPriceIds,
+          reusedPriceIds,
+        );
+        for (const id of priceIdsToDelete) {
+          try {
+            await params.deletePriceEntryMutation.mutateAsync(id);
+            deletedPriceCount += 1;
+          } catch (error) {
+            errors.push(`Remove price row: ${error instanceof Error ? error.message : "Price entry delete failed."}`);
+          }
         }
       }
       try {
@@ -142,6 +173,7 @@ export default function useAdminProductSave(params: Params) {
           metadata: {
             price_sets: prepared.activeSets.length,
             price_failures: errors.length,
+            price_rows_removed: deletedPriceCount,
           },
         });
       } catch (error) {

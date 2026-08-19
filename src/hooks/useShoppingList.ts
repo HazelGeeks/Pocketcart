@@ -15,6 +15,7 @@ import {
   removeShoppingListProduct,
   type ShoppingListItem,
 } from "../utils/shoppingListState";
+import { persistShoppingListMigration } from "../utils/shoppingListStorage";
 
 export type { ShoppingListItem } from "../utils/shoppingListState";
 
@@ -67,7 +68,7 @@ export default function useShoppingList(profileId: string | null) {
       AsyncStorage.getItem(guestKey),
       AsyncStorage.getItem(LEGACY_STORAGE_KEY),
     ])
-      .then(([raw, guestRaw, legacyRaw]) => {
+      .then(async ([raw, guestRaw, legacyRaw]) => {
         if (!active) return;
         const primary = raw ? normalizeShoppingListItems(JSON.parse(raw)) : [];
         const guest = guestRaw ? normalizeShoppingListItems(JSON.parse(guestRaw)) : [];
@@ -82,7 +83,33 @@ export default function useShoppingList(profileId: string | null) {
           : mergeShoppingListItems(legacy, primary);
         const pending = pendingMutationsRef.current;
         pendingMutationsRef.current = [];
-        setItems(pending.reduce((current, mutation) => mutation(current), hydrated));
+        let nextItems = pending.reduce(
+          (current, mutation) => mutation(current),
+          hydrated,
+        );
+        if (legacyRaw) {
+          let migrationComplete = false;
+          while (!migrationComplete && active) {
+            await persistShoppingListMigration(
+              AsyncStorage,
+              key,
+              LEGACY_STORAGE_KEY,
+              nextItems,
+            ).catch(() => undefined);
+            const queuedDuringMigration = pendingMutationsRef.current;
+            pendingMutationsRef.current = [];
+            if (queuedDuringMigration.length === 0) {
+              migrationComplete = true;
+            } else {
+              nextItems = queuedDuringMigration.reduce(
+                (current, mutation) => mutation(current),
+                nextItems,
+              );
+            }
+          }
+        }
+        if (!active) return;
+        setItems(nextItems);
         lastHydratedKeyRef.current = key;
         setLoadedKey(key);
       })
@@ -119,19 +146,21 @@ export default function useShoppingList(profileId: string | null) {
 
   React.useEffect(() => {
     if (loadedKey !== key || syncReadyKey !== key) return;
-    void AsyncStorage.setItem(key, JSON.stringify(items)).catch(() => undefined);
-    if (!profileId) return;
-
     const snapshot = items.map((item) => ({ ...item }));
     const writeKey = key;
     writeChainRef.current = writeChainRef.current.then(async () => {
+      await persistShoppingListMigration(
+        AsyncStorage,
+        writeKey,
+        LEGACY_STORAGE_KEY,
+        snapshot,
+      ).catch(() => undefined);
+      if (!profileId) return;
+
       const error = await replaceSyncedShoppingListItems(profileId, snapshot);
       if (activeKeyRef.current === writeKey) setSyncMessage(error);
       if (!error) {
-        await Promise.all([
-          AsyncStorage.removeItem(guestKey),
-          AsyncStorage.removeItem(LEGACY_STORAGE_KEY),
-        ]).catch(() => undefined);
+        await AsyncStorage.removeItem(guestKey).catch(() => undefined);
       }
     });
   }, [guestKey, items, key, loadedKey, profileId, syncReadyKey]);

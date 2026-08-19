@@ -57,7 +57,12 @@ export type SiteCopy = {
     sub: string;
     card: {
       header: string;
-      rows: Array<{ store: string; price: string; delta: string }>;
+      searchPlaceholder: string;
+      categoryLabel: string;
+      productName: string;
+      productMeta: string;
+      liveLabel: string;
+      rows: Array<{ store: string; price: string; delta: string; best: boolean }>;
       saving: string;
     };
   };

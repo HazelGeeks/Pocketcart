@@ -13,6 +13,7 @@ import {
   normalizeOcrText,
   parseFlyerTextToRows,
 } from "../utils/adminScreenHelpers";
+import { downloadCsvFile } from "../utils/adminCsvFiles";
 
 type ImageUploadMutation = {
   mutateAsync: (params: { file: Blob; fileName?: string; contentType?: string }) => Promise<{ publicUrl: string } | null>;
@@ -22,30 +23,6 @@ type FlyerPageSource = {
   dataUrl: string;
   label: string;
 };
-
-function downloadCsvFile(prefix: string, csv: string): string | null {
-  if (Platform.OS !== "web") {
-    return "CSV export is currently available on web admin.";
-  }
-
-  const doc = (globalThis as { document?: any }).document;
-  const urlApi = (globalThis as { URL?: typeof URL }).URL;
-  if (!doc || typeof doc.createElement !== "function" || !urlApi?.createObjectURL) {
-    return "CSV export is not available in this browser.";
-  }
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const href = urlApi.createObjectURL(blob);
-  const link = doc.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
-  link.href = href;
-  link.download = `${prefix}-${date}.csv`;
-  doc.body.appendChild(link);
-  link.click();
-  link.remove();
-  urlApi.revokeObjectURL(href);
-  return null;
-}
 
 function readBlobAsDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -42,9 +42,24 @@ test("locationToRoute resolves blog slug and fallback hash routing", () => {
     route: "blog",
     blogSlug: "weekly-deals",
   });
+  assert.deepEqual(locationToRoute("/blog/price%20drops", ""), {
+    route: "blog",
+    blogSlug: "price drops",
+  });
   assert.deepEqual(locationToRoute("/unknown", "#/unknown"), {
     route: "home",
     blogSlug: null,
+  });
+});
+
+test("locationToRoute preserves malformed percent-encoded blog slugs", () => {
+  assert.deepEqual(locationToRoute("/blog/bad%slug", ""), {
+    route: "blog",
+    blogSlug: "bad%slug",
+  });
+  assert.deepEqual(locationToRoute("/blog/%E0%A4%A", ""), {
+    route: "blog",
+    blogSlug: "%E0%A4%A",
   });
 });
 

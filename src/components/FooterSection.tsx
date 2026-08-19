@@ -1,18 +1,12 @@
 import React from "react";
 import {
   Image,
-  Linking,
   Text,
   View,
 } from "react-native";
 import type { Route } from "../constants/palette";
 import useLayout from "../hooks/useLayout";
 import s from "../styles";
-import {
-  FacebookIcon,
-  InstagramIcon,
-  XIcon,
-} from "./icons/SocialIcons";
 import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "./WebLink";
 
@@ -32,27 +26,14 @@ export default function FooterSection({
     "delete-account": "delete-account",
   };
 
-  const linkGroups = copy.footer.groups;
-  const socialLinks = [
-    {
-      key: "instagram",
-      label: "Instagram",
-      url: "https://instagram.com",
-      Icon: InstagramIcon,
-    },
-    {
-      key: "facebook",
-      label: "Facebook",
-      url: "https://facebook.com",
-      Icon: FacebookIcon,
-    },
-    {
-      key: "x",
-      label: "X",
-      url: "https://x.com",
-      Icon: XIcon,
-    },
-  ];
+  const utilityIds = new Set(["support", "delete-account"]);
+  const linkGroups = copy.footer.groups.map((group) => ({
+    ...group,
+    links: group.links.filter((link) => !utilityIds.has(link.id)),
+  }));
+  const utilityLinks = copy.footer.groups
+    .flatMap((group) => group.links)
+    .filter((link) => utilityIds.has(link.id));
 
   return (
     <View
@@ -117,25 +98,17 @@ export default function FooterSection({
         <View style={s.footerMetaRow}>
           <Text style={s.footerCopy}>{copy.footer.copyright}</Text>
 
-          <View style={s.footerSocialRow}>
-            {socialLinks.map((item, idx) => (
-              <React.Fragment key={item.key}>
+          <View style={s.footerUtilityRow}>
+            {utilityLinks.map((link, idx) => (
+              <React.Fragment key={link.id}>
                 {idx > 0 ? (
-                  <Text style={s.footerSocialSep}>|</Text>
+                  <Text style={s.footerUtilitySep}>·</Text>
                 ) : null}
                 <WebLink
-                  href={item.url}
-                  accessibilityLabel={item.label}
-                  onPress={() => Linking.openURL(item.url)}
-                  target="_blank"
-                  rel="noreferrer"
+                  href={`/${LINK_ROUTES[link.id]}`}
+                  onPress={() => navigate(LINK_ROUTES[link.id]!)}
                 >
-                  <View style={s.footerSocialLink}>
-                    <item.Icon
-                      size={16}
-                      color="rgba(255,255,255,0.75)"
-                    />
-                  </View>
+                  <Text style={s.footerUtilityLink}>{link.label}</Text>
                 </WebLink>
               </React.Fragment>
             ))}

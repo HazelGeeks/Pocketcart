@@ -54,6 +54,8 @@ export type MarketStorePrice = {
   store_area: string | null;
   price: number;
   observed_at: string;
+  valid_from: string | null;
+  valid_to: string | null;
   previous_price: number | null;
   price_delta: number | null;
   price_delta_percent: number | null;

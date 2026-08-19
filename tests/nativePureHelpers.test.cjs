@@ -10,6 +10,12 @@ const {
   removeShoppingListProduct,
 } = require("../.tmp-tests/utils/shoppingListState.js");
 const {
+  persistShoppingListMigration,
+} = require("../.tmp-tests/utils/shoppingListStorage.js");
+const {
+  shouldHandleHomeDetailBack,
+} = require("../.tmp-tests/utils/nativeBackNavigation.js");
+const {
   normalizeProfilePreferences,
   profilePreferencesFromRow,
 } = require("../.tmp-tests/utils/profilePreferenceNormalization.js");
@@ -103,6 +109,90 @@ test("shopping-list hydration keeps legacy, guest, in-memory, and account items"
       { productId: "legacy", name: "Legacy", unit: null, quantity: 1 },
     ],
   );
+});
+
+test("shopping-list migration writes v2 before removing v1", async () => {
+  const operations = [];
+  const items = [{ productId: "legacy", name: "Legacy", unit: null, quantity: 1 }];
+  const storage = {
+    async setItem(key, value) {
+      operations.push(["set", key, value]);
+    },
+    async removeItem(key) {
+      operations.push(["remove", key]);
+    },
+  };
+
+  await persistShoppingListMigration(
+    storage,
+    "pc-shopping-list-v2.guest",
+    "pc-shopping-list-v1",
+    items,
+  );
+
+  assert.deepEqual(operations, [
+    ["set", "pc-shopping-list-v2.guest", JSON.stringify(items)],
+    ["remove", "pc-shopping-list-v1"],
+  ]);
+});
+
+test("shopping-list migration retains v1 when the v2 write fails", async () => {
+  let removed = false;
+  const storage = {
+    async setItem() {
+      throw new Error("storage full");
+    },
+    async removeItem() {
+      removed = true;
+    },
+  };
+
+  await assert.rejects(
+    persistShoppingListMigration(
+      storage,
+      "pc-shopping-list-v2.guest",
+      "pc-shopping-list-v1",
+      [],
+    ),
+    /storage full/,
+  );
+  assert.equal(removed, false);
+});
+
+test("cleared migrated shopping lists persist empty before v1 is removed", async () => {
+  const legacyItem = { productId: "legacy", name: "Legacy", unit: null, quantity: 1 };
+  const values = new Map([["pc-shopping-list-v1", JSON.stringify([legacyItem])]]);
+  const storage = {
+    async setItem(key, value) {
+      values.set(key, value);
+    },
+    async removeItem(key) {
+      values.delete(key);
+    },
+  };
+
+  await persistShoppingListMigration(
+    storage,
+    "pc-shopping-list-v2.guest",
+    "pc-shopping-list-v1",
+    [],
+  );
+
+  assert.equal(values.get("pc-shopping-list-v2.guest"), "[]");
+  assert.equal(values.has("pc-shopping-list-v1"), false);
+
+  const remounted = mergeShoppingListItems(
+    normalizeShoppingListItems(JSON.parse(values.get("pc-shopping-list-v2.guest"))),
+    values.has("pc-shopping-list-v1") ? [legacyItem] : [],
+  );
+  assert.deepEqual(remounted, []);
+});
+
+test("home detail back handling is limited to the active home tab", () => {
+  assert.equal(shouldHandleHomeDetailBack("home", "detail"), true);
+  assert.equal(shouldHandleHomeDetailBack("shopping", "detail"), false);
+  assert.equal(shouldHandleHomeDetailBack("more", "detail"), false);
+  assert.equal(shouldHandleHomeDetailBack("home", "catalog"), false);
 });
 
 test("profile-preference normalization keeps only supported values", () => {

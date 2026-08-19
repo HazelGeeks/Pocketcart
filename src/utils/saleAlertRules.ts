@@ -1,5 +1,6 @@
 import type { MarketProduct, MarketStorePrice } from "../services/marketData";
 import type { WatchlistItem } from "../services/watchlist";
+import { buildCanonicalSaleAlertIdentity } from "./saleAlertIdentity";
 import { productDisplayName } from "./productNames";
 
 export type SaleAlertCandidate = {
@@ -12,6 +13,7 @@ export type SaleAlertCandidate = {
   salePrice: number | null;
   previousPrice: number | null;
   saleStartedAt: string | null;
+  saleEndsAt: string | null;
 };
 
 export function dedupeSaleAlertCandidates(
@@ -34,9 +36,14 @@ export function buildSaleAlertCandidates(params: {
   const productById = new Map(params.products.map((product) => [product.id, product]));
   const favoriteStoreIdSet = new Set(params.favoriteStoreIds ?? []);
   const preferredPriceByProduct = new Map<string, MarketStorePrice>();
+  const lowestPriceByProduct = new Map<string, MarketStorePrice>();
   const priceByProductAndStore = new Map<string, MarketStorePrice>();
   for (const price of params.preferredStorePrices ?? []) {
     priceByProductAndStore.set(`${price.product_id}\u0000${price.store_id}`, price);
+    const lowest = lowestPriceByProduct.get(price.product_id);
+    if (!lowest || price.price < lowest.price) {
+      lowestPriceByProduct.set(price.product_id, price);
+    }
     if (!favoriteStoreIdSet.has(price.store_id)) continue;
     const existing = preferredPriceByProduct.get(price.product_id);
     if (!existing || price.price < existing.price) {
@@ -56,52 +63,24 @@ export function buildSaleAlertCandidates(params: {
       if (item.store_id && !explicitPrice) return null;
       const preferredPrice = item.store_id
         ? explicitPrice
-        : preferredPriceByProduct.get(item.product_id);
-      const productPreferredPrice =
-        !item.store_id && product.preferred_store_id && product.preferred_store_price !== null
-          ? {
-              price: product.preferred_store_price,
-              previousPrice: product.preferred_previous_price,
-              priceDelta: product.preferred_price_delta,
-              currentBatch: product.preferred_price_compare_current_batch,
-              storeId: product.preferred_store_id,
-              storeName: product.preferred_store_name,
-            }
-          : null;
-      const currentPrice =
-        preferredPrice?.price ??
-        productPreferredPrice?.price ??
-        product.current_price;
-      const previousPrice =
-        preferredPrice?.previous_price ??
-        productPreferredPrice?.previousPrice ??
-        product.previous_price;
-      const priceDelta =
-        preferredPrice?.price_delta ??
-        productPreferredPrice?.priceDelta ??
-        product.price_delta;
-      const currentBatch =
-        preferredPrice?.comparison_session_current?.trim() ||
-        productPreferredPrice?.currentBatch?.trim() ||
-        product.price_compare_current_batch?.trim() ||
-        "current";
-      const storeId =
-        preferredPrice?.store_id ??
-        productPreferredPrice?.storeId ??
-        item.store_id ??
-        product.best_store_id ??
-        null;
-      const storeName =
-        preferredPrice?.store_name ??
-        productPreferredPrice?.storeName ??
-        (item.store_id ? item.store : null) ??
-        product.best_store_name ??
-        (item.store || "a store");
-      const alertKey = [
-        item.product_id,
-        currentBatch.toLowerCase(),
-        storeId ?? "any-store",
-      ].join("|");
+        : preferredPriceByProduct.get(item.product_id) ??
+          lowestPriceByProduct.get(item.product_id);
+      if (!preferredPrice) return null;
+      const currentPrice = preferredPrice.price;
+      const previousPrice = preferredPrice.previous_price;
+      const priceDelta = preferredPrice.price_delta;
+      const storeId = preferredPrice.store_id;
+      const storeName = preferredPrice.store_name || item.store || "a store";
+      const identity = buildCanonicalSaleAlertIdentity({
+        productId: item.product_id,
+        storeId,
+        session: {
+          validFrom: preferredPrice.valid_from,
+          validTo: preferredPrice.valid_to,
+          observedAt: preferredPrice.observed_at,
+        },
+      });
+      if (!identity) return null;
       const hasDrop =
         priceDelta !== null &&
         priceDelta < 0 &&
@@ -113,7 +92,7 @@ export function buildSaleAlertCandidates(params: {
         : `${productName} is currently on sale for $${currentPrice.toFixed(2)} at ${storeName}.`;
 
       return {
-        alertKey,
+        alertKey: identity.alertKey,
         watchlistItemId: item.id,
         productId: item.product_id,
         storeId,
@@ -121,7 +100,8 @@ export function buildSaleAlertCandidates(params: {
         body,
         salePrice: currentPrice,
         previousPrice,
-        saleStartedAt: currentBatch,
+        saleStartedAt: identity.saleStartedAt,
+        saleEndsAt: identity.saleEndsAt,
       };
     })
     .filter((item): item is SaleAlertCandidate => item !== null);

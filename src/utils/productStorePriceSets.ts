@@ -4,6 +4,7 @@ import type { AdminStore } from "../services/adminBackoffice";
 
 type ActiveStorePriceSet = {
   id: string;
+  persistedPriceId?: string;
   row: number;
   brand: string;
   storeId: string;
@@ -21,6 +22,25 @@ export type PreparedProductPriceSets =
     }
   | { ok: false; error: string };
 
+export function getRemovedPersistedPriceIds(
+  originalIds: string[],
+  currentSets: StorePriceSetInput[],
+): string[] {
+  const retainedIds = new Set(
+    currentSets.map((set) => set.persistedPriceId?.trim()).filter((id): id is string => Boolean(id)),
+  );
+  return [...new Set(originalIds.map((id) => id.trim()).filter(Boolean))]
+    .filter((id) => !retainedIds.has(id));
+}
+
+export function excludeReusedPersistedPriceIds(
+  removedIds: string[],
+  reusedIds: Iterable<string>,
+): string[] {
+  const reused = new Set(reusedIds);
+  return removedIds.filter((id) => !reused.has(id));
+}
+
 export function prepareProductPriceSets(params: {
   sets: StorePriceSetInput[];
   stores: AdminStore[];
@@ -28,6 +48,7 @@ export function prepareProductPriceSets(params: {
   const activeSets = params.sets
     .map((item, index) => ({
       id: item.id,
+      persistedPriceId: item.persistedPriceId?.trim() || undefined,
       row: index + 1,
       brand: item.brand.trim(),
       storeId: item.storeId.trim(),
@@ -99,9 +120,10 @@ export function prepareProductPriceSets(params: {
       };
     }
 
-    matchingStores.forEach((store) => {
+    matchingStores.forEach((store, index) => {
       expandedSets.push({
         ...item,
+        persistedPriceId: index === 0 ? item.persistedPriceId : undefined,
         storeId: store.id,
         periodStartIso: item.periodStartIso!,
         periodEndIso: item.periodEndIso!,

@@ -37,11 +37,6 @@ export const footerStyles = {
     height: 36,
     borderRadius: 12,
   },
-  footerMarkText: {
-    color: P.white,
-    fontSize: 13,
-    fontWeight: "800",
-  },
   footerBrandName: {
     fontSize: 17,
     fontWeight: "700",
@@ -73,7 +68,7 @@ export const footerStyles = {
   footerLinkTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "rgba(255,255,255,0.4)",
+    color: "rgba(255,255,255,0.55)",
     letterSpacing: 1,
     marginBottom: 4,
   },
@@ -84,7 +79,7 @@ export const footerStyles = {
   },
   footerLinkMuted: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.38)",
+    color: "rgba(255,255,255,0.5)",
     lineHeight: 22,
   },
   footerBottom: {
@@ -100,7 +95,7 @@ export const footerStyles = {
   },
   footerCopy: {
     fontSize: 13,
-    color: "rgba(255,255,255,0.35)",
+    color: "rgba(255,255,255,0.5)",
   },
   footerMetaRow: {
     marginTop: 12,
@@ -110,22 +105,18 @@ export const footerStyles = {
     gap: 12,
     flexWrap: "wrap",
   },
-  footerSocialRow: {
+  footerUtilityRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
-  footerSocialSep: {
-    fontSize: 13,
+  footerUtilitySep: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.3)",
+  },
+  footerUtilityLink: {
+    fontSize: 11,
     lineHeight: 18,
-    color: "rgba(255,255,255,0.35)",
-  },
-  footerSocialLink: {
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.48)",
   },
 } as const;

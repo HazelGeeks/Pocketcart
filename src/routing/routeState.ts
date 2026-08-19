@@ -10,7 +10,11 @@ export function locationToRoute(pathname: string, hash: string): RouteState {
   if (path.startsWith("/blog/")) {
     const blogSlug = path.slice("/blog/".length).replace(/\/+$/, "");
     if (blogSlug) {
-      return { route: "blog", blogSlug: decodeURIComponent(blogSlug) };
+      try {
+        return { route: "blog", blogSlug: decodeURIComponent(blogSlug) };
+      } catch {
+        return { route: "blog", blogSlug };
+      }
     }
   }
 

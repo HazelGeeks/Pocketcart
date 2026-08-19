@@ -22,7 +22,7 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
     params.setProductStorePriceSets((items) => {
       if (items.length > 1) return items.filter((item) => item.id !== id);
       return items.map((item) => item.id === id
-        ? { ...item, brand: "", storeId: "", price: "", periodStartDate: "", periodEndDate: "" }
+        ? { ...item, persistedPriceId: undefined, brand: "", storeId: "", price: "", periodStartDate: "", periodEndDate: "" }
         : item);
     });
   }, [params.setProductStorePriceSets]);
@@ -51,6 +51,7 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
       .map((price) => {
         const store = storeById.get(price.store_id);
         return createStorePriceSet({
+          persistedPriceId: price.id,
           brand: store?.brand?.trim() || (store ? "Other" : ""),
           storeId: price.store_id,
           price: price.price.toFixed(2),

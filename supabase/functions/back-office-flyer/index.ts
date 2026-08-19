@@ -180,14 +180,33 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   }
 }
 
-function authorizedEmail(request: Request): boolean {
+async function authorizedAdmin(request: Request): Promise<boolean> {
+  const authorization = request.headers.get("authorization")?.trim() ?? "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")?.trim() ?? "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")?.trim() ?? "";
+  if (!authorization || !supabaseUrl || !anonKey) return false;
+
+  const adminResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/is_admin`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      authorization,
+      "content-type": "application/json",
+    },
+    body: "{}",
+  }).catch(() => null);
+  if (!adminResponse?.ok) return false;
+
+  const isAdmin = await adminResponse.json().catch(() => false);
+  if (isAdmin !== true) return false;
+
   const allowed = (Deno.env.get("FLYER_ADMIN_EMAILS") ?? "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
   if (allowed.length === 0) return true;
 
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() ?? "";
+  const token = authorization.replace(/^Bearer\s+/i, "").trim();
   const payload = decodeJwtPayload(token);
   const email =
     typeof payload.email === "string"
@@ -455,7 +474,7 @@ Deno.serve(async (request: Request) => {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
   }
-  if (!authorizedEmail(request)) {
+  if (!(await authorizedAdmin(request))) {
     return jsonResponse({ error: "Not authorized to extract flyer data." }, 403);
   }
 

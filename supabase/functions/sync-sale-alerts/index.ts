@@ -6,6 +6,7 @@ import {
   type ReceiptSyncResult,
 } from "../_shared/pushDelivery.ts";
 import { dedupeSaleAlertPayloads } from "../_shared/saleAlertDeduplication.ts";
+import { buildCanonicalSaleAlertIdentity } from "../_shared/saleAlertIdentity.ts";
 import { selectSaleAlertPrices } from "../_shared/saleAlertSelection.ts";
 
 type WatchlistRow = {
@@ -120,17 +121,6 @@ function toPriceMeta(row: PriceRow): PriceMeta | null {
   };
 }
 
-function buildSessionLabel(session: string): string {
-  const date = new Date(session);
-  if (Number.isNaN(date.getTime())) return "unknown";
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-    timeZone: "America/Vancouver",
-  });
-}
-
 function storeDisplayName(store: PriceRow["stores"] | undefined | null): string {
   if (!store) return "Unknown store";
   const name = store.name?.trim() ?? "";
@@ -146,16 +136,18 @@ function buildAlertPayload(params: {
   productName: string;
   current: PriceMeta;
   previous: PriceMeta | null;
-  currentLabel: string;
-  currentSessionKey: string;
-  sessionStartedAt: string;
 }): AlertPayload {
   const storeName = storeDisplayName(params.current.stores);
-  const alertKey = [
-    params.item.product_id,
-    params.currentSessionKey.replace("\u0000", "..").toLowerCase(),
-    params.current.store_id ?? "any-store",
-  ].join("|");
+  const identity = buildCanonicalSaleAlertIdentity({
+    productId: params.item.product_id!,
+    storeId: params.current.store_id,
+    session: {
+      validFrom: params.current.valid_from,
+      validTo: params.current.valid_to,
+      observedAt: params.current.observed_at,
+    },
+  });
+  if (!identity) throw new Error("Selected sale session has no valid start timestamp.");
   const previousPrice = params.previous?.priceValue ?? null;
   const hasDrop = previousPrice !== null && params.current.priceValue < previousPrice;
 
@@ -164,14 +156,14 @@ function buildAlertPayload(params: {
     watchlist_item_id: params.item.id,
     product_id: params.item.product_id!,
     store_id: params.current.store_id ?? null,
-    alert_key: alertKey,
+    alert_key: identity.alertKey,
     title: hasDrop ? "Sale started" : "Watched item is on sale",
     body: hasDrop
       ? `${params.productName} is now $${params.current.priceValue.toFixed(2)} at ${storeName}, down from $${previousPrice!.toFixed(2)}.`
       : `${params.productName} is currently on sale for $${params.current.priceValue.toFixed(2)} at ${storeName}.`,
     sale_price: params.current.priceValue,
     previous_price: previousPrice,
-    sale_started_at: params.sessionStartedAt,
+    sale_started_at: identity.saleStartedAt,
   };
 }
 
@@ -309,9 +301,6 @@ Deno.serve(async (request) => {
         productName: productNameById.get(item.product_id) ?? item.name,
         current: selection.current,
         previous: selection.previous,
-        currentLabel: buildSessionLabel(selection.sessionStartedAt),
-        currentSessionKey: selection.sessionKey,
-        sessionStartedAt: selection.sessionStartedAt,
       }),
     );
   }

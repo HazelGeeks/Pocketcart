@@ -204,3 +204,13 @@ export async function updateAdminPriceEntry(
   if (!entry) return { data: null, error: "Failed to read price entry result." };
   return { data: entry, error: null };
 }
+
+export async function deleteAdminPriceEntry(id: string): Promise<ServiceResult<null>> {
+  if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
+
+  const priceId = id.trim();
+  if (!priceId) return { data: null, error: "Price ID is required." };
+
+  const { error } = await supabase.from("product_prices").delete().eq("id", priceId);
+  return { data: null, error: error ? error.message : null };
+}

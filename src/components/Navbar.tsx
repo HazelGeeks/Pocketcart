@@ -97,26 +97,10 @@ export default function Navbar({
       <View style={s.navInner}>
         <WebLink href="/" onPress={() => onNavigate("home")}>
           <View style={s.brand}>
-            {isWeb ? (
-              <motion.div
-                animate={{ rotate: [0, -5, 5, 0] }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              >
-                <Image
-                  source={require("../../assets/web-logo.png")}
-                  style={s.brandMark}
-                />
-              </motion.div>
-            ) : (
-              <Image
-                source={require("../../assets/web-logo.png")}
-                style={s.brandMark}
-              />
-            )}
+            <Image
+              source={require("../../assets/web-logo.png")}
+              style={s.brandMark}
+            />
             <Text style={s.brandName}>PocketCart</Text>
           </View>
         </WebLink>

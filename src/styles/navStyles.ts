@@ -6,11 +6,11 @@ export const navStyles = {
     backgroundColor: P.glass,
     borderBottomWidth: 1,
     borderBottomColor: P.line,
-    paddingVertical: 14,
-    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(16px)" } as any) : {}),
+    paddingVertical: 12,
+    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(20px)" } as any) : {}),
   },
   navInner: {
-    maxWidth: 1200,
+    maxWidth: 1280,
     width: "100%",
     alignSelf: "center",
     flexDirection: "row",
@@ -23,19 +23,15 @@ export const navStyles = {
     gap: 10,
   },
   brandMark: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-  },
-  brandMarkText: {
-    color: P.white,
-    fontSize: 14,
-    fontWeight: "800",
+    width: 36,
+    height: 36,
+    borderRadius: 12,
   },
   brandName: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 17,
+    fontWeight: "800",
     color: P.text,
+    letterSpacing: -0.3,
   },
   navLinks: {
     flexDirection: "row",
@@ -88,10 +84,10 @@ export const navStyles = {
     color: P.primaryDeep,
   },
   navCta: {
-    backgroundColor: P.primary,
+    backgroundColor: P.dark,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 12,
   },
   navCtaText: {
     color: P.white,

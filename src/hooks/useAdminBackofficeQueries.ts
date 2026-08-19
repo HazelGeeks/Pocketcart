@@ -5,6 +5,7 @@ import {
   createAdminStore,
   createAdminPriceEntry,
   createAdminProduct,
+  deleteAdminPriceEntry,
   deleteAdminProduct,
   deleteAdminStore,
   getAdminAccess,
@@ -179,8 +180,12 @@ export function useUpdateAdminProductMutation() {
 }
 
 export function useCreateAdminPriceEntryMutation() {
+  const queryClient = useQueryClient();
   return useMutation<AdminPriceEntry | null, Error, Parameters<typeof createAdminPriceEntry>[0]>({
     mutationFn: async (params) => unwrap(await createAdminPriceEntry(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
   });
 }
 
@@ -188,6 +193,16 @@ export function useUpdateAdminPriceEntryMutation() {
   const queryClient = useQueryClient();
   return useMutation<AdminPriceEntry | null, Error, Parameters<typeof updateAdminPriceEntry>[0]>({
     mutationFn: async (params) => unwrap(await updateAdminPriceEntry(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+    },
+  });
+}
+
+export function useDeleteAdminPriceEntryMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<null, Error, string>({
+    mutationFn: async (id) => unwrap(await deleteAdminPriceEntry(id)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
     },

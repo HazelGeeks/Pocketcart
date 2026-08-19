@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "framer-motion";
 import { useFonts } from "@expo-google-fonts/nunito/useFonts";
 import { Nunito_400Regular } from "@expo-google-fonts/nunito/400Regular";
 import { Nunito_600SemiBold } from "@expo-google-fonts/nunito/600SemiBold";
@@ -14,7 +15,6 @@ import s from "./src/styles";
 import useSEO, { BASE_URL, getSEOConfig } from "./src/hooks/useSEO";
 import useAnalytics from "./src/hooks/useAnalytics";
 import Navbar, { type SectionId } from "./src/components/Navbar";
-import WaveDivider from "./src/components/WaveDivider";
 import FooterSection from "./src/components/FooterSection";
 import HeroSection from "./src/sections/HeroSection";
 import FeaturesSection from "./src/sections/FeaturesSection";
@@ -199,30 +199,28 @@ function AppShell() {
     content = <AdminScreen onBack={goHome} />;
   } else {
     content = (
-      <View style={s.root}>
-        <StatusBar barStyle="dark-content" />
-        <ScrollView
-          role="main"
-          style={s.scroll}
-          contentContainerStyle={s.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Navbar
-            onNavigate={navigate}
-            onNavigateSection={navigateSection}
-          />
-          <HeroSection />
-          <WaveDivider color={P.white} flip />
-          <FeaturesSection />
-          <WaveDivider color={P.primaryGhost} flip />
-          <HowItWorksSection />
-          <WaveDivider color={P.white} flip />
-          <FaqSection />
-          <WaveDivider color={P.dark} flip />
-          <CtaSection />
-          <FooterSection navigate={navigate} />
-        </ScrollView>
-      </View>
+      <MotionConfig reducedMotion="user">
+        <View style={s.root}>
+          <StatusBar barStyle="dark-content" />
+          <ScrollView
+            role="main"
+            style={s.scroll}
+            contentContainerStyle={s.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Navbar
+              onNavigate={navigate}
+              onNavigateSection={navigateSection}
+            />
+            <HeroSection />
+            <FeaturesSection />
+            <HowItWorksSection />
+            <FaqSection />
+            <CtaSection />
+            <FooterSection navigate={navigate} />
+          </ScrollView>
+        </View>
+      </MotionConfig>
     );
   }
 

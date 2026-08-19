@@ -62,6 +62,7 @@
       "expo-apple-authentication",
       "expo-font",
       "expo-notifications",
+      "expo-web-browser",
       [
         "expo-location",
         {

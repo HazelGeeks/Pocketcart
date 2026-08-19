@@ -8,7 +8,6 @@ export type AdminTechnicalDetailItem = {
 };
 
 type Props = {
-  accessibilityContext: string;
   items: AdminTechnicalDetailItem[];
   styles: Record<string, any>;
 };
@@ -18,41 +17,10 @@ type CopyState = {
   status: "copied" | "failed";
 };
 
-export default function AdminTechnicalDetails({
-  accessibilityContext,
-  items,
-  styles: st,
-}: Props) {
-  const [expanded, setExpanded] = React.useState(false);
-
-  return (
-    <View style={st.technicalDetails}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${expanded ? "Hide" : "Show"} technical details for ${accessibilityContext}`}
-        accessibilityState={{ expanded }}
-        onPress={(event) => {
-          event.stopPropagation();
-          setExpanded((current) => !current);
-        }}
-        style={st.technicalDetailsToggle}
-      >
-        <Text style={st.technicalDetailsToggleText}>
-          {expanded ? "Hide details" : "Details"}
-        </Text>
-      </Pressable>
-
-      {expanded ? (
-        <AdminTechnicalDetailsPanel items={items} styles={st} />
-      ) : null}
-    </View>
-  );
-}
-
 export function AdminTechnicalDetailsPanel({
   items,
   styles: st,
-}: Pick<Props, "items" | "styles">) {
+}: Props) {
   const [copyState, setCopyState] = React.useState<CopyState | null>(null);
   const resetTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 

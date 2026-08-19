@@ -3,7 +3,6 @@ import { Text, View } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb, fadeUp } from "../constants/variants";
 import useLayout from "../hooks/useLayout";
-import Blob from "../components/Blob";
 import { BadgeRow } from "../components/StoreBadge";
 import s from "../styles";
 import { useSiteI18n } from "../i18n/siteI18n";
@@ -18,42 +17,6 @@ export default function CtaSection() {
       aria-label="Download"
       style={[s.ctaWrap, { paddingHorizontal: pad }]}
     >
-      <Blob size={400} color="rgba(97,227,146,0.10)" top={-100} right={-60} />
-      <Blob size={260} color="rgba(97,227,146,0.07)" bottom={-80} left={-40} />
-      <Blob
-        size={150}
-        color="rgba(205,223,96,0.08)"
-        top={60}
-        left={isLg ? 200 : 40}
-      />
-
-      {/* Animated floating blob (web only) */}
-      {isWeb && (
-        <motion.div
-          animate={{
-            y: [0, -20, 0],
-            x: [0, 10, 0],
-            scale: [1, 1.08, 1],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          style={{
-            position: "absolute",
-            top: -40,
-            right: 80,
-            width: 200,
-            height: 200,
-            borderRadius: 100,
-            background:
-              "radial-gradient(circle, rgba(97,227,146,0.12) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-      )}
-
       <View
         style={[
           s.ctaInner,

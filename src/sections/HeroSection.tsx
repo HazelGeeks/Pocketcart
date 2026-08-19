@@ -1,17 +1,10 @@
 import React from "react";
 import { Text, View } from "react-native";
 import { motion } from "framer-motion";
-import {
-  isWeb,
-  fadeUp,
-  fadeIn,
-  scaleIn,
-  slideLeft,
-} from "../constants/variants";
+import { isWeb, fadeUp, fadeIn, scaleIn, slideLeft } from "../constants/variants";
 import useLayout from "../hooks/useLayout";
-import Blob from "../components/Blob";
 import { BadgeRow } from "../components/StoreBadge";
-import { HeroGroceryPhoto } from "../components/HeroGroceryPhoto";
+import { HeroProductPreview } from "../components/HeroProductPreview";
 import s from "../styles";
 import { useSiteI18n } from "../i18n/siteI18n";
 
@@ -22,89 +15,10 @@ export default function HeroSection() {
 
   return (
     <View role="banner" style={[s.heroWrap, { paddingHorizontal: pad }]}>
-      {/* Background blobs — ambient floating */}
-      {isWeb ? (
-        <>
-          <motion.div
-            animate={{ y: [0, -30, 0], x: [0, 15, 0], scale: [1, 1.06, 1] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              position: "absolute",
-              top: -80,
-              right: isLg ? -120 : -60,
-              width: isLg ? 620 : 400,
-              height: isLg ? 620 : 400,
-              borderRadius: (isLg ? 620 : 400) / 2,
-              backgroundColor: "rgba(97,227,146,0.07)",
-              pointerEvents: "none" as const,
-            }}
-          />
-          <motion.div
-            animate={{ y: [0, 20, 0], x: [0, -12, 0], scale: [1, 1.08, 1] }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1,
-            }}
-            style={{
-              position: "absolute",
-              bottom: 40,
-              left: -60,
-              width: isLg ? 340 : 220,
-              height: isLg ? 340 : 220,
-              borderRadius: (isLg ? 340 : 220) / 2,
-              backgroundColor: "rgba(97,227,146,0.10)",
-              pointerEvents: "none" as const,
-            }}
-          />
-          <motion.div
-            animate={{ y: [0, -18, 0], scale: [1, 1.12, 1] }}
-            transition={{
-              duration: 7,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2,
-            }}
-            style={{
-              position: "absolute",
-              top: isLg ? 200 : 120,
-              right: isLg ? 280 : 80,
-              width: isLg ? 180 : 120,
-              height: isLg ? 180 : 120,
-              borderRadius: (isLg ? 180 : 120) / 2,
-              backgroundColor: "rgba(205,223,96,0.14)",
-              pointerEvents: "none" as const,
-            }}
-          />
-        </>
-      ) : (
-        <>
-          <Blob
-            size={isLg ? 620 : 400}
-            color="rgba(97,227,146,0.07)"
-            top={-80}
-            right={isLg ? -120 : -60}
-          />
-          <Blob
-            size={isLg ? 340 : 220}
-            color="rgba(97,227,146,0.10)"
-            bottom={40}
-            left={-60}
-          />
-          <Blob
-            size={isLg ? 180 : 120}
-            color="rgba(205,223,96,0.14)"
-            top={isLg ? 200 : 120}
-            right={isLg ? 280 : 80}
-          />
-        </>
-      )}
-
       <View
         style={[
           s.heroContent,
-          { maxWidth: 1200, alignSelf: "center", width: "100%" },
+          { maxWidth: 1280, alignSelf: "center", width: "100%" },
           isMd && { flexDirection: "row", alignItems: "center" },
         ]}
       >
@@ -159,7 +73,7 @@ export default function HeroSection() {
               <Text
                 accessibilityRole="header"
                 aria-level={1}
-                style={[s.heroTitle, isLg && { fontSize: 56, lineHeight: 64 }]}
+                style={[s.heroTitle, isLg && { fontSize: 68, lineHeight: 72 }]}
               >
                 {copy.hero.titleLine1}
                 {"\n"}
@@ -170,7 +84,7 @@ export default function HeroSection() {
             <Text
               accessibilityRole="header"
               aria-level={1}
-              style={[s.heroTitle, isLg && { fontSize: 56, lineHeight: 64 }]}
+              style={[s.heroTitle, isLg && { fontSize: 68, lineHeight: 72 }]}
             >
               {copy.hero.titleLine1}
               {"\n"}
@@ -207,7 +121,7 @@ export default function HeroSection() {
           )}
         </View>
 
-        {/* Right — real grocery photography */}
+        {/* Right — product experience preview */}
         {isWeb ? (
             <motion.div
               variants={slideLeft}
@@ -217,19 +131,18 @@ export default function HeroSection() {
                 opacity: { duration: 0.7, ease: "easeOut" as const },
                 x: { duration: 0.7, ease: "easeOut" as const },
               }}
-              whileHover={{ y: -4 }}
-              style={{
-                width: isLg ? 340 : isMd ? 300 : "100%",
-                minHeight: isMd ? 340 : 300,
-                position: "relative",
-              }}
-            >
-              <HeroGroceryPhoto compact={!isMd} />
-            </motion.div>
-          ) : (
-            <View style={s.heroCardWrap}>
-              <HeroGroceryPhoto compact={!isMd} />
-            </View>
+               style={{
+                 width: isLg ? 540 : isMd ? 390 : "100%",
+                 minHeight: isMd ? 520 : 460,
+                 position: "relative",
+               }}
+             >
+               <HeroProductPreview {...copy.hero.card} />
+             </motion.div>
+           ) : (
+             <View style={s.heroCardWrap}>
+               <HeroProductPreview {...copy.hero.card} />
+             </View>
           )}
       </View>
     </View>

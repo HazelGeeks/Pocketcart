@@ -46,6 +46,7 @@ export default function useAdminWorkspaceActions(data: AdminWorkspaceData) {
     deleteProductMutation: backend.mutations.deleteProduct,
     createPriceEntryMutation: backend.mutations.createPrice,
     updatePriceEntryMutation: backend.mutations.updatePrice,
+    deletePriceEntryMutation: backend.mutations.deletePrice,
     uploadProductImageMutation: backend.mutations.uploadProductImage,
     createIdentityReviewMutation: backend.mutations.createIdentityReview,
     createAuditLogMutation: backend.mutations.createAuditLog,

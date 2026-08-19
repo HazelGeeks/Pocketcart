@@ -21,6 +21,7 @@ export type OverviewCard = {
 
 export type StorePriceSetInput = {
   id: string;
+  persistedPriceId?: string;
   brand: string;
   storeId: string;
   price: string;
@@ -129,10 +130,11 @@ export function uniqueValues(values: string[]): string[] {
 }
 
 export function createStorePriceSet(
-  seed?: Partial<Pick<StorePriceSetInput, "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate">>,
+  seed?: Partial<Pick<StorePriceSetInput, "persistedPriceId" | "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate">>,
 ): StorePriceSetInput {
   return {
     id: `sp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    persistedPriceId: seed?.persistedPriceId,
     brand: seed?.brand ?? "",
     storeId: seed?.storeId ?? "",
     price: seed?.price ?? "",

@@ -10,6 +10,7 @@ import type useNativeCatalog from "./useNativeCatalog";
 import type useNativeShellState from "./useNativeShellState";
 import type useNativeStoreMap from "./useNativeStoreMap";
 import type { NativeTabId } from "../screens/nativeAppData";
+import { shouldHandleHomeDetailBack } from "../utils/nativeBackNavigation";
 
 type Options = {
   account: ReturnType<typeof useNativeAccount>;
@@ -52,7 +53,7 @@ export default function useNativeBackNavigation({
         account.setMoreMessage(null);
         return true;
       }
-      if (catalog.route === "detail") {
+      if (shouldHandleHomeDetailBack(shell.activeTab, catalog.route)) {
         catalog.setRoute("catalog");
         return true;
       }
