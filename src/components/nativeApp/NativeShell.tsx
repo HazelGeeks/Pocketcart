@@ -48,7 +48,7 @@ export function NativeContextHeader({
           {onBack ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Back to Account & Settings"
+              accessibilityLabel="Go back"
               onPress={onBack}
               style={st.contextBackButton}
             >
@@ -253,6 +253,20 @@ function TabIcon({ tabId, active, emphasized = false }: { tabId: NativeTabId; ac
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
+        </Svg>
+      );
+    case "scan":
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M8 20H5a1 1 0 0 1-1-1v-3M16 20h3a1 1 0 0 0 1-1v-3"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx={12} cy={12} r={3.4} stroke={color} strokeWidth={strokeWidth} />
+          <Path d="M12 9.4V7.8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
         </Svg>
       );
     case "more":

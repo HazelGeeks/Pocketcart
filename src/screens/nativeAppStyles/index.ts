@@ -5,6 +5,7 @@ import { catalogStyles } from "./catalogStyles";
 import { categoryFilterStyles } from "./categoryFilterStyles";
 import { commonStyles } from "./commonStyles";
 import { detailNavigationStyles } from "./detailNavigationStyles";
+import { foodScanStyles } from "./foodScanStyles";
 import { homeControlStyles } from "./homeControlStyles";
 import { homePhotoStyles } from "./homePhotoStyles";
 import { headerActionStyles } from "./headerActionStyles";
@@ -29,6 +30,7 @@ export const st = {
   ...homePhotoStyles,
   ...headerActionStyles,
   ...detailNavigationStyles,
+  ...foodScanStyles,
   ...onboardingStyles,
   ...shoppingListStyles,
   ...storeMapStyles,

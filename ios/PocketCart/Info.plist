@@ -49,6 +49,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>PocketCart uses your location only when you choose to find nearby stores and deals.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>PocketCart uses your camera only when you choose to scan food or an ingredient label.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>PocketCart uses only the food photo you choose for analysis.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

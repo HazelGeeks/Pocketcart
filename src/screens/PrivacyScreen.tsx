@@ -19,7 +19,7 @@ function useLayout() {
 
 /* ═══════════════════════════════════════════════════════════════ */
 
-const LAST_UPDATED = "February 21, 2026";
+const LAST_UPDATED = "August 21, 2026";
 const SUPPORT_URL = "https://pocketcart.pages.dev/support";
 
 const SECTIONS = [
@@ -37,6 +37,7 @@ Personal Information Provided by You:
 • Account Data — name and email address when you create an account. Authentication credentials are processed by Supabase Auth; we do not store plaintext passwords.
 • Watchlist Data — products you choose to track, target prices, in-app alerts, and budget preferences.
 • Shopping Profile Data — optional product interests, grocery shopping frequency, and favorite stores that you provide to personalize deal recommendations.
+• Food Scan Data — camera images you choose to capture for food or ingredient-label analysis, detected barcodes, and the resulting analysis. PocketCart does not add these captures to your device photo library.
 • Support & Deletion Request Data — account email, platform, request details, and technical request metadata when you submit a support or account deletion request.
 • Usage Data — how you interact with the App, including searches performed, features used, and time spent.
 
@@ -51,6 +52,7 @@ Information Automatically Collected:
 
 • To provide and maintain the Service — including price comparison, watchlist tracking, and budget planning features.
 • To provide in-app alerts — price drop highlights, watchlist updates, and other service-related alert states you have opted into.
+• To provide Food Scan — sending the image you choose to capture to an image-analysis provider and returning visible food, ripeness, ingredient-label, allergen, and general nutrition guidance.
 • To improve our Service — we analyze usage patterns to enhance app performance, fix bugs, and develop new features.
 • To communicate with you — responding to your inquiries, sending service updates, and providing customer support.
 • To protect our Service — detecting and preventing fraud, abuse, and security incidents.
@@ -61,7 +63,7 @@ We do not sell your personal information to third parties. We do not use your da
     title: "4. Data Sharing & Third Parties",
     body: `We may share your information in the following situations:
 
-• Service Providers — We share data with third-party vendors who perform services on our behalf, such as cloud hosting and authentication (Supabase), app delivery tooling (Expo), analytics where enabled (Google Analytics), and crash or diagnostic tooling where enabled. These providers are contractually obligated to protect your data.
+• Service Providers — We share data with third-party vendors who perform services on our behalf, such as cloud hosting and authentication (Supabase), app delivery tooling (Expo), image analysis for Food Scan (OpenAI when configured), analytics where enabled (Google Analytics), and crash or diagnostic tooling where enabled. These providers process data according to our configuration and applicable agreements.
 • Legal Obligations — We may disclose your information where required by law, court order, or governmental regulation.
 • Business Transfers — In the event of a merger, acquisition, or asset sale, your data may be transferred as part of that transaction. We will notify you of any such change.
 • With Your Consent — We may share your information for any other purpose with your explicit consent.`,
@@ -71,6 +73,8 @@ We do not sell your personal information to third parties. We do not use your da
     body: `We retain your personal information only for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law.
 
 When you delete your account, we will delete or anonymize your personal data within 30 days, except where we are required to retain certain information for legal or regulatory purposes.
+
+PocketCart does not intentionally save Food Scan captures in its application database. Images are transmitted for analysis, and the image-analysis provider may process or retain request data according to the provider settings and applicable agreement.
 
 Aggregated and anonymized data that cannot be used to identify you may be retained indefinitely for analytical purposes.`,
   },

@@ -7,6 +7,7 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FoodScanPanel } from "../components/nativeApp/FoodScanPanel";
 import { NativeAccountTab } from "../components/nativeApp/NativeAccountTab";
 import { NativeHomeTab } from "../components/nativeApp/NativeHomeTab";
 import { NativeListTabs } from "../components/nativeApp/NativeListTabs";
@@ -150,9 +151,11 @@ export default function NativeAppScreen() {
           topInset={insets.top}
           pad={pad}
           onBack={
-            shell.activeTab === "more" && account.accountRoute !== "settings"
-              ? account.closeSubpage
-              : undefined
+            shell.activeTab === "alerts"
+              ? shell.openHome
+              : shell.activeTab === "more" && account.accountRoute !== "settings"
+                ? account.closeSubpage
+                : undefined
           }
           onOpenAlerts={
             shell.activeTab === "home" && catalog.route === "catalog"
@@ -211,6 +214,7 @@ export default function NativeAppScreen() {
             onOpenStore={map.openStore}
             shopping={shopping}
           />
+          {shell.activeTab === "scan" ? <FoodScanPanel /> : null}
           {shell.activeTab === "more" ? (
             <NativeAccountTab
               account={account}

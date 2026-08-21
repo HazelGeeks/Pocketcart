@@ -67,6 +67,25 @@ test("home header uses one notification action instead of a live-price status pi
   assert.match(screen, /unreadAlertCount=\{alerts\.unreadAlertCount\}/);
 });
 
+test("Food Scan replaces the bottom alert tab without removing alert access", () => {
+  const tabData = read("src/screens/nativeAppData.ts");
+  const scanner = read("src/components/nativeApp/FoodScanPanel.tsx");
+  const screen = read("src/screens/NativeAppScreen.native.tsx");
+  const functionSource = read("supabase/functions/food-scan/index.ts");
+
+  assert.match(tabData, /\{ id: "scan", label: "Scan" \}/);
+  assert.doesNotMatch(tabData, /\{ id: "alerts", label: "Alerts" \}/);
+  assert.match(scanner, /CameraView/);
+  assert.match(scanner, /launchImageLibraryAsync/);
+  assert.match(scanner, /Preview sample/);
+  assert.match(scanner, /Fresh food/);
+  assert.match(scanner, /Ingredient label/);
+  assert.match(scanner, /cannot detect bacteria/);
+  assert.match(screen, /shell\.setActiveTab\("alerts"\)/);
+  assert.match(functionSource, /Never claim that meat, fish, dairy/);
+  assert.match(functionSource, /Never invent hidden ingredients/);
+});
+
 test("home products load automatically from the parent scroll position", () => {
   const screen = read("src/screens/NativeAppScreen.native.tsx");
   const productList = read("src/components/nativeApp/HomeProductList.tsx");

@@ -33,6 +33,9 @@ export function getNativeHeaderContent(options: HeaderOptions) {
       status: options.unreadAlertCount > 0 ? `${options.unreadAlertCount} new` : "Up to date",
     };
   }
+  if (options.activeTab === "scan") {
+    return { title: "Food Scan", status: "Camera guide" };
+  }
   if (options.accountRoute === "auth") {
     return options.authMode === "signIn"
       ? { title: "Sign In", status: "Account" }

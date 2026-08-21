@@ -48,6 +48,10 @@ export default function useNativeBackNavigation({
   React.useEffect(() => {
     if (Platform.OS !== "android") return;
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (shell.activeTab === "alerts") {
+        shell.openHome();
+        return true;
+      }
       if (shell.activeTab === "more" && account.accountRoute !== "settings") {
         account.setAccountRoute("settings");
         account.setMoreMessage(null);
@@ -66,6 +70,7 @@ export default function useNativeBackNavigation({
     account.setMoreMessage,
     catalog.route,
     catalog.setRoute,
+    shell.openHome,
     shell.activeTab,
   ]);
 
