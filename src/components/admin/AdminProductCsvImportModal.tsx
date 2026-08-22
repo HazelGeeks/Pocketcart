@@ -1,4 +1,3 @@
-import React from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import type {
   ProductCsvImportProgress,

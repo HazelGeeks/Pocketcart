@@ -235,8 +235,6 @@ PODS:
     - ExpoModulesCore
   - ExpoFont (55.0.8):
     - ExpoModulesCore
-  - ExpoImagePicker (55.0.23):
-    - ExpoModulesCore
   - ExpoKeepAwake (55.0.8):
     - ExpoModulesCore
   - ExpoLocation (55.1.13):
@@ -3043,7 +3041,6 @@ DEPENDENCIES:
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../node_modules/expo/node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
-  - ExpoImagePicker (from `../node_modules/expo-image-picker/ios`)
   - ExpoKeepAwake (from `../node_modules/expo/node_modules/expo-keep-awake/ios`)
   - ExpoLocation (from `../node_modules/expo-location/ios`)
   - "ExpoLogBox (from `../node_modules/@expo/log-box`)"
@@ -3179,8 +3176,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo/node_modules/expo-file-system/ios"
   ExpoFont:
     :path: "../node_modules/expo-font/ios"
-  ExpoImagePicker:
-    :path: "../node_modules/expo-image-picker/ios"
   ExpoKeepAwake:
     :path: "../node_modules/expo/node_modules/expo-keep-awake/ios"
   ExpoLocation:
@@ -3379,7 +3374,6 @@ SPEC CHECKSUMS:
   ExpoDomWebView: b2e9d601f9cb77d3c97da73234e175b64be91928
   ExpoFileSystem: 8d5b2404ef2e839136146812d0036485d3ed8198
   ExpoFont: a7e34a75bdfb703fa07a0e87807f836236608c76
-  ExpoImagePicker: bd1dd27116e1460a20a57cfc11c36de31eb97673
   ExpoKeepAwake: d0eb7a0719500d2a43fbf29b6f79e84d70c75ebf
   ExpoLocation: df236e95da5b7cb284ffa8c41a6814e6dd9177f2
   ExpoLogBox: 4bb2f041d3281b8c27ed494fae3b6f217ba79857
@@ -3392,7 +3386,7 @@ SPEC CHECKSUMS:
   FBLazyVector: 07433c4ab85da44d0b5ceac374ff4e1d57c7aa23
   fmt: 530618a01105dae0fa3a2f27c81ae11fa8f67eac
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
-  hermes-engine: 779a2d6ee48eb687875a644b843c8112c763a5e4
+  hermes-engine: b0e6b0e06954be78359c8da5ac3d971b58d1a760
   RCT-Folly: b29feb752b08042c62badaef7d453f3bb5e6ae23
   RCTDeprecation: f05668eea7b0e209e77e8ab1dc6a5e3b342f6f65
   RCTRequired: c1ddbcb9ab4d51c36bda2a96556d064cb8825357

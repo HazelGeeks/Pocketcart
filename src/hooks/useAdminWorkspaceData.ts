@@ -21,7 +21,6 @@ export default function useAdminWorkspaceData() {
     productSearchQuery: adminUi.productSearchQuery,
     productCategoryFilter: adminUi.productCategoryFilter,
     productBrandFilter: adminUi.productBrandFilter,
-    productStoreFilter: adminUi.productStoreFilter,
     productSaleDateFilter: adminUi.productSaleDateFilter,
     productOnSaleOnly: adminUi.productOnSaleOnly,
     productSort: adminUi.productSort,
@@ -36,14 +35,19 @@ export default function useAdminWorkspaceData() {
     },
     { key: "users" as const, label: "Users", badge: backend.users.length },
     { key: "products" as const, label: "Products", badge: backend.products.length },
-    { key: "stores" as const, label: "Stores", badge: dashboard.displayStores.length },
+    { key: "stores" as const, label: "Branches", badge: dashboard.displayStores.length },
     { key: "flyer" as const, label: "Flyer" },
   ];
   const panelTitle =
-    adminUi.activeMenu === "overview" ? "Dashboard" :
-    adminUi.activeMenu === "users" ? "Users" :
-    adminUi.activeMenu === "products" ? "Products" :
-    adminUi.activeMenu === "stores" ? "Stores" : "Flyer";
+    adminUi.activeMenu === "overview"
+      ? "Dashboard"
+      : adminUi.activeMenu === "users"
+        ? "Users"
+        : adminUi.activeMenu === "products"
+          ? "Products"
+          : adminUi.activeMenu === "stores"
+            ? "Retailer Branches"
+            : "Flyer";
 
   return { isLg, state, backend, dashboard, sectionMenu, panelTitle };
 }

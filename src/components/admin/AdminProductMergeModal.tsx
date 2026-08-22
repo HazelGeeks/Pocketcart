@@ -1,4 +1,3 @@
-import React from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import { productDisplayName } from "../../utils/productNames";
@@ -29,8 +28,8 @@ export default function AdminProductMergeModal({
         <View style={st.confirmCard} accessibilityRole="alert">
           <Text style={st.modalTitle}>Merge Products</Text>
           <Text style={st.modalSub}>
-            Choose the product to keep. Prices, shopping lists, watchlists, and sale alerts
-            from the other {products.length - 1} product{products.length === 2 ? "" : "s"} will move to it.
+            Choose the product to keep. Prices, shopping lists, watchlists, and sale alerts from the
+            other {products.length - 1} product{products.length === 2 ? "" : "s"} will move to it.
           </Text>
 
           <View style={st.productDeleteSummary}>
@@ -51,7 +50,8 @@ export default function AdminProductMergeModal({
           </View>
 
           <Text style={st.infoBody}>
-            If duplicate prices exist for the same store and sale period, the lower price is preserved.
+            If duplicate prices exist for the same store and sale period, the lower price is
+            preserved. Previous names are kept as aliases so future flyer imports reuse the product.
             This action is recorded in the admin audit log.
           </Text>
 

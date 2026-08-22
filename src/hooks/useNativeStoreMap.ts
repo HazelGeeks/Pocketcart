@@ -1,5 +1,6 @@
 import React from "react";
-import MapView, { type Region } from "react-native-maps";
+import type MapView from "react-native-maps";
+import type { Region } from "react-native-maps";
 import {
   listStores,
   type MarketStore,

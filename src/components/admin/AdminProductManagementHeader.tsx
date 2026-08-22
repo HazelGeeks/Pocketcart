@@ -33,7 +33,8 @@ export default function AdminProductManagementHeader({
         <View style={st.productHeaderCopy}>
           <Text style={st.dataCardTitle}>Product Management</Text>
           <Text style={st.dataMuted}>
-            Create and remove catalog products. CSV rows with only store_brand apply to all active branches.
+            Create and remove catalog products. A retailer-only CSV row applies to all active
+            branches.
           </Text>
         </View>
         <View style={st.productHeaderActions}>
@@ -42,17 +43,10 @@ export default function AdminProductManagementHeader({
             accessibilityLabel="CSV actions"
             accessibilityState={{ expanded: csvActionsOpen }}
             onPress={() => setCsvActionsOpen((open) => !open)}
-            style={[
-              st.btn,
-              st.btnGhost,
-              st.csvActionsTrigger,
-              submitting && st.btnDisabled,
-            ]}
+            style={[st.btn, st.btnGhost, st.csvActionsTrigger, submitting && st.btnDisabled]}
             disabled={submitting}
           >
-            <Text style={st.btnGhostText}>
-              CSV Actions {csvActionsOpen ? "▴" : "▾"}
-            </Text>
+            <Text style={st.btnGhostText}>CSV Actions {csvActionsOpen ? "▴" : "▾"}</Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -84,10 +78,7 @@ export default function AdminProductManagementHeader({
           <Pressable
             accessibilityRole="button"
             onPress={() => runCsvAction(onExportProductsCsv)}
-            style={[
-              st.csvActionsMenuItem,
-              selectedProductCount === 0 && st.btnDisabled,
-            ]}
+            style={[st.csvActionsMenuItem, selectedProductCount === 0 && st.btnDisabled]}
             disabled={selectedProductCount === 0}
           >
             <Text style={st.csvActionsMenuItemText}>

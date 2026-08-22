@@ -1,4 +1,3 @@
-import React from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb, scaleIn } from "../constants/variants";

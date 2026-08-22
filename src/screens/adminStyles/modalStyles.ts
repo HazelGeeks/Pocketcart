@@ -18,6 +18,9 @@ export const adminModalStyles = {
     backgroundColor: "#ffffff",
     overflow: "hidden",
   },
+  productEditorModalCard: {
+    maxWidth: 1160,
+  },
   confirmCard: {
     width: "100%",
     maxWidth: 480,
@@ -130,110 +133,81 @@ export const adminModalStyles = {
     gap: 8,
     flexWrap: "wrap",
   },
-  storePriceGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+  storePriceTableScroll: {
+    width: "100%",
   },
-  storePriceCard: {
-    flexGrow: 1,
-    borderRadius: 12,
+  storePriceTable: {
+    width: "100%",
+    minWidth: 1040,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#dbe2ef",
-    backgroundColor: "#f8faff",
-    padding: 10,
-    gap: 10,
-  },
-  storePriceCardTwoCol: {
-    minWidth: 260,
-    flexBasis: "48%",
-  },
-  storePriceCardThreeCol: {
-    minWidth: 220,
-    flexBasis: "31.5%",
-  },
-  storePriceCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  storePriceCardTitle: {
-    color: "#2f3748",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  storePriceFieldGroup: {
-    gap: 6,
-  },
-  storeDropdownButton: {
-    minHeight: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#d8dee8",
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  storeDropdownTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  storeDropdownSelectedText: {
-    color: "#2f3748",
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  storeDropdownPlaceholderText: {
-    color: "#8a95ad",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  storeDropdownMetaText: {
-    color: "#66748f",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  storeDropdownChevron: {
-    color: C.primaryDeep,
-    fontSize: 11,
-    fontWeight: "800",
-  },
-  storeDropdownMenu: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#d8dee8",
     backgroundColor: "#ffffff",
     overflow: "hidden",
   },
-  storeDropdownScroll: {
-    maxHeight: 220,
-  },
-  storeDropdownOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+  storePriceTableHeaderRow: {
+    minHeight: 38,
+    flexDirection: "row",
+    alignItems: "stretch",
     borderBottomWidth: 1,
-    borderBottomColor: "#eef2f7",
-    gap: 2,
+    borderBottomColor: "#dbe2ef",
+    backgroundColor: "#f3f6fb",
   },
-  storeDropdownOptionActive: {
-    backgroundColor: C.primaryGhost,
+  storePriceTableRow: {
+    width: "100%",
+    minHeight: 58,
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e4e9f2",
+    backgroundColor: "#ffffff",
   },
-  storeDropdownOptionText: {
-    color: "#2f3748",
+  storePriceTableRowLast: {
+    borderBottomWidth: 0,
+  },
+  storePriceTableCell: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRightWidth: 1,
+    borderRightColor: "#e4e9f2",
+    justifyContent: "center",
+  },
+  storePriceLastCell: {
+    borderRightWidth: 0,
+  },
+  storePriceIndexCell: {
+    width: 46,
+    alignItems: "center",
+  },
+  storePriceRetailerCell: {
+    width: 190,
+  },
+  storePriceBranchCell: {
+    flex: 1,
+    minWidth: 260,
+  },
+  storePriceDateCell: {
+    width: 164,
+  },
+  storePriceAmountCell: {
+    width: 124,
+  },
+  storePriceActionCell: {
+    width: 108,
+    alignItems: "center",
+  },
+  storePriceRowNumber: {
+    color: "#52617a",
     fontSize: 12,
     fontWeight: "800",
   },
-  storeDropdownOptionTextActive: {
-    color: C.primaryDeep,
+  storePriceTableInput: {
+    width: "100%",
+    minHeight: 40,
   },
-  storeDropdownOptionMeta: {
-    color: "#66748f",
-    fontSize: 11,
+  storePriceRemoveBtn: {
+    width: "100%",
+    minHeight: 36,
   },
   modalActionRow: {
     borderTopWidth: 1,

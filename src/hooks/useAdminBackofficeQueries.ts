@@ -1,40 +1,42 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  type AdminAuditLog,
+  type AdminDirectoryUser,
+  type AdminPriceEntry,
+  type AdminProduct,
+  type AdminProductAlias,
+  type AdminProductIdentityReview,
+  type AdminSchemaReadiness,
+  type AdminStore,
+  type AdminUploadedImage,
+  type AdminUser,
   createAdminAuditLog,
-  createProductIdentityReview,
-  createAdminStore,
   createAdminPriceEntry,
   createAdminProduct,
+  createAdminStore,
+  createProductIdentityReview,
   deleteAdminPriceEntry,
   deleteAdminProduct,
   deleteAdminStore,
   getAdminAccess,
-  getAdminUser,
   getAdminSchemaReadiness,
-  listAdminUsers,
-  listAdminPriceEntries,
+  getAdminUser,
   listAdminAuditLogs,
-  listPendingProductIdentityReviews,
+  listAdminPriceEntries,
+  listAdminProductAliases,
   listAdminProducts,
   listAdminStores,
+  listAdminUsers,
+  listPendingProductIdentityReviews,
   mergeAdminProducts,
+  type ProductMergeResult,
+  resolveProductIdentityReview,
   signInAdmin,
   signOutAdmin,
   updateAdminPriceEntry,
   updateAdminProduct,
   updateAdminStore,
-  resolveProductIdentityReview,
   uploadAdminProductImage,
-  type AdminAuditLog,
-  type AdminProductIdentityReview,
-  type AdminPriceEntry,
-  type AdminProduct,
-  type AdminStore,
-  type AdminUploadedImage,
-  type AdminDirectoryUser,
-  type AdminUser,
-  type AdminSchemaReadiness,
-  type ProductMergeResult,
 } from "../services/adminBackoffice";
 import { hasSupabaseEnv } from "../services/supabaseClient";
 
@@ -48,6 +50,7 @@ const adminQueryKeys = {
   access: (userId: string) => ["admin", "access", userId] as const,
   users: ["admin", "users"] as const,
   products: ["admin", "products"] as const,
+  productAliases: ["admin", "productAliases"] as const,
   stores: ["admin", "stores"] as const,
   prices: ["admin", "prices"] as const,
   auditLogs: ["admin", "auditLogs"] as const,
@@ -84,6 +87,15 @@ export function useAdminProductsQuery(enabled: boolean) {
   return useQuery<AdminProduct[]>({
     queryKey: adminQueryKeys.products,
     queryFn: async () => unwrap(await listAdminProducts()),
+    enabled,
+    staleTime: 1000 * 30,
+  });
+}
+
+export function useAdminProductAliasesQuery(enabled: boolean) {
+  return useQuery<AdminProductAlias[]>({
+    queryKey: adminQueryKeys.productAliases,
+    queryFn: async () => unwrap(await listAdminProductAliases()),
     enabled,
     staleTime: 1000 * 30,
   });
@@ -164,8 +176,13 @@ export function useAdminSignOutMutation() {
 }
 
 export function useCreateAdminProductMutation() {
+  const queryClient = useQueryClient();
   return useMutation<AdminProduct | null, Error, Parameters<typeof createAdminProduct>[0]>({
     mutationFn: async (params) => unwrap(await createAdminProduct(params)),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productAliases });
+    },
   });
 }
 
@@ -175,6 +192,7 @@ export function useUpdateAdminProductMutation() {
     mutationFn: async (params) => unwrap(await updateAdminProduct(params)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productAliases });
     },
   });
 }
@@ -248,6 +266,7 @@ export function useDeleteAdminProductMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productAliases });
     },
   });
 }
@@ -292,23 +311,24 @@ export function useResolveProductIdentityReviewMutation() {
 
 export function useMergeAdminProductsMutation() {
   const queryClient = useQueryClient();
-  return useMutation<
-    ProductMergeResult | null,
-    Error,
-    Parameters<typeof mergeAdminProducts>[0]
-  >({
+  return useMutation<ProductMergeResult | null, Error, Parameters<typeof mergeAdminProducts>[0]>({
     mutationFn: async (params) => unwrap(await mergeAdminProducts(params)),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.products });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.prices });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productIdentityReviews });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.auditLogs });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.productAliases });
     },
   });
 }
 
 export function useUploadAdminProductImageMutation() {
-  return useMutation<AdminUploadedImage | null, Error, Parameters<typeof uploadAdminProductImage>[0]>({
+  return useMutation<
+    AdminUploadedImage | null,
+    Error,
+    Parameters<typeof uploadAdminProductImage>[0]
+  >({
     mutationFn: async (params) => unwrap(await uploadAdminProductImage(params)),
   });
 }

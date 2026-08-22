@@ -1,26 +1,25 @@
 import React from "react";
 import {
+  Animated,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   ScrollView,
   Text,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FoodScanPanel } from "../components/nativeApp/FoodScanPanel";
 import { NativeAccountTab } from "../components/nativeApp/NativeAccountTab";
+import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding";
 import { NativeHomeTab } from "../components/nativeApp/NativeHomeTab";
 import { NativeListTabs } from "../components/nativeApp/NativeListTabs";
 import { NativeMapTab } from "../components/nativeApp/NativeMapTab";
-import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding";
-import {
-  NativeBottomTabs,
-  NativeContextHeader,
-} from "../components/nativeApp/NativeShell";
+import { NativeBottomTabs, NativeContextHeader } from "../components/nativeApp/NativeShell";
 import useFavoriteStores from "../hooks/useFavoriteStores";
 import useLayout from "../hooks/useLayout";
 import useNativeAccount from "../hooks/useNativeAccount";
 import useNativeBackNavigation from "../hooks/useNativeBackNavigation";
+import useNativeBottomBarVisibility from "../hooks/useNativeBottomBarVisibility";
 import useNativeCatalog from "../hooks/useNativeCatalog";
 import useNativeOnboarding from "../hooks/useNativeOnboarding";
 import useNativePermissions from "../hooks/useNativePermissions";
@@ -29,9 +28,9 @@ import useNativeSaleAlerts from "../hooks/useNativeSaleAlerts";
 import useNativeShellState from "../hooks/useNativeShellState";
 import useNativeShoppingPlan from "../hooks/useNativeShoppingPlan";
 import useNativeStoreMap from "../hooks/useNativeStoreMap";
+import { isScrollNearEnd } from "../utils/infiniteScroll";
 import { getNativeHeaderContent } from "./nativeAppHeader";
 import { st } from "./nativeAppStyles";
-import { isScrollNearEnd } from "../utils/infiniteScroll";
 
 export default function NativeAppScreen() {
   const { pad, w } = useLayout();
@@ -53,10 +52,7 @@ export default function NativeAppScreen() {
     onOpenMore: shell.openMore,
     showToast: shell.showToast,
   });
-  const favoriteStores = useFavoriteStores(
-    account.profile?.id ?? null,
-    shell.showToast,
-  );
+  const favoriteStores = useFavoriteStores(account.profile?.id ?? null, shell.showToast);
   const catalog = useNativeCatalog({
     activeTab: shell.activeTab,
     favoriteStoreIds: favoriteStores.storeIds,
@@ -93,7 +89,19 @@ export default function NativeAppScreen() {
     profileId: account.profile?.id ?? null,
     productById: catalog.productById,
   });
-  const navigation = useNativeBackNavigation({ account, catalog, map, shell });
+  const navigation = useNativeBackNavigation({
+    account,
+    catalog,
+    gestureEnabled: !onboarding.visible,
+    map,
+    shell,
+    width: w,
+  });
+  const bottomBar = useNativeBottomBarVisibility({
+    activeTab: shell.activeTab,
+    bottomInset: insets.bottom,
+    screenKey: `${shell.activeTab}:${catalog.route}:${account.accountRoute}`,
+  });
   const productActions = useNativeProductActions({
     account,
     alerts,
@@ -110,21 +118,18 @@ export default function NativeAppScreen() {
     accountRoute: account.accountRoute,
     activeTab: shell.activeTab,
     authMode: account.authMode,
-    category: catalog.selectedProduct?.category ?? null,
     homeRoute: catalog.route,
-    isSignedIn: Boolean(account.profile),
-    shoppingItemCount: shopping.items.length,
-    storeCount: map.filteredStores.length,
-    unreadAlertCount: alerts.unreadAlertCount,
   });
   const handleAppScroll = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+      bottomBar.handleScroll(contentOffset.y);
+
       if (shell.activeTab !== "home" || catalog.route !== "catalog") {
         homeWasNearEndRef.current = false;
         return;
       }
 
-      const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       const nearEnd = isScrollNearEnd({
         contentHeight: contentSize.height,
         scrollY: contentOffset.y,
@@ -135,19 +140,28 @@ export default function NativeAppScreen() {
       }
       homeWasNearEndRef.current = nearEnd;
     },
-    [catalog.route, shell.activeTab],
+    [bottomBar.handleScroll, catalog.route, shell.activeTab],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination whenever catalog filters change
   React.useEffect(() => {
     homeWasNearEndRef.current = false;
-  }, [catalog.category, catalog.query, catalog.sortMode, catalog.storeFilterName]);
+  }, [
+    catalog.category,
+    catalog.onSaleOnly,
+    catalog.query,
+    catalog.sortMode,
+    catalog.storeFilterName,
+  ]);
 
   return (
-    <View style={st.root}>
+    <Animated.View
+      {...navigation.backPanHandlers}
+      style={[st.root, { transform: [{ translateX: navigation.backTranslateX }] }]}
+    >
       {shell.activeTab !== "map" ? (
         <NativeContextHeader
           title={header.title}
-          status={header.status}
           topInset={insets.top}
           pad={pad}
           onBack={
@@ -158,8 +172,13 @@ export default function NativeAppScreen() {
                 : undefined
           }
           onOpenAlerts={
-            shell.activeTab === "home" && catalog.route === "catalog"
-              ? openAlerts
+            shell.activeTab === "home" && catalog.route === "catalog" ? openAlerts : undefined
+          }
+          onOpenMenu={
+            shell.activeTab !== "more" &&
+            shell.activeTab !== "alerts" &&
+            (shell.activeTab !== "home" || catalog.route === "catalog")
+              ? () => navigation.selectTab("more")
               : undefined
           }
           unreadAlertCount={alerts.unreadAlertCount}
@@ -191,12 +210,11 @@ export default function NativeAppScreen() {
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={handleAppScroll}
-          scrollEventThrottle={100}
+          scrollEventThrottle={16}
         >
           {shell.activeTab === "home" ? (
             <NativeHomeTab
               catalog={catalog}
-              detailPanHandlers={navigation.detailPanHandlers}
               favoriteStoreIds={favoriteStores.storeIds}
               onAddProductToShoppingList={productActions.addProductToShoppingList}
               onAddSelectedToWatchlist={productActions.addSelectedToWatchlist}
@@ -209,12 +227,13 @@ export default function NativeAppScreen() {
           <NativeListTabs
             activeTab={shell.activeTab}
             alerts={alerts}
-            catalog={catalog}
             onBrowseDeals={shell.openHome}
             onOpenStore={map.openStore}
             shopping={shopping}
           />
-          {shell.activeTab === "scan" ? <FoodScanPanel /> : null}
+          {shell.activeTab === "scan" ? (
+            <FoodScanPanel onOpenProduct={catalog.openProduct} />
+          ) : null}
           {shell.activeTab === "more" ? (
             <NativeAccountTab
               account={account}
@@ -230,7 +249,9 @@ export default function NativeAppScreen() {
         <NativeBottomTabs
           activeTab={shell.activeTab}
           bottomInset={insets.bottom}
+          hidden={bottomBar.hidden}
           pad={pad}
+          translateY={bottomBar.translateY}
           unreadAlertCount={alerts.unreadAlertCount}
           onSelectTab={navigation.selectTab}
         />
@@ -275,6 +296,6 @@ export default function NativeAppScreen() {
           <Text style={st.toastText}>{shell.toastMessage}</Text>
         </View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }

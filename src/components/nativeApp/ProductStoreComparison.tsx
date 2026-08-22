@@ -1,4 +1,3 @@
-import React from "react";
 import { Text, View } from "react-native";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
@@ -10,45 +9,28 @@ type ProductStoreComparisonProps = {
   loading: boolean;
 };
 
-export function ProductStoreComparison({
-  rows,
-  loading,
-}: ProductStoreComparisonProps) {
+export function ProductStoreComparison({ rows, loading }: ProductStoreComparisonProps) {
   return (
     <View style={st.productStoreComparisonCard}>
-      <Text style={st.productTrendHeading}>Compare stores</Text>
+      <Text style={st.productTrendHeading}>Compare retailers</Text>
       {loading ? (
-        <Text style={st.itemMeta}>Loading store prices...</Text>
+        <Text style={st.itemMeta}>Loading retailer prices...</Text>
       ) : rows.length === 0 ? (
-        <Text style={st.itemMeta}>No current store prices yet.</Text>
+        <Text style={st.itemMeta}>No current retailer prices yet.</Text>
       ) : (
         <>
           <StorePriceBarChart rows={rows} />
           {rows.map((row, index) => (
-            <View
-              key={row.id}
-              style={[st.storeCompareRow, index === 0 && st.bestStoreRow]}
-            >
+            <View key={row.id} style={[st.storeCompareRow, index === 0 && st.bestStoreRow]}>
               <View style={st.storeCompareTopRow}>
                 <View style={st.storeCompareTitleBlock}>
                   <Text style={st.storeCompareName} numberOfLines={1}>
                     {row.storeLabel}
                   </Text>
-                  <Text style={st.storeCompareBranchText} numberOfLines={1}>
-                    {row.branchCount > 1
-                      ? `${row.branchCount} branches${
-                          row.areaLabel ? ` · ${row.areaLabel}` : ""
-                        }`
-                      : row.areaLabel || "Single branch"}
-                  </Text>
                 </View>
                 <View style={st.storeComparePriceBlock}>
-                  <Text style={st.historyPrice}>
-                    {money.format(row.price)}
-                  </Text>
-                  {index === 0 ? (
-                    <Text style={st.storeCompareLowest}>Lowest</Text>
-                  ) : null}
+                  <Text style={st.historyPrice}>{money.format(row.price)}</Text>
+                  {index === 0 ? <Text style={st.storeCompareLowest}>Lowest</Text> : null}
                 </View>
               </View>
               <View style={st.storeCompareMetaRow}>
@@ -56,10 +38,7 @@ export function ProductStoreComparison({
                   {row.comparison_label}
                 </Text>
                 {row.price_delta_percent !== null ? (
-                  <Text
-                    style={st.storeCompareTrendText}
-                    numberOfLines={1}
-                  >
+                  <Text style={st.storeCompareTrendText} numberOfLines={1}>
                     {row.price_delta_percent > 0
                       ? "Up "
                       : row.price_delta_percent < 0
@@ -77,11 +56,7 @@ export function ProductStoreComparison({
   );
 }
 
-function StorePriceBarChart({
-  rows,
-}: {
-  rows: StorePriceDisplayGroup[];
-}) {
+function StorePriceBarChart({ rows }: { rows: StorePriceDisplayGroup[] }) {
   const source = rows.slice(0, 5);
   const maxPrice = Math.max(...source.map((row) => row.price), 1);
 
@@ -95,14 +70,7 @@ function StorePriceBarChart({
               <Text style={st.storeChartLabel} numberOfLines={1}>
                 {row.storeLabel}
               </Text>
-              {row.branchCount > 1 ? (
-                <Text style={st.storeChartBest}>
-                  {row.branchCount} branches
-                </Text>
-              ) : null}
-              {index === 0 ? (
-                <Text style={st.storeChartBest}>Lowest</Text>
-              ) : null}
+              {index === 0 ? <Text style={st.storeChartBest}>Lowest</Text> : null}
             </View>
             <View style={st.storeChartTrack}>
               <View
@@ -113,9 +81,7 @@ function StorePriceBarChart({
                 ]}
               />
             </View>
-            <Text style={st.storeChartPrice}>
-              {money.format(row.price)}
-            </Text>
+            <Text style={st.storeChartPrice}>{money.format(row.price)}</Text>
           </View>
         );
       })}

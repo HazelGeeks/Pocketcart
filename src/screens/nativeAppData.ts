@@ -38,9 +38,9 @@ export type PreviousPriceRow = {
 };
 
 export const TABS: Array<{ id: NativeTabId; label: string }> = [
+  { id: "home", label: "Home" },
   { id: "shopping", label: "Shopping" },
   { id: "map", label: "Map" },
-  { id: "home", label: "Home" },
   { id: "scan", label: "Scan" },
   { id: "more", label: "Settings" },
 ];
@@ -66,11 +66,7 @@ export function buildPriceChart(
   if (history.length === 0) return null;
 
   const source = [...history]
-    .sort(
-      (a, b) =>
-        saleSessionChartTime(a) - saleSessionChartTime(b) ||
-        a.id.localeCompare(b.id),
-    )
+    .sort((a, b) => saleSessionChartTime(a) - saleSessionChartTime(b) || a.id.localeCompare(b.id))
     .slice(-7);
   const values = source.map((point) => point.price);
   const width = Math.max(240, Math.min(360, viewportWidth - horizontalPadding * 2 - 28));
@@ -144,7 +140,9 @@ function dateTime(dateLike: string): number {
   return Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
 }
 
-function saleSessionChartTime(point: Pick<MarketPricePoint, "observed_at" | "sale_end_at">): number {
+function saleSessionChartTime(
+  point: Pick<MarketPricePoint, "observed_at" | "sale_end_at">,
+): number {
   const start = dateTime(point.observed_at);
   const end = point.sale_end_at ? dateTime(point.sale_end_at) : start;
   if (!Number.isFinite(start)) return start;

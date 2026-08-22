@@ -1,13 +1,16 @@
-import React from "react";
-import AlertTriangle from "lucide-react-native/icons/triangle-alert";
 import Bell from "lucide-react-native/icons/bell";
 import Check from "lucide-react-native/icons/check";
 import ChevronRight from "lucide-react-native/icons/chevron-right";
 import Heart from "lucide-react-native/icons/heart";
 import List from "lucide-react-native/icons/list";
-import Map from "lucide-react-native/icons/map";
+import MapIcon from "lucide-react-native/icons/map";
 import MapPin from "lucide-react-native/icons/map-pin";
+import Menu from "lucide-react-native/icons/menu";
+import RotateCcw from "lucide-react-native/icons/rotate-ccw";
 import ShoppingBasket from "lucide-react-native/icons/shopping-basket";
+import SlidersHorizontal from "lucide-react-native/icons/sliders-horizontal";
+import Sparkles from "lucide-react-native/icons/sparkles";
+import AlertTriangle from "lucide-react-native/icons/triangle-alert";
 import X from "lucide-react-native/icons/x";
 
 export type AppIconName =
@@ -17,10 +20,14 @@ export type AppIconName =
   | "check"
   | "chevron-right"
   | "close"
+  | "filter"
   | "heart"
   | "list"
   | "location"
-  | "map";
+  | "map"
+  | "menu"
+  | "retake"
+  | "sparkles";
 
 const ICONS = {
   alert: AlertTriangle,
@@ -29,10 +36,14 @@ const ICONS = {
   check: Check,
   "chevron-right": ChevronRight,
   close: X,
+  filter: SlidersHorizontal,
   heart: Heart,
   list: List,
   location: MapPin,
-  map: Map,
+  map: MapIcon,
+  menu: Menu,
+  retake: RotateCcw,
+  sparkles: Sparkles,
 } as const;
 
 export function AppIcon({

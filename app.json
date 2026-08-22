@@ -28,7 +28,6 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "PocketCart uses your camera only when you choose to scan food or an ingredient label.",
-        "NSPhotoLibraryUsageDescription": "PocketCart uses only the food photo you choose for analysis.",
         "NSLocationWhenInUseUsageDescription": "PocketCart uses your location only when you choose to find nearby stores and deals."
       }
     },
@@ -69,14 +68,6 @@
           "cameraPermission": "Allow PocketCart to use your camera when you choose to scan food or an ingredient label.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": true
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "PocketCart uses only the food photo you choose for analysis.",
-          "cameraPermission": "PocketCart uses your camera only when you choose to scan food or an ingredient label.",
-          "microphonePermission": false
         }
       ],
       "expo-font",

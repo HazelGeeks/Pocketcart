@@ -1,9 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const {
-  buildProductCsvImportPreview,
-} = require("../.tmp-tests/utils/productCsvImportPlan.js");
+const { buildProductCsvImportPreview } = require("../.tmp-tests/utils/productCsvImportPlan.js");
 
 function product(overrides) {
   return {
@@ -43,9 +41,10 @@ test("product CSV preview plans creates, planned reuse, existing reuse, review, 
 
   assert.equal(result.ok, true);
   const preview = result.preview;
-  assert.deepEqual(preview.rows.map((row) => row.productAction), [
-    "create", "reuse_planned", "reuse", "review", "invalid",
-  ]);
+  assert.deepEqual(
+    preview.rows.map((row) => row.productAction),
+    ["create", "reuse_planned", "reuse", "review", "invalid"],
+  );
   assert.equal(preview.summary.productsToCreate, 1);
   assert.equal(preview.summary.existingMatches, 1);
   assert.equal(preview.summary.rowsForReview, 1);
@@ -54,10 +53,7 @@ test("product CSV preview plans creates, planned reuse, existing reuse, review, 
 });
 
 test("product CSV preview holds ambiguous name and unit matches without merging", () => {
-  const csv = [
-    "english_name,korean_name,category,unit",
-    "Apple,사과,Produce,1 lb",
-  ].join("\n");
+  const csv = ["english_name,korean_name,category,unit", "Apple,사과,Produce,1 lb"].join("\n");
   const result = buildProductCsvImportPreview({
     csvText: csv,
     fileName: "ambiguous.csv",
@@ -68,4 +64,60 @@ test("product CSV preview holds ambiguous name and unit matches without merging"
   assert.equal(result.ok, true);
   assert.equal(result.preview.rows[0].productAction, "review");
   assert.deepEqual(result.preview.rows[0].candidateProductIds.sort(), ["a", "b"]);
+});
+
+test("product CSV preview reuses a reviewed alias across selling-unit variants", () => {
+  const result = buildProductCsvImportPreview({
+    csvText: [
+      "english_name,korean_name,category,unit,price,store_id,sale_start_date,sale_end_date",
+      "Flat Cabbage,납작 양배추,Produce,per lb,0.68,store-1,2026-08-20,2026-08-26",
+    ].join("\n"),
+    fileName: "alias.csv",
+    products: [
+      {
+        id: "taiwan-cabbage",
+        korean_name: "타이완 양배추",
+        english_name: "Taiwan Cabbage",
+        brand: null,
+        gtin: null,
+        category: "Produce",
+        unit: "lb",
+        thumbnail_url: null,
+        created_at: "2026-07-24T00:00:00.000Z",
+      },
+    ],
+    productAliases: [
+      {
+        id: "alias-1",
+        product_id: "taiwan-cabbage",
+        alias_name: "Flat Cabbage",
+        unit: "lb",
+        created_at: "2026-08-22T00:00:00.000Z",
+      },
+    ],
+    stores: [
+      {
+        id: "store-1",
+        brand: "H-Mart",
+        name: "H-Mart Downtown",
+        area: "Vancouver",
+        latitude: 49.28,
+        longitude: -123.12,
+        price_note: null,
+        address: null,
+        place_id: null,
+        phone: null,
+        website: null,
+        hours: null,
+        store_type: "grocery",
+        is_active: true,
+        created_at: "2026-07-01T00:00:00.000Z",
+      },
+    ],
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.preview.rows[0].productAction, "reuse");
+  assert.equal(result.preview.rows[0].productId, "taiwan-cabbage");
+  assert.equal(result.preview.rows[0].matchMethod, "alias");
 });

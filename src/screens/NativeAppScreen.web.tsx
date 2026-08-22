@@ -1,4 +1,3 @@
-import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { marketingPalette as C } from "../shared/design/palette";
 

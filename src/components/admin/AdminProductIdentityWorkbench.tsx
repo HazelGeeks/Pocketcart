@@ -22,11 +22,7 @@ function groupStoreBrands(
   priceStats: Map<string, ProductPriceStats>,
 ): string[] {
   return [
-    ...new Set(
-      group.products.flatMap(
-        (product) => priceStats.get(product.id)?.storeBrands ?? [],
-      ),
-    ),
+    ...new Set(group.products.flatMap((product) => priceStats.get(product.id)?.storeBrands ?? [])),
   ].sort((left, right) => left.localeCompare(right));
 }
 
@@ -39,13 +35,8 @@ export default function AdminProductIdentityWorkbench({
   onReviewGroup,
 }: Props) {
   const [expanded, setExpanded] = React.useState(false);
-  const duplicateGroups = React.useMemo(
-    () => buildProductDuplicateGroups(products),
-    [products],
-  );
-  const missingImage = products.filter(
-    (product) => !product.thumbnail_url?.trim(),
-  ).length;
+  const duplicateGroups = React.useMemo(() => buildProductDuplicateGroups(products), [products]);
+  const missingImage = products.filter((product) => !product.thumbnail_url?.trim()).length;
   const hasDuplicateGroups = duplicateGroups.length > 0;
   const isReady = !loading && !error && !hasDuplicateGroups;
   const statusDescription = error
@@ -64,11 +55,7 @@ export default function AdminProductIdentityWorkbench({
     <View
       style={[
         st.productReviewCard,
-        error
-          ? st.productReviewCardError
-          : isReady
-            ? st.productReviewCardReady
-            : null,
+        error ? st.productReviewCardError : isReady ? st.productReviewCardReady : null,
       ]}
     >
       <View style={st.dataCardHeader}>
@@ -76,11 +63,7 @@ export default function AdminProductIdentityWorkbench({
           <Text
             style={[
               st.productReviewTitle,
-              error
-                ? st.productReviewTitleError
-                : isReady
-                  ? st.productReviewTitleReady
-                  : null,
+              error ? st.productReviewTitleError : isReady ? st.productReviewTitleReady : null,
             ]}
           >
             {error ? "Duplicate check failed" : "Product identity workbench"}
@@ -105,17 +88,10 @@ export default function AdminProductIdentityWorkbench({
               accessibilityRole="button"
               accessibilityState={{ expanded }}
               onPress={() => setExpanded((current) => !current)}
-              style={[
-                st.btn,
-                hasDuplicateGroups ? st.btnPrimary : st.btnGhost,
-              ]}
+              style={[st.btn, hasDuplicateGroups ? st.btnPrimary : st.btnGhost]}
               disabled={!hasDuplicateGroups}
             >
-              <Text
-                style={
-                  hasDuplicateGroups ? st.btnPrimaryText : st.btnGhostText
-                }
-              >
+              <Text style={hasDuplicateGroups ? st.btnPrimaryText : st.btnGhostText}>
                 {hasDuplicateGroups
                   ? `${expanded ? "Hide" : "Review"} ${duplicateGroups.length} groups`
                   : "No exact matches"}
@@ -143,17 +119,22 @@ export default function AdminProductIdentityWorkbench({
                 <View style={st.dataRowMain}>
                   <Text style={st.dataRowTitle}>{group.label}</Text>
                   <Text style={st.productReviewReason}>
-                    Same normalized name and unit
+                    {group.method === "name_family_and_unit"
+                      ? "Same base name and selling unit"
+                      : "Same normalized name and selling unit"}
                     {" · "}
                     {group.products.length} products
                   </Text>
                   <Text style={st.dataMuted}>
                     {group.products
-                      .map((product) => `${productDisplayName(product)}${product.unit ? ` · ${product.unit}` : ""}`)
+                      .map(
+                        (product) =>
+                          `${productDisplayName(product)}${product.unit ? ` · ${product.unit}` : ""}`,
+                      )
                       .join(" / ")}
                   </Text>
                   {storeBrands.length > 0 ? (
-                    <Text style={st.dataMuted}>Stores: {storeBrands.join(", ")}</Text>
+                    <Text style={st.dataMuted}>Retailers: {storeBrands.join(", ")}</Text>
                   ) : null}
                 </View>
                 <Pressable
@@ -168,7 +149,8 @@ export default function AdminProductIdentityWorkbench({
           })}
           {duplicateGroups.length > 12 ? (
             <Text style={st.dataMuted}>
-              Showing 12 of {duplicateGroups.length} groups. Merge reviewed groups to reveal the next candidates.
+              Showing 12 of {duplicateGroups.length} groups. Merge reviewed groups to reveal the
+              next candidates.
             </Text>
           ) : null}
         </View>

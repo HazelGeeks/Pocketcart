@@ -1,13 +1,14 @@
-import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type { ShoppingListItem } from "../../hooks/useShoppingList";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
+import { marketingPalette as C } from "../../shared/design/palette";
 import {
   buildShoppingCoverageSummary,
   type ShoppingPlan,
   type ShoppingRecommendation,
 } from "../../utils/shoppingOptimizer";
+import { AppIcon } from "../icons/AppIcon";
 
 type ShoppingListPanelProps = {
   items: ShoppingListItem[];
@@ -37,19 +38,22 @@ export function ShoppingListPanel({
   const recommended = recommendation.recommended;
   const unpricedCount = recommendation.unpricedProductIds.length;
   const coverage = buildShoppingCoverageSummary(items.length, unpricedCount);
-  const singleSavings = recommendation.bestSingle && recommendation.bestSplit
-    ? Math.max(0, recommendation.bestSingle.total - recommendation.bestSplit.total)
-    : 0;
+  const singleSavings =
+    recommendation.bestSingle && recommendation.bestSplit
+      ? Math.max(0, recommendation.bestSingle.total - recommendation.bestSplit.total)
+      : 0;
   const preferredDifference =
     recommendation.bestPreferred && recommended
       ? Math.max(0, recommendation.bestPreferred.total - recommended.total)
       : 0;
 
   return (
-    <View style={st.sectionStack}>
+    <View style={st.shoppingPage}>
       <View style={st.shoppingHeaderRow}>
         <View style={st.shoppingHeaderCopy}>
-          <Text style={st.sectionSub}>Compare one-stop shopping with the cheapest two-store combination.</Text>
+          <Text style={st.sectionSub}>
+            Compare one-stop shopping with the cheapest two-store combination.
+          </Text>
         </View>
         {items.length > 0 ? (
           <Pressable accessibilityRole="button" onPress={onClear} style={st.shoppingClearBtn}>
@@ -61,7 +65,9 @@ export function ShoppingListPanel({
       {items.length === 0 ? (
         <View style={st.shoppingEmptyCard}>
           <Text style={st.itemName}>Build this week's basket</Text>
-          <Text style={st.itemMeta}>Tap “Add to list” on products from Home. Signed-in lists sync across devices.</Text>
+          <Text style={st.itemMeta}>
+            Tap “Add to list” on products from Home. Signed-in lists sync across devices.
+          </Text>
           <Pressable
             accessibilityRole="button"
             onPress={onBrowseDeals}
@@ -72,24 +78,42 @@ export function ShoppingListPanel({
         </View>
       ) : (
         <>
+          <Text style={st.shoppingSectionTitle}>My basket · {items.length}</Text>
           <View style={st.shoppingItemsCard}>
-            {items.map((item, index) => (
-              <View key={item.productId} style={[st.shoppingItemRow, index > 0 && st.shoppingItemDivider]}>
+            {items.map((item) => (
+              <View key={item.productId} style={st.shoppingItemRow}>
                 <View style={st.shoppingItemCopy}>
-                  <Text style={st.itemName} numberOfLines={2}>{item.name}</Text>
+                  <Text style={st.itemName} numberOfLines={2}>
+                    {item.name}
+                  </Text>
                   <Text style={st.itemMeta}>{item.unit ?? "Each"}</Text>
                 </View>
                 <View style={st.quantityControl}>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Decrease ${item.name}`} onPress={() => onChangeQuantity(item.productId, -1)} style={st.quantityBtn}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Decrease ${item.name}`}
+                    onPress={() => onChangeQuantity(item.productId, -1)}
+                    style={st.quantityBtn}
+                  >
                     <Text style={st.quantityBtnText}>−</Text>
                   </Pressable>
                   <Text style={st.quantityValue}>{item.quantity}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Increase ${item.name}`} onPress={() => onChangeQuantity(item.productId, 1)} style={st.quantityBtn}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Increase ${item.name}`}
+                    onPress={() => onChangeQuantity(item.productId, 1)}
+                    style={st.quantityBtn}
+                  >
                     <Text style={st.quantityBtnText}>+</Text>
                   </Pressable>
                 </View>
-                <Pressable accessibilityRole="button" onPress={() => onRemove(item.productId)} style={st.shoppingRemoveBtn}>
-                  <Text style={st.shoppingRemoveText}>Remove</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${item.name}`}
+                  onPress={() => onRemove(item.productId)}
+                  style={st.shoppingRemoveBtn}
+                >
+                  <AppIcon name="close" color={C.textMuted} size={18} strokeWidth={2} />
                 </Pressable>
               </View>
             ))}
@@ -98,9 +122,7 @@ export function ShoppingListPanel({
           <View style={st.shoppingRecommendationCard}>
             <View style={st.shoppingPlanTitleRow}>
               <View>
-                <Text style={st.shoppingEyebrow}>
-                  {coverage.eyebrow}
-                </Text>
+                <Text style={st.shoppingEyebrow}>{coverage.eyebrow}</Text>
                 <Text style={st.shoppingPlanTitle}>
                   {loading
                     ? "Checking current prices..."
@@ -109,17 +131,28 @@ export function ShoppingListPanel({
                       : "Not enough price coverage"}
                 </Text>
               </View>
-              <Pressable accessibilityRole="button" onPress={onRefresh} style={st.shoppingRefreshBtn} disabled={loading}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onRefresh}
+                style={st.shoppingRefreshBtn}
+                disabled={loading}
+              >
                 <Text style={st.shoppingRefreshText}>{loading ? "Checking" : "Refresh"}</Text>
               </Pressable>
             </View>
 
             {singleSavings > 0.009 && recommended?.kind === "split" ? (
-              <Text style={st.shoppingSavingsText}>Save {money.format(singleSavings)} compared with the cheapest one-store basket.</Text>
+              <Text style={st.shoppingSavingsText}>
+                Save {money.format(singleSavings)} compared with the cheapest one-store basket.
+              </Text>
             ) : recommendation.recommendedUsesPreferredStores ? (
-              <Text style={st.shoppingSavingsText}>This recommendation uses only your saved My stores.</Text>
+              <Text style={st.shoppingSavingsText}>
+                This recommendation uses only your saved My stores.
+              </Text>
             ) : recommended?.kind === "single" ? (
-              <Text style={st.itemMeta}>The cheapest complete basket is also the simplest one-stop trip.</Text>
+              <Text style={st.itemMeta}>
+                The cheapest complete basket is also the simplest one-stop trip.
+              </Text>
             ) : null}
 
             {recommended ? <PlanStops plan={recommended} onOpenStore={onOpenStore} /> : null}
@@ -129,7 +162,7 @@ export function ShoppingListPanel({
             ) : null}
           </View>
 
-          {(recommendation.bestSingle || recommendation.bestSplit) ? (
+          {recommendation.bestSingle || recommendation.bestSplit ? (
             <View style={st.shoppingCompareRow}>
               <PlanSummary label="Best one store" plan={recommendation.bestSingle} />
               <PlanSummary label="Best two stores" plan={recommendation.bestSplit} />
@@ -145,14 +178,23 @@ export function ShoppingListPanel({
               ) : null}
             </View>
           ) : null}
-          <Text style={st.shoppingFootnote}>Estimates use currently tracked sale prices. Travel cost and untracked regular prices are not included.</Text>
+          <Text style={st.shoppingFootnote}>
+            Estimates use currently tracked sale prices. Travel cost and untracked regular prices
+            are not included.
+          </Text>
         </>
       )}
     </View>
   );
 }
 
-function PlanStops({ plan, onOpenStore }: { plan: ShoppingPlan; onOpenStore: ShoppingListPanelProps["onOpenStore"] }) {
+function PlanStops({
+  plan,
+  onOpenStore,
+}: {
+  plan: ShoppingPlan;
+  onOpenStore: ShoppingListPanelProps["onOpenStore"];
+}) {
   return (
     <View style={st.shoppingStops}>
       {plan.stops.map((stop, index) => (
@@ -174,7 +216,9 @@ function PlanStops({ plan, onOpenStore }: { plan: ShoppingPlan; onOpenStore: Sho
               </Pressable>
             </View>
           </View>
-          <Text style={st.itemMeta}>{stop.items.map((item) => `${item.name} × ${item.quantity}`).join(" · ")}</Text>
+          <Text style={st.itemMeta}>
+            {stop.items.map((item) => `${item.name} × ${item.quantity}`).join(" · ")}
+          </Text>
         </View>
       ))}
     </View>
@@ -184,9 +228,13 @@ function PlanStops({ plan, onOpenStore }: { plan: ShoppingPlan; onOpenStore: Sho
 function PlanSummary({ label, plan }: { label: string; plan: ShoppingPlan | null }) {
   return (
     <View style={st.shoppingCompareCard}>
-      <Text style={st.summaryLabel}>{label}</Text>
-      <Text style={st.shoppingCompareValue}>{plan ? money.format(plan.total) : "—"}</Text>
-      <Text style={st.itemMeta}>{plan ? plan.stops.map((stop) => stop.storeName).join(" + ") : "No full-price match"}</Text>
+      <View style={st.shoppingCompareTopRow}>
+        <Text style={st.summaryLabel}>{label}</Text>
+        <Text style={st.shoppingCompareValue}>{plan ? money.format(plan.total) : "—"}</Text>
+      </View>
+      <Text style={st.itemMeta}>
+        {plan ? plan.stops.map((stop) => stop.storeName).join(" + ") : "No full-price match"}
+      </Text>
     </View>
   );
 }

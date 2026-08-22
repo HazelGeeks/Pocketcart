@@ -1,4 +1,3 @@
-import React from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 

@@ -4,11 +4,6 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import type { ProductSortKey } from "../../state/adminStore";
 import { WEB_FILTER_SELECT_STYLE } from "../../utils/adminScreenHelpers";
 
-type ProductStoreFilterOption = {
-  id: string;
-  name: string;
-};
-
 type ProductSortOption = {
   key: ProductSortKey;
   label: string;
@@ -17,14 +12,12 @@ type ProductSortOption = {
 type AdminProductFiltersProps = {
   searchQuery: string;
   categoryFilter: string;
-  brandFilter: string;
-  storeFilter: string;
+  retailerFilter: string;
   saleDateFilter: string;
   onSaleOnly: boolean;
   sort: ProductSortKey;
   categoryOptions: string[];
-  brandOptions: string[];
-  storeOptions: ProductStoreFilterOption[];
+  retailerOptions: string[];
   sortOptions: ProductSortOption[];
   filteredCount: number;
   totalCount: number;
@@ -32,8 +25,7 @@ type AdminProductFiltersProps = {
   styles: Record<string, any>;
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
-  onBrandChange: (value: string) => void;
-  onStoreChange: (value: string) => void;
+  onRetailerChange: (value: string) => void;
   onSaleDateChange: (value: string) => void;
   onSaleOnlyChange: (value: boolean) => void;
   onSortChange: (value: ProductSortKey) => void;
@@ -43,14 +35,12 @@ type AdminProductFiltersProps = {
 export default function AdminProductFilters({
   searchQuery,
   categoryFilter,
-  brandFilter,
-  storeFilter,
+  retailerFilter,
   saleDateFilter,
   onSaleOnly,
   sort,
   categoryOptions,
-  brandOptions,
-  storeOptions,
+  retailerOptions,
   sortOptions,
   filteredCount,
   totalCount,
@@ -58,8 +48,7 @@ export default function AdminProductFilters({
   styles: st,
   onSearchChange,
   onCategoryChange,
-  onBrandChange,
-  onStoreChange,
+  onRetailerChange,
   onSaleDateChange,
   onSaleOnlyChange,
   onSortChange,
@@ -79,7 +68,7 @@ export default function AdminProductFilters({
         <TextInput
           value={searchQuery}
           onChangeText={onSearchChange}
-          placeholder="Search product, category, store, or ID"
+          placeholder="Search product, category, retailer, or ID"
           placeholderTextColor={C.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -101,56 +90,67 @@ export default function AdminProductFilters({
             </select>
 
             <select
-              value={brandFilter}
-              onChange={(event) => onBrandChange((event.target as HTMLSelectElement).value)}
+              value={retailerFilter}
+              onChange={(event) => onRetailerChange((event.target as HTMLSelectElement).value)}
               style={WEB_FILTER_SELECT_STYLE}
             >
-              <option value="all">Store chain: All</option>
-              {brandOptions.map((brand) => (
-                <option key={`filter-brand-${brand}`} value={brand}>
-                  {brand}
+              <option value="all">Retailer: All</option>
+              {retailerOptions.map((retailer) => (
+                <option key={`filter-retailer-${retailer}`} value={retailer}>
+                  {retailer}
                 </option>
               ))}
             </select>
 
-            <label style={{ ...WEB_FILTER_SELECT_STYLE, display: "flex", alignItems: "center", gap: 8 }}>
+            <label
+              style={{ ...WEB_FILTER_SELECT_STYLE, display: "flex", alignItems: "center", gap: 8 }}
+            >
               <span style={{ whiteSpace: "nowrap" }}>Sale from</span>
               <input
                 aria-label="Sale start date filter"
                 type="date"
                 value={saleStartDate}
-                onChange={(event) => updateSaleDateRange((event.target as HTMLInputElement).value, saleEndDate)}
-                style={{ border: 0, outline: 0, background: "transparent", color: "inherit", font: "inherit", minWidth: 118 }}
+                onChange={(event) =>
+                  updateSaleDateRange((event.target as HTMLInputElement).value, saleEndDate)
+                }
+                style={{
+                  border: 0,
+                  outline: 0,
+                  background: "transparent",
+                  color: "inherit",
+                  font: "inherit",
+                  minWidth: 118,
+                }}
               />
             </label>
 
-            <label style={{ ...WEB_FILTER_SELECT_STYLE, display: "flex", alignItems: "center", gap: 8 }}>
+            <label
+              style={{ ...WEB_FILTER_SELECT_STYLE, display: "flex", alignItems: "center", gap: 8 }}
+            >
               <span style={{ whiteSpace: "nowrap" }}>Sale to</span>
               <input
                 aria-label="Sale end date filter"
                 type="date"
                 value={saleEndDate}
-                onChange={(event) => updateSaleDateRange(saleStartDate, (event.target as HTMLInputElement).value)}
-                style={{ border: 0, outline: 0, background: "transparent", color: "inherit", font: "inherit", minWidth: 118 }}
+                onChange={(event) =>
+                  updateSaleDateRange(saleStartDate, (event.target as HTMLInputElement).value)
+                }
+                style={{
+                  border: 0,
+                  outline: 0,
+                  background: "transparent",
+                  color: "inherit",
+                  font: "inherit",
+                  minWidth: 118,
+                }}
               />
             </label>
 
             <select
-              value={storeFilter}
-              onChange={(event) => onStoreChange((event.target as HTMLSelectElement).value)}
-              style={WEB_FILTER_SELECT_STYLE}
-            >
-              <option value="all">Store: All</option>
-              {storeOptions.map((store) => (
-                <option key={`filter-store-${store.id}`} value={store.id}>
-                  {store.name}
-                </option>
-              ))}
-            </select>
-
-            <select
               value={sort}
-              onChange={(event) => onSortChange((event.target as HTMLSelectElement).value as ProductSortKey)}
+              onChange={(event) =>
+                onSortChange((event.target as HTMLSelectElement).value as ProductSortKey)
+              }
               style={WEB_FILTER_SELECT_STYLE}
             >
               {sortOptions.map((option) => (
@@ -169,9 +169,7 @@ export default function AdminProductFilters({
           onPress={() => onSaleOnlyChange(!onSaleOnly)}
           style={[st.btn, onSaleOnly ? st.btnPrimary : st.btnGhost]}
         >
-          <Text style={onSaleOnly ? st.btnPrimaryText : st.btnGhostText}>
-            On Sale
-          </Text>
+          <Text style={onSaleOnly ? st.btnPrimaryText : st.btnGhostText}>On Sale</Text>
         </Pressable>
 
         <Pressable

@@ -9,51 +9,54 @@ const {
   normalizeShoppingListItems,
   removeShoppingListProduct,
 } = require("../.tmp-tests/utils/shoppingListState.js");
+const { persistShoppingListMigration } = require("../.tmp-tests/utils/shoppingListStorage.js");
 const {
-  persistShoppingListMigration,
-} = require("../.tmp-tests/utils/shoppingListStorage.js");
-const {
+  hasNativeBackDestination,
+  shouldCompleteNativeBackGesture,
+  shouldStartNativeBackGesture,
   shouldHandleHomeDetailBack,
 } = require("../.tmp-tests/utils/nativeBackNavigation.js");
+const {
+  getNextBottomBarScrollState,
+  INITIAL_BOTTOM_BAR_SCROLL_STATE,
+  shouldAutoHideBottomBar,
+} = require("../.tmp-tests/utils/nativeBottomBarVisibility.js");
+const {
+  getNearestStoreMapSheetSnap,
+  getNextStoreMapSheetSnap,
+  getStoreMapSheetOffsets,
+} = require("../.tmp-tests/utils/storeMapBottomSheet.js");
 const {
   normalizeProfilePreferences,
   profilePreferencesFromRow,
 } = require("../.tmp-tests/utils/profilePreferenceNormalization.js");
-const {
-  isNewlyCreatedUser,
-} = require("../.tmp-tests/utils/socialAuth.js");
-const {
-  normalizeStoredOnboardingState,
-} = require("../.tmp-tests/utils/nativeOnboardingState.js");
-const {
-  settleLatestListResults,
-} = require("../.tmp-tests/utils/asyncRequestResults.js");
-const {
-  isPushRegistrationReady,
-} = require("../.tmp-tests/utils/pushRegistrationState.js");
+const { isNewlyCreatedUser } = require("../.tmp-tests/utils/socialAuth.js");
+const { normalizeStoredOnboardingState } = require("../.tmp-tests/utils/nativeOnboardingState.js");
+const { settleLatestListResults } = require("../.tmp-tests/utils/asyncRequestResults.js");
+const { formatAlertActivityTime } = require("../.tmp-tests/utils/alertActivity.js");
+const { isPushRegistrationReady } = require("../.tmp-tests/utils/pushRegistrationState.js");
 
 test("shopping-list normalization rejects non-lists and malformed rows", () => {
   assert.deepEqual(normalizeShoppingListItems(null), []);
   assert.deepEqual(normalizeShoppingListItems({ productId: "milk" }), []);
-  assert.deepEqual(normalizeShoppingListItems([
-    null,
-    { productId: "milk" },
-    { name: "Milk" },
-  ]), []);
+  assert.deepEqual(normalizeShoppingListItems([null, { productId: "milk" }, { name: "Milk" }]), []);
 });
 
 test("shopping-list normalization preserves valid rows and clamps quantities", () => {
-  assert.deepEqual(normalizeShoppingListItems([
-    { productId: "milk", name: "Milk", unit: "1 L", quantity: 2.6 },
-    { productId: "bread", name: "Bread", unit: 42, quantity: -3 },
-    { productId: "eggs", name: "Eggs", quantity: 120 },
-    { productId: "rice", name: "Rice", quantity: "4" },
-  ]), [
-    { productId: "milk", name: "Milk", unit: "1 L", quantity: 3 },
-    { productId: "bread", name: "Bread", unit: null, quantity: 1 },
-    { productId: "eggs", name: "Eggs", unit: null, quantity: 99 },
-    { productId: "rice", name: "Rice", unit: null, quantity: 4 },
-  ]);
+  assert.deepEqual(
+    normalizeShoppingListItems([
+      { productId: "milk", name: "Milk", unit: "1 L", quantity: 2.6 },
+      { productId: "bread", name: "Bread", unit: 42, quantity: -3 },
+      { productId: "eggs", name: "Eggs", quantity: 120 },
+      { productId: "rice", name: "Rice", quantity: "4" },
+    ]),
+    [
+      { productId: "milk", name: "Milk", unit: "1 L", quantity: 3 },
+      { productId: "bread", name: "Bread", unit: null, quantity: 1 },
+      { productId: "eggs", name: "Eggs", unit: null, quantity: 99 },
+      { productId: "rice", name: "Rice", unit: null, quantity: 4 },
+    ],
+  );
 });
 
 test("shopping-list operations add, increment, cap, decrement, and remove items", () => {
@@ -79,20 +82,23 @@ test("shopping-list operations leave unrelated items intact", () => {
 });
 
 test("shopping-list merge keeps remote items and guest quantities", () => {
-  assert.deepEqual(mergeShoppingListItems(
+  assert.deepEqual(
+    mergeShoppingListItems(
+      [
+        { productId: "milk", name: "Fresh Milk", unit: "1 L", quantity: 3 },
+        { productId: "eggs", name: "Eggs", unit: "12 pack", quantity: 1 },
+      ],
+      [
+        { productId: "milk", name: "Milk", unit: null, quantity: 1 },
+        { productId: "bread", name: "Bread", unit: null, quantity: 2 },
+      ],
+    ),
     [
       { productId: "milk", name: "Fresh Milk", unit: "1 L", quantity: 3 },
+      { productId: "bread", name: "Bread", unit: null, quantity: 2 },
       { productId: "eggs", name: "Eggs", unit: "12 pack", quantity: 1 },
     ],
-    [
-      { productId: "milk", name: "Milk", unit: null, quantity: 1 },
-      { productId: "bread", name: "Bread", unit: null, quantity: 2 },
-    ],
-  ), [
-    { productId: "milk", name: "Fresh Milk", unit: "1 L", quantity: 3 },
-    { productId: "bread", name: "Bread", unit: null, quantity: 2 },
-    { productId: "eggs", name: "Eggs", unit: "12 pack", quantity: 1 },
-  ]);
+  );
 });
 
 test("shopping-list hydration keeps legacy, guest, in-memory, and account items", () => {
@@ -101,14 +107,11 @@ test("shopping-list hydration keeps legacy, guest, in-memory, and account items"
   const inMemory = [{ productId: "guest", name: "Guest", unit: "ea", quantity: 3 }];
   const account = [{ productId: "account", name: "Account", unit: "lb", quantity: 1 }];
 
-  assert.deepEqual(
-    mergeShoppingListItemSources(legacy, guest, inMemory, account),
-    [
-      { productId: "account", name: "Account", unit: "lb", quantity: 1 },
-      { productId: "guest", name: "Guest", unit: "ea", quantity: 3 },
-      { productId: "legacy", name: "Legacy", unit: null, quantity: 1 },
-    ],
-  );
+  assert.deepEqual(mergeShoppingListItemSources(legacy, guest, inMemory, account), [
+    { productId: "account", name: "Account", unit: "lb", quantity: 1 },
+    { productId: "guest", name: "Guest", unit: "ea", quantity: 3 },
+    { productId: "legacy", name: "Legacy", unit: null, quantity: 1 },
+  ]);
 });
 
 test("shopping-list migration writes v2 before removing v1", async () => {
@@ -148,12 +151,7 @@ test("shopping-list migration retains v1 when the v2 write fails", async () => {
   };
 
   await assert.rejects(
-    persistShoppingListMigration(
-      storage,
-      "pc-shopping-list-v2.guest",
-      "pc-shopping-list-v1",
-      [],
-    ),
+    persistShoppingListMigration(storage, "pc-shopping-list-v2.guest", "pc-shopping-list-v1", []),
     /storage full/,
   );
   assert.equal(removed, false);
@@ -195,28 +193,104 @@ test("home detail back handling is limited to the active home tab", () => {
   assert.equal(shouldHandleHomeDetailBack("home", "catalog"), false);
 });
 
-test("profile-preference normalization keeps only supported values", () => {
-  assert.deepEqual(normalizeProfilePreferences({
-    interestedCategories: ["Dairy", 3, "Bakery"],
-    shoppingFrequency: "weekly",
-    favoriteStores: ["Costco", null, "T&T"],
-    completed: true,
-  }), {
-    interestedCategories: ["Dairy", "Bakery"],
-    shoppingFrequency: "weekly",
-    favoriteStores: ["Costco", "T&T"],
-    completed: true,
-  });
+test("native back destinations include alerts and account subpages", () => {
+  assert.equal(hasNativeBackDestination("home", "detail", "settings"), true);
+  assert.equal(hasNativeBackDestination("alerts", "catalog", "settings"), true);
+  assert.equal(hasNativeBackDestination("more", "catalog", "auth"), true);
+  assert.equal(hasNativeBackDestination("more", "catalog", "settings"), false);
+  assert.equal(hasNativeBackDestination("map", "catalog", "settings"), false);
+});
 
-  assert.deepEqual(normalizeProfilePreferences({
-    shoppingFrequency: "daily",
-    completed: "yes",
-  }), {
-    interestedCategories: [],
-    shoppingFrequency: null,
-    favoriteStores: [],
-    completed: false,
-  });
+test("native back gesture starts only from the left edge with horizontal intent", () => {
+  assert.equal(shouldStartNativeBackGesture({ x0: 20, dx: 18, dy: 4 }), true);
+  assert.equal(shouldStartNativeBackGesture({ x0: 50, dx: 18, dy: 4 }), false);
+  assert.equal(shouldStartNativeBackGesture({ x0: 20, dx: 8, dy: 1 }), false);
+  assert.equal(shouldStartNativeBackGesture({ x0: 20, dx: 18, dy: 20 }), false);
+});
+
+test("native back gesture completes by distance or rightward velocity", () => {
+  assert.equal(shouldCompleteNativeBackGesture({ dx: 90, dy: 12, vx: 0.2 }), true);
+  assert.equal(shouldCompleteNativeBackGesture({ dx: 30, dy: 4, vx: 0.7 }), true);
+  assert.equal(shouldCompleteNativeBackGesture({ dx: 55, dy: 4, vx: 0.2 }), false);
+  assert.equal(shouldCompleteNativeBackGesture({ dx: 90, dy: 100, vx: 0.8 }), false);
+});
+
+test("map bottom sheet exposes collapsed, half, and expanded snap points", () => {
+  const offsets = getStoreMapSheetOffsets(600, 240);
+  assert.deepEqual(offsets, { expanded: 0, half: 180, collapsed: 360 });
+  assert.equal(getNearestStoreMapSheetSnap(offsets, 30, 0), "expanded");
+  assert.equal(getNearestStoreMapSheetSnap(offsets, 170, 0), "half");
+  assert.equal(getNearestStoreMapSheetSnap(offsets, 330, 0), "collapsed");
+  assert.equal(getNearestStoreMapSheetSnap(offsets, 220, -1), "half");
+  assert.equal(getNextStoreMapSheetSnap("collapsed"), "half");
+  assert.equal(getNextStoreMapSheetSnap("half"), "expanded");
+  assert.equal(getNextStoreMapSheetSnap("expanded"), "collapsed");
+});
+
+test("bottom bar auto-hide is limited to scroll-heavy tabs", () => {
+  assert.equal(shouldAutoHideBottomBar("home"), true);
+  assert.equal(shouldAutoHideBottomBar("shopping"), true);
+  assert.equal(shouldAutoHideBottomBar("alerts"), true);
+  assert.equal(shouldAutoHideBottomBar("map"), false);
+  assert.equal(shouldAutoHideBottomBar("scan"), false);
+  assert.equal(shouldAutoHideBottomBar("more"), false);
+});
+
+test("bottom bar hides after sustained downward scrolling and returns quickly", () => {
+  let state = getNextBottomBarScrollState(INITIAL_BOTTOM_BAR_SCROLL_STATE, 30, true);
+  assert.equal(state.hidden, false);
+
+  state = getNextBottomBarScrollState(state, 70, true);
+  assert.equal(state.hidden, true);
+
+  state = getNextBottomBarScrollState(state, 62, true);
+  assert.equal(state.hidden, true);
+
+  state = getNextBottomBarScrollState(state, 48, true);
+  assert.equal(state.hidden, false);
+
+  state = getNextBottomBarScrollState({ ...state, hidden: true }, 8, true);
+  assert.equal(state.hidden, false);
+});
+
+test("alert activity uses compact relative timestamps and stable calendar dates", () => {
+  const now = new Date("2026-08-21T20:00:00.000Z").getTime();
+  assert.equal(formatAlertActivityTime("2026-08-21T19:59:40.000Z", now), "Just now");
+  assert.equal(formatAlertActivityTime("2026-08-21T19:42:00.000Z", now), "18m ago");
+  assert.equal(formatAlertActivityTime("2026-08-21T15:00:00.000Z", now), "5h ago");
+  assert.equal(formatAlertActivityTime("2026-08-19T20:00:00.000Z", now), "2d ago");
+  assert.equal(formatAlertActivityTime("2026-08-13T20:00:00.000Z", now), "Aug 13");
+  assert.equal(formatAlertActivityTime("not-a-date", now), "");
+});
+
+test("profile-preference normalization keeps only supported values", () => {
+  assert.deepEqual(
+    normalizeProfilePreferences({
+      interestedCategories: ["Dairy", 3, "Bakery"],
+      shoppingFrequency: "weekly",
+      favoriteStores: ["Costco", null, "T&T"],
+      completed: true,
+    }),
+    {
+      interestedCategories: ["Dairy", "Bakery"],
+      shoppingFrequency: "weekly",
+      favoriteStores: ["Costco", "T&T"],
+      completed: true,
+    },
+  );
+
+  assert.deepEqual(
+    normalizeProfilePreferences({
+      shoppingFrequency: "daily",
+      completed: "yes",
+    }),
+    {
+      interestedCategories: [],
+      shoppingFrequency: null,
+      favoriteStores: [],
+      completed: false,
+    },
+  );
 });
 
 test("profile-preference normalization supplies an empty safe default", () => {
@@ -229,31 +303,37 @@ test("profile-preference normalization supplies an empty safe default", () => {
 });
 
 test("profile preference rows map database fields and completion status", () => {
-  assert.deepEqual(profilePreferencesFromRow({
-    interested_categories: ["Dairy", "Frozen"],
-    shopping_frequency: "biweekly",
-    favorite_stores: ["Costco"],
-    completed_at: "2026-07-14T12:00:00.000Z",
-  }), {
-    interestedCategories: ["Dairy", "Frozen"],
-    shoppingFrequency: "biweekly",
-    favoriteStores: ["Costco"],
-    completed: true,
-  });
+  assert.deepEqual(
+    profilePreferencesFromRow({
+      interested_categories: ["Dairy", "Frozen"],
+      shopping_frequency: "biweekly",
+      favorite_stores: ["Costco"],
+      completed_at: "2026-07-14T12:00:00.000Z",
+    }),
+    {
+      interestedCategories: ["Dairy", "Frozen"],
+      shoppingFrequency: "biweekly",
+      favoriteStores: ["Costco"],
+      completed: true,
+    },
+  );
 });
 
 test("profile preference rows safely reject malformed database values", () => {
-  assert.deepEqual(profilePreferencesFromRow({
-    interested_categories: "Dairy",
-    shopping_frequency: "daily",
-    favorite_stores: ["Costco", 42],
-    completed_at: "",
-  }), {
-    interestedCategories: [],
-    shoppingFrequency: null,
-    favoriteStores: ["Costco"],
-    completed: false,
-  });
+  assert.deepEqual(
+    profilePreferencesFromRow({
+      interested_categories: "Dairy",
+      shopping_frequency: "daily",
+      favorite_stores: ["Costco", 42],
+      completed_at: "",
+    }),
+    {
+      interestedCategories: [],
+      shoppingFrequency: null,
+      favoriteStores: ["Costco"],
+      completed: false,
+    },
+  );
 });
 
 test("social auth detects only sign-ins within the new-user window", () => {
@@ -267,46 +347,50 @@ test("social auth detects only sign-ins within the new-user window", () => {
 });
 
 test("onboarding normalization restores valid persisted choices", () => {
-  assert.deepEqual(normalizeStoredOnboardingState({
-    locationCompleted: true,
-    locationMode: "share",
-    postalCode: "V5K 0A1",
-    locationLatitude: 49.28,
-    locationLongitude: -123.12,
-    alertsCompleted: true,
-    alertsEnabled: true,
-  }), {
-    locationCompleted: true,
-    locationMode: "share",
-    postalCode: "V5K 0A1",
-    locationLatitude: 49.28,
-    locationLongitude: -123.12,
-    alertsCompleted: true,
-    alertsEnabled: true,
-  });
+  assert.deepEqual(
+    normalizeStoredOnboardingState({
+      locationCompleted: true,
+      locationMode: "share",
+      postalCode: "V5K 0A1",
+      locationLatitude: 49.28,
+      locationLongitude: -123.12,
+      alertsCompleted: true,
+      alertsEnabled: true,
+    }),
+    {
+      locationCompleted: true,
+      locationMode: "share",
+      postalCode: "V5K 0A1",
+      locationLatitude: 49.28,
+      locationLongitude: -123.12,
+      alertsCompleted: true,
+      alertsEnabled: true,
+    },
+  );
 });
 
 test("onboarding normalization rejects corrupt modes and coordinates", () => {
-  assert.deepEqual(normalizeStoredOnboardingState({
-    locationMode: "nearby",
-    postalCode: 12345,
-    locationLatitude: Number.NaN,
-    locationLongitude: "-123",
-  }), {
-    locationCompleted: false,
-    locationMode: "skip",
-    postalCode: null,
-    locationLatitude: null,
-    locationLongitude: null,
-    alertsCompleted: false,
-    alertsEnabled: false,
-  });
+  assert.deepEqual(
+    normalizeStoredOnboardingState({
+      locationMode: "nearby",
+      postalCode: 12345,
+      locationLatitude: Number.NaN,
+      locationLongitude: "-123",
+    }),
+    {
+      locationCompleted: false,
+      locationMode: "skip",
+      postalCode: null,
+      locationLatitude: null,
+      locationLongitude: null,
+      alertsCompleted: false,
+      alertsEnabled: false,
+    },
+  );
 });
 
 test("latest list result settlement ignores stale async responses", () => {
-  const stale = settleLatestListResults(3, 4, [
-    { data: [{ id: "old" }], error: null },
-  ]);
+  const stale = settleLatestListResults(3, 4, [{ data: [{ id: "old" }], error: null }]);
 
   assert.equal(stale, null);
 });
@@ -326,33 +410,43 @@ test("latest list result settlement merges data and deduplicates useful errors",
 });
 
 test("latest list result settlement clears an old error after a clean response", () => {
-  assert.deepEqual(settleLatestListResults(5, 5, [
-    { data: [{ id: "fresh" }], error: null },
-  ]), {
+  assert.deepEqual(settleLatestListResults(5, 5, [{ data: [{ id: "fresh" }], error: null }]), {
     data: [{ id: "fresh" }],
     message: null,
   });
 });
 
 test("push alerts require permission, a persisted registration, and a token", () => {
-  assert.equal(isPushRegistrationReady({
-    granted: true,
-    registered: false,
-    token: null,
-  }), false);
-  assert.equal(isPushRegistrationReady({
-    granted: true,
-    registered: false,
-    token: "ExponentPushToken[unlinked]",
-  }), false);
-  assert.equal(isPushRegistrationReady({
-    granted: false,
-    registered: true,
-    token: "ExponentPushToken[denied]",
-  }), false);
-  assert.equal(isPushRegistrationReady({
-    granted: true,
-    registered: true,
-    token: "ExponentPushToken[ready]",
-  }), true);
+  assert.equal(
+    isPushRegistrationReady({
+      granted: true,
+      registered: false,
+      token: null,
+    }),
+    false,
+  );
+  assert.equal(
+    isPushRegistrationReady({
+      granted: true,
+      registered: false,
+      token: "ExponentPushToken[unlinked]",
+    }),
+    false,
+  );
+  assert.equal(
+    isPushRegistrationReady({
+      granted: false,
+      registered: true,
+      token: "ExponentPushToken[denied]",
+    }),
+    false,
+  );
+  assert.equal(
+    isPushRegistrationReady({
+      granted: true,
+      registered: true,
+      token: "ExponentPushToken[ready]",
+    }),
+    true,
+  );
 });

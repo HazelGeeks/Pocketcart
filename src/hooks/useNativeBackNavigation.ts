@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Animated,
   BackHandler,
   PanResponder,
   Platform,
@@ -10,69 +11,105 @@ import type useNativeCatalog from "./useNativeCatalog";
 import type useNativeShellState from "./useNativeShellState";
 import type useNativeStoreMap from "./useNativeStoreMap";
 import type { NativeTabId } from "../screens/nativeAppData";
-import { shouldHandleHomeDetailBack } from "../utils/nativeBackNavigation";
+import {
+  hasNativeBackDestination,
+  shouldCompleteNativeBackGesture,
+  shouldStartNativeBackGesture,
+} from "../utils/nativeBackNavigation";
 
 type Options = {
   account: ReturnType<typeof useNativeAccount>;
   catalog: ReturnType<typeof useNativeCatalog>;
+  gestureEnabled: boolean;
   map: ReturnType<typeof useNativeStoreMap>;
   shell: ReturnType<typeof useNativeShellState>;
+  width: number;
 };
 
 export default function useNativeBackNavigation({
   account,
   catalog,
+  gestureEnabled,
   map,
   shell,
+  width,
 }: Options) {
-  const detailPanHandlers = React.useMemo<GestureResponderHandlers>(
+  const backTranslateX = React.useRef(new Animated.Value(0)).current;
+  const canNavigateBack = hasNativeBackDestination(
+    shell.activeTab,
+    catalog.route,
+    account.accountRoute,
+  );
+  const navigateBack = React.useCallback(() => {
+    if (shell.activeTab === "alerts") {
+      shell.openHome();
+      return true;
+    }
+    if (shell.activeTab === "more" && account.accountRoute !== "settings") {
+      account.closeSubpage();
+      return true;
+    }
+    if (shell.activeTab === "home" && catalog.route === "detail") {
+      catalog.setRoute("catalog");
+      return true;
+    }
+    return false;
+  }, [
+    account.accountRoute,
+    account.closeSubpage,
+    catalog.route,
+    catalog.setRoute,
+    shell.activeTab,
+    shell.openHome,
+  ]);
+
+  const resetBackPosition = React.useCallback(() => {
+    Animated.spring(backTranslateX, {
+      toValue: 0,
+      damping: 24,
+      stiffness: 260,
+      mass: 0.75,
+      useNativeDriver: true,
+    }).start();
+  }, [backTranslateX]);
+
+  const backPanHandlers = React.useMemo<GestureResponderHandlers>(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: () =>
-          Platform.OS !== "web" &&
-          catalog.route === "detail" &&
-          shell.activeTab === "home",
-        onPanResponderRelease: (_event, gestureState) => {
-          if (
-            gestureState.dx > 72 &&
-            gestureState.vx > 0.25 &&
-            Math.abs(gestureState.vy) < 1
-          ) {
-            catalog.setRoute("catalog");
-          }
+        onMoveShouldSetPanResponderCapture: (_event, gesture) =>
+          Platform.OS === "ios" &&
+          gestureEnabled &&
+          canNavigateBack &&
+          shouldStartNativeBackGesture(gesture),
+        onPanResponderMove: (_event, gesture) => {
+          backTranslateX.setValue(Math.max(0, Math.min(gesture.dx, width)));
         },
+        onPanResponderRelease: (_event, gestureState) => {
+          if (!shouldCompleteNativeBackGesture(gestureState)) {
+            resetBackPosition();
+            return;
+          }
+          Animated.timing(backTranslateX, {
+            toValue: width,
+            duration: 150,
+            useNativeDriver: true,
+          }).start(() => {
+            navigateBack();
+            backTranslateX.setValue(0);
+          });
+        },
+        onPanResponderTerminate: resetBackPosition,
       }).panHandlers,
-    [catalog.route, catalog.setRoute, shell.activeTab],
+    [backTranslateX, canNavigateBack, gestureEnabled, navigateBack, resetBackPosition, width],
   );
 
   React.useEffect(() => {
     if (Platform.OS !== "android") return;
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (shell.activeTab === "alerts") {
-        shell.openHome();
-        return true;
-      }
-      if (shell.activeTab === "more" && account.accountRoute !== "settings") {
-        account.setAccountRoute("settings");
-        account.setMoreMessage(null);
-        return true;
-      }
-      if (shouldHandleHomeDetailBack(shell.activeTab, catalog.route)) {
-        catalog.setRoute("catalog");
-        return true;
-      }
-      return false;
+      return navigateBack();
     });
     return () => subscription.remove();
-  }, [
-    account.accountRoute,
-    account.setAccountRoute,
-    account.setMoreMessage,
-    catalog.route,
-    catalog.setRoute,
-    shell.openHome,
-    shell.activeTab,
-  ]);
+  }, [navigateBack]);
 
   const selectTab = React.useCallback(
     (tabId: NativeTabId) => {
@@ -93,5 +130,5 @@ export default function useNativeBackNavigation({
     ],
   );
 
-  return { detailPanHandlers, selectTab };
+  return { backPanHandlers, backTranslateX, selectTab };
 }

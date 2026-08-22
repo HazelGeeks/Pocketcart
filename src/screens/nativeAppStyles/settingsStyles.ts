@@ -4,15 +4,13 @@ import { F } from "./fonts";
 
 export const settingsStyles = StyleSheet.create({
   settingsPage: {
-    gap: 14,
+    gap: 24,
   },
   settingsProfileCard: {
-    gap: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    padding: 12,
+    gap: 14,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
   },
   settingsProfileIdentity: {
     flexDirection: "row",
@@ -26,8 +24,6 @@ export const settingsStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: C.primaryGhost,
-    borderWidth: 1,
-    borderColor: C.line,
   },
   settingsProfileCopy: {
     minWidth: 0,
@@ -46,10 +42,9 @@ export const settingsStyles = StyleSheet.create({
     fontFamily: F.regular,
   },
   settingsSection: {
-    gap: 6,
+    gap: 8,
   },
   settingsSectionLabel: {
-    marginLeft: 4,
     color: C.textMuted,
     fontSize: 10,
     letterSpacing: 0.6,
@@ -57,15 +52,14 @@ export const settingsStyles = StyleSheet.create({
     fontFamily: F.bold,
   },
   settingsGroup: {
-    overflow: "hidden",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
+    borderTopWidth: 1,
+    borderTopColor: C.line,
+    borderBottomWidth: 1,
+    borderBottomColor: C.line,
   },
   settingsLocationBlock: {
     gap: 10,
-    padding: 12,
+    paddingVertical: 10,
   },
   settingsLocationTopRow: {
     minHeight: 44,
@@ -81,12 +75,10 @@ export const settingsStyles = StyleSheet.create({
     gap: 9,
   },
   settingsLocationIcon: {
-    width: 36,
+    width: 28,
     height: 36,
-    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: C.primaryGhost,
   },
   settingsLocationStatus: {
     color: C.textSoft,
@@ -96,12 +88,10 @@ export const settingsStyles = StyleSheet.create({
   settingsLocationAction: {
     minHeight: 44,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.line,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
-    backgroundColor: C.white,
+    backgroundColor: C.primaryGhost,
   },
   settingsLocationActionText: {
     color: C.primaryDeep,
@@ -121,9 +111,7 @@ export const settingsStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
+    backgroundColor: C.primaryGhost,
   },
   settingsCurrentLocationButtonText: {
     color: C.primaryDeep,
@@ -191,21 +179,17 @@ export const settingsStyles = StyleSheet.create({
     minHeight: 44,
     flex: 1,
     borderRadius: 10,
-    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
   },
   settingsButtonPrimary: {
-    borderColor: C.primaryDeep,
     backgroundColor: C.primaryDeep,
   },
   settingsButtonSecondary: {
-    borderColor: C.line,
-    backgroundColor: C.white,
+    backgroundColor: C.primaryGhost,
   },
   settingsButtonDanger: {
-    borderColor: "#A83939",
     backgroundColor: "#A83939",
   },
   settingsButtonPrimaryText: {
@@ -222,7 +206,6 @@ export const settingsStyles = StyleSheet.create({
   },
   settingsDivider: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: 12,
     backgroundColor: C.line,
   },
   settingsToggleRow: {
@@ -230,7 +213,7 @@ export const settingsStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
     paddingVertical: 8,
   },
   settingsLinkRow: {
@@ -239,7 +222,7 @@ export const settingsStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
   },
   settingsRowPressed: {
     backgroundColor: C.primaryGhost,
@@ -260,12 +243,10 @@ export const settingsStyles = StyleSheet.create({
   },
   settingsDangerBlock: {
     gap: 9,
-    padding: 12,
+    paddingVertical: 12,
   },
   settingsMessage: {
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.line,
     backgroundColor: C.primaryGhost,
     paddingHorizontal: 14,
     paddingVertical: 11,
@@ -276,17 +257,22 @@ export const settingsStyles = StyleSheet.create({
     lineHeight: 18,
     fontFamily: F.semibold,
   },
-  settingsSummaryBlock: {
-    gap: 10,
-    padding: 12,
-  },
   settingsSummaryRow: {
-    gap: 2,
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.line,
   },
   settingsSummaryValue: {
+    flex: 1,
     color: C.text,
     fontSize: 13,
     lineHeight: 17,
+    textAlign: "right",
     fontFamily: F.semibold,
   },
 });

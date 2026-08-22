@@ -5,13 +5,15 @@ import { catalogStyles } from "./catalogStyles";
 import { categoryFilterStyles } from "./categoryFilterStyles";
 import { commonStyles } from "./commonStyles";
 import { detailNavigationStyles } from "./detailNavigationStyles";
+import { foodScanLinkStyles } from "./foodScanLinkStyles";
 import { foodScanStyles } from "./foodScanStyles";
+import { headerActionStyles } from "./headerActionStyles";
 import { homeControlStyles } from "./homeControlStyles";
 import { homePhotoStyles } from "./homePhotoStyles";
-import { headerActionStyles } from "./headerActionStyles";
 import { onboardingStyles } from "./onboardingStyles";
 import { productDetailStyles } from "./productDetailStyles";
 import { productHistoryStyles } from "./productHistoryStyles";
+import { saleAlertsStyles } from "./saleAlertsStyles";
 import { shoppingListStyles } from "./shoppingListStyles";
 import { storeMapResultStyles } from "./storeMapResultStyles";
 import { storeMapStyles } from "./storeMapStyles";
@@ -22,6 +24,7 @@ export const st = {
   ...accountSettingsStyles,
   ...productDetailStyles,
   ...productHistoryStyles,
+  ...saleAlertsStyles,
   ...appChromeStyles,
   ...catalogStyles,
   ...categoryFilterStyles,
@@ -30,6 +33,7 @@ export const st = {
   ...homePhotoStyles,
   ...headerActionStyles,
   ...detailNavigationStyles,
+  ...foodScanLinkStyles,
   ...foodScanStyles,
   ...onboardingStyles,
   ...shoppingListStyles,

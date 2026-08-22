@@ -1,7 +1,17 @@
 import React from "react";
-import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { marketingPalette as C } from "../../shared/design/palette";
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import type { AdminStore } from "../../services/adminBackoffice";
+import { marketingPalette as C } from "../../shared/design/palette";
 import type { StorePriceSetInput } from "../../utils/adminScreenHelpers";
 import AdminProductPriceSetsEditor from "./AdminProductPriceSetsEditor";
 
@@ -31,7 +41,11 @@ type Props = {
   onPasteImageEvent: (event: ClipboardEvent) => boolean;
   onAddStorePriceSet: () => void;
   onRemoveStorePriceSet: (id: string) => void;
-  onUpdateStorePriceSet: (id: string, field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate", value: string) => void;
+  onUpdateStorePriceSet: (
+    id: string,
+    field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate",
+    value: string,
+  ) => void;
   onClose: () => void;
   onSave: () => void;
 };
@@ -82,7 +96,7 @@ export default function AdminProductFormModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={st.modalBackdrop}>
-        <View style={st.modalCard}>
+        <View style={[st.modalCard, st.productEditorModalCard]}>
           <View style={st.modalHeader}>
             <View>
               <Text style={st.modalTitle}>{editingProductId ? "Edit Product" : "Add Product"}</Text>
@@ -102,14 +116,24 @@ export default function AdminProductFormModal({
               <View style={st.productImageTopCopy}>
                 <Text style={st.fieldLabel}>Product Image</Text>
                 <Text style={st.dataMuted}>
-                  Upload a file, paste an image URL, or copy an image and press Cmd/Ctrl+V while this modal is open.
+                  Upload a file, paste an image URL, or copy an image and press Cmd/Ctrl+V while
+                  this modal is open.
                 </Text>
               </View>
               <View style={st.productEditorTopLayout}>
                 <View style={st.productImageControls}>
-                  <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]} disabled={imageUploading || submitting}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={onUploadImage}
+                    style={[st.imageUploadArea, (imageUploading || submitting) && st.btnDisabled]}
+                    disabled={imageUploading || submitting}
+                  >
                     {productThumb ? (
-                      <Image source={{ uri: productThumb }} style={st.modalImagePreview} resizeMode="cover" />
+                      <Image
+                        source={{ uri: productThumb }}
+                        style={st.modalImagePreview}
+                        resizeMode="cover"
+                      />
                     ) : (
                       <View style={[st.modalImagePreview, st.modalImagePlaceholder]}>
                         <Text style={st.dataMuted}>Tap to upload</Text>
@@ -117,14 +141,30 @@ export default function AdminProductFormModal({
                     )}
                     <View style={st.imageUploadOverlay}>
                       {imageUploading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
-                      <Text style={st.imageUploadOverlayText}>{imageUploading ? "Uploading..." : productThumb ? "Replace image" : "Upload image"}</Text>
+                      <Text style={st.imageUploadOverlayText}>
+                        {imageUploading
+                          ? "Uploading..."
+                          : productThumb
+                            ? "Replace image"
+                            : "Upload image"}
+                      </Text>
                     </View>
                   </Pressable>
                   <View style={st.productImageActionRow}>
-                    <Pressable accessibilityRole="button" onPress={onUploadImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={onUploadImage}
+                      style={[st.btn, st.btnGhost, st.productImageActionBtn]}
+                      disabled={imageUploading || submitting}
+                    >
                       <Text style={st.btnGhostText}>Upload image</Text>
                     </Pressable>
-                    <Pressable accessibilityRole="button" onPress={onPasteImage} style={[st.btn, st.btnGhost, st.productImageActionBtn]} disabled={imageUploading || submitting}>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={onPasteImage}
+                      style={[st.btn, st.btnGhost, st.productImageActionBtn]}
+                      disabled={imageUploading || submitting}
+                    >
                       <Text style={st.btnGhostText}>Paste image</Text>
                     </Pressable>
                   </View>
@@ -201,8 +241,18 @@ export default function AdminProductFormModal({
               {categoryOptions.map((category) => {
                 const active = productCategory.trim().toLowerCase() === category.toLowerCase();
                 return (
-                  <Pressable key={category} accessibilityRole="button" onPress={() => { onCategoryChange(category); onCategoryCustomChange(""); }} style={[st.choiceChip, active && st.choiceChipActive]}>
-                    <Text style={[st.choiceChipText, active && st.choiceChipTextActive]}>{category}</Text>
+                  <Pressable
+                    key={category}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      onCategoryChange(category);
+                      onCategoryCustomChange("");
+                    }}
+                    style={[st.choiceChip, active && st.choiceChipActive]}
+                  >
+                    <Text style={[st.choiceChipText, active && st.choiceChipTextActive]}>
+                      {category}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -224,8 +274,15 @@ export default function AdminProductFormModal({
             <Pressable accessibilityRole="button" onPress={onClose} style={[st.btn, st.btnGhost]}>
               <Text style={st.btnGhostText}>Cancel</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={onSave} style={[st.btn, st.btnPrimary]} disabled={submitting}>
-              <Text style={st.btnPrimaryText}>{submitting ? "Saving..." : editingProductId ? "Save Product" : "Create Product"}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onSave}
+              style={[st.btn, st.btnPrimary]}
+              disabled={submitting}
+            >
+              <Text style={st.btnPrimaryText}>
+                {submitting ? "Saving..." : editingProductId ? "Save Product" : "Create Product"}
+              </Text>
             </Pressable>
           </View>
         </View>

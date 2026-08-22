@@ -1,4 +1,3 @@
-import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import type { MarketProduct } from "../../services/marketData";

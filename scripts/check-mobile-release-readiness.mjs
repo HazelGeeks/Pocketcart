@@ -76,6 +76,8 @@ const requiredFiles = [
   "supabase/migrations/20260803093000_admin_audit_logs.sql",
   "supabase/migrations/20260805120000_english_first_product_names.sql",
   "supabase/migrations/20260805233000_correct_swapped_product_names.sql",
+  "supabase/migrations/20260822070000_product_aliases.sql",
+  "supabase/migrations/20260822071000_merge_taiwan_cabbage_duplicates.sql",
 ];
 
 const findings = [];
@@ -167,8 +169,7 @@ function extractNamedItems(payload) {
   }
 
   if (payload && typeof payload === "object") {
-    return Object.values(payload)
-      .flatMap((value) => extractNamedItems(value));
+    return Object.values(payload).flatMap((value) => extractNamedItems(value));
   }
 
   return [];
@@ -190,13 +191,7 @@ function readGithubSecretNames() {
 }
 
 function readEasProductionEnvNames() {
-  const output = commandOutput("npx", [
-    "eas-cli",
-    "env:list",
-    "production",
-    "--format",
-    "long",
-  ]);
+  const output = commandOutput("npx", ["eas-cli", "env:list", "production", "--format", "long"]);
   if (!output) return null;
 
   return new Set(output.match(/\b[A-Z][A-Z0-9_]{2,}\b/g) ?? []);
@@ -247,7 +242,11 @@ if (app.scheme === "pocketcart") {
   fail(`Unexpected app scheme: ${app.scheme}`);
 }
 
-if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(app.extra?.eas?.projectId ?? "")) {
+if (
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    app.extra?.eas?.projectId ?? "",
+  )
+) {
   pass("Expo app is linked to an EAS project");
 } else {
   fail("Expo app must include extra.eas.projectId from eas init/project link");
@@ -302,7 +301,9 @@ if (app.android?.package === "com.pocketcart.app") {
 if (Number.isInteger(app.android?.versionCode) && app.android.versionCode >= 1) {
   pass(`Android versionCode is ${app.android.versionCode}`);
 } else {
-  fail(`Android versionCode must be an integer greater than or equal to 1, found ${app.android?.versionCode}`);
+  fail(
+    `Android versionCode must be an integer greater than or equal to 1, found ${app.android?.versionCode}`,
+  );
 }
 
 includes(
@@ -326,7 +327,9 @@ const reactNativeTargetSdk = readAndroidTargetSdkFromManifest(
 if (reactNativeTargetSdk !== null && reactNativeTargetSdk >= 35) {
   pass(`Android target SDK baseline is Google Play compliant (${reactNativeTargetSdk})`);
 } else {
-  fail(`Android target SDK baseline must be 35 or higher, found ${reactNativeTargetSdk ?? "unknown"}`);
+  fail(
+    `Android target SDK baseline must be 35 or higher, found ${reactNativeTargetSdk ?? "unknown"}`,
+  );
 }
 
 if (pkg.dependencies?.["expo-location"]) {
@@ -384,7 +387,9 @@ if (eas.submit?.production?.android && typeof eas.submit.production.android === 
 if (eas.submit?.production?.android?.track === "internal") {
   pass("Production Android submit profile targets the internal track first");
 } else {
-  warn("Production Android submit profile should target the internal track for first review uploads");
+  warn(
+    "Production Android submit profile should target the internal track for first review uploads",
+  );
 }
 
 if (pkg.expo?.doctor?.appConfigFieldsNotSyncedCheck?.enabled === false) {
@@ -403,7 +408,11 @@ includes(
   "ITSAppUsesNonExemptEncryption",
   "iOS native project declares export compliance encryption setting",
 );
-includes("ios/PocketCart/Info.plist", "<string>pocketcart</string>", "iOS pocketcart URL scheme is present");
+includes(
+  "ios/PocketCart/Info.plist",
+  "<string>pocketcart</string>",
+  "iOS pocketcart URL scheme is present",
+);
 includes(
   "ios/PocketCart/PocketCartDebug.entitlements",
   "<key>aps-environment</key>",
@@ -424,7 +433,9 @@ includes(
   defaultIosKeychainGroup,
   "iOS Debug entitlements preserve the default Keychain access group",
 );
-if (read("ios/PocketCart/PocketCartDebug.entitlements").includes("com.apple.developer.applesignin")) {
+if (
+  read("ios/PocketCart/PocketCartDebug.entitlements").includes("com.apple.developer.applesignin")
+) {
   fail("iOS Debug entitlements must omit Sign in with Apple for email-auth device testing");
 } else {
   pass("iOS Debug entitlements omit Sign in with Apple for email-auth device testing");
@@ -455,13 +466,19 @@ includes(
   "iOS Release entitlements preserve Sign in with Apple",
 );
 const xcodeProject = read("ios/PocketCart.xcodeproj/project.pbxproj");
-const targetDebugConfiguration = xcodeProject.match(
-  /\/\* Debug \*\/ = \{[\s\S]*?PRODUCT_BUNDLE_IDENTIFIER = com\.pocketcart\.app;[\s\S]*?name = Debug;/,
-)?.[0] ?? "";
-const targetReleaseConfiguration = xcodeProject.match(
-  /\/\* Release \*\/ = \{[\s\S]*?PRODUCT_BUNDLE_IDENTIFIER = com\.pocketcart\.app;[\s\S]*?name = Release;/,
-)?.[0] ?? "";
-if (targetDebugConfiguration.includes("CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCartDebug.entitlements;")) {
+const targetDebugConfiguration =
+  xcodeProject.match(
+    /\/\* Debug \*\/ = \{[\s\S]*?PRODUCT_BUNDLE_IDENTIFIER = com\.pocketcart\.app;[\s\S]*?name = Debug;/,
+  )?.[0] ?? "";
+const targetReleaseConfiguration =
+  xcodeProject.match(
+    /\/\* Release \*\/ = \{[\s\S]*?PRODUCT_BUNDLE_IDENTIFIER = com\.pocketcart\.app;[\s\S]*?name = Release;/,
+  )?.[0] ?? "";
+if (
+  targetDebugConfiguration.includes(
+    "CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCartDebug.entitlements;",
+  )
+) {
   pass("iOS Debug builds use the development entitlement set");
 } else {
   fail("iOS Debug builds must use PocketCartDebug.entitlements");
@@ -471,7 +488,11 @@ if (targetDebugConfiguration.includes("APS_ENVIRONMENT = development;")) {
 } else {
   fail("iOS Debug builds must set APS_ENVIRONMENT to development");
 }
-if (targetReleaseConfiguration.includes("CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCart.entitlements;")) {
+if (
+  targetReleaseConfiguration.includes(
+    "CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCart.entitlements;",
+  )
+) {
   pass("iOS Release builds use the store entitlement set");
 } else {
   fail("iOS Release builds must use PocketCart.entitlements");
@@ -481,9 +502,10 @@ if (targetReleaseConfiguration.includes("APS_ENVIRONMENT = production;")) {
 } else {
   fail("iOS Release builds must set APS_ENVIRONMENT to production");
 }
-const targetBuildConfigurationList = xcodeProject.match(
-  /Build configuration list for PBXNativeTarget "PocketCart" \*\/ = \{[\s\S]*?\n\t\t\};/,
-)?.[0] ?? "";
+const targetBuildConfigurationList =
+  xcodeProject.match(
+    /Build configuration list for PBXNativeTarget "PocketCart" \*\/ = \{[\s\S]*?\n\t\t\};/,
+  )?.[0] ?? "";
 if (
   targetBuildConfigurationList.indexOf("/* Release */") >= 0 &&
   targetBuildConfigurationList.indexOf("/* Release */") <
@@ -549,7 +571,9 @@ includes(
   "Android location permission is declared",
 );
 if (read("android/app/src/main/AndroidManifest.xml").includes("android.permission.VIBRATE")) {
-  fail("Android VIBRATE permission should not be declared until native vibration or push features exist");
+  fail(
+    "Android VIBRATE permission should not be declared until native vibration or push features exist",
+  );
 } else {
   pass("Android VIBRATE permission is not declared");
 }
@@ -568,12 +592,11 @@ includes(
   "Location.getCurrentPositionAsync",
   "Native current position uses expo-location",
 );
-includes(
-  "App.native.tsx",
-  "NativeAppScreen",
-  "Native app entry renders the native app screen",
-);
-if (read("App.native.tsx").includes("AdminScreen") || read("App.native.tsx").includes("pdfjs-dist")) {
+includes("App.native.tsx", "NativeAppScreen", "Native app entry renders the native app screen");
+if (
+  read("App.native.tsx").includes("AdminScreen") ||
+  read("App.native.tsx").includes("pdfjs-dist")
+) {
   fail("Native app entry must not import web admin or PDF extraction modules");
 } else {
   pass("Native app entry excludes web admin and PDF extraction modules");
@@ -738,6 +761,11 @@ includes(
   "supabase/migrations/20260805233000_correct_swapped_product_names.sql",
   "korean_name = english_name",
   "Supabase migration corrects swapped English and Korean product names",
+);
+includes(
+  "database/schema.sql",
+  "create table if not exists public.product_aliases",
+  "Supabase schema preserves canonical product aliases",
 );
 includes(
   "database/schema.sql",
@@ -1080,6 +1108,16 @@ includes(
   "Supabase schema workflow applies the product language correction migration",
 );
 includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260822070000_product_aliases.sql",
+  "Supabase schema workflow applies the canonical product alias migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260822071000_merge_taiwan_cabbage_duplicates.sql",
+  "Supabase schema workflow applies the reviewed Taiwan Cabbage correction",
+);
+includes(
   ".gitignore",
   "google-services.json",
   "Git ignore excludes Firebase platform configuration files",
@@ -1089,26 +1127,14 @@ includes(
   "*firebase-adminsdk*.json",
   "Git ignore excludes Firebase Admin service account files",
 );
-includes(
-  ".gitignore",
-  "*.keystore",
-  "Git ignore excludes local Android signing keys",
-);
-includes(
-  ".easignore",
-  "*.jks",
-  "EAS ignore excludes local Android keystores",
-);
+includes(".gitignore", "*.keystore", "Git ignore excludes local Android signing keys");
+includes(".easignore", "*.jks", "EAS ignore excludes local Android keystores");
 includes(
   ".easignore",
   "*firebase-adminsdk*.json",
   "EAS ignore excludes Firebase Admin service account files",
 );
-includes(
-  ".easignore",
-  "credentials.json",
-  "EAS ignore excludes downloaded EAS credential bundles",
-);
+includes(".easignore", "credentials.json", "EAS ignore excludes downloaded EAS credential bundles");
 includes(
   ".easignore",
   "google-services.json",
@@ -1202,16 +1228,28 @@ if (checkExternal) {
   const githubSecretNames = readGithubSecretNames();
   const easProductionEnvNames = readEasProductionEnvNames();
 
-  if (process.env.EXPO_TOKEN || githubSecretNames?.has("EXPO_TOKEN") || commandOk("npx", ["eas-cli", "whoami"])) {
+  if (
+    process.env.EXPO_TOKEN ||
+    githubSecretNames?.has("EXPO_TOKEN") ||
+    commandOk("npx", ["eas-cli", "whoami"])
+  ) {
     pass("Expo authentication is available through EXPO_TOKEN, GitHub secret, or EAS CLI login");
   } else {
     fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npx eas-cli login");
   }
 
-  if (process.env.SUPABASE_ACCESS_TOKEN || githubSecretNames?.has("SUPABASE_ACCESS_TOKEN") || commandOk("supabase", ["projects", "list"])) {
-    pass("Supabase authentication is available through SUPABASE_ACCESS_TOKEN, GitHub secret, or CLI login");
+  if (
+    process.env.SUPABASE_ACCESS_TOKEN ||
+    githubSecretNames?.has("SUPABASE_ACCESS_TOKEN") ||
+    commandOk("supabase", ["projects", "list"])
+  ) {
+    pass(
+      "Supabase authentication is available through SUPABASE_ACCESS_TOKEN, GitHub secret, or CLI login",
+    );
   } else {
-    fail("Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or install Supabase CLI and run: supabase login");
+    fail(
+      "Supabase authentication is missing. Set SUPABASE_ACCESS_TOKEN for CI or install Supabase CLI and run: supabase login",
+    );
   }
 
   const requiredGithubSecrets = [
@@ -1239,7 +1277,10 @@ if (checkExternal) {
     fail("SUPABASE_PROJECT_ID is not set for CI function deploys");
   }
 
-  if (process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY || easProductionEnvNames?.has("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY")) {
+  if (
+    process.env.POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY ||
+    easProductionEnvNames?.has("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY")
+  ) {
     pass("Android Google Maps API key is present for production builds");
   } else {
     fail("POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY is not set");
@@ -1262,10 +1303,15 @@ if (checkExternal) {
     }
   }
 
-  if (process.env.EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET?.trim() || easProductionEnvNames?.has("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET")) {
+  if (
+    process.env.EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET?.trim() ||
+    easProductionEnvNames?.has("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET")
+  ) {
     pass("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is present for production EAS builds");
   } else {
-    warn("EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is not set; app will use the product-images default");
+    warn(
+      "EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET is not set; app will use the product-images default",
+    );
   }
 }
 

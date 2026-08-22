@@ -1,4 +1,3 @@
-import React from "react";
 import { Text } from "react-native";
 import type { AdminWorkspaceActions } from "../../hooks/useAdminWorkspaceActions";
 import type { AdminWorkspaceData } from "../../hooks/useAdminWorkspaceData";
@@ -16,7 +15,9 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
   const { adminUi, status, store } = state;
   return (
     <>
-      {adminUi.activeMenu !== "overview" ? <Text style={st.panelTitle}>{data.panelTitle}</Text> : null}
+      {adminUi.activeMenu !== "overview" ? (
+        <Text style={st.panelTitle}>{data.panelTitle}</Text>
+      ) : null}
       {adminUi.activeMenu === "overview" ? (
         <AdminOverviewPanel
           cards={dashboard.overviewCards}
@@ -33,7 +34,9 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           styles={st}
           onManageProducts={() => adminUi.setActiveMenu("products")}
           onResolveReview={(id) => void actions.handleResolveIdentityReview(id)}
-          onAssignReview={(review, target) => void actions.handleAssignIdentityReview(review, target)}
+          onAssignReview={(review, target) =>
+            void actions.handleAssignIdentityReview(review, target)
+          }
         />
       ) : null}
       {adminUi.activeMenu === "users" ? (
@@ -50,13 +53,11 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           productSearchQuery={adminUi.productSearchQuery}
           productCategoryFilter={adminUi.productCategoryFilter}
           productBrandFilter={adminUi.productBrandFilter}
-          productStoreFilter={adminUi.productStoreFilter}
           productSaleDateFilter={adminUi.productSaleDateFilter}
           productOnSaleOnly={adminUi.productOnSaleOnly}
           productSort={adminUi.productSort}
           productCategoryOptions={dashboard.productFilterCategoryOptions}
           productBrandOptions={dashboard.productBrandFilterOptions}
-          productStoreOptions={dashboard.productStoreFilterOptions}
           productSortOptions={dashboard.productSortOptions}
           productActiveFilterCount={dashboard.productActiveFilterCount}
           productPriceStats={dashboard.productPriceStats}
@@ -68,7 +69,6 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           onProductSearchChange={adminUi.setProductSearchQuery}
           onProductCategoryChange={adminUi.setProductCategoryFilter}
           onProductBrandChange={adminUi.setProductBrandFilter}
-          onProductStoreChange={adminUi.setProductStoreFilter}
           onProductSaleDateChange={adminUi.setProductSaleDateFilter}
           onProductOnSaleOnlyChange={adminUi.setProductOnSaleOnly}
           onProductSortChange={adminUi.setProductSort}
@@ -110,7 +110,9 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
             store.setStoreTypeFilter("all");
           }}
           onOpenMapUrl={actions.handleOpenMapUrl}
-          onSelectStore={(id) => store.setSelectedStoreMapId((current) => current === id ? null : id)}
+          onSelectStore={(id) =>
+            store.setSelectedStoreMapId((current) => (current === id ? null : id))
+          }
           onEditStore={actions.storeActions.handleOpenEditStore}
           onRequestDeleteStore={actions.storeActions.handleRequestDeleteStore}
         />

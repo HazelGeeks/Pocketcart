@@ -1,4 +1,3 @@
-import React from "react";
 import { ImageBackground, Text, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 

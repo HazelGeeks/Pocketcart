@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
 import {
   deliverPushAlerts,
   reconcilePushReceipts,
+  type PushDeliveryResult,
   type PushTokenRecord,
   type ReceiptSyncResult,
 } from "../_shared/pushDelivery.ts";
@@ -335,7 +336,7 @@ Deno.serve(async (request) => {
     (candidate) => !existingByUserAndKey.has(`${candidate.user_id}:${candidate.alert_key}`),
   );
 
-  let createdAlerts: SaleAlertRow[] = [];
+  const createdAlerts: SaleAlertRow[] = [];
   for (let index = 0; index < payloads.length; index += 500) {
     const { data: insertedRows, error: insertError } = await adminClient
       .from("sale_alerts")
@@ -374,7 +375,7 @@ Deno.serve(async (request) => {
     if (error) return jsonResponse({ error: error.message }, 500);
     pushTokens.push(...((data ?? []) as PushTokenRecord[]));
   }
-  let delivery;
+  let delivery: PushDeliveryResult;
   try {
     delivery = await deliverPushAlerts(adminClient, alertsToPush, pushTokens);
   } catch (error) {

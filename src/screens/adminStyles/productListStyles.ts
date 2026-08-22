@@ -71,15 +71,9 @@ export const adminProductListStyles: Record<string, any> = {
     minWidth: 64,
     justifyContent: "center",
   },
-  productListRangeColumn: {
-    width: 132,
-    minWidth: 132,
-    justifyContent: "center",
-    gap: 2,
-  },
   productListSaleColumn: {
-    width: 196,
-    minWidth: 196,
+    width: 240,
+    minWidth: 240,
     justifyContent: "center",
     gap: 3,
   },
@@ -193,15 +187,6 @@ export const adminProductListStyles: Record<string, any> = {
   productListCompactMetric: {
     flex: 0.8,
     minWidth: 70,
-    borderRadius: 8,
-    backgroundColor: "#f3f6fa",
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    gap: 2,
-  },
-  productListCompactMetricWide: {
-    flex: 1.5,
-    minWidth: 128,
     borderRadius: 8,
     backgroundColor: "#f3f6fa",
     paddingHorizontal: 9,

@@ -6,14 +6,6 @@ export const foodScanStyles = StyleSheet.create({
   foodScanStack: {
     gap: 14,
   },
-  foodScanIntro: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.primaryGhost,
-    padding: 16,
-    gap: 6,
-  },
   foodScanEyebrow: {
     color: C.primaryDeep,
     fontSize: 11,
@@ -22,30 +14,23 @@ export const foodScanStyles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: "uppercase",
   },
-  foodScanTitle: {
-    color: C.text,
-    fontSize: 22,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-  },
   foodScanModeRow: {
     flexDirection: "row",
-    gap: 8,
+    gap: 3,
+    borderRadius: 14,
+    backgroundColor: C.primaryGhost,
+    padding: 3,
   },
   foodScanModeButton: {
-    minHeight: 48,
+    minHeight: 44,
     flex: 1,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
+    borderRadius: 11,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 10,
   },
   foodScanModeButtonActive: {
-    borderColor: C.primaryDeep,
-    backgroundColor: C.primaryGhost,
+    backgroundColor: C.white,
   },
   foodScanModeText: {
     color: C.textSoft,
@@ -57,10 +42,8 @@ export const foodScanStyles = StyleSheet.create({
     color: C.primaryDeep,
   },
   foodScanCameraCard: {
-    borderRadius: 20,
+    borderRadius: 18,
     overflow: "hidden",
-    borderWidth: 1,
-    borderColor: C.line,
     backgroundColor: "#071F12",
   },
   foodScanCamera: {
@@ -71,6 +54,25 @@ export const foodScanStyles = StyleSheet.create({
     width: "100%",
     height: 390,
     backgroundColor: "#071F12",
+  },
+  foodScanAnalysisOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(7,31,18,0.82)",
+    gap: 8,
+    padding: 24,
+  },
+  foodScanAnalysisTitle: {
+    color: C.white,
+    fontSize: 17,
+    fontWeight: "800",
+    fontFamily: F.extraBold,
+  },
+  foodScanAnalysisText: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 12,
+    fontFamily: F.regular,
   },
   foodScanGuide: {
     position: "absolute",
@@ -114,13 +116,12 @@ export const foodScanStyles = StyleSheet.create({
   },
   foodScanCaptureRow: {
     flexDirection: "row",
+    justifyContent: "center",
     gap: 10,
   },
   foodScanAction: {
     minHeight: 50,
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 12,
@@ -129,9 +130,21 @@ export const foodScanStyles = StyleSheet.create({
     backgroundColor: C.primaryDeep,
     borderColor: C.primaryDeep,
   },
+  foodScanActionCentered: {
+    width: 190,
+  },
+  foodScanActionFullWidth: {
+    alignSelf: "stretch",
+  },
+  foodScanReviewAction: {
+    minWidth: 0,
+    minHeight: 56,
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+  },
   foodScanActionSecondary: {
-    backgroundColor: C.white,
-    borderColor: C.line,
+    backgroundColor: C.primaryGhost,
   },
   foodScanActionDisabled: {
     opacity: 0.5,

@@ -9,9 +9,9 @@ import type { UseAdminProductActionsParams } from "./adminProductActionTypes";
 import {
   findExistingPriceForPeriod,
   isLikelySupabaseStorageUrl,
+  type ProductSaveInput,
   resolveProductCandidate,
   safeProductImageName,
-  type ProductSaveInput,
 } from "./adminProductSaveHelpers";
 
 type Params = UseAdminProductActionsParams & { resetProductForm: () => void };
@@ -72,7 +72,9 @@ export default function useAdminProductSave(params: Params) {
           params.setProductThumb(thumbnailUrl);
         } catch (error) {
           const detail = error instanceof Error ? ` ${error.message}` : "";
-          params.setNotice(`Could not save image URL to Supabase Storage. Use Upload image or copy the image itself, then try again.${detail}`);
+          params.setNotice(
+            `Could not save image URL to Supabase Storage. Use Upload image or copy the image itself, then try again.${detail}`,
+          );
           return;
         } finally {
           params.setProductImageUploading(false);
@@ -82,6 +84,7 @@ export default function useAdminProductSave(params: Params) {
       const candidate = await resolveProductCandidate({
         editingProductId: params.editingProductId,
         products: params.products,
+        productAliases: params.productAliases,
         input,
         createIdentityReviewMutation: params.createIdentityReviewMutation,
       });
@@ -111,7 +114,9 @@ export default function useAdminProductSave(params: Params) {
             })
           : await params.createProductMutation.mutateAsync({ ...input, thumbnailUrl });
       if (!savedProduct) {
-        params.setNotice(params.editingProductId ? "Product was not updated." : "Product was not created.");
+        params.setNotice(
+          params.editingProductId ? "Product was not updated." : "Product was not created.",
+        );
         return;
       }
 
@@ -121,7 +126,7 @@ export default function useAdminProductSave(params: Params) {
       for (const item of prepared.activeSets) {
         try {
           const existing = item.persistedPriceId
-            ? params.prices.find((price) => price.id === item.persistedPriceId) ?? null
+            ? (params.prices.find((price) => price.id === item.persistedPriceId) ?? null)
             : findExistingPriceForPeriod({
                 prices: params.prices,
                 productId: savedProduct.id,
@@ -143,20 +148,21 @@ export default function useAdminProductSave(params: Params) {
             await params.createPriceEntryMutation.mutateAsync(payload);
           }
         } catch (error) {
-          errors.push(`Set ${item.row}: ${error instanceof Error ? error.message : "Price entry failed."}`);
+          errors.push(
+            `Set ${item.row}: ${error instanceof Error ? error.message : "Price entry failed."}`,
+          );
         }
       }
       if (!errors.length) {
-        const priceIdsToDelete = excludeReusedPersistedPriceIds(
-          removedPriceIds,
-          reusedPriceIds,
-        );
+        const priceIdsToDelete = excludeReusedPersistedPriceIds(removedPriceIds, reusedPriceIds);
         for (const id of priceIdsToDelete) {
           try {
             await params.deletePriceEntryMutation.mutateAsync(id);
             deletedPriceCount += 1;
           } catch (error) {
-            errors.push(`Remove price row: ${error instanceof Error ? error.message : "Price entry delete failed."}`);
+            errors.push(
+              `Remove price row: ${error instanceof Error ? error.message : "Price entry delete failed."}`,
+            );
           }
         }
       }
@@ -180,7 +186,9 @@ export default function useAdminProductSave(params: Params) {
         auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
       }
       if (errors.length) {
-        params.setNotice(`Product saved, but ${errors.length} Store | Price set failed. ${errors[0]}${auditWarning}`);
+        params.setNotice(
+          `Product saved, but ${errors.length} Store | Price set failed. ${errors[0]}${auditWarning}`,
+        );
         await params.loadAll(true);
         return;
       }
@@ -197,8 +205,12 @@ export default function useAdminProductSave(params: Params) {
     params.setProductModalOpen(false);
     const action = wasEditing ? "updated" : "created";
     const successNotice = reusedExistingProduct
-      ? priceCount ? `Existing product reused; ${priceCount} Store Price set added or updated.` : "Existing product reused without new price data."
-      : priceCount ? `Product ${action} with ${priceCount} Store Price set.` : `Product ${action} without image or price data.`;
+      ? priceCount
+        ? `Existing product reused; ${priceCount} Store Price set added or updated.`
+        : "Existing product reused without new price data."
+      : priceCount
+        ? `Product ${action} with ${priceCount} Store Price set.`
+        : `Product ${action} without image or price data.`;
     params.setNotice(successNotice + auditWarning);
     await params.loadAll(true);
   }, [params]);

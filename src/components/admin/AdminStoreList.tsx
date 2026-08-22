@@ -2,10 +2,7 @@ import React from "react";
 import { Pressable, Text, View } from "react-native";
 import useLayout from "../../hooks/useLayout";
 import type { AdminStore } from "../../services/adminBackoffice";
-import {
-  toDateOnlyLabel,
-  type StorePriceStats,
-} from "../../utils/adminScreenHelpers";
+import { type StorePriceStats, toDateOnlyLabel } from "../../utils/adminScreenHelpers";
 import { AdminTechnicalDetailsPanel } from "./AdminTechnicalDetails";
 
 type AdminStoreListProps = {
@@ -36,9 +33,7 @@ export default function AdminStoreList({
   onRequestDeleteStore,
 }: AdminStoreListProps) {
   const { isXl } = useLayout();
-  const [expandedStoreIds, setExpandedStoreIds] = React.useState<Set<string>>(
-    new Set(),
-  );
+  const [expandedStoreIds, setExpandedStoreIds] = React.useState<Set<string>>(new Set());
 
   if (totalStores === 0) {
     return <Text style={st.dataMuted}>No stores yet.</Text>;
@@ -52,7 +47,7 @@ export default function AdminStoreList({
     <View style={st.storeListTable}>
       {isXl ? (
         <View style={st.storeListColumnHeader}>
-          <Text style={[st.storeListColumnLabel, st.storeListStoreColumn]}>Store</Text>
+          <Text style={[st.storeListColumnLabel, st.storeListStoreColumn]}>Retailer · Branch</Text>
           <Text style={[st.storeListColumnLabel, st.storeListStatusColumn]}>Status · Type</Text>
           <Text style={[st.storeListColumnLabel, st.storeListCoverageColumn]}>Coverage</Text>
           <Text style={[st.storeListColumnLabel, st.storeListLatestColumn]}>Latest · Created</Text>
@@ -83,8 +78,14 @@ export default function AdminStoreList({
           >
             <View style={[st.storeListRowMain, !isXl && st.storeListRowMainCompact]}>
               <View style={[st.storeListStoreColumn, !isXl && st.storeListStoreColumnCompact]}>
-                <Text numberOfLines={1} style={st.listTitle}>{store.brand ?? store.name}</Text>
-                {store.brand ? <Text numberOfLines={1} style={st.dataMuted}>{store.name}</Text> : null}
+                <Text numberOfLines={1} style={st.listTitle}>
+                  {store.brand ?? store.name}
+                </Text>
+                {store.brand ? (
+                  <Text numberOfLines={1} style={st.dataMuted}>
+                    {store.name}
+                  </Text>
+                ) : null}
                 <Text numberOfLines={2} style={st.dataMuted}>
                   {store.address || store.area || "Address unavailable"}
                 </Text>
@@ -94,13 +95,17 @@ export default function AdminStoreList({
                   </Text>
                 ) : null}
                 {store.price_note ? (
-                  <Text numberOfLines={2} style={st.storeListSupportingText}>{store.price_note}</Text>
+                  <Text numberOfLines={2} style={st.storeListSupportingText}>
+                    {store.price_note}
+                  </Text>
                 ) : null}
               </View>
 
               <View style={[st.storeListStatusColumn, !isXl && st.storeListMetricCompact]}>
                 <View style={[st.storeMetaChip, !store.is_active && st.storeInactiveChip]}>
-                  <Text style={[st.storeMetaChipText, !store.is_active && st.storeInactiveChipText]}>
+                  <Text
+                    style={[st.storeMetaChipText, !store.is_active && st.storeInactiveChipText]}
+                  >
                     {store.is_active ? "Active" : "Inactive"}
                   </Text>
                 </View>
@@ -127,7 +132,9 @@ export default function AdminStoreList({
                 </View>
                 <View style={st.storeListLabelValue}>
                   <Text style={st.storeListMetricLabel}>Created</Text>
-                  <Text style={st.storeListMetricSecondary}>{toDateOnlyLabel(store.created_at)}</Text>
+                  <Text style={st.storeListMetricSecondary}>
+                    {toDateOnlyLabel(store.created_at)}
+                  </Text>
                 </View>
               </View>
 
@@ -162,9 +169,7 @@ export default function AdminStoreList({
                     style={[st.btn, st.btnGhost, st.storeActionBtn]}
                     disabled={deleting || submitting}
                   >
-                    <Text style={st.btnGhostText}>
-                      {detailsExpanded ? "Hide" : "Details"}
-                    </Text>
+                    <Text style={st.btnGhostText}>{detailsExpanded ? "Hide" : "Details"}</Text>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"

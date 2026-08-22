@@ -68,6 +68,14 @@ export type AdminProduct = {
   created_at: string;
 };
 
+export type AdminProductAlias = {
+  id: string;
+  product_id: string;
+  alias_name: string;
+  unit: string | null;
+  created_at: string;
+};
+
 export type AdminStore = {
   id: string;
   brand: string | null;
@@ -135,6 +143,7 @@ export type ProductMergeResult = {
   moved_shopping_items: number;
   moved_watchlist_items: number;
   moved_sale_alerts: number;
+  preserved_aliases?: number;
 };
 
 export type AdminAuditLog = {

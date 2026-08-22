@@ -1,4 +1,3 @@
-import React from "react";
 import type useFavoriteStores from "../../hooks/useFavoriteStores";
 import type useNativePermissions from "../../hooks/useNativePermissions";
 import type useNativeStoreMap from "../../hooks/useNativeStoreMap";
