@@ -3,8 +3,8 @@ import { Image, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import {
   dateInputValue,
-  toDateOnlyLabel,
   type ProductPriceStats,
+  toDateOnlyLabel,
 } from "../../utils/adminScreenHelpers";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
 import { productDisplayName, productSecondaryName } from "../../utils/productNames";
@@ -43,17 +43,14 @@ export default function AdminProductRow({
   const displayName = productDisplayName(product);
   const secondaryName = productSecondaryName(product);
   const latestPrice = stats?.latestPrice ?? null;
-  const storeCount = stats?.storeIds.size ?? 0;
-  const priceRangeLabel =
-    stats && stats.minPrice !== null && stats.maxPrice !== null
-      ? `$${stats.minPrice.toFixed(2)} - $${stats.maxPrice.toFixed(2)}`
-      : "N/A";
-  const salePeriodLabel = stats?.latestValidFrom
-    ? `${dateInputValue(stats.latestValidFrom)} - ${
-        stats.latestValidTo ? dateInputValue(stats.latestValidTo) : "No end date"
+  const currentSalePeriodLabel = stats?.currentSaleValidFrom
+    ? `${dateInputValue(stats.currentSaleValidFrom)} - ${
+        stats.currentSaleValidTo ? dateInputValue(stats.currentSaleValidTo) : "No end date"
       }`
-    : "No sale period";
-  const currentSaleStoreBrands = stats?.currentSaleStoreBrands ?? [];
+    : null;
+  const currentSaleRetailers = stats?.currentSaleStoreBrands ?? [];
+  const currentSaleRetailerLabel =
+    currentSaleRetailers.length > 0 ? currentSaleRetailers.join(", ") : "No active sale";
 
   const actionButtons = (
     <View style={[st.productListActions, compact && st.productListActionsCompact]}>
@@ -100,7 +97,11 @@ export default function AdminProductRow({
           accessibilityLabel={`Select ${displayName}`}
           accessibilityState={{ checked: selected }}
           onPress={onToggle}
-          style={[st.productCheckboxHitArea, st.productListSelectColumn, disabled && st.btnDisabled]}
+          style={[
+            st.productCheckboxHitArea,
+            st.productListSelectColumn,
+            disabled && st.btnDisabled,
+          ]}
           disabled={disabled}
         >
           <View style={[st.productCheckboxBox, selected && st.productCheckboxBoxChecked]}>
@@ -125,10 +126,13 @@ export default function AdminProductRow({
               {displayName}
             </Text>
             {secondaryName ? (
-              <Text numberOfLines={1} style={st.productListSubtitle}>{secondaryName}</Text>
+              <Text numberOfLines={1} style={st.productListSubtitle}>
+                {secondaryName}
+              </Text>
             ) : null}
             <Text style={st.productListCategory}>
-              {product.category}{product.unit ? ` · ${product.unit}` : ""}
+              {product.category}
+              {product.unit ? ` · ${product.unit}` : ""}
             </Text>
             <Text style={st.productListCreated}>Created {toDateOnlyLabel(product.created_at)}</Text>
           </View>
@@ -147,23 +151,14 @@ export default function AdminProductRow({
                 <Text style={st.productListMetricLabel}>History</Text>
                 <Text style={st.productListMetricValue}>{stats?.saleSessions.size ?? 0}×</Text>
               </View>
-              <View style={st.productListCompactMetricWide}>
-                <Text style={st.productListMetricLabel}>Stores · Price range</Text>
-                <Text style={st.productListMetricValue}>{storeCount} · {priceRangeLabel}</Text>
-              </View>
             </View>
             <View style={st.productListCompactSale}>
               <View style={st.productListSaleGroup}>
-                <Text style={st.productListMetricLabel}>Latest sale period</Text>
-                <Text style={st.productListSaleValue}>{salePeriodLabel}</Text>
-              </View>
-              <View style={st.productListSaleGroup}>
-                <Text style={st.productListMetricLabel}>Current stores</Text>
-                <Text style={st.productListSaleValue}>
-                  {currentSaleStoreBrands.length > 0
-                    ? currentSaleStoreBrands.join(", ")
-                    : "No active sale"}
-                </Text>
+                <Text style={st.productListMetricLabel}>Current sale</Text>
+                <Text style={st.productListSaleValue}>{currentSaleRetailerLabel}</Text>
+                {currentSalePeriodLabel ? (
+                  <Text style={st.productListMetricSecondary}>{currentSalePeriodLabel}</Text>
+                ) : null}
               </View>
             </View>
             {actionButtons}
@@ -178,17 +173,15 @@ export default function AdminProductRow({
             <View style={st.productListHistoryColumn}>
               <Text style={st.productListMetricValue}>{stats?.saleSessions.size ?? 0}×</Text>
             </View>
-            <View style={st.productListRangeColumn}>
-              <Text style={st.productListMetricValue}>{storeCount} stores</Text>
-              <Text style={st.productListMetricSecondary}>{priceRangeLabel}</Text>
-            </View>
             <View style={st.productListSaleColumn}>
-              <Text numberOfLines={1} style={st.productListSaleValue}>{salePeriodLabel}</Text>
-              <Text numberOfLines={2} style={st.productListMetricSecondary}>
-                {currentSaleStoreBrands.length > 0
-                  ? currentSaleStoreBrands.join(", ")
-                  : "No active sale"}
+              <Text numberOfLines={2} style={st.productListSaleValue}>
+                {currentSaleRetailerLabel}
               </Text>
+              {currentSalePeriodLabel ? (
+                <Text numberOfLines={1} style={st.productListMetricSecondary}>
+                  {currentSalePeriodLabel}
+                </Text>
+              ) : null}
             </View>
             <View style={st.productListActionsColumn}>{actionButtons}</View>
           </>

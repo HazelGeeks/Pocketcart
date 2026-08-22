@@ -41,9 +41,7 @@ function normalizeProductRow(row: ProductRow): MarketProduct {
 }
 
 function inferUnitFromName(name: string): string | null {
-  const directMatch = name.match(
-    /(\d+(?:\.\d+)?\s?(?:kg|g|lb|oz|ml|l|lt|cl|pack|pcs?|ea|개)\b)/i,
-  );
+  const directMatch = name.match(/(\d+(?:\.\d+)?\s?(?:kg|g|lb|oz|ml|l|lt|cl|pack|pcs?|ea|개)\b)/i);
   if (directMatch) {
     return directMatch[1].replace(/\s+/g, " ").trim().toLowerCase();
   }
@@ -60,6 +58,7 @@ export async function listProducts(params?: {
   search?: string;
   category?: string;
   preferredStoreIds?: string[];
+  onSaleOnly?: boolean;
 }): Promise<ServiceResult<MarketProduct[]>> {
   if (!hasSupabaseEnv || !supabase) {
     return {
@@ -71,22 +70,20 @@ export async function listProducts(params?: {
   }
 
   const client = supabase;
-  const productsQuery = await collectPagedRows<ProductRow, ProductQueryError>(
-    async (from, to) => {
-      let query = client.from("products").select(PRODUCT_SELECT);
-      if (params?.category?.trim()) {
-        query = query.eq("category", params.category.trim());
-      }
-      const response = await query
-        .order("english_name", { ascending: true, nullsFirst: false })
-        .order("id", { ascending: true })
-        .range(from, to);
-      return {
-        data: (response.data ?? []) as unknown as ProductRow[],
-        error: response.error,
-      };
-    },
-  );
+  const productsQuery = await collectPagedRows<ProductRow, ProductQueryError>(async (from, to) => {
+    let query = client.from("products").select(PRODUCT_SELECT);
+    if (params?.category?.trim()) {
+      query = query.eq("category", params.category.trim());
+    }
+    const response = await query
+      .order("english_name", { ascending: true, nullsFirst: false })
+      .order("id", { ascending: true })
+      .range(from, to);
+    return {
+      data: (response.data ?? []) as unknown as ProductRow[],
+      error: response.error,
+    };
+  });
 
   if (productsQuery.error) {
     return {
@@ -102,6 +99,7 @@ export async function listProducts(params?: {
       : Promise.resolve({ data: new Map(), error: null }),
   ]);
 
+  const onSaleOnly = params?.onSaleOnly ?? true;
   const products: MarketProduct[] = productsQuery.data
     .map((row) => {
       const summary = priceSummaries.data.get(row.id);
@@ -131,9 +129,10 @@ export async function listProducts(params?: {
           preferredSummary?.price_compare_current_batch ?? null,
       };
     })
-    .filter((product) =>
-      priceSummaries.data.has(product.id) &&
-      matchesProductFilter(product, params?.search, params?.category),
+    .filter(
+      (product) =>
+        (!onSaleOnly || priceSummaries.data.has(product.id)) &&
+        matchesProductFilter(product, params?.search, params?.category),
     );
 
   return {
@@ -143,9 +142,10 @@ export async function listProducts(params?: {
 }
 
 export async function listProductCategories(): Promise<ServiceResult<string[]>> {
-  const { data, error } = await listProducts();
-  const categories = [...new Set(data.map((item) => item.category).filter(Boolean))]
-    .sort((a, b) => a.localeCompare(b));
+  const { data, error } = await listProducts({ onSaleOnly: false });
+  const categories = [...new Set(data.map((item) => item.category).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   return {
     data: categories,

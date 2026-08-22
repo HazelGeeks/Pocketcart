@@ -1,4 +1,4 @@
-import type { AdminPriceEntry, AdminProduct } from "../services/adminBackoffice";
+import type { AdminPriceEntry, AdminProduct, AdminProductAlias } from "../services/adminBackoffice";
 import { dateInputValue } from "../utils/adminScreenHelpers";
 import {
   gtinValidationMessage,
@@ -27,12 +27,15 @@ export function findExistingPriceForPeriod(params: {
 }): AdminPriceEntry | null {
   const targetDate = params.periodStartDate.trim();
   if (!targetDate) return null;
-  return params.prices.find((price) =>
-    price.product_id === params.productId &&
-    price.store_id === params.storeId &&
-    dateInputValue(price.valid_from || price.observed_at) === targetDate &&
-    dateInputValue(price.valid_to) === params.periodEndDate.trim(),
-  ) ?? null;
+  return (
+    params.prices.find(
+      (price) =>
+        price.product_id === params.productId &&
+        price.store_id === params.storeId &&
+        dateInputValue(price.valid_from || price.observed_at) === targetDate &&
+        dateInputValue(price.valid_to) === params.periodEndDate.trim(),
+    ) ?? null
+  );
 }
 
 export function isLikelySupabaseStorageUrl(value: string): boolean {
@@ -61,13 +64,16 @@ type CandidateResult =
 export async function resolveProductCandidate(params: {
   editingProductId: string | null;
   products: AdminProduct[];
+  productAliases: AdminProductAlias[];
   input: ProductSaveInput;
   createIdentityReviewMutation: UseAdminProductActionsParams["createIdentityReviewMutation"];
 }): Promise<CandidateResult> {
   if (params.editingProductId) {
     return { blocked: false, product: null, existingGtin: "" };
   }
-  const match = resolveProductMatch(params.products, params.input);
+  const match = resolveProductMatch(params.products, params.input, {
+    aliases: params.productAliases,
+  });
   if (match.status === "ambiguous") {
     await params.createIdentityReviewMutation.mutateAsync({
       reason: "ambiguous_manual_product_match",
@@ -107,7 +113,8 @@ export async function resolveProductCandidate(params: {
     });
     return {
       blocked: true,
-      notice: "The matched product has an invalid saved GTIN. It was sent to Dashboard review; correct the GTIN before adding prices.",
+      notice:
+        "The matched product has an invalid saved GTIN. It was sent to Dashboard review; correct the GTIN before adding prices.",
     };
   }
   if (product && params.input.gtin && existingGtin && params.input.gtin !== existingGtin) {
@@ -123,7 +130,10 @@ export async function resolveProductCandidate(params: {
         existing_gtin: existingGtin,
       },
     });
-    return { blocked: true, notice: "The GTIN conflicts with the matched product. It was sent to Dashboard review." };
+    return {
+      blocked: true,
+      notice: "The GTIN conflicts with the matched product. It was sent to Dashboard review.",
+    };
   }
   return { blocked: false, product, existingGtin };
 }

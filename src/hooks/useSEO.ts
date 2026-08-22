@@ -102,7 +102,9 @@ export default function useSEO(config: SEOConfig) {
 
     document
       .querySelectorAll('script[data-seo-structured="true"]')
-      .forEach((node) => node.remove());
+      .forEach((node) => {
+        node.remove();
+      });
 
     const entries = Array.isArray(structuredData)
       ? structuredData

@@ -14,7 +14,7 @@ export const categoryFilterStyles = StyleSheet.create({
     overflow: "hidden",
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: C.line,
+    borderColor: "transparent",
     backgroundColor: C.white,
     alignItems: "center",
     justifyContent: "center",

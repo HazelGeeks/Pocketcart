@@ -21,6 +21,7 @@ export default function useAdminWorkspaceActions(data: AdminWorkspaceData) {
     productStorePriceSets: product.productStorePriceSets,
     editingProductId: product.editingProductId,
     products: backend.products,
+    productAliases: backend.productAliases,
     prices: backend.prices,
     stores: dashboard.displayStores,
     productPriceStats: dashboard.productPriceStats,

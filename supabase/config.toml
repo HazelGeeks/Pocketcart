@@ -1,6 +1,9 @@
 [functions.back-office-flyer]
 verify_jwt = true
 
+[functions.food-scan]
+verify_jwt = false
+
 [functions.send-sale-alert-push]
 verify_jwt = false
 

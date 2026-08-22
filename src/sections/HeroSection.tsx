@@ -1,4 +1,3 @@
-import React from "react";
 import { Text, View } from "react-native";
 import { motion } from "framer-motion";
 import { isWeb, fadeUp, fadeIn, scaleIn, slideLeft } from "../constants/variants";

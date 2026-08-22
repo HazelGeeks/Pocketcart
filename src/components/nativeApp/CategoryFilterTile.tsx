@@ -1,4 +1,3 @@
-import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 import { categoryToIconVariant } from "../../utils/categoryIcon";

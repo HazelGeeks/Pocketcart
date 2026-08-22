@@ -1,4 +1,3 @@
-import React from "react";
 import { Pressable, Text } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { st } from "../../screens/nativeAppStyles";

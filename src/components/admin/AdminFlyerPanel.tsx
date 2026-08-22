@@ -1,5 +1,13 @@
-import React from "react";
-import { Image, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { FlyerEditableField, FlyerRow } from "../../state/adminStore";
 import { WEB_FLYER_ACTION_BAR_STYLE } from "../../utils/adminScreenHelpers";
@@ -53,7 +61,9 @@ export default function AdminFlyerPanel({
   onClear,
   onUpdateRow,
 }: AdminFlyerPanelProps) {
-  const unsavedImageCount = rows.filter((row) => row.imageSelected && row.imagePreviewUrl && !row.thumbnailUrl).length;
+  const unsavedImageCount = rows.filter(
+    (row) => row.imageSelected && row.imagePreviewUrl && !row.thumbnailUrl,
+  ).length;
 
   return (
     <View style={st.flyerPanel}>
@@ -123,7 +133,7 @@ export default function AdminFlyerPanel({
           <View style={[st.flyerTableRow, st.flyerTableHeader]}>
             <Text style={[st.flyerHeaderCell, st.flyerCellSelect]}>Use</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellImage]}>Image</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Store Brand</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Retailer</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Branch / Store Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale Start</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale End</Text>
@@ -137,12 +147,17 @@ export default function AdminFlyerPanel({
           {rows.length === 0 ? (
             <View style={st.flyerTableEmptyRow}>
               <Text style={st.dataMuted}>
-                {processing ? progress || "Processing file..." : "Upload an image/PDF or add a row."}
+                {processing
+                  ? progress || "Processing file..."
+                  : "Upload an image/PDF or add a row."}
               </Text>
             </View>
           ) : (
             rows.map((row) => (
-              <View key={row.id} style={[st.flyerTableRow, row.selected && st.flyerTableRowSelected]}>
+              <View
+                key={row.id}
+                style={[st.flyerTableRow, row.selected && st.flyerTableRowSelected]}
+              >
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => onUpdateRow(row.id, "selected", !row.selected)}
@@ -178,7 +193,12 @@ export default function AdminFlyerPanel({
                       ]}
                       disabled={!row.imagePreviewUrl && !row.thumbnailUrl}
                     >
-                      <Text style={[st.flyerImageToggleText, row.imageSelected && st.flyerImageToggleTextActive]}>
+                      <Text
+                        style={[
+                          st.flyerImageToggleText,
+                          row.imageSelected && st.flyerImageToggleTextActive,
+                        ]}
+                      >
                         {row.imageSelected ? "Use image" : "Skip"}
                       </Text>
                     </Pressable>
@@ -187,16 +207,24 @@ export default function AdminFlyerPanel({
                 <TextInput
                   value={row.martName}
                   onChangeText={(value) => onUpdateRow(row.id, "martName", value)}
-                  placeholder="Store brand"
+                  placeholder="Retailer"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellMart, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellMart,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.regionBranch}
                   onChangeText={(value) => onUpdateRow(row.id, "regionBranch", value)}
-                  placeholder="Branch / store name"
+                  placeholder="Branch"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellBranch, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellBranch,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.saleStartDate}
@@ -205,7 +233,11 @@ export default function AdminFlyerPanel({
                   placeholderTextColor={C.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  style={[st.flyerInputCell, st.flyerCellDate, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellDate,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.saleEndDate}
@@ -214,28 +246,44 @@ export default function AdminFlyerPanel({
                   placeholderTextColor={C.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  style={[st.flyerInputCell, st.flyerCellDate, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellDate,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.englishName}
                   onChangeText={(value) => onUpdateRow(row.id, "englishName", value)}
                   placeholder="English name"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellName,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.koreanName}
                   onChangeText={(value) => onUpdateRow(row.id, "koreanName", value)}
                   placeholder="Korean name"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellName, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellName,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.mainCategory}
                   onChangeText={(value) => onUpdateRow(row.id, "mainCategory", value)}
                   placeholder="Category"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellCategory, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellCategory,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.price}
@@ -243,21 +291,33 @@ export default function AdminFlyerPanel({
                   placeholder="0.00"
                   placeholderTextColor={C.textMuted}
                   keyboardType="decimal-pad"
-                  style={[st.flyerInputCell, st.flyerCellPrice, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellPrice,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.unit}
                   onChangeText={(value) => onUpdateRow(row.id, "unit", value)}
                   placeholder="Unit"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellUnit, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellUnit,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
                 <TextInput
                   value={row.memo}
                   onChangeText={(value) => onUpdateRow(row.id, "memo", value)}
                   placeholder="Memo"
                   placeholderTextColor={C.textMuted}
-                  style={[st.flyerInputCell, st.flyerCellMemo, row.selected && st.flyerInputCellSelected]}
+                  style={[
+                    st.flyerInputCell,
+                    st.flyerCellMemo,
+                    row.selected && st.flyerInputCellSelected,
+                  ]}
                 />
               </View>
             ))
@@ -276,9 +336,13 @@ export default function AdminFlyerPanel({
               key={store.name}
               href={store.url}
               accessibilityLabel={`Open ${store.name} flyer in a new tab`}
-              onPress={Platform.OS === "web" ? undefined : () => {
-                void Linking.openURL(store.url);
-              }}
+              onPress={
+                Platform.OS === "web"
+                  ? undefined
+                  : () => {
+                      void Linking.openURL(store.url);
+                    }
+              }
               target="_blank"
               rel="noopener noreferrer"
             >

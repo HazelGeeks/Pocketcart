@@ -68,7 +68,6 @@ type AdminStoreState = {
   productSearchQuery: string;
   productCategoryFilter: string;
   productBrandFilter: string;
-  productStoreFilter: string;
   productSaleDateFilter: string;
   productOnSaleOnly: boolean;
   productSort: ProductSortKey;
@@ -80,7 +79,6 @@ type AdminStoreState = {
   setProductSearchQuery: (value: string) => void;
   setProductCategoryFilter: (value: string) => void;
   setProductBrandFilter: (value: string) => void;
-  setProductStoreFilter: (value: string) => void;
   setProductSaleDateFilter: (value: string) => void;
   setProductOnSaleOnly: (value: boolean) => void;
   setProductSort: (value: ProductSortKey) => void;
@@ -99,7 +97,6 @@ const productFilterDefaults = {
   productSearchQuery: "",
   productCategoryFilter: "all",
   productBrandFilter: "all",
-  productStoreFilter: "all",
   productSaleDateFilter: "",
   productOnSaleOnly: false,
   productSort: "latest" as ProductSortKey,
@@ -117,7 +114,6 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   setProductSearchQuery: (value) => set({ productSearchQuery: value }),
   setProductCategoryFilter: (value) => set({ productCategoryFilter: value }),
   setProductBrandFilter: (value) => set({ productBrandFilter: value }),
-  setProductStoreFilter: (value) => set({ productStoreFilter: value }),
   setProductSaleDateFilter: (value) => set({ productSaleDateFilter: value }),
   setProductOnSaleOnly: (value) => set({ productOnSaleOnly: value }),
   setProductSort: (value) => set({ productSort: value }),

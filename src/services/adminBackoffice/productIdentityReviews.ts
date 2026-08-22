@@ -2,8 +2,8 @@ import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { missingEnvResult } from "./shared";
 import type {
   AdminProductIdentityReview,
-  ProductMergeResult,
   ProductIdentityReviewRow,
+  ProductMergeResult,
   ServiceResult,
 } from "./types";
 
@@ -153,7 +153,8 @@ export async function createProductIdentityReview(params: {
     if (isMissingReviewTable(error.message)) {
       return {
         data: null,
-        error: "Product review queue is missing. Apply the product_identity_reviews migration first.",
+        error:
+          "Product review queue is missing. Apply the product_identity_reviews migration first.",
       };
     }
     return { data: null, error: error.message };
@@ -181,10 +182,13 @@ export async function mergeAdminProducts(params: {
     ),
   ];
   if (!targetProductId || sourceProductIds.length === 0) {
-    return { data: null, error: "Choose one target product and at least one different source product." };
+    return {
+      data: null,
+      error: "Choose one target product and at least one different source product.",
+    };
   }
 
-  const { data, error } = await supabase.rpc("merge_products", {
+  const { data, error } = await supabase.rpc("merge_products_with_aliases", {
     p_source_product_ids: sourceProductIds,
     p_target_product_id: targetProductId,
     p_review_id: params.reviewId?.trim() || null,
@@ -194,11 +198,13 @@ export async function mergeAdminProducts(params: {
 }
 
 export async function resolveProductIdentityReview(
-  input: string | {
-    reviewId: string;
-    resolvedProductId: string;
-    resolutionAction: string;
-  },
+  input:
+    | string
+    | {
+        reviewId: string;
+        resolvedProductId: string;
+        resolutionAction: string;
+      },
 ): Promise<ServiceResult<AdminProductIdentityReview | null>> {
   if (!hasSupabaseEnv || !supabase) return missingEnvResult(null);
 
@@ -212,12 +218,13 @@ export async function resolveProductIdentityReview(
   if (userError) return { data: null, error: userError.message };
   if (!user) return { data: null, error: "Signed-in admin user is required." };
 
-  const resolution = typeof input === "string"
-    ? {}
-    : {
-        resolved_product_id: input.resolvedProductId.trim(),
-        resolution_action: input.resolutionAction.trim(),
-      };
+  const resolution =
+    typeof input === "string"
+      ? {}
+      : {
+          resolved_product_id: input.resolvedProductId.trim(),
+          resolution_action: input.resolutionAction.trim(),
+        };
   const { data, error } = await supabase
     .from("product_identity_reviews")
     .update({

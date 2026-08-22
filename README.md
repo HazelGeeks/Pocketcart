@@ -13,17 +13,18 @@ Current language support:
 ```bash
 nvm use
 npm install
-npm run dev
+npm run web
 npm run verify
 ```
 
 Web-first development:
 
-- `npm run dev` or `npm run dev:web`: start web app on `http://localhost:8081`
+- `npm run web`: start web app on `http://localhost:8081`
 
 Native development:
 
-- `npm run dev:native`: start Expo for native targets
+- `npm start`: start Expo for native targets
+- `npm run dev:client`: start Metro for an installed development build
 - `npm run dev:ios`: use the currently booted iPhone simulator; install the
   PocketCart development build automatically when it is missing
 - `npm run ios`: rebuild and install PocketCart on the currently booted iPhone
@@ -37,7 +38,8 @@ Recommended Node runtime:
 ## Quality Gates
 
 - `npm run typecheck`: TypeScript compile checks
-- `npm run lint`: strict no-emit TypeScript check (temporary lint gate)
+- `npm run lint`: Biome static analysis
+- `npm run format`: format supported source files with Biome
 - `npm run test`: route smoke tests
 - `npm run build:web`: Expo static web export
 - `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)

@@ -6,31 +6,150 @@ const {
   gtinValidationMessage,
   isValidGtin,
   normalizeGtin,
+  normalizeProductUnit,
   productIdentityKey,
   resolveProductMatch,
 } = require("../.tmp-tests/utils/productIdentity.js");
 
+test("normalizeProductUnit treats selling-unit spelling variants as one unit", () => {
+  assert.equal(normalizeProductUnit("LB"), "lb");
+  assert.equal(normalizeProductUnit("per lb"), "lb");
+  assert.equal(normalizeProductUnit("/lb"), "lb");
+  assert.equal(normalizeProductUnit("1 lb"), "1lb");
+});
+
 test("productIdentityKey normalizes the English-first name, unit, and category", () => {
   assert.equal(
-    productIdentityKey({ koreanName: "딸기", englishName: "  Fresh   Strawberry ", unit: " 1LB ", category: " Produce " }),
-    productIdentityKey({ koreanName: "딸기", englishName: "fresh strawberry", unit: "1lb", category: "produce" }),
+    productIdentityKey({
+      koreanName: "딸기",
+      englishName: "  Fresh   Strawberry ",
+      unit: " 1LB ",
+      category: " Produce ",
+    }),
+    productIdentityKey({
+      koreanName: "딸기",
+      englishName: "fresh strawberry",
+      unit: "1lb",
+      category: "produce",
+    }),
   );
 });
 
 test("findMatchingProduct matches same product identity but keeps different units separate", () => {
   const products = [
-    { id: "strawberry-1lb", korean_name: "딸기", english_name: "Strawberry", unit: "1lb", category: "Produce" },
-    { id: "strawberry-2lb", korean_name: "딸기", english_name: "Strawberry", unit: "2lb", category: "Produce" },
+    {
+      id: "strawberry-1lb",
+      korean_name: "딸기",
+      english_name: "Strawberry",
+      unit: "1lb",
+      category: "Produce",
+    },
+    {
+      id: "strawberry-2lb",
+      korean_name: "딸기",
+      english_name: "Strawberry",
+      unit: "2lb",
+      category: "Produce",
+    },
   ];
 
   assert.equal(
-    findMatchingProduct(products, { koreanName: "딸기", englishName: " strawberry ", unit: "1LB", category: "produce" }).id,
+    findMatchingProduct(products, {
+      koreanName: "딸기",
+      englishName: " strawberry ",
+      unit: "1LB",
+      category: "produce",
+    }).id,
     "strawberry-1lb",
   );
   assert.equal(
-    findMatchingProduct(products, { koreanName: "딸기", englishName: "Strawberry", unit: "500g", category: "Produce" }),
+    findMatchingProduct(products, {
+      koreanName: "딸기",
+      englishName: "Strawberry",
+      unit: "500g",
+      category: "Produce",
+    }),
     null,
   );
+});
+
+test("resolveProductMatch reuses the same named produce across lb spelling variants", () => {
+  const products = [
+    {
+      id: "taiwan-cabbage",
+      korean_name: "타이완 양배추",
+      english_name: "Taiwan Cabbage",
+      brand: null,
+      gtin: null,
+      unit: "lb",
+      category: "Produce",
+    },
+  ];
+  const result = resolveProductMatch(products, {
+    koreanName: "타이완 양배추",
+    englishName: "Taiwan Cabbage",
+    unit: "per lb",
+    category: "Produce",
+  });
+  assert.equal(result.status, "matched");
+  assert.equal(result.product.id, "taiwan-cabbage");
+});
+
+test("resolveProductMatch reuses a reviewed product alias", () => {
+  const products = [
+    {
+      id: "taiwan-cabbage",
+      korean_name: "타이완 양배추",
+      english_name: "Taiwan Cabbage",
+      brand: null,
+      gtin: null,
+      unit: "lb",
+      category: "Produce",
+    },
+  ];
+  const result = resolveProductMatch(
+    products,
+    {
+      koreanName: "납작 양배추",
+      englishName: "Flat Cabbage",
+      unit: "per lb",
+      category: "Produce",
+    },
+    {
+      aliases: [
+        {
+          product_id: "taiwan-cabbage",
+          alias_name: "Flat Cabbage",
+          unit: "lb",
+        },
+      ],
+    },
+  );
+  assert.equal(result.status, "matched");
+  assert.equal(result.method, "alias");
+});
+
+test("resolveProductMatch sends origin-qualified names to review", () => {
+  const products = [
+    {
+      id: "taiwan-cabbage",
+      korean_name: "타이완 양배추",
+      english_name: "Taiwan Cabbage",
+      brand: null,
+      gtin: null,
+      unit: "lb",
+      category: "Produce",
+    },
+  ];
+  const result = resolveProductMatch(products, {
+    koreanName: "대만 양배추",
+    englishName: "Taiwan Cabbage (From BC)",
+    unit: "lb",
+    category: "Produce",
+  });
+  assert.equal(result.status, "ambiguous");
+  assert.equal(result.method, "name_family");
+  assert.deepEqual(result.candidateIds, ["taiwan-cabbage"]);
 });
 
 test("resolveProductMatch gives product_id priority over changing CSV text", () => {
@@ -88,25 +207,31 @@ test("GTIN validation rejects unsupported lengths and bad check digits", () => {
   assert.equal(isValidGtin("0 12345-67890 5"), true);
   assert.equal(gtinValidationMessage("123"), "GTIN must contain 8, 12, 13, or 14 digits.");
   assert.equal(gtinValidationMessage("012345678904"), "GTIN check digit is invalid.");
-  assert.equal(gtinValidationMessage("ABC-012345678905"), "GTIN can contain only digits, spaces, and hyphens.");
+  assert.equal(
+    gtinValidationMessage("ABC-012345678905"),
+    "GTIN can contain only digits, spaces, and hyphens.",
+  );
 });
 
 test("resolveProductMatch does not trust a malformed stored barcode", () => {
-  const result = resolveProductMatch([
+  const result = resolveProductMatch(
+    [
+      {
+        id: "product-1",
+        korean_name: "저장 상품",
+        brand: "Brand",
+        gtin: "OCR-012345678905",
+        unit: "1 ea",
+        category: "Pantry",
+      },
+    ],
     {
-      id: "product-1",
-      korean_name: "저장 상품",
-      brand: "Brand",
-      gtin: "OCR-012345678905",
-      unit: "1 ea",
-      category: "Pantry",
+      koreanName: "다른 상품",
+      gtin: "012345678905",
+      unit: "2 ea",
+      category: "Other",
     },
-  ], {
-    koreanName: "다른 상품",
-    gtin: "012345678905",
-    unit: "2 ea",
-    category: "Other",
-  });
+  );
 
   assert.equal(result.status, "not_found");
   assert.equal(result.reason, "gtin_not_found");

@@ -1,4 +1,3 @@
-import React from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { WEB_FILTER_SELECT_STYLE } from "../../utils/adminScreenHelpers";
@@ -48,7 +47,7 @@ export default function AdminStoreFilters({
         <TextInput
           value={searchQuery}
           onChangeText={onSearchChange}
-          placeholder="Search brand, branch, address, ID, note, or coordinates"
+          placeholder="Search retailer, branch, address, ID, note, or coordinates"
           placeholderTextColor={C.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
@@ -60,7 +59,7 @@ export default function AdminStoreFilters({
             onChange={(event) => onBrandChange((event.target as HTMLSelectElement).value)}
             style={WEB_FILTER_SELECT_STYLE}
           >
-            <option value="all">Brand: All</option>
+            <option value="all">Retailer: All</option>
             {brandOptions.map((brand) => (
               <option key={`store-brand-${brand}`} value={brand}>
                 {brand}

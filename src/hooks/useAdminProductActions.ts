@@ -8,7 +8,11 @@ import useAdminProductSave from "./useAdminProductSave";
 
 export default function useAdminProductActions(params: UseAdminProductActionsParams) {
   const updateStorePriceSet = React.useCallback(
-    (id: string, field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate", value: string) => {
+    (
+      id: string,
+      field: "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate",
+      value: string,
+    ) => {
       params.setProductStorePriceSets((items) =>
         items.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
       );
@@ -18,14 +22,27 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
   const addStorePriceSet = React.useCallback(() => {
     params.setProductStorePriceSets((items) => [...items, createStorePriceSet()]);
   }, [params.setProductStorePriceSets]);
-  const removeStorePriceSet = React.useCallback((id: string) => {
-    params.setProductStorePriceSets((items) => {
-      if (items.length > 1) return items.filter((item) => item.id !== id);
-      return items.map((item) => item.id === id
-        ? { ...item, persistedPriceId: undefined, brand: "", storeId: "", price: "", periodStartDate: "", periodEndDate: "" }
-        : item);
-    });
-  }, [params.setProductStorePriceSets]);
+  const removeStorePriceSet = React.useCallback(
+    (id: string) => {
+      params.setProductStorePriceSets((items) => {
+        if (items.length > 1) return items.filter((item) => item.id !== id);
+        return items.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                persistedPriceId: undefined,
+                brand: "",
+                storeId: "",
+                price: "",
+                periodStartDate: "",
+                periodEndDate: "",
+              }
+            : item,
+        );
+      });
+    },
+    [params.setProductStorePriceSets],
+  );
 
   const resetProductForm = React.useCallback(() => {
     params.setEditingProductId(null);
@@ -43,34 +60,41 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
     resetProductForm();
     params.setProductModalOpen(true);
   }, [params.setProductModalOpen, resetProductForm]);
-  const handleOpenEditProduct = React.useCallback((product: AdminProduct) => {
-    const storeById = new Map(params.stores.map((store) => [store.id, store]));
-    const priceSets = params.prices
-      .filter((price) => price.product_id === product.id)
-      .sort((a, b) => new Date(b.valid_from || b.observed_at).getTime() - new Date(a.valid_from || a.observed_at).getTime())
-      .map((price) => {
-        const store = storeById.get(price.store_id);
-        return createStorePriceSet({
-          persistedPriceId: price.id,
-          brand: store?.brand?.trim() || (store ? "Other" : ""),
-          storeId: price.store_id,
-          price: price.price.toFixed(2),
-          periodStartDate: dateInputValue(price.valid_from || price.observed_at),
-          periodEndDate: dateInputValue(price.valid_to),
+  const handleOpenEditProduct = React.useCallback(
+    (product: AdminProduct) => {
+      const storeById = new Map(params.stores.map((store) => [store.id, store]));
+      const priceSets = params.prices
+        .filter((price) => price.product_id === product.id)
+        .sort(
+          (a, b) =>
+            new Date(b.valid_from || b.observed_at).getTime() -
+            new Date(a.valid_from || a.observed_at).getTime(),
+        )
+        .map((price) => {
+          const store = storeById.get(price.store_id);
+          return createStorePriceSet({
+            persistedPriceId: price.id,
+            brand: store?.brand?.trim() || (store ? "Other" : ""),
+            storeId: price.store_id,
+            price: price.price.toFixed(2),
+            periodStartDate: dateInputValue(price.valid_from || price.observed_at),
+            periodEndDate: dateInputValue(price.valid_to),
+          });
         });
-      });
-    params.setEditingProductId(product.id);
-    params.setProductKoreanName(product.korean_name);
-    params.setProductEnglishName(product.english_name ?? "");
-    params.setProductBrand(product.brand ?? "");
-    params.setProductGtin(product.gtin ?? "");
-    params.setProductUnit(product.unit ?? "");
-    params.setProductCategory(product.category);
-    params.setProductCategoryCustom(product.category);
-    params.setProductThumb(product.thumbnail_url ?? "");
-    params.setProductStorePriceSets(priceSets.length ? priceSets : [createStorePriceSet()]);
-    params.setProductModalOpen(true);
-  }, [params]);
+      params.setEditingProductId(product.id);
+      params.setProductKoreanName(product.korean_name);
+      params.setProductEnglishName(product.english_name ?? "");
+      params.setProductBrand(product.brand ?? "");
+      params.setProductGtin(product.gtin ?? "");
+      params.setProductUnit(product.unit ?? "");
+      params.setProductCategory(product.category);
+      params.setProductCategoryCustom(product.category);
+      params.setProductThumb(product.thumbnail_url ?? "");
+      params.setProductStorePriceSets(priceSets.length ? priceSets : [createStorePriceSet()]);
+      params.setProductModalOpen(true);
+    },
+    [params],
+  );
 
   const handleCreateProduct = useAdminProductSave({ ...params, resetProductForm });
   const imageActions = useAdminProductImageUpload({
@@ -81,6 +105,7 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
   });
   const csvActions = useAdminProductCsvActions({
     products: params.products,
+    productAliases: params.productAliases,
     productPriceStats: params.productPriceStats,
     stores: params.stores,
     setSubmitting: params.setSubmitting,
@@ -92,68 +117,76 @@ export default function useAdminProductActions(params: UseAdminProductActionsPar
     createAuditLogMutation: params.createAuditLogMutation,
   });
 
-  const handleDeleteProduct = React.useCallback(async (id: string) => {
-    params.setDeletingKey(`product:${id}`);
-    try {
-      await params.deleteProductMutation.mutateAsync(id);
-      let auditWarning = "";
+  const handleDeleteProduct = React.useCallback(
+    async (id: string) => {
+      params.setDeletingKey(`product:${id}`);
       try {
-        await params.createAuditLogMutation.mutateAsync({
-          action: "delete_product",
-          entityType: "product",
-          entityId: id,
-          summary: "Deleted a product and its linked price entries.",
-        });
-      } catch (error) {
-        auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
-      }
-      params.setNotice(`Product deleted.${auditWarning}`);
-      await params.loadAll(true);
-      return true;
-    } catch (error) {
-      params.setNotice(error instanceof Error ? error.message : "Product delete failed.");
-      return false;
-    } finally {
-      params.setDeletingKey(null);
-    }
-  }, [params]);
-  const handleDeleteProducts = React.useCallback(async (ids: string[]) => {
-    const uniqueIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
-    if (!uniqueIds.length) return [];
-    params.setDeletingKey("products:bulk");
-    const failed: string[] = [];
-    const deleted: string[] = [];
-    try {
-      for (const id of uniqueIds) {
+        await params.deleteProductMutation.mutateAsync(id);
+        let auditWarning = "";
         try {
-          await params.deleteProductMutation.mutateAsync(id);
-          deleted.push(id);
+          await params.createAuditLogMutation.mutateAsync({
+            action: "delete_product",
+            entityType: "product",
+            entityId: id,
+            summary: "Deleted a product and its linked price entries.",
+          });
         } catch (error) {
-          failed.push(error instanceof Error ? error.message : "Product delete failed.");
+          auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
+        }
+        params.setNotice(`Product deleted.${auditWarning}`);
+        await params.loadAll(true);
+        return true;
+      } catch (error) {
+        params.setNotice(error instanceof Error ? error.message : "Product delete failed.");
+        return false;
+      } finally {
+        params.setDeletingKey(null);
+      }
+    },
+    [params],
+  );
+  const handleDeleteProducts = React.useCallback(
+    async (ids: string[]) => {
+      const uniqueIds = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+      if (!uniqueIds.length) return [];
+      params.setDeletingKey("products:bulk");
+      const failed: string[] = [];
+      const deleted: string[] = [];
+      try {
+        for (const id of uniqueIds) {
+          try {
+            await params.deleteProductMutation.mutateAsync(id);
+            deleted.push(id);
+          } catch (error) {
+            failed.push(error instanceof Error ? error.message : "Product delete failed.");
+          }
+        }
+      } finally {
+        params.setDeletingKey(null);
+      }
+      let auditWarning = "";
+      if (deleted.length) {
+        try {
+          await params.createAuditLogMutation.mutateAsync({
+            action: "bulk_delete_products",
+            entityType: "product",
+            summary: `Deleted ${deleted.length} products in a bulk action.`,
+            metadata: { product_ids: deleted, failed_count: failed.length },
+          });
+        } catch (error) {
+          auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
         }
       }
-    } finally {
-      params.setDeletingKey(null);
-    }
-    let auditWarning = "";
-    if (deleted.length) {
-      try {
-        await params.createAuditLogMutation.mutateAsync({
-          action: "bulk_delete_products",
-          entityType: "product",
-          summary: `Deleted ${deleted.length} products in a bulk action.`,
-          metadata: { product_ids: deleted, failed_count: failed.length },
-        });
-      } catch (error) {
-        auditWarning = ` Audit log failed: ${error instanceof Error ? error.message : "failed"}.`;
-      }
-    }
-    params.setNotice((failed.length
-      ? `Deleted ${deleted.length} products. Failed ${failed.length}: ${failed[0]}`
-      : `Deleted ${deleted.length} products.`) + auditWarning);
-    await params.loadAll(true);
-    return deleted;
-  }, [params]);
+      params.setNotice(
+        (failed.length
+          ? `Deleted ${deleted.length} products. Failed ${failed.length}: ${failed[0]}`
+          : `Deleted ${deleted.length} products.`) + auditWarning,
+      );
+      await params.loadAll(true);
+      return deleted;
+    },
+    [params],
+  );
 
   return {
     addStorePriceSet,

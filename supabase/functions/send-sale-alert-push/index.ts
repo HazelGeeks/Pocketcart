@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
 import {
   deliverPushAlerts,
+  type PushDeliveryResult,
   type PushTokenRecord,
 } from "../_shared/pushDelivery.ts";
 
@@ -93,7 +94,7 @@ Deno.serve(async (request) => {
   if (tokenError) return jsonResponse({ error: tokenError.message }, 500);
 
   const pushTokens = (tokenRows ?? []) as PushTokenRecord[];
-  let delivery;
+  let delivery: PushDeliveryResult;
   try {
     delivery = await deliverPushAlerts(adminClient, alerts, pushTokens);
   } catch (error) {

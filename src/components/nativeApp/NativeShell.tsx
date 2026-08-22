@@ -1,5 +1,4 @@
-import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Animated, Pressable, Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { TABS, type NativeTabId } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
@@ -9,28 +8,30 @@ import { AppIcon } from "../icons/AppIcon";
 type NativeBottomTabsProps = {
   activeTab: NativeTabId;
   bottomInset: number;
+  hidden: boolean;
   pad: number;
+  translateY: Animated.Value;
   unreadAlertCount: number;
   onSelectTab: (tabId: NativeTabId) => void;
 };
 
 type NativeContextHeaderProps = {
   title: string;
-  status: string;
   topInset: number;
   pad: number;
   onBack?: () => void;
   onOpenAlerts?: () => void;
+  onOpenMenu?: () => void;
   unreadAlertCount?: number;
 };
 
 export function NativeContextHeader({
   title,
-  status,
   topInset,
   pad,
   onBack,
   onOpenAlerts,
+  onOpenMenu,
   unreadAlertCount = 0,
 }: NativeContextHeaderProps) {
   return (
@@ -48,63 +49,52 @@ export function NativeContextHeader({
           {onBack ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Back to Account & Settings"
+              accessibilityLabel="Go back"
               onPress={onBack}
               style={st.contextBackButton}
             >
               <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                <Path d="m14.5 6-6 6 6 6" stroke={C.primaryDeep} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
-            </Pressable>
-          ) : (
-            <View style={st.contextBrandMark} accessibilityElementsHidden>
-              <Svg width={21} height={21} viewBox="0 0 24 24" fill="none">
                 <Path
-                  d="M5.5 8.5h13l-1 10h-11l-1-10Z"
+                  d="m14.5 6-6 6 6 6"
                   stroke={C.primaryDeep}
-                  strokeWidth={2.1}
+                  strokeWidth={2.2}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
-                <Path
-                  d="M9 9V7a3 3 0 0 1 6 0v2"
-                  stroke={C.primaryDeep}
-                  strokeWidth={2.1}
-                  strokeLinecap="round"
-                />
               </Svg>
-            </View>
-          )}
+            </Pressable>
+          ) : null}
           <Text accessibilityRole="header" style={st.contextHeaderTitle} numberOfLines={1}>
             {title}
           </Text>
         </View>
-        {onOpenAlerts ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              unreadAlertCount > 0
-                ? `${unreadAlertCount} unread price alerts`
-                : "Open price alerts"
-            }
-            onPress={onOpenAlerts}
-            style={st.headerAlertButton}
-          >
-            <AppIcon name="bell" color={C.primaryDeep} size={22} strokeWidth={2.2} />
-            {unreadAlertCount > 0 ? (
-              <View style={st.headerAlertBadge}>
-                <Text style={st.headerAlertBadgeText}>
-                  {unreadAlertCount > 9 ? "9+" : unreadAlertCount}
-                </Text>
-              </View>
+        {onOpenAlerts || onOpenMenu ? (
+          <View style={st.contextHeaderActions}>
+            {onOpenAlerts ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadAlertCount > 0
+                    ? `${unreadAlertCount} unread price alerts`
+                    : "Open price alerts"
+                }
+                onPress={onOpenAlerts}
+                style={st.headerIconButton}
+              >
+                <AppIcon name="bell" color={C.text} size={25} strokeWidth={2.1} />
+                {unreadAlertCount > 0 ? <View style={st.headerAlertDot} /> : null}
+              </Pressable>
             ) : null}
-          </Pressable>
-        ) : status ? (
-          <View style={st.contextStatusPill}>
-            <View style={st.contextStatusDot} />
-            <Text style={st.contextStatusText} numberOfLines={1}>
-              {status}
-            </Text>
+            {onOpenMenu ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+                onPress={onOpenMenu}
+                style={st.headerIconButton}
+              >
+                <AppIcon name="menu" color={C.text} size={27} strokeWidth={2.1} />
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -115,24 +105,30 @@ export function NativeContextHeader({
 export function NativeBottomTabs({
   activeTab,
   bottomInset,
+  hidden,
   pad,
+  translateY,
   unreadAlertCount,
   onSelectTab,
 }: NativeBottomTabsProps) {
   return (
-    <View
+    <Animated.View
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? "no-hide-descendants" : "auto"}
+      pointerEvents={hidden ? "none" : "auto"}
       style={[
         st.bottomBar,
         {
-          paddingBottom: Math.max(bottomInset, 10),
-          paddingHorizontal: pad,
+          bottom: Math.max(bottomInset, 10) + 8,
+          left: Math.max(pad - 4, 12),
+          right: Math.max(pad - 4, 12),
+          transform: [{ translateY }],
         },
       ]}
     >
       <View style={st.tabRow}>
         {TABS.map((tab) => {
           const active = tab.id === activeTab;
-          const isMain = tab.id === "home";
           return (
             <Pressable
               key={tab.id}
@@ -140,23 +136,11 @@ export function NativeBottomTabs({
               accessibilityLabel={tab.label}
               accessibilityState={{ selected: active }}
               onPress={() => onSelectTab(tab.id)}
-              style={[
-                st.tabBtn,
-                isMain && st.tabBtnMain,
-                active && !isMain && st.tabBtnActive,
-                active && isMain && st.tabBtnMainActive,
-              ]}
+              style={[st.tabBtn, active && st.tabBtnActive]}
             >
-              <View style={[st.tabBtnContent, isMain && st.tabBtnMainContent]}>
-                <TabIcon tabId={tab.id} active={active} emphasized={isMain} />
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    st.tabLabel,
-                    active && st.tabLabelActive,
-                    isMain && st.tabLabelMain,
-                  ]}
-                >
+              <View style={st.tabBtnContent}>
+                <TabIcon tabId={tab.id} active={active} />
+                <Text numberOfLines={1} style={[st.tabLabel, active && st.tabLabelActive]}>
                   {tab.label}
                 </Text>
                 {tab.id === "alerts" && unreadAlertCount > 0 ? (
@@ -171,14 +155,14 @@ export function NativeBottomTabs({
           );
         })}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
-function TabIcon({ tabId, active, emphasized = false }: { tabId: NativeTabId; active: boolean; emphasized?: boolean }) {
-  const color = emphasized ? C.white : active ? C.primaryDeep : C.textMuted;
-  const strokeWidth = emphasized ? 2.3 : 2.1;
-  const iconSize = emphasized ? 28 : 22;
+function TabIcon({ tabId, active }: { tabId: NativeTabId; active: boolean }) {
+  const color = active ? C.primaryDeep : C.textMuted;
+  const strokeWidth = active ? 2.4 : 2.1;
+  const iconSize = 24;
 
   switch (tabId) {
     case "home":
@@ -255,6 +239,20 @@ function TabIcon({ tabId, active, emphasized = false }: { tabId: NativeTabId; ac
           />
         </Svg>
       );
+    case "scan":
+      return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+          <Path
+            d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M8 20H5a1 1 0 0 1-1-1v-3M16 20h3a1 1 0 0 0 1-1v-3"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <Circle cx={12} cy={12} r={3.4} stroke={color} strokeWidth={strokeWidth} />
+          <Path d="M12 9.4V7.8" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+        </Svg>
+      );
     case "more":
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
@@ -270,7 +268,15 @@ function TabIcon({ tabId, active, emphasized = false }: { tabId: NativeTabId; ac
     default:
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Rect x={6} y={6} width={12} height={12} rx={3} stroke={color} strokeWidth={strokeWidth} />
+          <Rect
+            x={6}
+            y={6}
+            width={12}
+            height={12}
+            rx={3}
+            stroke={color}
+            strokeWidth={strokeWidth}
+          />
         </Svg>
       );
   }

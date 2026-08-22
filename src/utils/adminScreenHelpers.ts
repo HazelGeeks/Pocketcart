@@ -1,16 +1,17 @@
 import type React from "react";
 import type { AdminStore } from "../services/adminBackoffice";
-import { createFlyerRow } from "../state/adminStore";
 import type { FlyerRow } from "../state/adminStore";
+import { createFlyerRow } from "../state/adminStore";
 import { formatBusinessDate } from "./businessDateTime";
 import { looksLikeProductStoreRecord } from "./storeVisibility";
-export { PRODUCT_IMPORT_HEADERS } from "./productCsvHeaders";
+
 export {
   downloadCsvFile,
   productImportTemplateCsv,
   productsToCsv,
   storesToCsv,
 } from "./adminCsvFiles";
+export { PRODUCT_IMPORT_HEADERS } from "./productCsvHeaders";
 
 export type OverviewCard = {
   id: string;
@@ -35,6 +36,9 @@ export type ProductPriceStats = {
   latestUpdatedAtMs: number;
   latestValidFrom: string | null;
   latestValidTo: string | null;
+  currentSaleObservedAtMs: number;
+  currentSaleValidFrom: string | null;
+  currentSaleValidTo: string | null;
   minPrice: number | null;
   maxPrice: number | null;
   storeIds: Set<string>;
@@ -130,7 +134,12 @@ export function uniqueValues(values: string[]): string[] {
 }
 
 export function createStorePriceSet(
-  seed?: Partial<Pick<StorePriceSetInput, "persistedPriceId" | "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate">>,
+  seed?: Partial<
+    Pick<
+      StorePriceSetInput,
+      "persistedPriceId" | "brand" | "storeId" | "price" | "periodStartDate" | "periodEndDate"
+    >
+  >,
 ): StorePriceSetInput {
   return {
     id: `sp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -163,7 +172,10 @@ export function storeMapUrl(
 }
 
 export function storeAddressSearchUrl(name: string, address: string, placeId: string): string {
-  const query = [name, address].map((value) => value.trim()).filter(Boolean).join(" ");
+  const query = [name, address]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
   const params = new URLSearchParams({
     api: "1",
     query,
@@ -198,11 +210,14 @@ function parseFlyerPrice(value: string): string {
 
 function inferFlyerMainCategory(productName: string): string {
   const text = productName.toLowerCase();
-  const direct = DEFAULT_PRODUCT_CATEGORIES.find((category) => text.includes(category.toLowerCase()));
+  const direct = DEFAULT_PRODUCT_CATEGORIES.find((category) =>
+    text.includes(category.toLowerCase()),
+  );
   if (direct) return direct;
   if (/\b(milk|cheese|yogurt|cream|butter)\b/i.test(productName)) return "Dairy";
   if (/\b(chicken|beef|pork|turkey|sausage)\b/i.test(productName)) return "Meat";
-  if (/\b(apple|banana|tomato|lettuce|onion|potato|berry|berries)\b/i.test(productName)) return "Produce";
+  if (/\b(apple|banana|tomato|lettuce|onion|potato|berry|berries)\b/i.test(productName))
+    return "Produce";
   if (/\b(bread|bagel|bun|cake|muffin)\b/i.test(productName)) return "Bakery";
   if (/\b(juice|soda|water|coffee|tea)\b/i.test(productName)) return "Beverage";
   if (/\b(chips|cracker|cookie|snack)\b/i.test(productName)) return "Snacks";

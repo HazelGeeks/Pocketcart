@@ -1,4 +1,3 @@
-import React from "react";
 import { Pressable, Text, View } from "react-native";
 import useLayout from "../../hooks/useLayout";
 import type { AdminProduct } from "../../services/adminBackoffice";
@@ -76,9 +75,7 @@ export default function AdminProductList({
       );
     }
 
-    return (
-      <Text style={st.dataMuted}>No products match current filters.</Text>
-    );
+    return <Text style={st.dataMuted}>No products match current filters.</Text>;
   }
 
   return (
@@ -86,7 +83,9 @@ export default function AdminProductList({
       <View style={st.productListHeader}>
         <Pressable
           accessibilityRole="checkbox"
-          accessibilityLabel={allVisibleSelected ? "Clear all visible products" : "Select all visible products"}
+          accessibilityLabel={
+            allVisibleSelected ? "Clear all visible products" : "Select all visible products"
+          }
           accessibilityState={{
             checked: allVisibleSelected ? true : selectedVisibleCount > 0 ? "mixed" : false,
           }}
@@ -94,7 +93,12 @@ export default function AdminProductList({
           style={st.productListHeaderSelect}
           disabled={submitting || deletingKey === "products:bulk"}
         >
-          <View style={[st.productCheckboxBox, (allVisibleSelected || selectedVisibleCount > 0) && st.productCheckboxBoxChecked]}>
+          <View
+            style={[
+              st.productCheckboxBox,
+              (allVisibleSelected || selectedVisibleCount > 0) && st.productCheckboxBoxChecked,
+            ]}
+          >
             {allVisibleSelected ? (
               <View style={st.productCheckboxMark} />
             ) : selectedVisibleCount > 0 ? (
@@ -111,10 +115,13 @@ export default function AdminProductList({
           <View style={st.productListColumnHeader}>
             <View style={st.productListSelectColumn} />
             <Text style={[st.productListColumnLabel, st.productListProductColumn]}>Product</Text>
-            <Text style={[st.productListColumnLabel, st.productListLatestColumn]}>Latest</Text>
-            <Text style={[st.productListColumnLabel, st.productListHistoryColumn]}>History</Text>
-            <Text style={[st.productListColumnLabel, st.productListRangeColumn]}>Stores · Range</Text>
-            <Text style={[st.productListColumnLabel, st.productListSaleColumn]}>Sale period · Current stores</Text>
+            <Text style={[st.productListColumnLabel, st.productListLatestColumn]}>
+              Latest price
+            </Text>
+            <Text style={[st.productListColumnLabel, st.productListHistoryColumn]}>
+              Price history
+            </Text>
+            <Text style={[st.productListColumnLabel, st.productListSaleColumn]}>Current sale</Text>
             <Text style={[st.productListColumnLabel, st.productListActionsColumn]}>Actions</Text>
           </View>
         ) : null}

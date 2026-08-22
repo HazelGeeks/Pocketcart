@@ -7,11 +7,7 @@ import {
 } from "../services/saleAlerts";
 import { sendSaleAlertPushNotifications } from "../services/pushNotifications";
 import { hasSupabaseEnv } from "../services/supabaseClient";
-import {
-  listWatchlistItems,
-  removeWatchlistItem,
-  type WatchlistItem,
-} from "../services/watchlist";
+import { listWatchlistItems, type WatchlistItem } from "../services/watchlist";
 import type { NativeTabId } from "../screens/nativeAppData";
 import { isSignInRequiredMessage } from "../utils/serviceErrors";
 
@@ -26,10 +22,6 @@ export default function useNativeSaleAlerts({
   alertsEnabled,
   showToast,
 }: UseNativeSaleAlertsOptions) {
-  const [watchlistItems, setWatchlistItems] = React.useState<WatchlistItem[]>([]);
-  const [watchLoading, setWatchLoading] = React.useState(false);
-  const [watchRemovingId, setWatchRemovingId] = React.useState<string | null>(null);
-  const [watchMessage, setWatchMessage] = React.useState<string | null>(null);
   const [saleAlerts, setSaleAlerts] = React.useState<SaleAlert[]>([]);
   const [alertsLoading, setAlertsLoading] = React.useState(false);
   const [alertsMessage, setAlertsMessage] = React.useState<string | null>(null);
@@ -41,11 +33,7 @@ export default function useNativeSaleAlerts({
       if (alertsEnabled) {
         void sendSaleAlertPushNotifications(createdAlerts);
         const notification = (globalThis as { Notification?: any }).Notification;
-        if (
-          Platform.OS === "web" &&
-          notification &&
-          notification.permission === "granted"
-        ) {
+        if (Platform.OS === "web" && notification && notification.permission === "granted") {
           createdAlerts.slice(0, 3).forEach((alert) => {
             try {
               new notification(alert.title, { body: alert.body });
@@ -56,9 +44,7 @@ export default function useNativeSaleAlerts({
         }
       }
       showToast(
-        createdAlerts.length === 1
-          ? "New sale alert."
-          : `${createdAlerts.length} new sale alerts.`,
+        createdAlerts.length === 1 ? "New sale alert." : `${createdAlerts.length} new sale alerts.`,
       );
     },
     [alertsEnabled, showToast],
@@ -87,51 +73,32 @@ export default function useNativeSaleAlerts({
     [notifyCreatedSaleAlerts],
   );
 
-  const loadWatchlist = React.useCallback(async (keepMessage = false) => {
-    if (!hasSupabaseEnv) {
-      setWatchlistItems([]);
-      setSaleAlerts([]);
-      return;
-    }
+  const loadWatchlist = React.useCallback(
+    async (keepMessage = false) => {
+      if (!hasSupabaseEnv) {
+        setSaleAlerts([]);
+        return;
+      }
 
-    setWatchLoading(true);
-    const { data, error } = await listWatchlistItems();
-    setWatchlistItems(data);
-    setWatchLoading(false);
-    if (isSignInRequiredMessage(error)) {
-      setWatchMessage(null);
-    } else if (error) {
-      setWatchMessage(error);
-    } else if (!keepMessage) {
-      setWatchMessage(null);
-    }
-    if (!error) {
-      await loadSaleAlerts(data, true);
-    }
-  }, [loadSaleAlerts]);
+      const { data, error } = await listWatchlistItems();
+      if (isSignInRequiredMessage(error)) {
+        setAlertsMessage(null);
+      } else if (error) {
+        setAlertsMessage(error);
+      } else if (!keepMessage) {
+        setAlertsMessage(null);
+      }
+      if (!error) {
+        await loadSaleAlerts(data, true);
+      }
+    },
+    [loadSaleAlerts],
+  );
 
   React.useEffect(() => {
     if (activeTab !== "home" && activeTab !== "alerts") return;
     void loadWatchlist(true);
   }, [activeTab, loadWatchlist]);
-
-  const removeItem = React.useCallback(
-    async (itemId: string) => {
-      setWatchRemovingId(itemId);
-      const { error } = await removeWatchlistItem(itemId);
-      setWatchRemovingId(null);
-
-      if (error) {
-        setWatchMessage(error);
-        return;
-      }
-
-      setWatchMessage(null);
-      await loadWatchlist(true);
-      showToast("Price alert removed.");
-    },
-    [loadWatchlist, showToast],
-  );
 
   const markAlertsRead = React.useCallback(async () => {
     setAlertsMarkingRead(true);
@@ -154,7 +121,6 @@ export default function useNativeSaleAlerts({
   }, [showToast]);
 
   const clearWatchlist = React.useCallback(() => {
-    setWatchlistItems([]);
     setSaleAlerts([]);
   }, []);
 
@@ -170,12 +136,7 @@ export default function useNativeSaleAlerts({
     clearWatchlist,
     loadWatchlist,
     markAlertsRead,
-    removeItem,
     saleAlerts,
     unreadAlertCount,
-    watchLoading,
-    watchMessage,
-    watchRemovingId,
-    watchlistItems,
   };
 }

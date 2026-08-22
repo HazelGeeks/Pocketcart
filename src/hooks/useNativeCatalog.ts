@@ -1,21 +1,18 @@
 import React from "react";
 import {
-  listLatestStorePricesForProduct,
-  listProductCategories,
-  listProductPriceHistory,
-  listProducts,
-  type MarketProduct,
-} from "../services/marketData";
-import {
   buildPreviousPriceRows,
   buildPriceChart,
   type HomeRoute,
   type NativeTabId,
 } from "../screens/nativeAppData";
 import {
-  mergeCategoryImageUrls,
-  type CategoryImageUrls,
-} from "../utils/categoryImages";
+  listLatestStorePricesForProduct,
+  listProductCategories,
+  listProductPriceHistory,
+  listProducts,
+  type MarketProduct,
+} from "../services/marketData";
+import { type CategoryImageUrls, mergeCategoryImageUrls } from "../utils/categoryImages";
 
 type UseNativeCatalogOptions = {
   activeTab: NativeTabId;
@@ -35,9 +32,8 @@ export default function useNativeCatalog({
   width,
 }: UseNativeCatalogOptions) {
   const [route, setRoute] = React.useState<HomeRoute>("catalog");
-  const [sortMode, setSortMode] = React.useState<
-    "deals" | "lowestPrice" | "biggestDrop"
-  >("deals");
+  const [sortMode, setSortMode] = React.useState<"deals" | "lowestPrice" | "biggestDrop">("deals");
+  const [onSaleOnly, setOnSaleOnly] = React.useState(true);
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState("All");
   const [products, setProducts] = React.useState<MarketProduct[]>([]);
@@ -46,6 +42,7 @@ export default function useNativeCatalog({
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = React.useState("");
+  const [linkedProduct, setLinkedProduct] = React.useState<MarketProduct | null>(null);
   const [priceHistory, setPriceHistory] = React.useState<
     Awaited<ReturnType<typeof listProductPriceHistory>>["data"]
   >([]);
@@ -63,6 +60,7 @@ export default function useNativeCatalog({
   const categoriesRequestIdRef = React.useRef(0);
   const historyRequestIdRef = React.useRef(0);
   const storePricesRequestIdRef = React.useRef(0);
+  const pendingProductOpenRef = React.useRef(false);
 
   const filteredProducts = React.useMemo(() => {
     if (!storeFilterId) return products;
@@ -71,15 +69,22 @@ export default function useNativeCatalog({
 
   const selectedProduct = React.useMemo(
     () =>
+      (linkedProduct?.id === selectedProductId ? linkedProduct : null) ??
       filteredProducts.find((product) => product.id === selectedProductId) ??
       filteredProducts[0] ??
       null,
-    [filteredProducts, selectedProductId],
+    [filteredProducts, linkedProduct, selectedProductId],
   );
 
   const productById = React.useMemo(
-    () => new Map(products.map((product) => [product.id, product])),
-    [products],
+    () =>
+      new Map(
+        [...products, ...(linkedProduct ? [linkedProduct] : [])].map((product) => [
+          product.id,
+          product,
+        ]),
+      ),
+    [linkedProduct, products],
   );
 
   React.useEffect(() => {
@@ -91,10 +96,7 @@ export default function useNativeCatalog({
     return buildPriceChart(priceHistory, width, horizontalPad);
   }, [horizontalPad, priceHistory, selectedProduct, width]);
 
-  const previousPriceRows = React.useMemo(
-    () => buildPreviousPriceRows(chart),
-    [chart],
-  );
+  const previousPriceRows = React.useMemo(() => buildPreviousPriceRows(chart), [chart]);
 
   const loadProducts = React.useCallback(async () => {
     const requestId = productsRequestIdRef.current + 1;
@@ -104,12 +106,13 @@ export default function useNativeCatalog({
       search: query,
       category: category === "All" ? undefined : category,
       preferredStoreIds: storeFilterId ? [storeFilterId] : favoriteStoreIds,
+      onSaleOnly,
     });
     if (productsRequestIdRef.current !== requestId) return;
     setProducts(data);
     setLoading(false);
     setMessage(error ?? null);
-  }, [category, favoriteStoreIds, query, storeFilterId]);
+  }, [category, favoriteStoreIds, onSaleOnly, query, storeFilterId]);
 
   const loadCategories = React.useCallback(async () => {
     const requestId = categoriesRequestIdRef.current + 1;
@@ -154,7 +157,8 @@ export default function useNativeCatalog({
 
   React.useEffect(() => {
     if (activeTab !== "home") return;
-    setRoute("catalog");
+    if (pendingProductOpenRef.current) pendingProductOpenRef.current = false;
+    else setRoute("catalog");
     void loadCategories();
   }, [activeTab, loadCategories]);
 
@@ -164,6 +168,7 @@ export default function useNativeCatalog({
   }, [activeTab, loadProducts]);
 
   React.useEffect(() => {
+    if (linkedProduct?.id === selectedProductId) return;
     if (filteredProducts.length === 0) {
       setSelectedProductId("");
       return;
@@ -171,8 +176,13 @@ export default function useNativeCatalog({
     if (!filteredProducts.some((product) => product.id === selectedProductId)) {
       setSelectedProductId(filteredProducts[0].id);
     }
-  }, [filteredProducts, selectedProductId]);
+  }, [filteredProducts, linkedProduct, selectedProductId]);
 
+  React.useEffect(() => {
+    if (route === "catalog") setLinkedProduct(null);
+  }, [route]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clear action feedback after navigation or product changes
   React.useEffect(() => {
     setActionMessage(null);
   }, [route, selectedProductId]);
@@ -200,6 +210,17 @@ export default function useNativeCatalog({
     setStoreFilterName(null);
   }, []);
 
+  const openProduct = React.useCallback(
+    (product: MarketProduct) => {
+      pendingProductOpenRef.current = true;
+      setLinkedProduct(product);
+      setSelectedProductId(product.id);
+      setRoute("detail");
+      onOpenHome();
+    },
+    [onOpenHome],
+  );
+
   return {
     actionMessage,
     addSubmitting,
@@ -213,6 +234,8 @@ export default function useNativeCatalog({
     historyMessage,
     loading,
     message,
+    onSaleOnly,
+    openProduct,
     previousPriceRows,
     productById,
     query,
@@ -221,6 +244,7 @@ export default function useNativeCatalog({
     setActionMessage,
     setAddSubmitting,
     setCategory,
+    setOnSaleOnly,
     setQuery,
     setRoute,
     setSelectedProductId,

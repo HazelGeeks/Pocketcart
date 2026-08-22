@@ -1,9 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const {
-  buildProductDuplicateGroups,
-} = require("../.tmp-tests/utils/productDuplicateGroups.js");
+const { buildProductDuplicateGroups } = require("../.tmp-tests/utils/productDuplicateGroups.js");
 
 function product(overrides) {
   return {
@@ -29,6 +27,33 @@ test("finds translated products using English and Korean names", () => {
   assert.equal(groups.length, 1);
   assert.equal(groups[0].method, "name_and_unit");
   assert.deepEqual(groups[0].products.map((item) => item.id).sort(), ["a", "b"]);
+});
+
+test("groups selling-unit variants and origin-qualified names for review", () => {
+  const groups = buildProductDuplicateGroups([
+    product({
+      id: "old",
+      korean_name: "타이완 양배추",
+      english_name: "Taiwan Cabbage",
+      unit: "lb",
+    }),
+    product({
+      id: "current",
+      korean_name: "타이완 양배추",
+      english_name: "Taiwan Cabbage",
+      unit: "per lb",
+    }),
+    product({
+      id: "origin",
+      korean_name: "대만 양배추",
+      english_name: "Taiwan Cabbage (From BC)",
+      unit: "LB",
+    }),
+  ]);
+
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].method, "name_family_and_unit");
+  assert.deepEqual(groups[0].products.map((item) => item.id).sort(), ["current", "old", "origin"]);
 });
 
 test("uses name and unit even when legacy GTIN values match", () => {

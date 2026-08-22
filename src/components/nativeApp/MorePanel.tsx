@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Linking, Pressable, Switch, Text, View } from "react-native";
 import type { UserProfile } from "../../services/userProfile";
 import {
@@ -260,12 +260,11 @@ function ShoppingProfileSection({ profile, preferences, onEditPreferences }: Mor
 
   return (
     <SettingsSection label="Shopping Profile">
-      <View style={st.settingsSummaryBlock}>
+      <View>
         <PreferenceSummary label="Interested in" value={interestText} />
         <PreferenceSummary label="Shopping frequency" value={frequencyText} />
         <PreferenceSummary label="Favorite stores" value={storeText} />
       </View>
-      <View style={st.settingsDivider} />
       <SettingsLinkRow label="Edit Shopping Profile" onPress={onEditPreferences} />
     </SettingsSection>
   );

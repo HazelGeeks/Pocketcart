@@ -1,4 +1,3 @@
-import React from "react";
 import { Modal, Pressable, Text, View } from "react-native";
 import type { AdminStore } from "../../services/adminBackoffice";
 import type { StorePriceStats } from "../../utils/adminScreenHelpers";

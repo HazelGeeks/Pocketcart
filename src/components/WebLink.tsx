@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { Platform, Pressable } from "react-native";
 
 type Props = {

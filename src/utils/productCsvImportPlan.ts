@@ -1,23 +1,14 @@
-import type { AdminProduct, AdminStore } from "../services/adminBackoffice";
-import { PRODUCT_IMPORT_HEADERS } from "./productCsvHeaders";
+import type { AdminProduct, AdminProductAlias, AdminStore } from "../services/adminBackoffice";
 import { csvHeaderKey, csvRowValue, parseCsvRows } from "./adminValidation";
+import { PRODUCT_IMPORT_HEADERS } from "./productCsvHeaders";
 import {
   createProductCsvStoreResolver,
   productCsvDateToIso,
   productCsvRecordFromRow,
 } from "./productCsvImport";
-import {
-  isValidGtin,
-  productIdentityKey,
-  resolveProductMatch,
-} from "./productIdentity";
+import { isValidGtin, productIdentityKey, resolveProductMatch } from "./productIdentity";
 
-export type ProductCsvProductAction =
-  | "create"
-  | "reuse"
-  | "reuse_planned"
-  | "review"
-  | "invalid";
+export type ProductCsvProductAction = "create" | "reuse" | "reuse_planned" | "review" | "invalid";
 
 export type ProductCsvPricePlan = {
   status: "ready" | "missing" | "skipped";
@@ -72,7 +63,10 @@ function hasCsvHeader(headers: string[], aliases: string[]): boolean {
 }
 
 function normalizePrice(value: string): string {
-  const matches = value.trim().replace(/,/g, "").match(/-?\d+(?:\.\d+)?/g);
+  const matches = value
+    .trim()
+    .replace(/,/g, "")
+    .match(/-?\d+(?:\.\d+)?/g);
   return matches?.[0] ?? "";
 }
 
@@ -139,6 +133,7 @@ export function buildProductCsvImportPreview(params: {
   csvText: string;
   fileName: string;
   products: AdminProduct[];
+  productAliases?: AdminProductAlias[];
   stores: AdminStore[];
 }): ProductCsvPreviewResult {
   const parsed = parseCsvRows(params.csvText).filter((row) => row.some((cell) => cell.trim()));
@@ -196,12 +191,16 @@ export function buildProductCsvImportPreview(params: {
       };
     }
 
-    const match = resolveProductMatch(params.products, {
-      productId,
-      ...input,
-      brand: legacyBrand,
-      gtin: isValidGtin(legacyGtin) ? legacyGtin : undefined,
-    });
+    const match = resolveProductMatch(
+      params.products,
+      {
+        productId,
+        ...input,
+        brand: legacyBrand,
+        gtin: isValidGtin(legacyGtin) ? legacyGtin : undefined,
+      },
+      { aliases: params.productAliases },
+    );
     if (match.status === "matched") {
       return {
         rowNumber,

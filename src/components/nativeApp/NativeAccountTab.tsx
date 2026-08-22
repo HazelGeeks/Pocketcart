@@ -1,4 +1,3 @@
-import React from "react";
 import { Linking, Text, View } from "react-native";
 import type useNativeAccount from "../../hooks/useNativeAccount";
 import type useNativeOnboarding from "../../hooks/useNativeOnboarding";

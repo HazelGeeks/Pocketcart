@@ -1,13 +1,10 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
-import {
-  money,
-  type PreviousPriceRow,
-  type PriceChart,
-} from "../../screens/nativeAppData";
+import { money, type PreviousPriceRow, type PriceChart } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
+import { selectLowestPriceByRetailer } from "../../utils/retailerPriceDisplay";
 
 type ProductPriceTrendSectionProps = {
   chart: PriceChart | null;
@@ -77,11 +74,7 @@ export function ProductPriceTrendSection({
                   cx={point.x}
                   cy={point.y}
                   r={3.7}
-                  fill={
-                    index === chart.points.length - 1
-                      ? C.primaryDeep
-                      : C.white
-                  }
+                  fill={index === chart.points.length - 1 ? C.primaryDeep : C.white}
                   stroke={C.primary}
                   strokeWidth={2}
                 />
@@ -99,14 +92,15 @@ export function ProductPriceTrendSection({
             </Text>
           </View>
 
-          <Text style={st.historyTitle}>Store prices by sale period</Text>
+          <Text style={st.historyTitle}>Retailer prices by sale period</Text>
           <Text style={st.itemMeta}>
-            Lowest price shown first. Tap a period to compare stores.
+            Lowest price shown first. Tap a period to compare retailers.
           </Text>
           {lowestStoresByPeriod.map((point, index) => {
             const periodKey = `${point.observed_at}\u0000${point.sale_end_at ?? "open"}`;
-            const storePrices = point.store_prices ?? [];
-            const hasStoreComparison = storePrices.length > 1;
+            const retailerPrices = selectLowestPriceByRetailer(point.store_prices ?? []);
+            const lowestRetailer = retailerPrices[0];
+            const hasRetailerComparison = retailerPrices.length > 1;
             const expanded = expandedPeriod === periodKey;
             return (
               <View
@@ -114,16 +108,12 @@ export function ProductPriceTrendSection({
                 style={st.periodHistoryGroup}
               >
                 <Pressable
-                  accessibilityRole={hasStoreComparison ? "button" : undefined}
-                  accessibilityState={
-                    hasStoreComparison ? { expanded } : undefined
-                  }
+                  accessibilityRole={hasRetailerComparison ? "button" : undefined}
+                  accessibilityState={hasRetailerComparison ? { expanded } : undefined}
                   onPress={
-                    hasStoreComparison
+                    hasRetailerComparison
                       ? () =>
-                          setExpandedPeriod((current) =>
-                            current === periodKey ? null : periodKey,
-                          )
+                          setExpandedPeriod((current) => (current === periodKey ? null : periodKey))
                       : undefined
                   }
                   style={[st.periodLowestRow, index === 0 && st.bestStoreRow]}
@@ -131,45 +121,34 @@ export function ProductPriceTrendSection({
                   <View style={st.periodLowestMain}>
                     <View style={st.periodLowestLabelRow}>
                       <Text style={st.historyLabel}>{point.label}</Text>
-                      {index === 0 ? (
-                        <Text style={st.periodLatestBadge}>Latest</Text>
-                      ) : null}
+                      {index === 0 ? <Text style={st.periodLatestBadge}>Latest</Text> : null}
                     </View>
                     <Text style={st.periodLowestStore} numberOfLines={1}>
-                      {point.store_name}
-                      {point.store_area ? ` · ${point.store_area}` : ""}
+                      {lowestRetailer?.retailerName ?? "Unknown retailer"}
                     </Text>
                   </View>
                   <View style={st.periodLowestPriceBlock}>
-                    <Text style={st.historyPrice}>
-                      {money.format(point.value)}
-                    </Text>
+                    <Text style={st.historyPrice}>{money.format(point.value)}</Text>
                     <Text style={st.storeCompareLowest}>
-                      {hasStoreComparison
-                        ? `${expanded ? "Hide" : "View"} ${storePrices.length} stores ${expanded ? "▴" : "▾"}`
+                      {hasRetailerComparison
+                        ? `${expanded ? "Hide" : "View"} ${retailerPrices.length} retailers ${expanded ? "▴" : "▾"}`
                         : "Lowest"}
                     </Text>
                   </View>
                 </Pressable>
                 {expanded ? (
                   <View style={st.periodStoreList}>
-                    {storePrices.map((storePrice, storeIndex) => (
-                      <View
-                        key={`${storePrice.store_id ?? storePrice.store_name}-${storePrice.id}`}
-                        style={st.periodStoreRow}
-                      >
+                    {retailerPrices.map(({ retailerName, source }, retailerIndex) => (
+                      <View key={`${retailerName}-${source.id}`} style={st.periodStoreRow}>
                         <View style={st.periodStoreMain}>
                           <Text style={st.periodStoreName} numberOfLines={1}>
-                            {storePrice.store_name}
-                            {storePrice.store_area ? ` · ${storePrice.store_area}` : ""}
+                            {retailerName}
                           </Text>
-                          {storeIndex === 0 ? (
+                          {retailerIndex === 0 ? (
                             <Text style={st.storeCompareLowest}>Lowest</Text>
                           ) : null}
                         </View>
-                        <Text style={st.historyPrice}>
-                          {money.format(storePrice.price)}
-                        </Text>
+                        <Text style={st.historyPrice}>{money.format(source.price)}</Text>
                       </View>
                     ))}
                   </View>
@@ -188,12 +167,7 @@ export function ProductPriceTrendSection({
           <View key={row.key} style={st.historyRow}>
             <Text style={st.historyLabel}>{row.label}</Text>
             <Text style={st.historyPrice}>{money.format(row.price)}</Text>
-            <Text
-              style={[
-                st.historyDiff,
-                row.diff > 0 ? st.historyDiffUp : st.historyDiffDown,
-              ]}
-            >
+            <Text style={[st.historyDiff, row.diff > 0 ? st.historyDiffUp : st.historyDiffDown]}>
               {row.diff > 0 ? "+" : ""}
               {money.format(row.diff)}
             </Text>

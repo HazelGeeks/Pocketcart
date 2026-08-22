@@ -1,4 +1,3 @@
-import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type { AdminAuditLog, AdminStore } from "../../services/adminBackoffice";
 import { storeMapUrl, toDateOnlyLabel, type StorePriceStats } from "../../utils/adminScreenHelpers";

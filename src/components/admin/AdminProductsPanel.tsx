@@ -3,11 +3,11 @@ import { Pressable, Text, View } from "react-native";
 import useAdminProductSelection from "../../hooks/useAdminProductSelection";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import type { ProductSortKey } from "../../state/adminStore";
-import type { ProductPriceStats } from "../../utils/adminScreenHelpers";
 import {
-  buildAdminProductPagination,
   type AdminProductPageSize,
+  buildAdminProductPagination,
 } from "../../utils/adminProductPagination";
+import type { ProductPriceStats } from "../../utils/adminScreenHelpers";
 import AdminProductDeleteModal from "./AdminProductDeleteModal";
 import AdminProductFilters from "./AdminProductFilters";
 import AdminProductIdentityWorkbench from "./AdminProductIdentityWorkbench";
@@ -15,11 +15,6 @@ import AdminProductList from "./AdminProductList";
 import AdminProductManagementHeader from "./AdminProductManagementHeader";
 import AdminProductMergeModal from "./AdminProductMergeModal";
 import AdminProductPagination from "./AdminProductPagination";
-
-type StoreFilterOption = {
-  id: string;
-  name: string;
-};
 
 type SortOption = {
   key: ProductSortKey;
@@ -36,13 +31,11 @@ type Props = {
   productSearchQuery: string;
   productCategoryFilter: string;
   productBrandFilter: string;
-  productStoreFilter: string;
   productSaleDateFilter: string;
   productOnSaleOnly: boolean;
   productSort: ProductSortKey;
   productCategoryOptions: string[];
   productBrandOptions: string[];
-  productStoreOptions: StoreFilterOption[];
   productSortOptions: SortOption[];
   productActiveFilterCount: number;
   productPriceStats: Map<string, ProductPriceStats>;
@@ -54,7 +47,6 @@ type Props = {
   onProductSearchChange: (value: string) => void;
   onProductCategoryChange: (value: string) => void;
   onProductBrandChange: (value: string) => void;
-  onProductStoreChange: (value: string) => void;
   onProductSaleDateChange: (value: string) => void;
   onProductOnSaleOnlyChange: (value: boolean) => void;
   onProductSortChange: (value: ProductSortKey) => void;
@@ -75,13 +67,11 @@ export default function AdminProductsPanel({
   productSearchQuery,
   productCategoryFilter,
   productBrandFilter,
-  productStoreFilter,
   productSaleDateFilter,
   productOnSaleOnly,
   productSort,
   productCategoryOptions,
   productBrandOptions,
-  productStoreOptions,
   productSortOptions,
   productActiveFilterCount,
   productPriceStats,
@@ -93,7 +83,6 @@ export default function AdminProductsPanel({
   onProductSearchChange,
   onProductCategoryChange,
   onProductBrandChange,
-  onProductStoreChange,
   onProductSaleDateChange,
   onProductOnSaleOnlyChange,
   onProductSortChange,
@@ -144,18 +133,21 @@ export default function AdminProductsPanel({
     () => onExportProductsCsv(selectedProducts),
     [onExportProductsCsv, selectedProducts],
   );
-  const handleMerge = React.useCallback(async (targetProductId: string) => {
-    setMerging(true);
-    const merged = await onMergeProducts(
-      mergeCandidates.map((product) => product.id),
-      targetProductId,
-    );
-    setMerging(false);
-    if (merged) {
-      setMergeCandidates([]);
-      clearSelection();
-    }
-  }, [clearSelection, mergeCandidates, onMergeProducts]);
+  const handleMerge = React.useCallback(
+    async (targetProductId: string) => {
+      setMerging(true);
+      const merged = await onMergeProducts(
+        mergeCandidates.map((product) => product.id),
+        targetProductId,
+      );
+      setMerging(false);
+      if (merged) {
+        setMergeCandidates([]);
+        clearSelection();
+      }
+    },
+    [clearSelection, mergeCandidates, onMergeProducts],
+  );
 
   React.useEffect(() => {
     setRequestedPage(1);
@@ -166,7 +158,6 @@ export default function AdminProductsPanel({
     productSaleDateFilter,
     productSearchQuery,
     productSort,
-    productStoreFilter,
   ]);
 
   React.useEffect(() => {
@@ -203,14 +194,12 @@ export default function AdminProductsPanel({
         <AdminProductFilters
           searchQuery={productSearchQuery}
           categoryFilter={productCategoryFilter}
-          brandFilter={productBrandFilter}
-          storeFilter={productStoreFilter}
+          retailerFilter={productBrandFilter}
           saleDateFilter={productSaleDateFilter}
           onSaleOnly={productOnSaleOnly}
           sort={productSort}
           categoryOptions={productCategoryOptions}
-          brandOptions={productBrandOptions}
-          storeOptions={productStoreOptions}
+          retailerOptions={productBrandOptions}
           sortOptions={productSortOptions}
           filteredCount={filteredProducts.length}
           totalCount={products.length}
@@ -218,8 +207,7 @@ export default function AdminProductsPanel({
           styles={st}
           onSearchChange={onProductSearchChange}
           onCategoryChange={onProductCategoryChange}
-          onBrandChange={onProductBrandChange}
-          onStoreChange={onProductStoreChange}
+          onRetailerChange={onProductBrandChange}
           onSaleDateChange={onProductSaleDateChange}
           onSaleOnlyChange={onProductOnSaleOnlyChange}
           onSortChange={onProductSortChange}

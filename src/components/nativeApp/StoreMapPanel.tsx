@@ -9,12 +9,10 @@ import {
   type StoreDistanceScope,
 } from "../../utils/storeDistanceScope";
 import { StoreMapControls } from "./StoreMapControls";
+import { StoreMapBottomSheet } from "./StoreMapBottomSheet";
 import { StoreMapMarkers } from "./StoreMapMarkers";
 import { StoreMapModeButton } from "./StoreMapModeButton";
-import {
-  getStoreDisplayName,
-  StoreResultCard,
-} from "./StoreMapResultCard";
+import { getStoreDisplayName, StoreResultCard } from "./StoreMapResultCard";
 
 type StoreMapPanelProps = {
   mapRef: React.RefObject<MapView | null>;
@@ -70,32 +68,17 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
   } = props;
   const [viewMode, setViewMode] = React.useState<"map" | "list">("map");
   const [visibleRegion, setVisibleRegion] = React.useState(region);
-  const favoriteStoreIdSet = React.useMemo(
-    () => new Set(favoriteStoreIds),
-    [favoriteStoreIds],
-  );
-  const activeStore =
-    stores.find((store) => store.id === focusedStoreId) ?? stores[0] ?? null;
-  const scopeTitle = getStoreScopeTitle(
-    distanceScope,
-    favoriteFilterActive,
-  );
+  const favoriteStoreIdSet = React.useMemo(() => new Set(favoriteStoreIds), [favoriteStoreIds]);
+  const activeStore = stores.find((store) => store.id === focusedStoreId) ?? stores[0] ?? null;
+  const scopeTitle = getStoreScopeTitle(distanceScope, favoriteFilterActive);
   const scopeMessage = favoriteFilterActive
-    ? `${stores.length} saved ${
-        stores.length === 1 ? "store" : "stores"
-      }`
+    ? `${stores.length} saved ${stores.length === 1 ? "store" : "stores"}`
     : getStoreScopeMessage(distanceScope, stores.length);
-  const showScopeNotice =
-    !favoriteFilterActive && distanceScope !== "nearby";
+  const showScopeNotice = !favoriteFilterActive && distanceScope !== "nearby";
 
   React.useEffect(() => {
     setVisibleRegion(region);
-  }, [
-    region.latitude,
-    region.latitudeDelta,
-    region.longitude,
-    region.longitudeDelta,
-  ]);
+  }, [region.latitude, region.latitudeDelta, region.longitude, region.longitudeDelta]);
 
   const controls = (overlay: boolean) => (
     <StoreMapControls
@@ -114,8 +97,7 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
     />
   );
 
-  const openDeals = (store: MarketStore) =>
-    onViewStoreInHome(store.id, getStoreDisplayName(store));
+  const openDeals = (store: MarketStore) => onViewStoreInHome(store.id, getStoreDisplayName(store));
   const toggleFavorite = (store: MarketStore) =>
     onToggleFavoriteStore(store.id, getStoreDisplayName(store));
 
@@ -140,28 +122,19 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
                 <View style={st.storeListHeaderCopy}>
                   <Text style={st.storeListTitle}>{scopeTitle}</Text>
                   <Text style={st.storeListSubtitle}>
-                    {loading || favoriteStoresLoading
-                      ? "Updating results…"
-                      : scopeMessage}
+                    {loading || favoriteStoresLoading ? "Updating results…" : scopeMessage}
                   </Text>
                 </View>
-                <StoreMapModeButton
-                  mode="map"
-                  onPress={() => setViewMode("map")}
-                />
+                <StoreMapModeButton mode="map" onPress={() => setViewMode("map")} />
               </View>
-              {message ? (
-                <Text style={st.storeMapMessage}>{message}</Text>
-              ) : null}
+              {message ? <Text style={st.storeMapMessage}>{message}</Text> : null}
             </>
           }
           ListEmptyComponent={
             !loading ? (
               <View style={st.storeMapEmptyCard}>
                 <Text style={st.storeMapEmptyTitle}>
-                  {favoriteFilterActive
-                    ? "No saved stores yet"
-                    : "No stores found"}
+                  {favoriteFilterActive ? "No saved stores yet" : "No stores found"}
                 </Text>
                 <Text style={st.storeMapEmptyText}>
                   {favoriteFilterActive
@@ -171,9 +144,7 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
               </View>
             ) : null
           }
-          ItemSeparatorComponent={() => (
-            <View style={st.storeListCardSeparator} />
-          )}
+          ItemSeparatorComponent={() => <View style={st.storeListCardSeparator} />}
           renderItem={({ item: store }) => (
             <StoreResultCard
               store={store}
@@ -215,51 +186,23 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
       </MapView>
       {controls(true)}
 
-      <View
-        style={[
-          st.storeMapBottomSheet,
-          { bottom: 88 + Math.max(bottomInset, 10) },
-        ]}
-      >
-        <View style={st.storeMapSheetHandle} />
-        <View style={st.storeMapSheetHeader}>
-          <View style={st.storeMapSheetHeaderCopy}>
-            <Text style={st.storeMapSheetTitle}>{scopeTitle}</Text>
-            <Text
-              style={[
-                st.storeMapSheetSubtitle,
-                showScopeNotice && st.storeMapScopeNotice,
-              ]}
-            >
-              {loading || favoriteStoresLoading
-                ? "Updating map…"
-                : scopeMessage}
-            </Text>
-          </View>
-          <StoreMapModeButton
-            mode="list"
-            onPress={() => setViewMode("list")}
-          />
-        </View>
-        {message ? <Text style={st.storeMapMessage}>{message}</Text> : null}
-        {activeStore ? (
-          <StoreResultCard
-            store={activeStore}
-            active
-            compact
-            favorite={favoriteStoreIdSet.has(activeStore.id)}
-            onFocus={() => onFocusStore(activeStore)}
-            onToggleFavorite={() => toggleFavorite(activeStore)}
-            onViewDeals={() => openDeals(activeStore)}
-          />
-        ) : !loading ? (
-          <Text style={st.storeMapEmptyText}>
-            {favoriteFilterActive
-              ? "No saved stores yet. Switch to All stores and save one."
-              : "No matches. Try another store or address."}
-          </Text>
-        ) : null}
-      </View>
+      <StoreMapBottomSheet
+        activeStore={activeStore}
+        bottomInset={bottomInset}
+        favoriteStoreIds={favoriteStoreIdSet}
+        focusedStoreId={focusedStoreId}
+        loading={loading || favoriteStoresLoading}
+        message={message}
+        scopeMessage={scopeMessage}
+        scopeTitle={scopeTitle}
+        showScopeNotice={showScopeNotice}
+        stores={stores}
+        topInset={topInset}
+        onFocusStore={onFocusStore}
+        onOpenDeals={openDeals}
+        onOpenList={() => setViewMode("list")}
+        onToggleFavorite={toggleFavorite}
+      />
     </View>
   );
 }

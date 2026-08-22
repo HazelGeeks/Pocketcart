@@ -1,7 +1,12 @@
 import type { AdminProduct } from "../services/adminBackoffice";
+import {
+  normalizeLooseIdentityPart,
+  normalizeProductUnit,
+  productFamilyName,
+} from "./productIdentityNormalization";
 import { productDisplayName } from "./productNames";
 
-export type ProductDuplicateMethod = "name_and_unit";
+export type ProductDuplicateMethod = "name_and_unit" | "name_family_and_unit";
 
 export type ProductDuplicateGroup = {
   id: string;
@@ -10,19 +15,21 @@ export type ProductDuplicateGroup = {
   products: AdminProduct[];
 };
 
-function normalizeIdentityText(value: string | null | undefined): string {
-  return (value ?? "")
-    .trim()
-    .normalize("NFKC")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "");
-}
-
 function productNameKeys(product: AdminProduct): string[] {
   return [
     ...new Set(
       [product.english_name, product.korean_name]
-        .map(normalizeIdentityText)
+        .map(normalizeLooseIdentityPart)
+        .filter((value) => value.length >= 3),
+    ),
+  ];
+}
+
+function productNameFamilyKeys(product: AdminProduct): string[] {
+  return [
+    ...new Set(
+      [product.english_name, product.korean_name]
+        .map(productFamilyName)
         .filter((value) => value.length >= 3),
     ),
   ];
@@ -30,35 +37,45 @@ function productNameKeys(product: AdminProduct): string[] {
 
 function knownBrandsAreCompatible(products: AdminProduct[]): boolean {
   const brands = new Set(
-    products
-      .map((product) => normalizeIdentityText(product.brand))
-      .filter(Boolean),
+    products.map((product) => normalizeLooseIdentityPart(product.brand)).filter(Boolean),
   );
   return brands.size <= 1;
 }
 
 function uniqueProducts(products: AdminProduct[]): AdminProduct[] {
-  return [
-    ...new Map(products.map((product) => [product.id, product])).values(),
-  ].sort((left, right) =>
-    productDisplayName(left).localeCompare(productDisplayName(right), undefined, { sensitivity: "base" }),
+  return [...new Map(products.map((product) => [product.id, product])).values()].sort(
+    (left, right) =>
+      productDisplayName(left).localeCompare(productDisplayName(right), undefined, {
+        sensitivity: "base",
+      }),
   );
 }
 
 function groupSignature(products: AdminProduct[]): string {
-  return products.map((product) => product.id).sort().join("|");
+  return products
+    .map((product) => product.id)
+    .sort()
+    .join("|");
 }
 
-function nameAndUnitGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
-  const byIdentity = new Map<string, {
-    label: string;
-    products: AdminProduct[];
-  }>();
+function nameAndUnitGroups(
+  products: AdminProduct[],
+  method: ProductDuplicateMethod,
+): ProductDuplicateGroup[] {
+  const byIdentity = new Map<
+    string,
+    {
+      label: string;
+      products: AdminProduct[];
+    }
+  >();
 
   products.forEach((product) => {
-    const unit = normalizeIdentityText(product.unit);
+    const unit = normalizeProductUnit(product.unit);
     if (!unit) return;
-    productNameKeys(product).forEach((nameKey) => {
+    const nameKeys =
+      method === "name_and_unit" ? productNameKeys(product) : productNameFamilyKeys(product);
+    nameKeys.forEach((nameKey) => {
       const identity = `${nameKey}|${unit}`;
       const existing = byIdentity.get(identity);
       byIdentity.set(identity, {
@@ -71,19 +88,22 @@ function nameAndUnitGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
   return [...byIdentity.entries()].flatMap(([identity, candidate]) => {
     const unique = uniqueProducts(candidate.products);
     if (unique.length < 2 || !knownBrandsAreCompatible(unique)) return [];
-    return [{
-      id: `name-unit:${identity}`,
-      method: "name_and_unit" as const,
-      label: candidate.label,
-      products: unique,
-    }];
+    return [
+      {
+        id: `${method}:${identity}`,
+        method,
+        label: candidate.label,
+        products: unique,
+      },
+    ];
   });
 }
 
-export function buildProductDuplicateGroups(
-  products: AdminProduct[],
-): ProductDuplicateGroup[] {
-  const groups = nameAndUnitGroups(products).sort((left, right) => {
+export function buildProductDuplicateGroups(products: AdminProduct[]): ProductDuplicateGroup[] {
+  const groups = [
+    ...nameAndUnitGroups(products, "name_and_unit"),
+    ...nameAndUnitGroups(products, "name_family_and_unit"),
+  ].sort((left, right) => {
     if (left.products.length !== right.products.length) {
       return right.products.length - left.products.length;
     }

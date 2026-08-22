@@ -1,4 +1,17 @@
 import type { AdminProduct } from "../services/adminBackoffice";
+import { isValidGtin, normalizeGtin } from "./productGtin";
+import {
+  normalizeIdentityPart,
+  normalizeLooseIdentityPart,
+  normalizeProductUnit,
+  productBrandsCompatible,
+  productCandidateNames,
+  productFamilyName,
+} from "./productIdentityNormalization";
+import { productNamesAreNear } from "./productIdentitySimilarity";
+
+export { gtinValidationMessage, isValidGtin, normalizeGtin } from "./productGtin";
+export { normalizeProductUnit } from "./productIdentityNormalization";
 
 export type ProductIdentityInput = {
   koreanName: string;
@@ -11,6 +24,12 @@ export type ProductMatchInput = ProductIdentityInput & {
   productId?: string | null;
   brand?: string | null;
   gtin?: string | null;
+};
+
+export type ProductAliasCandidate = {
+  product_id: string;
+  alias_name: string;
+  unit?: string | null;
 };
 
 type ProductMatchCandidate = {
@@ -26,6 +45,7 @@ type ProductMatchCandidate = {
 export type ProductMatchMethod =
   | "product_id"
   | "gtin"
+  | "alias"
   | "legacy_identity"
   | "canonical_identity";
 
@@ -37,7 +57,7 @@ export type ProductMatchResult<T extends ProductMatchCandidate> =
     }
   | {
       status: "ambiguous";
-      method: "gtin" | "canonical_identity" | "near_identity";
+      method: "gtin" | "alias" | "canonical_identity" | "name_family" | "near_identity";
       candidateCount: number;
       candidateIds: string[];
     }
@@ -47,58 +67,14 @@ export type ProductMatchResult<T extends ProductMatchCandidate> =
       reason: "product_id_not_found" | "gtin_not_found" | "no_match";
     };
 
-function normalizeIdentityPart(value: string | null | undefined): string {
-  return (value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-function normalizeLooseIdentityPart(value: string | null | undefined): string {
-  return normalizeIdentityPart(value)
-    .normalize("NFKC")
-    .replace(/[^\p{L}\p{N}]+/gu, "");
-}
-
-export function normalizeGtin(value: string | null | undefined): string {
-  return (value ?? "").replace(/\D/g, "");
-}
-
-export function isValidGtin(value: string | null | undefined): boolean {
-  const source = value?.trim() ?? "";
-  if (!source || !/^[\d\s-]+$/.test(source)) return false;
-  const gtin = normalizeGtin(source);
-  if (![8, 12, 13, 14].includes(gtin.length)) return false;
-
-  const digits = [...gtin].map(Number);
-  const checkDigit = digits.pop();
-  if (checkDigit === undefined) return false;
-  const sum = digits
-    .reverse()
-    .reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 3 : 1), 0);
-  return (10 - (sum % 10)) % 10 === checkDigit;
-}
-
-export function gtinValidationMessage(value: string | null | undefined): string | null {
-  const source = value?.trim() ?? "";
-  if (!source) return null;
-  if (!/^[\d\s-]+$/.test(source)) {
-    return "GTIN can contain only digits, spaces, and hyphens.";
-  }
-  const gtin = normalizeGtin(source);
-  if (![8, 12, 13, 14].includes(gtin.length)) {
-    return "GTIN must contain 8, 12, 13, or 14 digits.";
-  }
-  if (!isValidGtin(source)) {
-    return "GTIN check digit is invalid.";
-  }
-  return null;
-}
-
 export function productIdentityKey(product: ProductIdentityInput | ProductMatchCandidate): string {
-  const primaryName = "koreanName" in product
-    ? product.englishName || product.koreanName
-    : product.english_name || product.korean_name;
+  const primaryName =
+    "koreanName" in product
+      ? product.englishName || product.koreanName
+      : product.english_name || product.korean_name;
   return [
     normalizeIdentityPart(primaryName),
-    normalizeIdentityPart(product.unit),
+    normalizeProductUnit(product.unit),
     normalizeIdentityPart(product.category),
   ].join("|");
 }
@@ -117,94 +93,76 @@ export function findMatchingProduct(
   );
 }
 
-function candidateNames(product: {
-  koreanName?: string | null;
-  korean_name?: string | null;
-  englishName?: string | null;
-  english_name?: string | null;
-}): Set<string> {
-  return new Set(
-    [product.englishName, product.english_name, product.koreanName, product.korean_name]
-      .map(normalizeLooseIdentityPart)
-      .filter(Boolean),
-  );
-}
-
 function canonicalCandidates<T extends ProductMatchCandidate>(
   products: T[],
   input: ProductMatchInput,
 ): T[] {
-  const inputNames = candidateNames(input);
-  const inputUnit = normalizeLooseIdentityPart(input.unit);
+  const inputNames = productCandidateNames(input);
+  const inputUnit = normalizeProductUnit(input.unit);
   const inputBrand = normalizeLooseIdentityPart(input.brand);
 
   return products.filter((product) => {
-    if (normalizeLooseIdentityPart(product.unit) !== inputUnit) return false;
+    if (normalizeProductUnit(product.unit) !== inputUnit) return false;
 
     const productBrand = normalizeLooseIdentityPart(product.brand);
     if (inputBrand && productBrand && inputBrand !== productBrand) return false;
 
-    const productNames = candidateNames(product);
+    const productNames = productCandidateNames(product);
     return [...inputNames].some((name) => productNames.has(name));
   });
 }
 
-function brandsCompatible(
-  productBrand: string | null | undefined,
-  inputBrand: string | null | undefined,
-): boolean {
-  const existing = normalizeLooseIdentityPart(productBrand);
-  const incoming = normalizeLooseIdentityPart(inputBrand);
-  return !existing || !incoming || existing === incoming;
+function nameFamilyCandidates<T extends ProductMatchCandidate>(
+  products: T[],
+  input: ProductMatchInput,
+): T[] {
+  const inputNames = new Set(
+    [input.englishName, input.koreanName].map(productFamilyName).filter(Boolean),
+  );
+  const inputUnit = normalizeProductUnit(input.unit);
+  return products.filter((product) => {
+    if (!inputUnit || normalizeProductUnit(product.unit) !== inputUnit) return false;
+    if (!productBrandsCompatible(product.brand, input.brand)) return false;
+    const names = [product.english_name, product.korean_name]
+      .map(productFamilyName)
+      .filter(Boolean);
+    return names.some((name) => inputNames.has(name));
+  });
 }
 
-function editDistance(left: string, right: string): number {
-  if (left === right) return 0;
-  if (!left) return right.length;
-  if (!right) return left.length;
-
-  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-    const current = [leftIndex];
-    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      current[rightIndex] = Math.min(
-        current[rightIndex - 1] + 1,
-        previous[rightIndex] + 1,
-        previous[rightIndex - 1] +
-          (left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1),
-      );
-    }
-    previous.splice(0, previous.length, ...current);
-  }
-  return previous[right.length];
-}
-
-function namesAreNear(left: string, right: string): boolean {
-  if (!left || !right || left === right) return false;
-  const longest = Math.max(left.length, right.length);
-  if (longest < 6) return false;
-  if (Math.abs(left.length - right.length) > 2) return false;
-  const distance = editDistance(left, right);
-  return distance <= 2 && distance / longest <= 0.2;
+function aliasCandidates<T extends ProductMatchCandidate>(
+  products: T[],
+  aliases: ProductAliasCandidate[],
+  input: ProductMatchInput,
+): T[] {
+  const names = productCandidateNames(input);
+  const inputUnit = normalizeProductUnit(input.unit);
+  const productById = new Map(products.map((product) => [product.id, product]));
+  const matches = aliases.flatMap((alias) => {
+    if (!names.has(normalizeLooseIdentityPart(alias.alias_name))) return [];
+    if (normalizeProductUnit(alias.unit) !== inputUnit) return [];
+    const product = productById.get(alias.product_id);
+    if (!product || !productBrandsCompatible(product.brand, input.brand)) return [];
+    return [product];
+  });
+  return [...new Map(matches.map((product) => [product.id, product])).values()];
 }
 
 function nearIdentityCandidates<T extends ProductMatchCandidate>(
   products: T[],
   input: ProductMatchInput,
 ): T[] {
-  const inputNames = candidateNames(input);
-  const inputUnit = normalizeLooseIdentityPart(input.unit);
+  const inputNames = productCandidateNames(input);
+  const inputUnit = normalizeProductUnit(input.unit);
 
   return products.filter((product) => {
-    if (!inputUnit || normalizeLooseIdentityPart(product.unit) !== inputUnit) {
+    if (!inputUnit || normalizeProductUnit(product.unit) !== inputUnit) {
       return false;
     }
-    if (!brandsCompatible(product.brand, input.brand)) return false;
-    const productNames = candidateNames(product);
+    if (!productBrandsCompatible(product.brand, input.brand)) return false;
+    const productNames = productCandidateNames(product);
     return [...inputNames].some((inputName) =>
-      [...productNames].some((productName) =>
-        namesAreNear(inputName, productName),
-      ),
+      [...productNames].some((productName) => productNamesAreNear(inputName, productName)),
     );
   });
 }
@@ -218,6 +176,7 @@ function nearIdentityCandidates<T extends ProductMatchCandidate>(
 export function resolveProductMatch<T extends ProductMatchCandidate>(
   products: T[],
   input: ProductMatchInput,
+  options?: { aliases?: ProductAliasCandidate[] },
 ): ProductMatchResult<T> {
   const productId = input.productId?.trim() ?? "";
   if (productId) {
@@ -236,9 +195,7 @@ export function resolveProductMatch<T extends ProductMatchCandidate>(
   const gtin = isValidGtin(input.gtin) ? normalizeGtin(input.gtin) : "";
   if (gtin) {
     const matches = products.filter(
-      (candidate) =>
-        isValidGtin(candidate.gtin) &&
-        normalizeGtin(candidate.gtin) === gtin,
+      (candidate) => isValidGtin(candidate.gtin) && normalizeGtin(candidate.gtin) === gtin,
     );
     if (matches.length === 1) {
       return { status: "matched", product: matches[0], method: "gtin" };
@@ -255,7 +212,7 @@ export function resolveProductMatch<T extends ProductMatchCandidate>(
 
   const legacyMatches = products.filter(
     (product) =>
-      brandsCompatible(product.brand, input.brand) &&
+      productBrandsCompatible(product.brand, input.brand) &&
       productIdentityKey(product) === productIdentityKey(input),
   );
   if (legacyMatches.length === 1) {
@@ -279,8 +236,36 @@ export function resolveProductMatch<T extends ProductMatchCandidate>(
       status: "ambiguous",
       method: "canonical_identity",
       candidateCount: Math.max(canonicalMatches.length, legacyMatches.length),
-      candidateIds: (canonicalMatches.length > 0 ? canonicalMatches : legacyMatches)
-        .map((candidate) => candidate.id),
+      candidateIds: (canonicalMatches.length > 0 ? canonicalMatches : legacyMatches).map(
+        (candidate) => candidate.id,
+      ),
+    };
+  }
+
+  const aliasMatches = aliasCandidates(products, options?.aliases ?? [], input);
+  if (aliasMatches.length === 1) {
+    return { status: "matched", product: aliasMatches[0], method: "alias" };
+  }
+  if (aliasMatches.length > 1) {
+    return {
+      status: "ambiguous",
+      method: "alias",
+      candidateCount: aliasMatches.length,
+      candidateIds: aliasMatches.map((candidate) => candidate.id),
+    };
+  }
+
+  const familyMatches = nameFamilyCandidates(products, input);
+  const exactIds = new Set(
+    [...canonicalMatches, ...legacyMatches].map((candidate) => candidate.id),
+  );
+  const familyOnlyMatches = familyMatches.filter((candidate) => !exactIds.has(candidate.id));
+  if (familyOnlyMatches.length > 0) {
+    return {
+      status: "ambiguous",
+      method: "name_family",
+      candidateCount: familyOnlyMatches.length,
+      candidateIds: familyOnlyMatches.map((candidate) => candidate.id),
     };
   }
 
