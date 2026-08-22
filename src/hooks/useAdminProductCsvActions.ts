@@ -167,10 +167,10 @@ export default function useAdminProductCsvActions(params: Params) {
           createAuditLog: params.createAuditLogMutation,
         },
         onProgress: setProductCsvProgress,
+        refreshData: () => params.loadAll(true),
       });
       setProductCsvReport(report);
       setProductCsvPreview(null);
-      await params.loadAll(true);
       params.setNotice(
         `Import complete: ${report.createdProducts} products created, ` +
           `${report.importedPrices} prices saved, ${report.reviewRows} rows held for review.`,

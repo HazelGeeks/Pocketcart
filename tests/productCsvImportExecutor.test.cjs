@@ -27,8 +27,8 @@ function row(rowNumber, productAction, overrides = {}) {
   };
 }
 
-test("confirmed import creates one planned product, reuses it, queues reviews, and reports every row", async () => {
-  const calls = { products: 0, reviews: 0, prices: [], audits: 0 };
+test("confirmed import creates rows and refreshes admin data exactly once after the batch", async () => {
+  const calls = { products: 0, reviews: 0, prices: [], audits: 0, refreshes: 0 };
   const rows = [
     row(2, "create", {
       price: {
@@ -76,6 +76,7 @@ test("confirmed import creates one planned product, reuses it, queues reviews, a
       createPrice: { mutateAsync: async (params) => { calls.prices.push(params); return null; } },
       createAuditLog: { mutateAsync: async () => { calls.audits += 1; return null; } },
     },
+    refreshData: async () => { calls.refreshes += 1; },
   });
 
   assert.equal(calls.products, 1);
@@ -83,6 +84,7 @@ test("confirmed import creates one planned product, reuses it, queues reviews, a
   assert.equal(calls.prices.length, 2);
   assert.ok(calls.prices.every((price) => price.productId === "created-1"));
   assert.equal(calls.audits, 1);
+  assert.equal(calls.refreshes, 1);
   assert.equal(report.importedPrices, 2);
   assert.equal(report.rows.length, 4);
   assert.match(productCsvImportReportToCsv(report), /Held for review/);

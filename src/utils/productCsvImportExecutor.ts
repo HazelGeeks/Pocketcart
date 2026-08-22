@@ -127,6 +127,7 @@ export async function executeProductCsvImport(params: {
   preview: ProductCsvImportPreview;
   mutations: ProductCsvImportMutations;
   onProgress?: (progress: ProductCsvImportProgress) => void;
+  refreshData?: () => Promise<void>;
 }): Promise<ProductCsvImportReport> {
   const reportByRow = new Map(
     params.preview.rows.map((row) => [row.rowNumber, initialReportRow(row)]),
@@ -279,5 +280,6 @@ export async function executeProductCsvImport(params: {
       globalErrors.push(`Audit log failed: ${errorMessage(error)}`);
     }
   }
+  await params.refreshData?.();
   return report;
 }
