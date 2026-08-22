@@ -35,6 +35,7 @@ type MorePanelProps = {
   onOpenSignIn: () => void;
   onOpenSignUp: () => void;
   onEditPreferences: () => void;
+  onOpenMyFreezer: () => void;
   onEditProfile: () => void;
   onSignOut: () => void;
   onStartDeleteAccount: () => void;
@@ -54,10 +55,23 @@ export function MorePanel(props: MorePanelProps) {
       ) : null}
 
       <ShoppingProfileSection {...props} />
+      <MyKitchenSection {...props} />
       <PreferencesSection {...props} />
       <SupportSection />
       <AccountSection {...props} />
     </View>
+  );
+}
+
+function MyKitchenSection({ profile, onOpenMyFreezer, onOpenSignIn }: MorePanelProps) {
+  return (
+    <SettingsSection label="My Kitchen">
+      <SettingsLinkRow
+        label="My Freezer"
+        value={profile ? "Open" : "Sign in required"}
+        onPress={profile ? onOpenMyFreezer : onOpenSignIn}
+      />
+    </SettingsSection>
   );
 }
 
@@ -203,7 +217,7 @@ function AccountSection({
         <View style={st.settingsDangerBlock}>
           <Text style={st.settingsRowTitle}>Delete your account?</Text>
           <Text style={st.settingsHelp}>
-            This permanently deletes your profile, shopping preferences, and saved price alert subscriptions.
+            This permanently deletes your profile, shopping preferences, My Freezer inventory, and saved price alert subscriptions.
           </Text>
           <View style={st.settingsButtonRow}>
             <Pressable

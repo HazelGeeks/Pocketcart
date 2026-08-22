@@ -1,4 +1,5 @@
 import React from "react";
+import { canonicalProductCategory } from "../utils/productCategory";
 import { normalizeGtin } from "../utils/productIdentity";
 import {
   excludeReusedPersistedPriceIds,
@@ -24,7 +25,7 @@ export default function useAdminProductSave(params: Params) {
       brand: params.productBrand.trim(),
       gtin: normalizeGtin(params.productGtin.trim()),
       unit: params.productUnit.trim(),
-      category: params.productCategory.trim(),
+      category: canonicalProductCategory(params.productCategory),
     };
     if (!input.englishName || !input.koreanName || !input.category) {
       params.setNotice("English name, Korean name, and category are required.");

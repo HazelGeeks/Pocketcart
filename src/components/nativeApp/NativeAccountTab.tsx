@@ -10,6 +10,7 @@ import {
   ResetPasswordPanel,
 } from "./AccountFlowPanels";
 import { MorePanel } from "./MorePanel";
+import { MyFreezerPanel } from "./MyFreezerPanel";
 import { PersonalizationPanel } from "./PersonalizationPanel";
 
 type Props = {
@@ -59,6 +60,7 @@ export function NativeAccountTab({
         onOpenSignIn={account.openSignIn}
         onOpenSignUp={account.openSignUp}
         onEditPreferences={() => account.setAccountRoute("personalize")}
+        onOpenMyFreezer={() => account.setAccountRoute("freezer")}
         onEditProfile={() => {
           account.setMoreMessage(null);
           account.setAccountRoute("editProfile");
@@ -71,6 +73,10 @@ export function NativeAccountTab({
         }}
       />
     );
+  }
+
+  if (account.accountRoute === "freezer" && account.profile) {
+    return <MyFreezerPanel userId={account.profile.id} />;
   }
 
   if (account.accountRoute === "auth") {

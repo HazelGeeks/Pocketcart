@@ -1,5 +1,6 @@
-import type { MarketProduct, MarketStore } from "./types";
+import { canonicalProductCategory } from "../../utils/productCategory";
 import { productNameSearchText } from "../../utils/productNames";
+import type { MarketProduct, MarketStore } from "./types";
 
 export function parseNumber(value: number | string | null | undefined): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
@@ -16,14 +17,14 @@ export function matchesProductFilter(
   category?: string,
 ): boolean {
   const q = search?.trim().toLowerCase() ?? "";
-  const c = category?.trim().toLowerCase() ?? "";
+  const c = canonicalProductCategory(category ?? "").toLowerCase();
 
   const passSearch =
     q.length === 0 ||
     `${productNameSearchText(product)} ${product.category}`.toLowerCase().includes(q);
 
   const passCategory =
-    c.length === 0 || c === "all" || product.category.toLowerCase() === c;
+    c.length === 0 || c === "all" || canonicalProductCategory(product.category).toLowerCase() === c;
 
   return passSearch && passCategory;
 }

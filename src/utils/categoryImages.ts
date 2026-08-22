@@ -1,3 +1,5 @@
+import { canonicalProductCategory } from "./productCategory";
+
 export type CategoryImageUrls = Record<string, string>;
 
 type CategoryImageCandidate = {
@@ -6,7 +8,7 @@ type CategoryImageCandidate = {
 };
 
 export function categoryImageKey(category: string) {
-  return category.trim().toLowerCase();
+  return canonicalProductCategory(category).toLowerCase();
 }
 
 export function mergeCategoryImageUrls(

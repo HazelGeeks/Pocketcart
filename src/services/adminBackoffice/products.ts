@@ -1,4 +1,5 @@
 import { collectPagedRows } from "../../utils/paginatedQuery";
+import { canonicalProductCategory } from "../../utils/productCategory";
 import {
   gtinValidationMessage,
   normalizeGtin,
@@ -34,7 +35,7 @@ function normalizeAdminProductRow(row: ProductRow | null): AdminProduct {
     english_name: safeRow.english_name ?? null,
     brand: safeRow.brand?.trim() ? safeRow.brand.trim() : null,
     gtin: safeRow.gtin?.trim() ? safeRow.gtin.trim() : null,
-    category: safeRow.category,
+    category: canonicalProductCategory(safeRow.category),
     unit: safeRow.unit?.trim() ? safeRow.unit.trim() : null,
     thumbnail_url: safeRow.thumbnail_url,
     created_at: safeRow.created_at,
@@ -88,7 +89,7 @@ export async function createAdminProduct(params: {
     english_name: params.englishName?.trim() ? params.englishName.trim() : null,
     brand: params.brand?.trim() ? params.brand.trim() : null,
     gtin: normalizeGtin(params.gtin) || null,
-    category: params.category.trim(),
+    category: canonicalProductCategory(params.category),
     unit: params.unit?.trim() ? params.unit.trim() : null,
     thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
   };
@@ -130,7 +131,7 @@ export async function updateAdminProduct(params: {
   const payload = {
     korean_name: params.koreanName.trim(),
     english_name: params.englishName?.trim() ? params.englishName.trim() : null,
-    category: params.category.trim(),
+    category: canonicalProductCategory(params.category),
     unit: params.unit?.trim() ? params.unit.trim() : null,
     thumbnail_url: params.thumbnailUrl?.trim() ? params.thumbnailUrl.trim() : null,
     ...(params.brand === undefined

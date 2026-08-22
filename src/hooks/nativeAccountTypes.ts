@@ -3,6 +3,7 @@ export type NativeAccountRoute =
   | "auth"
   | "verify"
   | "personalize"
+  | "freezer"
   | "editProfile"
   | "resetPassword";
 

@@ -3,8 +3,6 @@ import { st } from "../../screens/nativeAppStyles";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
 import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 
-const allCategoriesPhoto = require("../../../assets/photos/fresh-grocery-basket.jpg");
-
 type Props = {
   active: boolean;
   imageUrl?: string;
@@ -13,7 +11,7 @@ type Props = {
 };
 
 export function CategoryFilterTile({ active, imageUrl, label, onPress }: Props) {
-  const isAll = label === "All";
+  const alwaysUseIcon = label === "All" || label === "Grocery";
 
   return (
     <Pressable
@@ -24,9 +22,7 @@ export function CategoryFilterTile({ active, imageUrl, label, onPress }: Props) 
       style={st.categoryTile}
     >
       <View style={[st.categoryTileImageFrame, active && st.categoryTileImageFrameActive]}>
-        {isAll ? (
-          <Image source={allCategoriesPhoto} resizeMode="cover" style={st.categoryTileImage} />
-        ) : imageUrl ? (
+        {!alwaysUseIcon && imageUrl ? (
           <Image source={{ uri: imageUrl }} resizeMode="cover" style={st.categoryTileImage} />
         ) : (
           <CategoryPlaceholderIcon variant={categoryToIconVariant(label)} />

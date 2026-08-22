@@ -30,6 +30,7 @@ export function getNativeHeaderContent(options: HeaderOptions) {
   const accountHeaders: Partial<Record<NativeAccountRoute, { title: string }>> = {
     verify: { title: "Verify Email" },
     personalize: { title: "Shopping Profile" },
+    freezer: { title: "My Freezer" },
     editProfile: { title: "Edit Profile" },
     resetPassword: { title: "New Password" },
   };

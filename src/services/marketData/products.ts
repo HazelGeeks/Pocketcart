@@ -1,13 +1,50 @@
+import { collectPagedRows } from "../../utils/paginatedQuery";
+import { canonicalProductCategory, productCategoryQueryValues } from "../../utils/productCategory";
 import { hasSupabaseEnv, supabase } from "../supabaseClient";
 import { FALLBACK_PRODUCTS } from "./fallbacks";
 import { listProductPriceSummaries } from "./prices";
 import { matchesProductFilter } from "./shared";
 import type { MarketProduct, ProductRow, ServiceResult } from "./types";
-import { collectPagedRows } from "../../utils/paginatedQuery";
 
 const PRODUCT_SELECT = "id, korean_name, english_name, category, unit, thumbnail_url";
+const PRODUCT_CACHE_TTL_MS = 60_000;
+const CATEGORY_CACHE_TTL_MS = 10 * 60_000;
 
 type ProductQueryError = { message: string };
+type ProductListParams = {
+  search?: string;
+  category?: string;
+  productIds?: string[];
+  preferredStoreIds?: string[];
+  onSaleOnly?: boolean;
+  includePriceSummaries?: boolean;
+};
+
+const productResultCache = new Map<
+  string,
+  { expiresAt: number; result: ServiceResult<MarketProduct[]> }
+>();
+const productRequestCache = new Map<string, Promise<ServiceResult<MarketProduct[]>>>();
+let categoryResultCache: { expiresAt: number; result: ServiceResult<string[]> } | null = null;
+
+function normalizeProductSearch(value?: string): string {
+  return (value ?? "")
+    .trim()
+    .replace(/[^\p{L}\p{N}\s.-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+}
+
+function productCacheKey(params?: ProductListParams): string {
+  return JSON.stringify({
+    search: normalizeProductSearch(params?.search),
+    category: canonicalProductCategory(params?.category ?? ""),
+    productIds: [...new Set(params?.productIds ?? [])].sort(),
+    preferredStoreIds: [...new Set(params?.preferredStoreIds ?? [])].sort(),
+    onSaleOnly: params?.onSaleOnly ?? true,
+    includePriceSummaries: params?.includePriceSummaries ?? true,
+  });
+}
 
 function normalizeProductRow(row: ProductRow): MarketProduct {
   const koreanName = row.korean_name.trim();
@@ -15,7 +52,7 @@ function normalizeProductRow(row: ProductRow): MarketProduct {
     id: row.id,
     korean_name: koreanName,
     english_name: row.english_name ?? null,
-    category: row.category,
+    category: canonicalProductCategory(row.category),
     unit: row.unit?.trim() ? row.unit.trim() : inferUnitFromName(row.english_name || koreanName),
     thumbnail_url: row.thumbnail_url,
     current_price: null,
@@ -54,26 +91,34 @@ function inferUnitFromName(name: string): string | null {
   return null;
 }
 
-export async function listProducts(params?: {
-  search?: string;
-  category?: string;
-  preferredStoreIds?: string[];
-  onSaleOnly?: boolean;
-}): Promise<ServiceResult<MarketProduct[]>> {
+async function loadProducts(params?: ProductListParams): Promise<ServiceResult<MarketProduct[]>> {
   if (!hasSupabaseEnv || !supabase) {
     return {
-      data: FALLBACK_PRODUCTS.filter((product) =>
-        matchesProductFilter(product, params?.search, params?.category),
-      ),
+      data: FALLBACK_PRODUCTS.map((product) => ({
+        ...product,
+        category: canonicalProductCategory(product.category),
+      })).filter((product) => matchesProductFilter(product, params?.search, params?.category)),
       error: null,
     };
   }
 
   const client = supabase;
+  const search = normalizeProductSearch(params?.search);
+  const productIds = [...new Set((params?.productIds ?? []).map((id) => id.trim()).filter(Boolean))];
+  if (params?.productIds && productIds.length === 0) return { data: [], error: null };
   const productsQuery = await collectPagedRows<ProductRow, ProductQueryError>(async (from, to) => {
     let query = client.from("products").select(PRODUCT_SELECT);
-    if (params?.category?.trim()) {
-      query = query.eq("category", params.category.trim());
+    const categoryValues = productCategoryQueryValues(params?.category ?? "");
+    if (categoryValues.length === 1) {
+      query = query.eq("category", categoryValues[0]);
+    } else if (categoryValues.length > 1) {
+      query = query.in("category", categoryValues);
+    }
+    if (productIds.length > 0) query = query.in("id", productIds);
+    if (search) {
+      query = query.or(
+        `korean_name.ilike.%${search}%,english_name.ilike.%${search}%,category.ilike.%${search}%`,
+      );
     }
     const response = await query
       .order("english_name", { ascending: true, nullsFirst: false })
@@ -92,12 +137,18 @@ export async function listProducts(params?: {
     };
   }
 
-  const [priceSummaries, preferredPriceSummaries] = await Promise.all([
-    listProductPriceSummaries(),
-    params?.preferredStoreIds?.length
-      ? listProductPriceSummaries(params.preferredStoreIds)
-      : Promise.resolve({ data: new Map(), error: null }),
-  ]);
+  const includePriceSummaries = params?.includePriceSummaries ?? true;
+  const [priceSummaries, preferredPriceSummaries] = includePriceSummaries
+    ? await Promise.all([
+      listProductPriceSummaries(),
+      params?.preferredStoreIds?.length
+        ? listProductPriceSummaries(params.preferredStoreIds)
+        : Promise.resolve({ data: new Map(), error: null }),
+    ])
+    : [
+      { data: new Map(), error: null },
+      { data: new Map(), error: null },
+    ];
 
   const onSaleOnly = params?.onSaleOnly ?? true;
   const products: MarketProduct[] = productsQuery.data
@@ -141,14 +192,92 @@ export async function listProducts(params?: {
   };
 }
 
-export async function listProductCategories(): Promise<ServiceResult<string[]>> {
-  const { data, error } = await listProducts({ onSaleOnly: false });
-  const categories = [...new Set(data.map((item) => item.category).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
-  );
+export async function listProducts(
+  params?: ProductListParams,
+): Promise<ServiceResult<MarketProduct[]>> {
+  const key = productCacheKey(params);
+  const cached = productResultCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  const pending = productRequestCache.get(key);
+  if (pending) return pending;
 
-  return {
+  const request = loadProducts(params)
+    .then((result) => {
+      if (!result.error) {
+        productResultCache.set(key, {
+          expiresAt: Date.now() + PRODUCT_CACHE_TTL_MS,
+          result,
+        });
+      }
+      return result;
+    })
+    .finally(() => productRequestCache.delete(key));
+  productRequestCache.set(key, request);
+  return request;
+}
+
+export async function listProductCategories(): Promise<ServiceResult<string[]>> {
+  if (!hasSupabaseEnv || !supabase) {
+    return {
+      data: [
+        ...new Set(FALLBACK_PRODUCTS.map((item) => canonicalProductCategory(item.category))),
+      ].sort((a, b) => a.localeCompare(b)),
+      error: null,
+    };
+  }
+
+  if (categoryResultCache && categoryResultCache.expiresAt > Date.now()) {
+    return categoryResultCache.result;
+  }
+
+  const client = supabase;
+  let categoriesQuery = await collectPagedRows<{ category: string }, ProductQueryError>(
+    async (from, to) => {
+      const response = await client.rpc("list_product_categories").range(from, to);
+      return {
+        data: ((response.data ?? []) as unknown) as { category: string }[],
+        error: response.error,
+      };
+    },
+  );
+  const rpcErrorText = categoriesQuery.error?.message.toLowerCase() ?? "";
+  const isMissingRpc =
+    rpcErrorText.includes("list_product_categories") &&
+    (rpcErrorText.includes("does not exist") ||
+      rpcErrorText.includes("could not find") ||
+      rpcErrorText.includes("schema cache") ||
+      rpcErrorText.includes("pgrst202"));
+  if (isMissingRpc) {
+    categoriesQuery = await collectPagedRows<{ category: string }, ProductQueryError>(
+    async (from, to) => {
+      const response = await client
+        .from("products")
+        .select("category")
+        .order("category", { ascending: true })
+        .range(from, to);
+      return {
+        data: (response.data ?? []) as { category: string }[],
+        error: response.error,
+      };
+    },
+    );
+  }
+
+  const categories = [
+    ...new Set(
+      categoriesQuery.data.map((item) => canonicalProductCategory(item.category)).filter(Boolean),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+
+  const result = {
     data: categories,
-    error,
+    error: categoriesQuery.error?.message ?? null,
   };
+  if (!result.error) {
+    categoryResultCache = {
+      expiresAt: Date.now() + CATEGORY_CACHE_TTL_MS,
+      result,
+    };
+  }
+  return result;
 }

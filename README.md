@@ -141,6 +141,7 @@ Google service account JSON files, Android keystores, and API keys out of git.
     - `profile_preferences`
     - `watchlist_items`
     - `shopping_list_items`
+    - `freezer_items`
     - `products`
     - `stores`
     - `product_prices`

@@ -53,7 +53,7 @@ export function SettingsProfileCard({
     <View style={st.settingsProfileCard}>
       <ProfileIdentity
         title="Your PocketCart account"
-        subtitle="Sign in to sync your shopping profile and price alerts."
+        subtitle="Sign in to sync your shopping profile, My Freezer, and price alerts."
       />
       <View style={st.settingsButtonRow}>
         <Pressable accessibilityRole="button" onPress={onOpenSignIn} style={[st.settingsButton, st.settingsButtonPrimary]}>

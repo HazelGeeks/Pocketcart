@@ -1,5 +1,5 @@
 import {
-  listLatestStorePricesForProduct,
+  listLatestStorePricesForProducts,
   listProducts,
   type MarketStorePrice,
 } from "./marketData";
@@ -145,24 +145,22 @@ export async function syncSaleAlertsForWatchlist(
   }
 
   const favoriteStores = await listSyncedFavoriteStoreIds(userId);
-  const products = await listProducts({
-    preferredStoreIds: favoriteStores.data,
-  });
-  if (products.error) {
-    return { data: fallback, error: products.error };
-  }
-  let preferredStorePrices: MarketStorePrice[] = [];
   const productIds = [
     ...new Set(
       watchlistItems.flatMap((item) => item.product_id ? [item.product_id] : []),
     ),
   ];
-  if (productIds.length > 0) {
-    const priceResults = await Promise.all(
-      productIds.map((productId) => listLatestStorePricesForProduct(productId)),
-    );
-    preferredStorePrices = priceResults.flatMap((result) => result.data);
+  const products = await listProducts({
+    productIds,
+    onSaleOnly: false,
+    includePriceSummaries: false,
+  });
+  if (products.error) {
+    return { data: fallback, error: products.error };
   }
+  const priceResult = await listLatestStorePricesForProducts(productIds);
+  const preferredStorePrices: MarketStorePrice[] = priceResult.data;
+  if (priceResult.error) return { data: fallback, error: priceResult.error };
 
   const candidates = buildSaleAlertCandidates({
     favoriteStoreIds: favoriteStores.data,

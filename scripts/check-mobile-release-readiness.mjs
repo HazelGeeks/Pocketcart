@@ -78,6 +78,10 @@ const requiredFiles = [
   "supabase/migrations/20260805233000_correct_swapped_product_names.sql",
   "supabase/migrations/20260822070000_product_aliases.sql",
   "supabase/migrations/20260822071000_merge_taiwan_cabbage_duplicates.sql",
+  "supabase/migrations/20260822170000_my_freezer_items.sql",
+  "supabase/migrations/20260822173000_normalize_product_categories.sql",
+  "supabase/migrations/20260822200000_security_hardening.sql",
+  "supabase/migrations/20260822201000_query_optimization.sql",
 ];
 
 const findings = [];
@@ -1116,6 +1120,26 @@ includes(
   ".github/workflows/supabase-schema.yml",
   "20260822071000_merge_taiwan_cabbage_duplicates.sql",
   "Supabase schema workflow applies the reviewed Taiwan Cabbage correction",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260822170000_my_freezer_items.sql",
+  "Supabase schema workflow applies the My Freezer migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260822173000_normalize_product_categories.sql",
+  "Supabase schema workflow applies the product category normalization migration",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260822200000_security_hardening.sql",
+  "Supabase schema workflow applies database security hardening",
+);
+includes(
+  ".github/workflows/supabase-schema.yml",
+  "20260822201000_query_optimization.sql",
+  "Supabase schema workflow applies database query optimization",
 );
 includes(
   ".gitignore",

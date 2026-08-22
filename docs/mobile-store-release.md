@@ -409,7 +409,7 @@ Confirm this against the production build before submission:
 - Account data: name and email, used for account management.
 - Authentication data: managed by Supabase Auth.
 - User content/preferences: watchlist items, target prices, in-app alert
-  preferences, and app preferences.
+  preferences, private My Freezer inventory, and app preferences.
 - Support/account deletion request data: account email, platform, request
   details, and technical request metadata submitted through `/support` or
   `/delete-account`.

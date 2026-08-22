@@ -51,7 +51,7 @@ export function AccountAuthPanel(props: AccountAuthPanelProps) {
         <Text style={st.authTitle}>{isSignIn ? "Welcome back" : "Create your account"}</Text>
         <Text style={st.authDescription}>
           {isSignIn
-            ? "Sign in to sync your profile and price alert subscriptions."
+            ? "Sign in to sync your profile, My Freezer, and price alerts."
             : "Save your shopping preferences and keep price alerts available across devices."}
         </Text>
       </View>

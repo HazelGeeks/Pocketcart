@@ -1,5 +1,6 @@
 import type { AdminProduct, AdminProductAlias, AdminStore } from "../services/adminBackoffice";
 import { csvHeaderKey, csvRowValue, parseCsvRows } from "./adminValidation";
+import { canonicalProductCategory } from "./productCategory";
 import { PRODUCT_IMPORT_HEADERS } from "./productCsvHeaders";
 import {
   createProductCsvStoreResolver,
@@ -154,7 +155,7 @@ export function buildProductCsvImportPreview(params: {
     const input = {
       koreanName: csvRowValue(record, PRODUCT_IMPORT_HEADERS.koreanName),
       englishName: csvRowValue(record, PRODUCT_IMPORT_HEADERS.englishName),
-      category: csvRowValue(record, PRODUCT_IMPORT_HEADERS.category),
+      category: canonicalProductCategory(csvRowValue(record, PRODUCT_IMPORT_HEADERS.category)),
       unit: csvRowValue(record, PRODUCT_IMPORT_HEADERS.unit),
       thumbnailUrl: csvRowValue(record, PRODUCT_IMPORT_HEADERS.thumbnailUrl),
     };

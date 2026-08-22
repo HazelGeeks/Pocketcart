@@ -6,9 +6,8 @@ import {
   type NativeTabId,
 } from "../screens/nativeAppData";
 import {
-  listLatestStorePricesForProduct,
   listProductCategories,
-  listProductPriceHistory,
+  listProductPriceDetails,
   listProducts,
   type MarketProduct,
 } from "../services/marketData";
@@ -35,6 +34,7 @@ export default function useNativeCatalog({
   const [sortMode, setSortMode] = React.useState<"deals" | "lowestPrice" | "biggestDrop">("deals");
   const [onSaleOnly, setOnSaleOnly] = React.useState(true);
   const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [category, setCategory] = React.useState("All");
   const [products, setProducts] = React.useState<MarketProduct[]>([]);
   const [categories, setCategories] = React.useState<string[]>([]);
@@ -44,10 +44,10 @@ export default function useNativeCatalog({
   const [selectedProductId, setSelectedProductId] = React.useState("");
   const [linkedProduct, setLinkedProduct] = React.useState<MarketProduct | null>(null);
   const [priceHistory, setPriceHistory] = React.useState<
-    Awaited<ReturnType<typeof listProductPriceHistory>>["data"]
+    Awaited<ReturnType<typeof listProductPriceDetails>>["data"]["history"]
   >([]);
   const [storePrices, setStorePrices] = React.useState<
-    Awaited<ReturnType<typeof listLatestStorePricesForProduct>>["data"]
+    Awaited<ReturnType<typeof listProductPriceDetails>>["data"]["storePrices"]
   >([]);
   const [historyLoading, setHistoryLoading] = React.useState(false);
   const [storePricesLoading, setStorePricesLoading] = React.useState(false);
@@ -58,8 +58,7 @@ export default function useNativeCatalog({
   const [storeFilterName, setStoreFilterName] = React.useState<string | null>(null);
   const productsRequestIdRef = React.useRef(0);
   const categoriesRequestIdRef = React.useRef(0);
-  const historyRequestIdRef = React.useRef(0);
-  const storePricesRequestIdRef = React.useRef(0);
+  const priceDetailsRequestIdRef = React.useRef(0);
   const pendingProductOpenRef = React.useRef(false);
 
   const filteredProducts = React.useMemo(() => {
@@ -91,6 +90,11 @@ export default function useNativeCatalog({
     setCategoryImageUrls((current) => mergeCategoryImageUrls(current, products));
   }, [products]);
 
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [query]);
+
   const chart = React.useMemo(() => {
     if (!selectedProduct || priceHistory.length === 0) return null;
     return buildPriceChart(priceHistory, width, horizontalPad);
@@ -103,7 +107,7 @@ export default function useNativeCatalog({
     productsRequestIdRef.current = requestId;
     setLoading(true);
     const { data, error } = await listProducts({
-      search: query,
+      search: debouncedQuery,
       category: category === "All" ? undefined : category,
       preferredStoreIds: storeFilterId ? [storeFilterId] : favoriteStoreIds,
       onSaleOnly,
@@ -112,7 +116,7 @@ export default function useNativeCatalog({
     setProducts(data);
     setLoading(false);
     setMessage(error ?? null);
-  }, [category, favoriteStoreIds, onSaleOnly, query, storeFilterId]);
+  }, [category, debouncedQuery, favoriteStoreIds, onSaleOnly, storeFilterId]);
 
   const loadCategories = React.useCallback(async () => {
     const requestId = categoriesRequestIdRef.current + 1;
@@ -123,36 +127,25 @@ export default function useNativeCatalog({
     if (error) setMessage(error);
   }, []);
 
-  const loadPriceHistory = React.useCallback(async (productId: string) => {
-    const requestId = historyRequestIdRef.current + 1;
-    historyRequestIdRef.current = requestId;
+  const loadProductPriceDetails = React.useCallback(async (productId: string) => {
+    const requestId = priceDetailsRequestIdRef.current + 1;
+    priceDetailsRequestIdRef.current = requestId;
     if (!productId) {
       setPriceHistory([]);
-      setHistoryLoading(false);
-      return;
-    }
-    setHistoryLoading(true);
-    const { data, error } = await listProductPriceHistory(productId);
-    if (historyRequestIdRef.current !== requestId) return;
-    setPriceHistory(data);
-    setHistoryLoading(false);
-    setHistoryMessage(error ?? null);
-  }, []);
-
-  const loadStorePrices = React.useCallback(async (productId: string) => {
-    const requestId = storePricesRequestIdRef.current + 1;
-    storePricesRequestIdRef.current = requestId;
-    if (!productId) {
       setStorePrices([]);
+      setHistoryLoading(false);
       setStorePricesLoading(false);
       return;
     }
+    setHistoryLoading(true);
     setStorePricesLoading(true);
-    const { data, error } = await listLatestStorePricesForProduct(productId);
-    if (storePricesRequestIdRef.current !== requestId) return;
-    setStorePrices(data);
+    const { data, error } = await listProductPriceDetails(productId);
+    if (priceDetailsRequestIdRef.current !== requestId) return;
+    setPriceHistory(data.history);
+    setStorePrices(data.storePrices);
+    setHistoryLoading(false);
     setStorePricesLoading(false);
-    if (error) setHistoryMessage(error);
+    setHistoryMessage(error ?? null);
   }, []);
 
   React.useEffect(() => {
@@ -189,9 +182,8 @@ export default function useNativeCatalog({
 
   React.useEffect(() => {
     if (activeTab !== "home" || route !== "detail" || !selectedProductId) return;
-    void loadPriceHistory(selectedProductId);
-    void loadStorePrices(selectedProductId);
-  }, [activeTab, loadPriceHistory, loadStorePrices, route, selectedProductId]);
+    void loadProductPriceDetails(selectedProductId);
+  }, [activeTab, loadProductPriceDetails, route, selectedProductId]);
 
   const setStoreFilter = React.useCallback(
     (storeId: string, storeName: string) => {

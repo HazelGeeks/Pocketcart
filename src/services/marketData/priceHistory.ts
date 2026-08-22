@@ -6,6 +6,45 @@ import { fetchPriceRows } from "./priceRowQueries";
 import { parseNumber } from "./shared";
 import type { MarketPricePoint, ServiceResult } from "./types";
 
+export function productPriceHistoryFromRows(
+  productId: string,
+  rows: Awaited<ReturnType<typeof fetchPriceRows>>["data"],
+): MarketPricePoint[] {
+  const candidates = rows.flatMap((row) => {
+    const price = parseNumber(row.price);
+    if (price === null) return [];
+    return [{
+      id: row.id,
+      productId: row.product_id,
+      price,
+      observedAt: row.observed_at,
+      validFrom: row.valid_from ?? null,
+      validTo: row.valid_to ?? null,
+      storeId: row.store_id ?? null,
+      storeName: storeDisplayName(row.stores),
+      storeArea: row.stores?.area?.trim() || null,
+    }];
+  });
+
+  return selectLowestPricePerSaleSession(candidates).map((row) => ({
+    id: row.id,
+    product_id: productId,
+    price: row.price,
+    observed_at: row.sessionStartedAt,
+    sale_end_at: row.validTo,
+    store_id: row.storeId,
+    store_name: row.storeName,
+    store_area: row.storeArea,
+    store_prices: row.storePrices.map((storePrice) => ({
+      id: storePrice.id,
+      price: storePrice.price,
+      store_id: storePrice.storeId,
+      store_name: storePrice.storeName,
+      store_area: storePrice.storeArea,
+    })),
+  }));
+}
+
 export async function listProductPriceHistory(
   productId: string,
 ): Promise<ServiceResult<MarketPricePoint[]>> {
@@ -41,41 +80,8 @@ export async function listProductPriceHistory(
 
   const response = await fetchPriceRows({ productId, ascending: true });
   if (response.error) return { data: [], error: response.error.message };
-
-  const candidates = response.data.flatMap((row) => {
-    const price = parseNumber(row.price);
-    if (price === null) return [];
-    return [{
-      id: row.id,
-      productId: row.product_id,
-      price,
-      observedAt: row.observed_at,
-      validFrom: row.valid_from ?? null,
-      validTo: row.valid_to ?? null,
-      storeId: row.store_id ?? null,
-      storeName: storeDisplayName(row.stores),
-      storeArea: row.stores?.area?.trim() || null,
-    }];
-  });
-
   return {
-    data: selectLowestPricePerSaleSession(candidates).map((row) => ({
-      id: row.id,
-      product_id: row.productId,
-      price: row.price,
-      observed_at: row.sessionStartedAt,
-      sale_end_at: row.validTo,
-      store_id: row.storeId,
-      store_name: row.storeName,
-      store_area: row.storeArea,
-      store_prices: row.storePrices.map((storePrice) => ({
-        id: storePrice.id,
-        price: storePrice.price,
-        store_id: storePrice.storeId,
-        store_name: storePrice.storeName,
-        store_area: storePrice.storeArea,
-      })),
-    })),
+    data: productPriceHistoryFromRows(productId, response.data),
     error: null,
   };
 }

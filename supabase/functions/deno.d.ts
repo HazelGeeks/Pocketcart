@@ -52,5 +52,6 @@ declare module "https://esm.sh/@supabase/supabase-js@2.106.2" {
       };
     };
     from(table: string): SupabaseQueryBuilder;
+    rpc(functionName: string, args?: Record<string, unknown>): SupabaseQueryBuilder;
   };
 }

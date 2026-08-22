@@ -9,7 +9,8 @@ import {
   toPriceDelta,
   type PriceRowWithMeta,
 } from "./priceDataHelpers";
-import { fetchPriceRows } from "./priceRowQueries";
+import { fetchRecentPriceRows } from "./priceRowQueries";
+import type { PriceRow } from "./types";
 import type { MarketStorePrice, ServiceResult } from "./types";
 
 function fallbackStorePrices(productId: string): MarketStorePrice[] {
@@ -48,22 +49,13 @@ function fallbackStorePrices(productId: string): MarketStorePrice[] {
   }));
 }
 
-export async function listLatestStorePricesForProduct(
-  productId: string,
-): Promise<ServiceResult<MarketStorePrice[]>> {
-  if (!productId.trim()) return { data: [], error: "Product id is required." };
-  if (!hasSupabaseEnv || !supabase) {
-    return { data: fallbackStorePrices(productId), error: null };
-  }
-
-  const response = await fetchPriceRows({ productId, ascending: false });
-  if (response.error) return { data: [], error: response.error.message };
-  const rows = response.data
+export function latestStorePricesFromRows(rows: PriceRow[]): MarketStorePrice[] {
+  const metaRows = rows
     .map(rowToMeta)
     .filter((row): row is PriceRowWithMeta => row !== null);
-  const currentSession = getCurrentSaleSession(rows);
-  const previousSession = getPreviousVisibleSession(rows, currentSession);
-  if (!currentSession) return { data: [], error: null };
+  const currentSession = getCurrentSaleSession(metaRows);
+  const previousSession = getPreviousVisibleSession(metaRows, currentSession);
+  if (!currentSession) return [];
 
   const byStore = new Map<string, {
     current?: PriceRowWithMeta;
@@ -71,7 +63,7 @@ export async function listLatestStorePricesForProduct(
     storeName?: string;
     storeArea?: string | null;
   }>();
-  for (const row of rows) {
+  for (const row of metaRows) {
     if (!row.store_id) continue;
     const state = byStore.get(row.store_id) ?? {};
     if (row.priceSession === currentSession) {
@@ -112,5 +104,40 @@ export async function listLatestStorePricesForProduct(
       comparison_session_previous: previousLabel,
     });
   }
-  return { data: result.sort((a, b) => a.price - b.price), error: null };
+  return result.sort((a, b) => a.price - b.price);
+}
+
+export async function listLatestStorePricesForProducts(
+  productIds: string[],
+): Promise<ServiceResult<MarketStorePrice[]>> {
+  const normalizedProductIds = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
+  if (normalizedProductIds.length === 0) return { data: [], error: null };
+  if (!hasSupabaseEnv || !supabase) {
+    return {
+      data: normalizedProductIds.flatMap((productId) => fallbackStorePrices(productId)),
+      error: null,
+    };
+  }
+
+  const response = await fetchRecentPriceRows(normalizedProductIds);
+  if (response.error) return { data: [], error: response.error.message };
+  const rowsByProduct = new Map<string, PriceRow[]>();
+  for (const row of response.data) {
+    const rows = rowsByProduct.get(row.product_id) ?? [];
+    rows.push(row);
+    rowsByProduct.set(row.product_id, rows);
+  }
+  return {
+    data: normalizedProductIds.flatMap((productId) =>
+      latestStorePricesFromRows(rowsByProduct.get(productId) ?? []),
+    ),
+    error: null,
+  };
+}
+
+export async function listLatestStorePricesForProduct(
+  productId: string,
+): Promise<ServiceResult<MarketStorePrice[]>> {
+  if (!productId.trim()) return { data: [], error: "Product id is required." };
+  return listLatestStorePricesForProducts([productId]);
 }

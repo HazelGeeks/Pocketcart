@@ -38,7 +38,9 @@ test("category filters use catalog photography with an icon fallback", () => {
 
   assert.match(controls, /categoryImageUrls\[categoryImageKey\(option\)\]/);
   assert.match(tile, /source=\{\{ uri: imageUrl \}\}/);
+  assert.match(tile, /label === "All" \|\| label === "Grocery"/);
   assert.match(tile, /<CategoryPlaceholderIcon/);
+  assert.doesNotMatch(tile, /fresh-grocery-basket/);
 });
 
 test("home sorting moves behind the search filter action", () => {
@@ -58,7 +60,7 @@ test("home sorting moves behind the search filter action", () => {
   assert.match(catalogHook, /useState\(true\)/);
   assert.match(catalogHook, /onSaleOnly,/);
   assert.match(productsService, /!onSaleOnly \|\| priceSummaries\.data\.has\(product\.id\)/);
-  assert.match(productsService, /listProducts\(\{ onSaleOnly: false \}\)/);
+  assert.match(productsService, /\.select\("category"\)/);
   assert.doesNotMatch(controls, /sortSegmentedControl|sortSegment/);
   assert.match(styles, /searchInput:[\s\S]*height: 42/);
   assert.match(headerStyles, /headerIconButton:[\s\S]*width: 44,[\s\S]*height: 44/);

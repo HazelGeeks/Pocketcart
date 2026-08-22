@@ -60,7 +60,7 @@ export const FALLBACK_PRODUCTS: MarketProduct[] = [
     korean_name: "원두 커피 1kg",
     english_name: "Whole Bean Coffee 1kg",
     unit: "1kg",
-    category: "Beverage",
+    category: "Beverages",
     thumbnail_url: null,
     current_price: 18.6,
     previous_price: 18.7,

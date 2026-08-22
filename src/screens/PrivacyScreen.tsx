@@ -18,7 +18,7 @@ function useLayout() {
 
 /* ═══════════════════════════════════════════════════════════════ */
 
-const LAST_UPDATED = "August 21, 2026";
+const LAST_UPDATED = "August 22, 2026";
 const SUPPORT_URL = "https://pocketcart.pages.dev/support";
 
 const SECTIONS = [
@@ -36,6 +36,7 @@ Personal Information Provided by You:
 • Account Data — name and email address when you create an account. Authentication credentials are processed by Supabase Auth; we do not store plaintext passwords.
 • Watchlist Data — products you choose to track, target prices, in-app alerts, and budget preferences.
 • Shopping Profile Data — optional product interests, grocery shopping frequency, and favorite stores that you provide to personalize deal recommendations.
+• My Freezer Data — food names, storage location, quantity, unit, best-before date, and notes you choose to save in your private account inventory.
 • Food Scan Data — camera images you choose to capture for food or ingredient-label analysis, detected barcodes, and the resulting analysis. PocketCart does not add these captures to your device photo library.
 • Support & Deletion Request Data — account email, platform, request details, and technical request metadata when you submit a support or account deletion request.
 • Usage Data — how you interact with the App, including searches performed, features used, and time spent.
@@ -49,7 +50,7 @@ Information Automatically Collected:
     title: "3. How We Use Your Information",
     body: `We use the information we collect or receive for the following purposes:
 
-• To provide and maintain the Service — including price comparison, watchlist tracking, and budget planning features.
+• To provide and maintain the Service — including price comparison, watchlist tracking, budget planning, and your private My Freezer inventory.
 • To provide in-app alerts — price drop highlights, watchlist updates, and other service-related alert states you have opted into.
 • To provide Food Scan — sending the image you choose to capture to an image-analysis provider and returning visible food, ripeness, ingredient-label, allergen, and general nutrition guidance.
 • To improve our Service — we analyze usage patterns to enhance app performance, fix bugs, and develop new features.

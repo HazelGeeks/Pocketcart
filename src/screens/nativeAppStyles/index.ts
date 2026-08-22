@@ -7,6 +7,7 @@ import { commonStyles } from "./commonStyles";
 import { detailNavigationStyles } from "./detailNavigationStyles";
 import { foodScanLinkStyles } from "./foodScanLinkStyles";
 import { foodScanStyles } from "./foodScanStyles";
+import { freezerStyles } from "./freezerStyles";
 import { headerActionStyles } from "./headerActionStyles";
 import { homeControlStyles } from "./homeControlStyles";
 import { homePhotoStyles } from "./homePhotoStyles";
@@ -35,6 +36,7 @@ export const st = {
   ...detailNavigationStyles,
   ...foodScanLinkStyles,
   ...foodScanStyles,
+  ...freezerStyles,
   ...onboardingStyles,
   ...shoppingListStyles,
   ...storeMapStyles,

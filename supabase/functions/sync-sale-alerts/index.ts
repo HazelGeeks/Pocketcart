@@ -44,6 +44,12 @@ type PriceMeta = PriceRow & {
   priceValue: number;
 };
 
+type RecentPriceRpcRow = Omit<PriceRow, "stores"> & {
+  store_brand: string | null;
+  store_name: string | null;
+  store_area: string | null;
+};
+
 type FavoriteStoreRow = {
   user_id: string;
   store_id: string;
@@ -111,6 +117,15 @@ function parseNumber(value: number | string | null | undefined): number | null {
   if (typeof value !== "string") return null;
   const parsed = Number(value.replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isMissingRecentPriceRowsRpc(message: string): boolean {
+  const text = message.toLowerCase();
+  return text.includes("list_product_recent_price_rows") &&
+    (text.includes("does not exist") ||
+      text.includes("could not find") ||
+      text.includes("schema cache") ||
+      text.includes("pgrst202"));
 }
 
 function toPriceMeta(row: PriceRow): PriceMeta | null {
@@ -227,19 +242,49 @@ Deno.serve(async (request) => {
     if (productError) return jsonResponse({ error: productError.message }, 500);
     productRows.push(...((productPage ?? []) as ProductRow[]));
 
+    let recentPriceRpcAvailable = false;
     for (let from = 0; ; from += pageSize) {
       const { data: pricePage, error: priceError } = await adminClient
-        .from("product_prices")
-        .select("id, product_id, store_id, price, observed_at, valid_from, valid_to, stores(brand, name, area)")
-        .in("product_id", productIdChunk)
-        .order("valid_from", { ascending: false })
-        .order("observed_at", { ascending: false })
-        .order("id", { ascending: true })
+        .rpc("list_product_recent_price_rows", { p_product_ids: productIdChunk })
         .range(from, from + pageSize - 1);
-      if (priceError) return jsonResponse({ error: priceError.message }, 500);
-      const page = (pricePage ?? []) as PriceRow[];
-      priceRows.push(...page);
+      if (priceError) {
+        if (isMissingRecentPriceRowsRpc(priceError.message)) break;
+        return jsonResponse({ error: priceError.message }, 500);
+      }
+      const page = (pricePage ?? []) as RecentPriceRpcRow[];
+      recentPriceRpcAvailable = true;
+      priceRows.push(...page.map((row) => ({
+        id: row.id,
+        product_id: row.product_id,
+        store_id: row.store_id,
+        price: row.price,
+        observed_at: row.observed_at,
+        valid_from: row.valid_from,
+        valid_to: row.valid_to,
+        stores: {
+          brand: row.store_brand,
+          name: row.store_name,
+          area: row.store_area,
+        },
+      })));
       if (page.length < pageSize) break;
+    }
+
+    if (!recentPriceRpcAvailable) {
+      for (let from = 0; ; from += pageSize) {
+        const { data: pricePage, error: priceError } = await adminClient
+          .from("product_prices")
+          .select("id, product_id, store_id, price, observed_at, valid_from, valid_to, stores(brand, name, area)")
+          .in("product_id", productIdChunk)
+          .order("valid_from", { ascending: false })
+          .order("observed_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (priceError) return jsonResponse({ error: priceError.message }, 500);
+        const page = (pricePage ?? []) as PriceRow[];
+        priceRows.push(...page);
+        if (page.length < pageSize) break;
+      }
     }
   }
 

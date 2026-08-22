@@ -414,3 +414,95 @@ jobs:
             echo "Supabase data correction failed with HTTP $status"
             exit 1
           }
+
+      - name: Apply My Freezer migration
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-my-freezer-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-my-freezer-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260822170000_my_freezer_items.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase My Freezer migration failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Normalize product categories
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-product-categories-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-product-categories-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260822173000_normalize_product_categories.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase product category normalization failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Harden database security policies
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-security-hardening-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-security-hardening-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260822200000_security_hardening.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase security hardening failed with HTTP $status"
+            exit 1
+          }
+
+      - name: Apply database query optimizations
+        run: |
+          request_file="${RUNNER_TEMP}/pocketcart-query-optimization-request.json"
+          response_file="${RUNNER_TEMP}/pocketcart-query-optimization-response.json"
+          jq -Rs '{ query: ., read_only: false }' \
+            supabase/migrations/20260822201000_query_optimization.sql \
+            > "$request_file"
+
+          status=$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file" \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/database/query")
+
+          cat "$response_file"
+          test "$status" -ge 200 -a "$status" -lt 300 || {
+            echo "Supabase query optimization failed with HTTP $status"
+            exit 1
+          }

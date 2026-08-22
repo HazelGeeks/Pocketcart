@@ -16,7 +16,7 @@
     "ios": "Shopping",
     "android": "Shopping"
   },
-  "fullDescription": "PocketCart helps shoppers compare grocery prices, save products to a watchlist, and spot better deals across nearby stores. Search products, review price history, check store prices, and use in-app alerts to decide when a deal is worth buying. The app is designed for practical grocery planning without ad tracking or data resale.",
+  "fullDescription": "PocketCart helps shoppers compare grocery prices, save products to a watchlist, keep a private fridge and freezer inventory, and spot better deals across nearby stores. Search products, review price history, check store prices, and use in-app alerts to decide when a deal is worth buying. The app is designed for practical grocery planning without ad tracking or data resale.",
   "supportUrl": "https://pocketcart.pages.dev/support",
   "marketingUrl": "https://pocketcart.pages.dev",
   "privacyPolicyUrl": "https://pocketcart.pages.dev/privacy",
@@ -39,6 +39,7 @@
       "in-app alert preferences",
       "support and account deletion request details",
       "app preferences",
+      "private fridge and freezer inventory",
       "optional location"
     ]
   }

@@ -55,7 +55,7 @@ export function buildSaleAlertCandidates(params: {
     .map((item): SaleAlertCandidate | null => {
       if (!item.product_id) return null;
       const product = productById.get(item.product_id);
-      if (!product || product.current_price === null) return null;
+      if (!product) return null;
 
       const explicitPrice = item.store_id
         ? priceByProductAndStore.get(`${item.product_id}\u0000${item.store_id}`)

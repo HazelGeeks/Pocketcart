@@ -1,7 +1,6 @@
 import React from "react";
 import type { NativeTabId } from "../screens/nativeAppData";
-import { listLatestStorePricesForProduct, type MarketProduct } from "../services/marketData";
-import { settleLatestListResults } from "../utils/asyncRequestResults";
+import { listLatestStorePricesForProducts, type MarketProduct } from "../services/marketData";
 import { buildShoppingRecommendation } from "../utils/shoppingOptimizer";
 import { productDisplayName } from "../utils/productNames";
 import useShoppingList from "./useShoppingList";
@@ -20,7 +19,7 @@ export default function useNativeShoppingPlan({
   productById,
 }: UseNativeShoppingPlanOptions) {
   const [prices, setPrices] = React.useState<
-    Awaited<ReturnType<typeof listLatestStorePricesForProduct>>["data"]
+    Awaited<ReturnType<typeof listLatestStorePricesForProducts>>["data"]
   >([]);
   const [pricesLoading, setPricesLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
@@ -78,18 +77,10 @@ export default function useNativeShoppingPlan({
     }
 
     setPricesLoading(true);
-    const results = await Promise.all(
-      ids.map((productId) => listLatestStorePricesForProduct(productId)),
-    );
-    const settled = settleLatestListResults(
-      requestId,
-      requestIdRef.current,
-      results,
-    );
-    if (!settled) return;
-
-    setPrices(settled.data);
-    setMessage(settled.message);
+    const result = await listLatestStorePricesForProducts(ids);
+    if (requestId !== requestIdRef.current) return;
+    setPrices(result.data);
+    setMessage(result.error);
     setPricesLoading(false);
   }, [productKey]);
 

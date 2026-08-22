@@ -34,6 +34,16 @@ export type ProductPriceSummary = {
   best_store_price: number | null;
 };
 
+const PRICE_SUMMARY_CACHE_TTL_MS = 60_000;
+const priceSummaryCache = new Map<
+  string,
+  { expiresAt: number; result: ServiceResult<Map<string, ProductPriceSummary>> }
+>();
+const priceSummaryRequestCache = new Map<
+  string,
+  Promise<ServiceResult<Map<string, ProductPriceSummary>>>
+>();
+
 function fallbackSummaries(): Map<string, ProductPriceSummary> {
   return new Map(
     FALLBACK_PRODUCTS.map((product) => [product.id, {
@@ -136,7 +146,7 @@ function summariesFromRows(rows: PriceRowWithMeta[]) {
   return summaries;
 }
 
-export async function listProductPriceSummaries(
+async function loadProductPriceSummaries(
   storeIds?: string[],
 ): Promise<ServiceResult<Map<string, ProductPriceSummary>>> {
   if (!hasSupabaseEnv || !supabase) {
@@ -171,4 +181,30 @@ export async function listProductPriceSummaries(
     .map(rowToMeta)
     .filter((row): row is PriceRowWithMeta => row !== null);
   return { data: summariesFromRows(rows), error: null };
+}
+
+export async function listProductPriceSummaries(
+  storeIds?: string[],
+): Promise<ServiceResult<Map<string, ProductPriceSummary>>> {
+  const normalizedStoreIds = [...new Set((storeIds ?? []).map((id) => id.trim()).filter(Boolean))]
+    .sort();
+  const key = normalizedStoreIds.join("|");
+  const cached = priceSummaryCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  const pending = priceSummaryRequestCache.get(key);
+  if (pending) return pending;
+
+  const request = loadProductPriceSummaries(normalizedStoreIds)
+    .then((result) => {
+      if (!result.error) {
+        priceSummaryCache.set(key, {
+          expiresAt: Date.now() + PRICE_SUMMARY_CACHE_TTL_MS,
+          result,
+        });
+      }
+      return result;
+    })
+    .finally(() => priceSummaryRequestCache.delete(key));
+  priceSummaryRequestCache.set(key, request);
+  return request;
 }
