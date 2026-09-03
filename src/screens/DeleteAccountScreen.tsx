@@ -13,7 +13,7 @@ import useLayout from "../hooks/useLayout";
 import { submitAccountDeletionRequest } from "../services/userProfile";
 import { appPalette as P } from "../shared/design/palette";
 
-const DELETION_URL = "https://pocketcart.pages.dev/delete-account";
+const DELETION_URL = "https://pocketcart.hazelgeeks.workers.dev/delete-account";
 
 export default function DeleteAccountScreen({
   onBack,

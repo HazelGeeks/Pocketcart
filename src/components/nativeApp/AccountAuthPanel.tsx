@@ -205,11 +205,11 @@ export function AccountAuthPanel(props: AccountAuthPanelProps) {
             </Pressable>
             <Text style={st.authFinePrint}>By creating an account, you agree to PocketCart's</Text>
             <View style={st.authLegalRow}>
-              <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.pages.dev/terms")} style={st.authLegalLink}>
+              <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.hazelgeeks.workers.dev/terms")} style={st.authLegalLink}>
                 <Text style={st.authLegalLinkText}>Terms of Service</Text>
               </Pressable>
               <Text style={st.authFinePrint}>and</Text>
-              <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.pages.dev/privacy")} style={st.authLegalLink}>
+              <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.hazelgeeks.workers.dev/privacy")} style={st.authLegalLink}>
                 <Text style={st.authLegalLinkText}>Privacy Policy</Text>
               </Pressable>
             </View>

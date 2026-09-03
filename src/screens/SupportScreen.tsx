@@ -9,10 +9,10 @@ import {
 import useLayout from "../hooks/useLayout";
 import { appPalette as P } from "../shared/design/palette";
 
-const SUPPORT_URL = "https://pocketcart.pages.dev/support";
-const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
-const TERMS_URL = "https://pocketcart.pages.dev/terms";
-const DELETION_URL = "https://pocketcart.pages.dev/delete-account";
+const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
+const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
+const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
+const DELETION_URL = "https://pocketcart.hazelgeeks.workers.dev/delete-account";
 
 const SUPPORT_SECTIONS = [
   {

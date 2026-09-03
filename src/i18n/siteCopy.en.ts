@@ -268,7 +268,7 @@ export const enSiteCopy: SiteCopy = {
           "unless retention is required for security, fraud prevention, or law.",
         supportTitle: "Support",
         supportBody:
-          "If deletion fails, open https://pocketcart.pages.dev/support " +
+          "If deletion fails, open https://pocketcart.hazelgeeks.workers.dev/support " +
           "and include your account email and platform (iOS or Android).",
       },
       items: {

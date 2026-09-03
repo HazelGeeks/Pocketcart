@@ -264,7 +264,7 @@ export const frSiteCopy: SiteCopy = {
           "supprimes sauf conservation requise pour securite, fraude ou loi.",
         supportTitle: "Assistance",
         supportBody:
-          "Si la suppression echoue, ouvrez https://pocketcart.pages.dev/support " +
+          "Si la suppression echoue, ouvrez https://pocketcart.hazelgeeks.workers.dev/support " +
           "avec votre e-mail de compte et la plateforme.",
       },
       items: {

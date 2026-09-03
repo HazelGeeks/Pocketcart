@@ -338,16 +338,16 @@ Review notes:
 PocketCart helps users compare grocery prices, save products to a watchlist,
 view nearby stores on a map, and review in-app price alerts. Account creation is
 available in More. Account deletion is available in More > Account deletion and
-at https://pocketcart.pages.dev/delete-account.
+at https://pocketcart.hazelgeeks.workers.dev/delete-account.
 ```
 
 Required URLs:
 
-- Support: `https://pocketcart.pages.dev/support`
-- Marketing: `https://pocketcart.pages.dev`
-- Privacy Policy: `https://pocketcart.pages.dev/privacy`
-- Terms: `https://pocketcart.pages.dev/terms`
-- Account deletion: `https://pocketcart.pages.dev/delete-account`
+- Support: `https://pocketcart.hazelgeeks.workers.dev/support`
+- Marketing: `https://pocketcart.hazelgeeks.workers.dev`
+- Privacy Policy: `https://pocketcart.hazelgeeks.workers.dev/privacy`
+- Terms: `https://pocketcart.hazelgeeks.workers.dev/terms`
+- Account deletion: `https://pocketcart.hazelgeeks.workers.dev/delete-account`
 
 The custom `pocketcart.app` domain should not be used in store metadata until
 DNS is live. If a branded support email is required later, configure DNS and MX

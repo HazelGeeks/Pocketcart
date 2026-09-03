@@ -20,6 +20,7 @@ npm run verify
 Web-first development:
 
 - `npm run web`: start web app on `http://localhost:8081`
+- `npm run dev:worker`: export the web app and serve it with the local Workers runtime
 
 Native development:
 
@@ -42,6 +43,8 @@ Recommended Node runtime:
 - `npm run format`: format supported source files with Biome
 - `npm run test`: route smoke tests
 - `npm run build:web`: Expo static web export
+- `npm run deploy:worker:dry-run`: validate the Workers Static Assets bundle
+- `npm run deploy:worker`: export and deploy the site to Cloudflare Workers
 - `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)
 - `npm run release:native:check`: pre-store gate for iOS/Android release work
 - `npm run audit:ci`: fail on new high/critical dependency advisories
@@ -160,8 +163,14 @@ Google service account JSON files, Android keystores, and API keys out of git.
       and checked after the provider handoff so invalid device tokens are disabled
       instead of being recorded as successful deliveries.
 - Web deploy:
-  - Export a production build with `npm run build:web`
-  - Upload the generated `dist/` directory to your hosting provider
+  - Cloudflare Workers Static Assets configuration lives in `wrangler.jsonc`.
+  - Production URL: `https://pocketcart.hazelgeeks.workers.dev`.
+  - Set `EXPO_PUBLIC_*` values as Workers Builds build variables. They are
+    compiled into the Expo web bundle and are separate from Worker runtime secrets.
+  - Validate the bundle with `npm run deploy:worker:dry-run`.
+  - Deploy from an authenticated workstation with `npm run deploy:worker`.
+  - Deep links use Workers' `single-page-application` fallback rather than the
+    Pages-only `_redirects` file.
 - Mobile store release:
   - Follow `docs/mobile-store-release.md`
   - Build profiles are configured in `eas.json`

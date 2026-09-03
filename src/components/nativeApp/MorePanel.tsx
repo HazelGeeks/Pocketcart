@@ -11,9 +11,9 @@ import { AppIcon } from "../icons/AppIcon";
 import { SettingsLocationCard } from "./SettingsLocationCard";
 import { SettingsProfileCard } from "./SettingsProfileCard";
 
-const PRIVACY_URL = "https://pocketcart.pages.dev/privacy";
-const TERMS_URL = "https://pocketcart.pages.dev/terms";
-const SUPPORT_URL = "https://pocketcart.pages.dev/support";
+const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
+const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
+const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
 
 type MorePanelProps = {
   profile: UserProfile | null;

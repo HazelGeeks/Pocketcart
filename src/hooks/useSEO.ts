@@ -14,7 +14,7 @@ interface SEOConfig {
   structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
-export const BASE_URL = "https://pocketcart.pages.dev";
+export const BASE_URL = "https://pocketcart.hazelgeeks.workers.dev";
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 const ROUTE_PATHS: Record<Route, string> = {
   home: "/",
