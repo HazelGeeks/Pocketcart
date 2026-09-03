@@ -8,8 +8,6 @@ export const adminOverviewStyles = {
   },
   overviewContent: {
     width: "100%",
-    maxWidth: 1000,
-    alignSelf: "center",
     gap: 12,
   },
   productReviewCard: {
