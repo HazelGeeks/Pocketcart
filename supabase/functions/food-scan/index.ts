@@ -30,7 +30,8 @@ type OpenAiResponse = {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -50,7 +51,11 @@ const resultSchema = {
     evidence: { type: "array", items: { type: "string" }, maxItems: 8 },
     ingredients: { type: "array", items: { type: "string" }, maxItems: 30 },
     allergens: { type: "array", items: { type: "string" }, maxItems: 12 },
-    nutritionHighlights: { type: "array", items: { type: "string" }, maxItems: 8 },
+    nutritionHighlights: {
+      type: "array",
+      items: { type: "string" },
+      maxItems: 8,
+    },
     nextSteps: { type: "array", items: { type: "string" }, maxItems: 8 },
     safetyNote: { type: "string" },
     requiresConfirmation: { type: "boolean" },
@@ -107,9 +112,14 @@ function confidence(value: unknown): number {
 }
 
 function normalizeResult(value: unknown): FoodScanResult {
-  const item = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const item =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
   const text = (key: string, fallback: string) =>
-    typeof item[key] === "string" && item[key].trim() ? item[key].trim() : fallback;
+    typeof item[key] === "string" && item[key].trim()
+      ? item[key].trim()
+      : fallback;
   const allowedRipeness = new Set<FoodScanResult["ripenessLevel"]>([
     "unripe",
     "ready",
@@ -117,14 +127,20 @@ function normalizeResult(value: unknown): FoodScanResult {
     "unknown",
     "not_applicable",
   ]);
-  const ripenessCandidate = item.ripenessLevel as FoodScanResult["ripenessLevel"];
+  const ripenessCandidate =
+    item.ripenessLevel as FoodScanResult["ripenessLevel"];
 
   return {
     productName: text("productName", "Unrecognized food"),
     category: text("category", "Unknown"),
     confidence: confidence(item.confidence),
-    summary: text("summary", "The image did not contain enough visible detail."),
-    ripenessLevel: allowedRipeness.has(ripenessCandidate) ? ripenessCandidate : "unknown",
+    summary: text(
+      "summary",
+      "The image did not contain enough visible detail.",
+    ),
+    ripenessLevel: allowedRipeness.has(ripenessCandidate)
+      ? ripenessCandidate
+      : "unknown",
     ripenessConfidence: confidence(item.ripenessConfidence),
     evidence: stringArray(item.evidence).slice(0, 8),
     ingredients: stringArray(item.ingredients).slice(0, 30),
@@ -148,7 +164,9 @@ function promptFor(mode: FoodScanMode, barcode: string | null): string {
     "Set requiresConfirmation to true whenever the item confidence is below 80, the label is incomplete, or critical text is blurry or obscured.",
     "Evidence must describe visible details rather than restating conclusions.",
     "Keep safetyNote direct and specific to the limitations of this result.",
-    barcode ? `A barcode scanner detected ${barcode}. Treat it only as a visible reference; do not identify a product from the number unless the package itself supports that identification.` : "No barcode was detected.",
+    barcode
+      ? `A barcode scanner detected ${barcode}. Treat it only as a visible reference; do not identify a product from the number unless the package itself supports that identification.`
+      : "No barcode was detected.",
   ];
 
   if (mode === "label") {
@@ -185,27 +203,35 @@ Deno.serve(async (request: Request) => {
 
   const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim();
   if (!apiKey) {
-    return jsonResponse({ error: "Food Scan is not configured on the server." }, 503);
+    return jsonResponse(
+      { error: "Food Scan is not configured on the server." },
+      503,
+    );
   }
 
-  const body = await request.json().catch(() => null) as {
+  const body = (await request.json().catch(() => null)) as {
     barcode?: unknown;
     imageBase64?: unknown;
     mimeType?: unknown;
     mode?: unknown;
   } | null;
-  const imageBase64 = typeof body?.imageBase64 === "string" ? body.imageBase64.trim() : "";
+  const imageBase64 =
+    typeof body?.imageBase64 === "string" ? body.imageBase64.trim() : "";
   const mimeType = body?.mimeType === "image/png" ? "image/png" : "image/jpeg";
   const mode: FoodScanMode = body?.mode === "label" ? "label" : "fresh";
-  const barcode = typeof body?.barcode === "string" && body.barcode.trim()
-    ? body.barcode.trim().slice(0, 64)
-    : null;
+  const barcode =
+    typeof body?.barcode === "string" && body.barcode.trim()
+      ? body.barcode.trim().slice(0, 64)
+      : null;
 
   if (!imageBase64) {
     return jsonResponse({ error: "Missing captured image." }, 400);
   }
   if (imageBase64.length > 9_000_000) {
-    return jsonResponse({ error: "Captured image is too large. Please retake it." }, 413);
+    return jsonResponse(
+      { error: "Captured image is too large. Please retake it." },
+      413,
+    );
   }
   if (!/^[A-Za-z0-9+/=\r\n]+$/.test(imageBase64)) {
     return jsonResponse({ error: "Captured image encoding is invalid." }, 400);
@@ -219,7 +245,10 @@ Deno.serve(async (request: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: Deno.env.get("FOOD_SCAN_OPENAI_MODEL")?.trim() || Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-4.1-mini",
+        model:
+          Deno.env.get("FOOD_SCAN_OPENAI_MODEL")?.trim() ||
+          Deno.env.get("OPENAI_MODEL")?.trim() ||
+          "gpt-5-mini",
         input: [
           {
             role: "user",
@@ -244,9 +273,12 @@ Deno.serve(async (request: Request) => {
       }),
     });
 
-    const payload = await response.json().catch(() => ({})) as OpenAiResponse;
+    const payload = (await response.json().catch(() => ({}))) as OpenAiResponse;
     if (!response.ok) {
-      throw new Error(payload.error?.message || `Image analysis failed with ${response.status}.`);
+      throw new Error(
+        payload.error?.message ||
+          `Image analysis failed with ${response.status}.`,
+      );
     }
     const text = outputText(payload);
     if (!text) {
@@ -256,7 +288,9 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ result: normalizeResult(JSON.parse(text)) });
   } catch (error) {
     return jsonResponse(
-      { error: error instanceof Error ? error.message : "Food analysis failed." },
+      {
+        error: error instanceof Error ? error.message : "Food analysis failed.",
+      },
       502,
     );
   }

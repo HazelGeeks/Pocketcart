@@ -1,3 +1,4 @@
+import { normalizeProductPrice } from "./productPriceInput";
 import type { AdminProduct, AdminProductAlias, AdminStore } from "../services/adminBackoffice";
 import { csvHeaderKey, csvRowValue, parseCsvRows } from "./adminValidation";
 import { canonicalProductCategory } from "./productCategory";
@@ -63,14 +64,6 @@ function hasCsvHeader(headers: string[], aliases: string[]): boolean {
   return aliases.some((alias) => headers.includes(csvHeaderKey(alias)));
 }
 
-function normalizePrice(value: string): string {
-  const matches = value
-    .trim()
-    .replace(/,/g, "")
-    .match(/-?\d+(?:\.\d+)?/g);
-  return matches?.[0] ?? "";
-}
-
 function buildPricePlan(
   record: Record<string, string>,
   storeResolver: ReturnType<typeof createProductCsvStoreResolver>,
@@ -80,12 +73,12 @@ function buildPricePlan(
     return { status: "missing", normalizedPrice: "", storeIds: [] };
   }
 
-  const normalizedPrice = normalizePrice(rawPrice);
+  const normalizedPrice = normalizeProductPrice(rawPrice);
   const numericPrice = Number(normalizedPrice);
-  if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+  if (normalizedPrice === null || !Number.isFinite(numericPrice) || numericPrice < 0) {
     return {
       status: "skipped",
-      normalizedPrice,
+      normalizedPrice: normalizedPrice ?? "",
       storeIds: [],
       message: `Invalid price '${rawPrice}'.`,
     };
@@ -104,6 +97,10 @@ function buildPricePlan(
     };
   }
 
+  if (observedAt > periodEnd) {
+    return { status: "skipped", normalizedPrice, storeIds: [], message: "Sale end date is before the start date." };
+  }
+
   const storeIds = storeResolver.resolveStoreIds(
     csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeId),
     csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeName),
@@ -114,7 +111,7 @@ function buildPricePlan(
       status: "skipped",
       normalizedPrice,
       storeIds: [],
-      message: "Price store could not be resolved.",
+      message: `Could not match every branch for retailer '${csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeBrand)}', branch '${csvRowValue(record, PRODUCT_IMPORT_HEADERS.storeName)}'. Check Stores or supply store_id.`,
     };
   }
 
@@ -179,16 +176,24 @@ export function buildProductCsvImportPreview(params: {
       sale_end_date: csvRowValue(record, PRODUCT_IMPORT_HEADERS.periodEnd) || null,
     };
 
-    if (!input.englishName || !input.koreanName || !input.category) {
+    if (!input.englishName || !input.category) {
       return {
         rowNumber,
         productAction: "invalid",
         productKey,
         candidateProductIds: [],
-        message: "English name, Korean name, and category are required.",
+        message: "English name and category are required. Korean name is optional.",
         input,
         reviewPayload,
         price,
+      };
+    }
+
+    if (price.status === "skipped") {
+      return {
+        rowNumber, productAction: "invalid", productKey, candidateProductIds: [],
+        message: `Sale data needs correction: ${price.message} No product or price will be imported for this row.`,
+        input, reviewPayload, price,
       };
     }
 

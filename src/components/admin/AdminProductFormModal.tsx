@@ -193,7 +193,7 @@ export default function AdminProductFormModal({
                       />
                     </View>
                     <View style={[st.modalTopCell, st.modalTopCellHalf]}>
-                      <Text style={st.fieldLabel}>Korean Name</Text>
+                      <Text style={st.fieldLabel}>Korean Name (optional)</Text>
                       <TextInput
                         value={productKoreanName}
                         onChangeText={onKoreanNameChange}

@@ -27,8 +27,8 @@ export default function useAdminProductSave(params: Params) {
       unit: params.productUnit.trim(),
       category: canonicalProductCategory(params.productCategory),
     };
-    if (!input.englishName || !input.koreanName || !input.category) {
-      params.setNotice("English name, Korean name, and category are required.");
+    if (!input.englishName || !input.category) {
+      params.setNotice("English name and category are required. Korean name is optional.");
       return;
     }
     const prepared = prepareProductPriceSets({

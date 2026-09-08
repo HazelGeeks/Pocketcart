@@ -25,6 +25,8 @@
     "src/utils/categoryImages.ts",
     "src/utils/infiniteScroll.ts",
     "src/utils/flyerCsv.ts",
+    "src/utils/flyerBatchImport.ts",
+    "src/utils/flyerProductReview.ts",
     "src/utils/flyerAiRows.ts",
     "src/utils/foodScanProductMatch.ts",
     "src/utils/favoriteStoreState.ts",

@@ -43,6 +43,8 @@ export default function AdminProductReviewQueue({
   onResolveReview,
   onAssignReview,
 }: Props) {
+  const [page, setPage] = React.useState(0);
+  const currentPage = Math.min(page, Math.max(0, Math.ceil(reviews.length / 8) - 1));
   const [manualProductIds, setManualProductIds] = React.useState<Record<string, string>>({});
   const sortedProducts = React.useMemo(
     () => [...products].sort((left, right) => productDisplayName(left).localeCompare(productDisplayName(right))),
@@ -72,7 +74,7 @@ export default function AdminProductReviewQueue({
       </View>
 
       <View style={st.productReviewList}>
-        {reviews.slice(0, 8).map((review) => {
+        {reviews.slice(currentPage * 8, currentPage * 8 + 8).map((review) => {
           const productName = payloadText(review, "english_name") ??
             payloadText(review, "korean_name") ?? payloadText(review, "name") ??
             "Unnamed spreadsheet product";
@@ -158,7 +160,13 @@ export default function AdminProductReviewQueue({
           );
         })}
       </View>
-      {reviews.length > 8 ? <Text style={st.dataMuted}>Showing 8 of {reviews.length} pending reviews.</Text> : null}
+      {reviews.length > 8 ? (
+        <View style={st.productReviewActions}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Previous review page" disabled={currentPage === 0} onPress={() => setPage(currentPage - 1)} style={[st.btn, st.btnGhost]}><Text style={st.btnGhostText}>Previous reviews</Text></Pressable>
+          <Text style={st.dataMuted}>Review page {currentPage + 1} / {Math.ceil(reviews.length / 8)}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Next review page" disabled={(currentPage + 1) * 8 >= reviews.length} onPress={() => setPage(currentPage + 1)} style={[st.btn, st.btnGhost]}><Text style={st.btnGhostText}>Next reviews</Text></Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }

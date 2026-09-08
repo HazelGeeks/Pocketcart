@@ -7,6 +7,15 @@ const {
   productCsvRecordFromRow,
 } = require("../.tmp-tests/utils/productCsvImport.js");
 
+test("branch matching preserves literal names and never crosses retailer boundaries", () => {
+  const resolver = createProductCsvStoreResolver([
+    { id: "literal", brand: "A", name: "Main & Broadway" },
+    { id: "other", brand: "B", name: "Downtown" },
+  ]);
+  assert.deepEqual(resolver.resolveStoreIds("", "Main & Broadway", "A"), ["literal"]);
+  assert.deepEqual(resolver.resolveStoreIds("", "Downtown", "A"), []);
+});
+
 test("product CSV store resolver expands pipe-separated branch names", () => {
   const resolver = createProductCsvStoreResolver([
     { id: "metrotown", brand: "T&T", name: "Metrotown" },

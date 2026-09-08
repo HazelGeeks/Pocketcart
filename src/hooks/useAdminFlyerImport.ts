@@ -1,10 +1,13 @@
+import { extractFlyerBatch } from "../utils/flyerBatchImport";
+import { flyerCategory } from "../utils/flyerCategory";
+import { flyerProductIssues } from "../utils/flyerProductReview";
 import React from "react";
 import { Platform } from "react-native";
 import {
   extractFlyerRowsWithAi,
   hasFlyerAiEndpoint,
 } from "../services/flyerAiImport";
-import type { FlyerCropCandidate, FlyerRow } from "../state/adminStore";
+import type { FlyerRow } from "../state/adminStore";
 import {
   buildFlyerCsv,
   flyerRowsToProductCsv,
@@ -15,87 +18,15 @@ import {
 } from "../utils/adminScreenHelpers";
 import { downloadCsvFile } from "../utils/adminCsvFiles";
 
-type ImageUploadMutation = {
-  mutateAsync: (params: { file: Blob; fileName?: string; contentType?: string }) => Promise<{ publicUrl: string } | null>;
-};
-
-type FlyerPageSource = {
-  dataUrl: string;
-  label: string;
-};
-
-function readBlobAsDataUrl(file: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(reader.error ?? new Error("Could not read flyer image."));
-    reader.readAsDataURL(file);
-  });
-}
-
-function loadImage(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not load flyer crop preview."));
-    image.src = dataUrl;
-  });
-}
-
-function dataUrlToBlob(dataUrl: string): Promise<Blob> {
-  return fetch(dataUrl).then((response) => response.blob());
-}
-
-function safeImageFileName(row: FlyerRow, index: number): string {
-  const base = [
-    row.martName,
-    row.englishName || row.koreanName || `flyer-row-${index + 1}`,
-  ]
-    .filter(Boolean)
-    .join("-")
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-  return `${base || `flyer-row-${index + 1}`}.webp`;
-}
-
-async function createCropPreview(
-  source: FlyerPageSource,
-  candidate: FlyerCropCandidate,
-): Promise<string> {
-  const doc = (globalThis as { document?: Document }).document;
-  if (!doc) throw new Error("Flyer image cropping requires a browser document.");
-
-  const image = await loadImage(source.dataUrl);
-  const sourceX = Math.round(image.naturalWidth * candidate.x);
-  const sourceY = Math.round(image.naturalHeight * candidate.y);
-  const sourceWidth = Math.round(image.naturalWidth * candidate.width);
-  const sourceHeight = Math.round(image.naturalHeight * candidate.height);
-  const safeX = Math.max(0, Math.min(image.naturalWidth - 1, sourceX));
-  const safeY = Math.max(0, Math.min(image.naturalHeight - 1, sourceY));
-  const safeWidth = Math.max(1, Math.min(image.naturalWidth - safeX, sourceWidth));
-  const safeHeight = Math.max(1, Math.min(image.naturalHeight - safeY, sourceHeight));
-
-  const canvas = doc.createElement("canvas");
-  canvas.width = safeWidth;
-  canvas.height = safeHeight;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("Could not create a canvas for flyer crop preview.");
-  context.drawImage(image, safeX, safeY, safeWidth, safeHeight, 0, 0, safeWidth, safeHeight);
-  return canvas.toDataURL("image/webp", 0.86);
-}
-
 type UseAdminFlyerImportParams = {
   flyerRows: FlyerRow[];
-  setFlyerRows: (rows: FlyerRow[]) => void;
+  setFlyerRows: (rows: FlyerRow[] | ((current: FlyerRow[]) => FlyerRow[])) => void;
   setFlyerProcessing: (value: boolean) => void;
   setFlyerProgress: (value: string) => void;
   addFlyerRow: () => void;
   removeSelectedFlyerRows: () => void;
   clearFlyerImport: () => void;
   setNotice: (value: string | null) => void;
-  uploadProductImageMutation: ImageUploadMutation;
 };
 
 export default function useAdminFlyerImport({
@@ -107,22 +38,27 @@ export default function useAdminFlyerImport({
   removeSelectedFlyerRows,
   clearFlyerImport,
   setNotice,
-  uploadProductImageMutation,
 }: UseAdminFlyerImportParams) {
+  const batchRunning = React.useRef(false);
+  const fileLabel = React.useRef("");
+  const reportProgress = React.useCallback((message: string) => {
+    setFlyerProgress(`${fileLabel.current}${message ? ` — ${message}` : ""}`);
+  }, [setFlyerProgress]);
+
   const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
     const tesseract = await import("tesseract.js");
     const worker = await tesseract.createWorker("eng", 1, {
       logger: (message: any) => {
         if (!message?.status) return;
         const progress = typeof message.progress === "number" ? ` ${Math.round(message.progress * 100)}%` : "";
-        setFlyerProgress(`${message.status}${progress}`);
+        reportProgress(`${message.status}${progress}`);
       },
     });
 
     try {
       const chunks: string[] = [];
       for (let index = 0; index < sources.length; index += 1) {
-        setFlyerProgress(`OCR page ${index + 1} of ${sources.length}`);
+        reportProgress(`OCR page ${index + 1} of ${sources.length}`);
         const result = await worker.recognize(sources[index]);
         chunks.push(result.data.text ?? "");
       }
@@ -130,7 +66,7 @@ export default function useAdminFlyerImport({
     } finally {
       await worker.terminate();
     }
-  }, [setFlyerProgress]);
+  }, [reportProgress]);
 
   const extractPdfText = React.useCallback(async (file: File) => {
     const pdfjs = await import("pdfjs-dist");
@@ -151,7 +87,7 @@ export default function useAdminFlyerImport({
       const pageCount = Math.min(pdf.numPages, 5);
       const pages: string[] = [];
       for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
-        setFlyerProgress(`Reading PDF text ${pageNumber} of ${pageCount}`);
+        reportProgress(`Reading PDF text ${pageNumber} of ${pageCount}`);
         const page = await pdf.getPage(pageNumber);
         const textContent = await page.getTextContent();
         const grouped = new Map<number, string[]>();
@@ -175,7 +111,7 @@ export default function useAdminFlyerImport({
       await pdf.cleanup();
       await loadingTask.destroy();
     }
-  }, [setFlyerProgress]);
+  }, [reportProgress]);
 
   const renderPdfPagesForOcr = React.useCallback(async (file: File) => {
     const pdfjs = await import("pdfjs-dist");
@@ -201,7 +137,7 @@ export default function useAdminFlyerImport({
       const pageCount = Math.min(pdf.numPages, 5);
       const images: string[] = [];
       for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
-        setFlyerProgress(`Rendering PDF page ${pageNumber} of ${pageCount}`);
+        reportProgress(`Rendering PDF page ${pageNumber} of ${pageCount}`);
         const page = await pdf.getPage(pageNumber);
         const viewport = page.getViewport({ scale: 2 });
         const canvas = doc.createElement("canvas");
@@ -220,131 +156,54 @@ export default function useAdminFlyerImport({
       await pdf.cleanup();
       await loadingTask.destroy();
     }
-  }, [setFlyerProgress]);
+  }, [reportProgress]);
 
-  const buildFlyerPageSources = React.useCallback(async (file: File, isPdf: boolean): Promise<FlyerPageSource[]> => {
+  const processFlyerFile = React.useCallback(async (file: File) => {
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    let warning = "";
+    if (hasFlyerAiEndpoint) {
+      reportProgress("AI extracting text");
+      const result = await extractFlyerRowsWithAi(file);
+      if (result.rows.length > 0) return result;
+      warning = result.warning ?? "";
+      reportProgress("AI found no rows. Running OCR fallback");
+    }
+    let text = "";
     if (isPdf) {
-      const images = await renderPdfPagesForOcr(file);
-      return images.map((dataUrl, index) => ({
-        dataUrl,
-        label: `Page ${index + 1}`,
-      }));
+      text = await extractPdfText(file);
+      if (parseFlyerTextToRows(text).length === 0) {
+        text = await recognizeFlyerSources(await renderPdfPagesForOcr(file));
+      }
+    } else {
+      text = await recognizeFlyerSources([file]);
     }
+    return {
+      rows: parseFlyerTextToRows(text).map((row) => ({ ...row, mainCategory: flyerCategory(row.mainCategory) })),
+      warning: [warning, "OCR fallback used; review all fields."].filter(Boolean).join(" "),
+    };
+  }, [extractPdfText, recognizeFlyerSources, renderPdfPagesForOcr, reportProgress]);
 
-    return [
-      {
-        dataUrl: await readBlobAsDataUrl(file),
-        label: file.name || "Uploaded flyer",
-      },
-    ];
-  }, [renderPdfPagesForOcr]);
-
-  const attachCropPreviews = React.useCallback(async (
-    rows: FlyerRow[],
-    pageSources: FlyerPageSource[],
-  ): Promise<FlyerRow[]> => {
-    if (pageSources.length === 0) return rows;
-
-    const nextRows: FlyerRow[] = [];
-    for (const [index, row] of rows.entries()) {
-      const candidate = row.cropCandidate;
-      if (!candidate) {
-        nextRows.push(row);
-        continue;
-      }
-
-      const source = pageSources[candidate.pageIndex] ?? pageSources[0];
-      try {
-        setFlyerProgress(`Cropping flyer image ${index + 1} of ${rows.length}`);
-        const imagePreviewUrl = await createCropPreview(source, candidate);
-        nextRows.push({
-          ...row,
-          imagePreviewUrl,
-          imageSelected: true,
-          imageStatus: row.thumbnailUrl ? "saved" : "ready",
-          cropCandidate: {
-            ...candidate,
-            sourceLabel: candidate.sourceLabel || source.label,
-          },
-        });
-      } catch (_error) {
-        nextRows.push({
-          ...row,
-          imageSelected: false,
-          imageStatus: "error",
-        });
-      }
+  const processFlyerFiles = React.useCallback(async (files: File[]) => {
+    if (batchRunning.current || files.length === 0) return;
+    batchRunning.current = true;
+    setFlyerProcessing(true);
+    setNotice(null);
+    try {
+      const result = await extractFlyerBatch(files, processFlyerFile, {
+        onStart: (file, index) => {
+          fileLabel.current = `File ${index + 1}/${files.length}: ${file.name}`;
+          reportProgress("Preparing file");
+        },
+        onRows: (rows) => setFlyerRows((current) => [...current, ...rows]),
+      });
+      setNotice(`Added ${result.rowCount} text rows from ${result.successCount}/${files.length} files. Existing rows kept. Review before exporting.${result.messages.length ? ` ${result.messages.join(" | ")}` : ""}`);
+    } finally {
+      batchRunning.current = false;
+      fileLabel.current = "";
+      setFlyerProgress("");
+      setFlyerProcessing(false);
     }
-    return nextRows;
-  }, [setFlyerProgress]);
-
-  const processFlyerFile = React.useCallback(
-    async (file: File) => {
-      setFlyerProcessing(true);
-      setFlyerProgress("Preparing file");
-      setNotice(null);
-
-      try {
-        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-        if (hasFlyerAiEndpoint) {
-          setFlyerProgress("AI extracting table");
-          const aiResult = await extractFlyerRowsWithAi(file);
-          if (aiResult.rows.length > 0) {
-            const needsCropPreview = aiResult.rows.some((row) => row.cropCandidate);
-            const rows = needsCropPreview
-              ? await attachCropPreviews(aiResult.rows, await buildFlyerPageSources(file, isPdf))
-              : aiResult.rows;
-            setFlyerRows(rows);
-            setFlyerProgress("");
-            const imageCount = rows.filter((row) => row.imagePreviewUrl).length;
-            setNotice(
-              `${aiResult.warning ? `${aiResult.warning} ` : ""}AI extracted ${aiResult.rows.length} table rows${
-                imageCount > 0 ? ` with ${imageCount} image crop candidates` : ""
-              }. Review before saving.`,
-            );
-            return;
-          }
-          setFlyerProgress("AI found no rows. Running OCR fallback");
-        }
-
-        let text = "";
-        if (isPdf) {
-          text = await extractPdfText(file);
-          if (parseFlyerTextToRows(text).length === 0) {
-            const images = await renderPdfPagesForOcr(file);
-            text = await recognizeFlyerSources(images);
-          }
-        } else {
-          text = await recognizeFlyerSources([file]);
-        }
-
-        const parsedRows = parseFlyerTextToRows(text);
-        setFlyerRows(parsedRows);
-        setFlyerProgress("");
-        setNotice(
-          parsedRows.length > 0
-            ? `Flyer parsed into ${parsedRows.length} table rows. Review before saving.`
-            : "No price rows were found. You can paste OCR text manually or add rows.",
-        );
-      } catch (error) {
-        setNotice(error instanceof Error ? error.message : "Flyer processing failed.");
-        setFlyerProgress("");
-      } finally {
-        setFlyerProcessing(false);
-      }
-    },
-    [
-      attachCropPreviews,
-      buildFlyerPageSources,
-      extractPdfText,
-      recognizeFlyerSources,
-      renderPdfPagesForOcr,
-      setFlyerProcessing,
-      setFlyerProgress,
-      setFlyerRows,
-      setNotice,
-    ],
-  );
+  }, [processFlyerFile, reportProgress, setFlyerRows, setFlyerProcessing, setFlyerProgress, setNotice]);
 
   const handlePickFlyerFile = React.useCallback(() => {
     if (Platform.OS !== "web") {
@@ -360,14 +219,14 @@ export default function useAdminFlyerImport({
     const input = doc.createElement("input");
     input.type = "file";
     input.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf";
-    input.multiple = false;
+    input.multiple = true;
     input.onchange = () => {
-      const selected = input.files?.[0];
-      if (!selected) return;
-      void processFlyerFile(selected);
+      const selected = Array.from(input.files ?? []) as File[];
+      if (selected.length === 0) return;
+      void processFlyerFiles(selected);
     };
     input.click();
-  }, [processFlyerFile, setNotice]);
+  }, [processFlyerFiles, setNotice]);
 
   const handleAddFlyerRow = React.useCallback(() => {
     addFlyerRow();
@@ -381,73 +240,6 @@ export default function useAdminFlyerImport({
     clearFlyerImport();
     setNotice("Flyer import cleared.");
   }, [clearFlyerImport, setNotice]);
-
-  const handleSaveSelectedFlyerImages = React.useCallback(async () => {
-    if (Platform.OS !== "web") {
-      setNotice("Flyer image saving is currently available on web admin.");
-      return;
-    }
-
-    const rowsToSave = flyerRows.filter((row) => row.imageSelected && row.imagePreviewUrl && !row.thumbnailUrl);
-    if (rowsToSave.length === 0) {
-      setNotice("Select at least one unsaved flyer image crop.");
-      return;
-    }
-
-    let nextRows = flyerRows;
-    let saved = 0;
-    let failed = 0;
-    setFlyerProcessing(true);
-    setNotice(null);
-
-    try {
-      for (const row of rowsToSave) {
-        const rowIndex = nextRows.findIndex((item) => item.id === row.id);
-        const fileIndex = rowIndex >= 0 ? rowIndex : saved + failed;
-        setFlyerProgress(`Saving flyer image ${saved + failed + 1} of ${rowsToSave.length}`);
-        nextRows = nextRows.map((item) =>
-          item.id === row.id ? { ...item, imageStatus: "saving" } : item,
-        );
-        setFlyerRows(nextRows);
-
-        try {
-          const blob = await dataUrlToBlob(row.imagePreviewUrl);
-          const data = await uploadProductImageMutation.mutateAsync({
-            file: blob,
-            fileName: safeImageFileName(row, fileIndex),
-            contentType: blob.type || "image/webp",
-          });
-          if (!data?.publicUrl) throw new Error("Image upload returned no public URL.");
-          nextRows = nextRows.map((item) =>
-            item.id === row.id
-              ? {
-                  ...item,
-                  thumbnailUrl: data.publicUrl,
-                  imageStatus: "saved",
-                  imageSelected: true,
-                }
-              : item,
-          );
-          saved += 1;
-        } catch (_error) {
-          nextRows = nextRows.map((item) =>
-            item.id === row.id ? { ...item, imageStatus: "error", imageSelected: false } : item,
-          );
-          failed += 1;
-        }
-        setFlyerRows(nextRows);
-      }
-    } finally {
-      setFlyerProcessing(false);
-      setFlyerProgress("");
-    }
-
-    setNotice(
-      failed > 0
-        ? `Saved ${saved} flyer image(s). Failed ${failed}; review rows marked Error.`
-        : `Saved ${saved} flyer image(s). Export Product CSV now includes their thumbnail URLs.`,
-    );
-  }, [flyerRows, setFlyerProcessing, setFlyerProgress, setFlyerRows, setNotice, uploadProductImageMutation]);
 
   const handleExportFlyerCsv = React.useCallback(() => {
     const selectedRows = flyerRows.filter((row) => row.selected);
@@ -471,6 +263,13 @@ export default function useAdminFlyerImport({
       return;
     }
 
+    const incomplete = selectedRows.filter((row) => flyerProductIssues(row).length > 0);
+    if (incomplete.length > 0) {
+      const first = incomplete[0];
+      setNotice(`Review ${incomplete.length} selected row(s) before Product export. ${first.englishName || first.koreanName || "Unnamed product"}: ${flyerProductIssues(first).join("; ")}. Correct or deselect these rows. Export CSV keeps all review notes.`);
+      return;
+    }
+
     const error = downloadCsvFile("flyer-products", flyerRowsToProductCsv(selectedRows));
     if (error) {
       setNotice(error);
@@ -486,6 +285,5 @@ export default function useAdminFlyerImport({
     handleExportFlyerProductCsv,
     handlePickFlyerFile,
     handleRemoveSelectedFlyerRows,
-    handleSaveSelectedFlyerImages,
   };
 }

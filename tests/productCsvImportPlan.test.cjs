@@ -23,6 +23,33 @@ const stores = [
   { id: "store-2", name: "West End", brand: "Safeway", is_active: true },
 ];
 
+test("Market Ribbon flyer imports two prices for Burnaby & Coquitlam", () => {
+  const result = buildProductCsvImportPreview({
+    csvText: "product_id,english_name,korean_name,category,unit,thumbnail_url,store_brand,store_name,store_id,price,sale_start_date,sale_end_date\n,CR Japonica Eel,,Seafood,ea,,Market Ribbon,Burnaby & Coquitlam,,10.99,2026-09-04,2026-09-10",
+    fileName: "flyer.csv", products: [], stores: [
+      { id: "burnaby", brand: "Market Ribbon", name: "Burnaby" },
+      { id: "coquitlam", brand: "Market Ribbon", name: "Coquitlam" },
+    ],
+  });
+  const row = result.preview.rows[0];
+  assert.equal(row.productAction, "create");
+  assert.deepEqual(row.price.storeIds, ["burnaby", "coquitlam"]);
+  assert.equal(row.price.normalizedPrice, "10.99");
+  assert.equal(row.price.observedAt, "2026-09-04T07:00:00.000Z");
+  assert.equal(row.price.periodEnd, "2026-09-11T06:59:59.999Z");
+  assert.equal(result.preview.summary.priceEntriesToImport, 2);
+});
+
+test("unresolved sale branch prevents creating a product without its price", () => {
+  const result = buildProductCsvImportPreview({
+    csvText: "english_name,korean_name,category,unit,store_brand,store_name,price,sale_start_date,sale_end_date\nEel,,Seafood,ea,Safeway,Downtown & Missing,10.99,2026-09-04,2026-09-10",
+    fileName: "invalid.csv", products: [], stores,
+  });
+  assert.equal(result.preview.rows[0].productAction, "invalid");
+  assert.equal(result.preview.summary.productsToCreate, 0);
+  assert.equal(result.preview.summary.priceEntriesToImport, 0);
+});
+
 test("product CSV preview plans creates, planned reuse, existing reuse, review, and invalid rows", () => {
   const csv = [
     "product_id,english_name,korean_name,category,unit,store_brand,price,sale_start_date,sale_end_date",

@@ -83,7 +83,7 @@ type AdminStoreState = {
   setProductOnSaleOnly: (value: boolean) => void;
   setProductSort: (value: ProductSortKey) => void;
   resetProductFilters: () => void;
-  setFlyerRows: (rows: FlyerRow[]) => void;
+  setFlyerRows: (rows: FlyerRow[] | ((current: FlyerRow[]) => FlyerRow[])) => void;
   setFlyerProcessing: (value: boolean) => void;
   setFlyerProgress: (value: string) => void;
   updateFlyerRow: (id: string, field: FlyerEditableField, value: string | boolean) => void;
@@ -118,7 +118,7 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   setProductOnSaleOnly: (value) => set({ productOnSaleOnly: value }),
   setProductSort: (value) => set({ productSort: value }),
   resetProductFilters: () => set(productFilterDefaults),
-  setFlyerRows: (rows) => set({ flyerRows: rows }),
+  setFlyerRows: (rows) => set((state) => ({ flyerRows: typeof rows === "function" ? rows(state.flyerRows) : rows })),
   setFlyerProcessing: (value) => set({ flyerProcessing: value }),
   setFlyerProgress: (value) => set({ flyerProgress: value }),
   updateFlyerRow: (id, field, value) =>

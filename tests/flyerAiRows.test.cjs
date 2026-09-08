@@ -5,7 +5,7 @@ const {
   normalizeFlyerAiRows,
 } = require("../.tmp-tests/utils/flyerAiRows.js");
 
-test("normalizeFlyerAiRows preserves crop metadata from imageBox", () => {
+test("normalizeFlyerAiRows ignores legacy image metadata for text-only extraction", () => {
   const [row] = normalizeFlyerAiRows([
     {
       martName: "H Mart",
@@ -31,19 +31,13 @@ test("normalizeFlyerAiRows preserves crop metadata from imageBox", () => {
     },
   ]);
 
-  assert.equal(row.imageSelected, true);
+  assert.equal(row.imageSelected, false);
   assert.equal(row.englishName, "Strawberry");
   assert.equal(row.koreanName, "딸기");
-  assert.equal(row.imageStatus, "candidate");
-  assert.deepEqual(row.cropCandidate, {
-    pageIndex: 2,
-    x: 0.12,
-    y: 0.2,
-    width: 0.3,
-    height: 0.18,
-    confidence: 0.86,
-    sourceLabel: "Page 3",
-  });
+  assert.equal(row.imageStatus, "none");
+  assert.equal(row.cropCandidate, null);
+  assert.equal(row.thumbnailUrl, "");
+  assert.equal(row.imagePreviewUrl, "");
 });
 
 test("normalizeFlyerAiRows keeps rows without crop candidates", () => {

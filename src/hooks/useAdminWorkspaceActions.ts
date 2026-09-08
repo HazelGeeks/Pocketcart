@@ -106,7 +106,6 @@ export default function useAdminWorkspaceActions(data: AdminWorkspaceData) {
     removeSelectedFlyerRows: state.adminUi.removeSelectedFlyerRows,
     clearFlyerImport: state.adminUi.clearFlyerImport,
     setNotice: status.setNotice,
-    uploadProductImageMutation: backend.mutations.uploadProductImage,
   });
   const commands = useAdminWorkspaceCommands(data);
   return { productActions, storeActions, flyerActions, ...commands };

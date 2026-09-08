@@ -16,58 +16,35 @@ function storeNameKey(value: string): string {
   return normalizedLookupKey(value);
 }
 
-function storeIdentityKey(params: { brand?: string | null; name: string }): string {
-  return `${normalizedLookupKey(params.brand)}|${storeNameKey(params.name)}`;
-}
-
 export function createProductCsvStoreResolver(stores: AdminStore[]) {
   const storeById = new Map(stores.map((store) => [store.id.trim().toLowerCase(), store.id]));
-  const storeIdByName = new Map<string, string>();
-  const storeIdByIdentity = new Map<string, string>();
-  const activeStoreIdsByBrand = new Map<string, string[]>();
-
-  stores.forEach((store) => {
-    storeIdByName.set(storeNameKey(store.name), store.id);
-    storeIdByIdentity.set(storeIdentityKey(store), store.id);
-    if (store.brand?.trim()) {
-      storeIdByName.set(storeNameKey(`${store.brand.trim()} - ${store.name.trim()}`), store.id);
-      if (store.is_active !== false) {
-        const brandKey = normalizedLookupKey(store.brand);
-        activeStoreIdsByBrand.set(brandKey, [
-          ...(activeStoreIdsByBrand.get(brandKey) ?? []),
-          store.id,
-        ]);
-      }
-    }
-  });
-
   return {
     resolveStoreIds(storeIdValue: string, storeNameValue: string, storeBrandValue: string): string[] {
       const directStoreId = parseStoreIdCandidate(storeIdValue);
-      if (directStoreId) {
-        return [storeById.get(directStoreId.toLowerCase()) ?? directStoreId];
+      if (directStoreId) return [storeById.get(directStoreId.toLowerCase()) ?? directStoreId];
+
+      const brand = normalizedLookupKey(storeBrandValue);
+      const eligible = stores.filter((store) => !brand || normalizedLookupKey(store.brand) === brand);
+      const find = (name: string) => eligible.filter((store) => {
+        const key = storeNameKey(name);
+        return storeNameKey(store.name) === key || storeNameKey(`${store.brand ?? ""} - ${store.name}`) === key;
+      });
+      const name = storeNameValue.trim();
+      if (!name) return eligible.filter((store) => brand && store.is_active !== false).map((store) => store.id);
+
+      // Try the actual name first: a real branch name may itself contain an ampersand.
+      const exact = find(name);
+      if (exact.length === 1) return [exact[0].id];
+      if (exact.length > 1) return [];
+      const names = name.split(/\s*(?:\||&|;|,)\s*|\s+and\s+/i).filter(Boolean);
+      const ids = new Set<string>();
+      for (const candidate of names) {
+        const matches = find(candidate);
+        // Never silently import only some branches or fall back to a different retailer.
+        if (matches.length !== 1) return [];
+        ids.add(matches[0].id);
       }
-
-      const ids: string[] = [];
-      const seen = new Set<string>();
-      const candidates = storeNameValue
-        .split("|")
-        .map((value) => storeNameKey(value))
-        .filter(Boolean);
-
-      if (candidates.length === 0) {
-        return [...(activeStoreIdsByBrand.get(normalizedLookupKey(storeBrandValue)) ?? [])];
-      }
-
-      for (const candidate of candidates) {
-        const identityMatch = storeIdByIdentity.get(storeIdentityKey({ brand: storeBrandValue, name: candidate }));
-        const match = identityMatch ?? storeIdByName.get(candidate);
-        if (!match || seen.has(match)) continue;
-        ids.push(match);
-        seen.add(match);
-      }
-
-      return ids;
+      return [...ids];
     },
   };
 }

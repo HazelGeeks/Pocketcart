@@ -1,3 +1,7 @@
+import { flyerProductName } from "./flyerProductName";
+import { flyerCategory } from "./flyerCategory";
+import { PRODUCT_TEMPLATE_COLUMNS } from "./productCsvHeaders";
+import { normalizeProductPrice } from "./productPriceInput";
 import type { FlyerRow } from "../state/adminStore";
 
 const FLYER_CSV_COLUMNS: Array<{ label: string; key: keyof Pick<
@@ -42,33 +46,22 @@ export function buildFlyerCsv(rows: FlyerRow[]): string {
 }
 
 export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
-  const header = [
-    "store_brand",
-    "store_name",
-    "sale_start_date",
-    "sale_end_date",
-    "english_name",
-    "korean_name",
-    "category",
-    "thumbnail_url",
-    "source_price",
-    "unit",
-    "memo",
-  ];
   const body = rows.map((row) => {
-    return [
-      row.martName,
-      row.regionBranch || row.martName,
-      row.saleStartDate,
-      row.saleEndDate,
-      row.englishName ?? "",
-      row.koreanName,
-      row.mainCategory || row.subCategory || "Uncategorized",
-      row.thumbnailUrl ?? "",
-      row.price,
-      row.unit,
-      row.memo,
-    ].map(csvCell).join(",");
+    const values: Record<(typeof PRODUCT_TEMPLATE_COLUMNS)[number], string> = {
+      product_id: "",
+      english_name: flyerProductName(row.englishName ?? "", row.unit),
+      korean_name: row.koreanName,
+      category: flyerCategory(row.mainCategory || row.subCategory || "", row.englishName),
+      unit: row.unit,
+      thumbnail_url: "",
+      store_brand: row.martName,
+      store_name: row.regionBranch,
+      store_id: "",
+      price: normalizeProductPrice(row.price) ?? "",
+      sale_start_date: row.saleStartDate,
+      sale_end_date: row.saleEndDate,
+    };
+    return PRODUCT_TEMPLATE_COLUMNS.map((key) => csvCell(values[key])).join(",");
   });
-  return ["\uFEFF" + header.map(csvCell).join(","), ...body].join("\r\n") + "\r\n";
+  return ["\uFEFF" + PRODUCT_TEMPLATE_COLUMNS.join(","), ...body].join("\r\n") + "\r\n";
 }

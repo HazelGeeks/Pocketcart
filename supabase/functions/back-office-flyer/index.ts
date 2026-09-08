@@ -1,12 +1,7 @@
+import { flyerExtractionPrompt as prompt } from "./prompt.ts";
+
 type FlyerRow = {
   pageIndex?: number;
-  imageBox?: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    confidence?: number;
-  } | null;
   sourceLabel?: string;
   martName: string;
   regionBranch: string;
@@ -86,7 +81,7 @@ const schema = {
           saleEndDate: { type: "string" },
           englishName: { type: "string" },
           koreanName: { type: "string" },
-          mainCategory: { type: "string" },
+          mainCategory: { type: "string", enum: ["", "Produce", "Meat", "Seafood", "Dairy", "Eggs", "Bakery", "Beverages", "Frozen Food", "Noodles", "Rice & Grains", "Rice Cakes", "Sauces & Condiments", "Snacks", "Prepared Foods", "Ready Meals", "Houseware", "Grocery"] },
           subCategory: { type: "string" },
           brand: { type: "string" },
           price: { type: "string" },
@@ -94,28 +89,7 @@ const schema = {
           memo: { type: "string" },
           pageIndex: { type: "number" },
           sourceLabel: { type: "string" },
-          imageBox: {
-            anyOf: [
-              {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                  x: { type: "number" },
-                  y: { type: "number" },
-                  width: { type: "number" },
-                  height: { type: "number" },
-                  confidence: {
-                    anyOf: [
-                      { type: "number" },
-                      { type: "null" },
-                    ],
-                  },
-                },
-                required: ["x", "y", "width", "height", "confidence"],
-              },
-              { type: "null" },
-            ],
-          },
+
         },
         required: [
           "martName",
@@ -132,7 +106,6 @@ const schema = {
           "memo",
           "pageIndex",
           "sourceLabel",
-          "imageBox",
         ],
       },
     },
@@ -229,22 +202,9 @@ function normalizeRows(value: unknown): FlyerRow[] {
         const value = item[key];
         return typeof value === "number" && Number.isFinite(value) ? value : undefined;
       };
-      const boxValue = item.imageBox;
-      const imageBox = boxValue && typeof boxValue === "object"
-        ? boxValue as Record<string, unknown>
-        : null;
       return {
         pageIndex: number("pageIndex") ?? 0,
         sourceLabel: text("sourceLabel"),
-        imageBox: imageBox
-          ? {
-              x: typeof imageBox.x === "number" ? imageBox.x : 0,
-              y: typeof imageBox.y === "number" ? imageBox.y : 0,
-              width: typeof imageBox.width === "number" ? imageBox.width : 0,
-              height: typeof imageBox.height === "number" ? imageBox.height : 0,
-              confidence: typeof imageBox.confidence === "number" ? imageBox.confidence : undefined,
-            }
-          : null,
         martName: text("martName"),
         regionBranch: text("regionBranch"),
         saleStartDate: text("saleStartDate"),
@@ -437,7 +397,7 @@ async function extractRowsWithOpenAi(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-4.1-mini",
+      model: Deno.env.get("FLYER_OPENAI_MODEL")?.trim() || "gpt-5-mini",
       input: [
         {
           role: "user",
@@ -506,38 +466,7 @@ Deno.serve(async (request: Request) => {
   const { base64, dataUrl } = await fileToPayload(file);
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
-  const prompt = [
-    "You are extracting grocery flyer data for a Korean back-office table.",
-    "Create one row per actual sale product. Ignore logos, navigation, legal text, coupons without a concrete product, page numbers, decorative text, and unrelated OCR noise.",
-    "The target table columns are exactly:",
-    "1. 매장 브랜드 -> martName",
-    "2. 지점명 또는 매장명 -> regionBranch",
-    "3. 세일 시작일 -> saleStartDate",
-    "4. 세일 종료일 -> saleEndDate",
-    "5. 영어 상품명 -> englishName",
-    "6. 한국어 상품명 -> koreanName",
-    "7. 카테고리 -> mainCategory",
-    "8. 호환용 빈 필드 -> subCategory",
-    "9. 상품 브랜드 -> brand",
-    "10. 가격 -> price",
-    "11. 단위 -> unit",
-    "12. 메모 -> memo",
-    "Also return pageIndex, sourceLabel, and imageBox for each row.",
-    "For imageBox, identify the visible flyer crop containing that product's actual product photo or product block. Use normalized coordinates from 0 to 1 relative to the rendered page/image: x, y, width, height. If no reliable product/image block is visible, return imageBox as null.",
-    "If imageBox is not null, include confidence from 0 to 1 for how well the crop matches the row. Use null only when unknown.",
-    "pageIndex is zero-based. sourceLabel should be a short label such as Page 1.",
-    "Return JSON that matches the schema only. Use the camelCase field names, not the Korean labels.",
-    "Store brand means the grocery chain such as H Mart, Safeway, T&T, No Frills. Branch/store name means a specific location such as Robson, Davie Street, Downtown. Do not put product brand in martName or regionBranch.",
-    "Store brand, branch/store name, sale start date, and sale end date are optional. Fill them only when they are clearly visible in the flyer. Otherwise return an empty string.",
-    "Dates must be YYYY-MM-DD only when clearly visible. Do not guess missing sale dates. If date text is visible but incomplete, leave saleStartDate and saleEndDate empty and write the visible date text in memo.",
-    "Price must be numeric text without currency symbols when possible. Keep sale conditions like 2/$5, member price, limit, or after coupon in memo if they do not fit a single numeric price.",
-    "Unit examples: each, ea, lb, kg, g, ml, L, pack, ct. If the unit is attached to the product size, use that value when clear.",
-    "Use one category only. Do not split products into main category and subcategory. Put the category in mainCategory and always return subCategory as an empty string.",
-    "Use Korean category text for Korean flyers. Example categories: 신선식품, 정육, 수산, 유제품, 냉동식품, 가공식품, 음료, 생활용품.",
-    "Product brand should contain only the product brand, not the store brand. If product brand is not visible, leave it empty.",
-    "If both Korean and English product names are visible, put English text in englishName and Korean text in koreanName. If only one language is visible, fill the matching field and leave the other empty.",
-    "Do not invent values. If a field is not visible or cannot be inferred confidently, return an empty string and put uncertainty or original OCR fragments in memo.",
-  ].join("\n");
+
 
   try {
     const fileContent = isPdf
@@ -553,9 +482,10 @@ Deno.serve(async (request: Request) => {
         googleVisionError = error instanceof Error ? error : new Error("Google Vision OCR failed.");
       }
 
-      if (openAiApiKey && ocrText) {
+      if (openAiApiKey && !googleVisionError) {
         const rows = await extractRowsWithOpenAi(openAiApiKey, [
-          { type: "input_text", text: `${prompt}\n\nOCR text:\n${ocrText}` },
+          { type: "input_text", text: `${prompt}\n\nSupplementary OCR text (may be incomplete or out of reading order):\n${ocrText}` },
+          fileContent,
         ]);
         return jsonResponse({ rows });
       }
@@ -580,7 +510,10 @@ Deno.serve(async (request: Request) => {
         );
       }
 
-      return jsonResponse({ rows: parseFlyerTextRows(ocrText) });
+      return jsonResponse({
+        rows: parseFlyerTextRows(ocrText),
+        warning: "OCR-only extraction: names, sizes and prices require manual review. Configure OPENAI_API_KEY for Product template mapping.",
+      });
     }
 
     if (!openAiApiKey) {

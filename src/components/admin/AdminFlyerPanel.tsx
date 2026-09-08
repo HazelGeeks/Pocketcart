@@ -1,5 +1,6 @@
+import { flyerCategory } from "../../utils/flyerCategory";
+import { flyerProductIssues } from "../../utils/flyerProductReview";
 import {
-  Image,
   Linking,
   Platform,
   Pressable,
@@ -24,18 +25,8 @@ type AdminFlyerPanelProps = {
   onRemoveSelected: () => void;
   onExportCsv: () => void;
   onExportProductCsv: () => void;
-  onSaveSelectedImages: () => void;
   onClear: () => void;
   onUpdateRow: (id: string, field: FlyerEditableField, value: string | boolean) => void;
-};
-
-const IMAGE_STATUS_LABELS: Record<FlyerRow["imageStatus"], string> = {
-  none: "No image",
-  candidate: "Candidate",
-  ready: "Ready",
-  saving: "Saving",
-  saved: "Saved",
-  error: "Error",
 };
 
 const STORE_FLYER_LINKS = [
@@ -57,14 +48,9 @@ export default function AdminFlyerPanel({
   onRemoveSelected,
   onExportCsv,
   onExportProductCsv,
-  onSaveSelectedImages,
   onClear,
   onUpdateRow,
 }: AdminFlyerPanelProps) {
-  const unsavedImageCount = rows.filter(
-    (row) => row.imageSelected && row.imagePreviewUrl && !row.thumbnailUrl,
-  ).length;
-
   return (
     <View style={st.flyerPanel}>
       <div style={WEB_FLYER_ACTION_BAR_STYLE}>
@@ -75,7 +61,7 @@ export default function AdminFlyerPanel({
           disabled={processing}
         >
           <Text style={st.flyerToolbarBtnText}>
-            {processing ? "Processing..." : "Upload Image/PDF"}
+            {processing ? "Processing..." : "Upload Images/PDFs"}
           </Text>
         </Pressable>
         <Pressable
@@ -112,14 +98,6 @@ export default function AdminFlyerPanel({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          onPress={onSaveSelectedImages}
-          style={[st.btn, st.flyerToolbarBtn, unsavedImageCount === 0 && st.btnDisabled]}
-          disabled={unsavedImageCount === 0 || processing}
-        >
-          <Text style={st.flyerToolbarBtnText}>Save Selected Images</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
           onPress={onClear}
           style={[st.btn, st.flyerToolbarBtn]}
           disabled={processing}
@@ -128,17 +106,22 @@ export default function AdminFlyerPanel({
         </Pressable>
       </div>
 
+      <Text style={st.dataMuted}>
+        Select multiple images or PDFs. Files are processed in order and added to the current rows. Text-only extraction. Categories are English; Korean names are optional and copied only when printed. Product export uses the Product template. Review flagged rows, then correct or deselect them.
+        {" "}A blank branch applies the price to all active stores of that retailer. Confirm this scope before export.
+        {" "}Retailer, branch and sale dates may be blank for export; complete the required sale details before importing prices. Memo and offer conditions are kept in Export CSV only.
+      </Text>
+      {processing && <Text accessibilityLiveRegion="polite" style={st.dataMuted}>{progress || "Processing files..."}</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator>
         <View style={st.flyerTable}>
           <View style={[st.flyerTableRow, st.flyerTableHeader]}>
             <Text style={[st.flyerHeaderCell, st.flyerCellSelect]}>Use</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellImage]}>Image</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellMart]}>Retailer</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellBranch]}>Branch / Store Name</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale Start</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellDate]}>Sale End</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellName]}>English Name</Text>
-            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Korean Name</Text>
+            <Text style={[st.flyerHeaderCell, st.flyerCellName]}>Korean Name (optional)</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellCategory]}>Category</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellPrice]}>Price</Text>
             <Text style={[st.flyerHeaderCell, st.flyerCellUnit]}>Unit</Text>
@@ -167,43 +150,6 @@ export default function AdminFlyerPanel({
                     {row.selected ? "Yes" : "No"}
                   </Text>
                 </Pressable>
-                <View style={[st.flyerImageCell, row.selected && st.flyerInputCellSelected]}>
-                  {row.imagePreviewUrl || row.thumbnailUrl ? (
-                    <Image
-                      source={{ uri: row.imagePreviewUrl || row.thumbnailUrl }}
-                      style={st.flyerPreviewImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={st.flyerPreviewEmpty}>
-                      <Text style={st.flyerImageStatusText}>No crop</Text>
-                    </View>
-                  )}
-                  <View style={st.flyerImageMeta}>
-                    <Text style={st.flyerImageStatusText} numberOfLines={1}>
-                      {IMAGE_STATUS_LABELS[row.imageStatus] ?? "No image"}
-                    </Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => onUpdateRow(row.id, "imageSelected", !row.imageSelected)}
-                      style={[
-                        st.flyerImageToggle,
-                        row.imageSelected && st.flyerImageToggleActive,
-                        !row.imagePreviewUrl && !row.thumbnailUrl && st.btnDisabled,
-                      ]}
-                      disabled={!row.imagePreviewUrl && !row.thumbnailUrl}
-                    >
-                      <Text
-                        style={[
-                          st.flyerImageToggleText,
-                          row.imageSelected && st.flyerImageToggleTextActive,
-                        ]}
-                      >
-                        {row.imageSelected ? "Use image" : "Skip"}
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
                 <TextInput
                   value={row.martName}
                   onChangeText={(value) => onUpdateRow(row.id, "martName", value)}
@@ -275,7 +221,7 @@ export default function AdminFlyerPanel({
                   ]}
                 />
                 <TextInput
-                  value={row.mainCategory}
+                  value={row.mainCategory || flyerCategory("", row.englishName)}
                   onChangeText={(value) => onUpdateRow(row.id, "mainCategory", value)}
                   placeholder="Category"
                   placeholderTextColor={C.textMuted}
@@ -308,17 +254,21 @@ export default function AdminFlyerPanel({
                     row.selected && st.flyerInputCellSelected,
                   ]}
                 />
-                <TextInput
-                  value={row.memo}
-                  onChangeText={(value) => onUpdateRow(row.id, "memo", value)}
-                  placeholder="Memo"
-                  placeholderTextColor={C.textMuted}
-                  style={[
-                    st.flyerInputCell,
-                    st.flyerCellMemo,
-                    row.selected && st.flyerInputCellSelected,
-                  ]}
-                />
+                <View style={st.flyerCellMemo}>
+                  <TextInput
+                    value={row.memo}
+                    onChangeText={(value) => onUpdateRow(row.id, "memo", value)}
+                    placeholder="Source notes / offer conditions"
+                    placeholderTextColor={C.textMuted}
+                    multiline
+                    style={[st.flyerInputCell, row.selected && st.flyerInputCellSelected]}
+                  />
+                  {flyerProductIssues(row).length > 0 && (
+                    <Text style={[st.dataMuted, { padding: 8 }]}>
+                      Review: {flyerProductIssues(row).join(" · ")}
+                    </Text>
+                  )}
+                </View>
               </View>
             ))
           )}

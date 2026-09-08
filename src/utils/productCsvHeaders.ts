@@ -1,3 +1,8 @@
+export const PRODUCT_TEMPLATE_COLUMNS = [
+  "product_id", "english_name", "korean_name", "category", "unit", "thumbnail_url",
+  "store_brand", "store_name", "store_id", "price", "sale_start_date", "sale_end_date",
+] as const;
+
 export const PRODUCT_IMPORT_HEADERS = {
   productId: ["product_id", "productid", "product id", "id", "상품id", "상품_id"],
   koreanName: ["korean_name", "koreanname", "korean name", "name", "product_name", "product", "이름", "상품명", "제품명"],

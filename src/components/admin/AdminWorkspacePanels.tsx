@@ -35,7 +35,7 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           onManageProducts={() => adminUi.setActiveMenu("products")}
           onResolveReview={(id) => void actions.handleResolveIdentityReview(id)}
           onAssignReview={(review, target) =>
-            void actions.handleAssignIdentityReview(review, target)
+            actions.handleAssignIdentityReview(review, target)
           }
         />
       ) : null}
@@ -129,7 +129,6 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           onRemoveSelected={actions.flyerActions.handleRemoveSelectedFlyerRows}
           onExportCsv={actions.flyerActions.handleExportFlyerCsv}
           onExportProductCsv={actions.flyerActions.handleExportFlyerProductCsv}
-          onSaveSelectedImages={actions.flyerActions.handleSaveSelectedFlyerImages}
           onClear={actions.flyerActions.handleClearFlyerImport}
           onUpdateRow={adminUi.updateFlyerRow}
         />

@@ -1,3 +1,4 @@
+import { PRODUCT_TEMPLATE_COLUMNS } from "./productCsvHeaders";
 import { Platform } from "react-native";
 import type { AdminProduct, AdminStore } from "../services/adminBackoffice";
 import type { ProductPriceStats } from "./adminScreenHelpers";
@@ -27,10 +28,7 @@ export function downloadCsvFile(prefix: string, csv: string): string | null {
 }
 
 export function productImportTemplateCsv(): string {
-  const header = [
-    "product_id", "english_name", "korean_name", "category", "unit", "thumbnail_url",
-    "store_brand", "store_name", "store_id", "price", "sale_start_date", "sale_end_date",
-  ];
+  const header = PRODUCT_TEMPLATE_COLUMNS;
   const rows = [
     ["", "Organic Eggs", "유기농 달걀", "Dairy", "12 ct", "", "Safeway", "", "", "6.99", "2026-06-28", "2026-07-04"],
     ["", "Bananas", "바나나", "Produce", "1 lb", "", "", "", "", "", "", ""],

@@ -10,8 +10,14 @@ const valueArg = (name, fallback = "") => {
 };
 const flyerPath = valueArg("--flyer");
 const matchesPath = valueArg("--matches");
-const outputPath = valueArg("--output", "/tmp/pocketcart-hmart-image-matches.json");
-const previewPath = valueArg("--preview", "/tmp/pocketcart-hmart-image-preview.jpg");
+const outputPath = valueArg(
+  "--output",
+  "/tmp/pocketcart-hmart-image-matches.json",
+);
+const previewPath = valueArg(
+  "--preview",
+  "/tmp/pocketcart-hmart-image-preview.jpg",
+);
 const minConfidence = Number(valueArg("--min-confidence", "0.92"));
 const apply = args.includes("--apply");
 const includeIds = new Set(
@@ -30,20 +36,32 @@ const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim();
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 const openAiKey = process.env.OPENAI_API_KEY?.trim();
-const bucket = (process.env.EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET ?? "product-images").trim();
-if (!supabaseUrl || !anonKey) throw new Error("Supabase public environment variables are required.");
-if (!matchesPath && !openAiKey) throw new Error("OPENAI_API_KEY is required to detect flyer crops.");
-if (apply && !serviceRoleKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required with --apply.");
+const bucket = (
+  process.env.EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET ?? "product-images"
+).trim();
+if (!supabaseUrl || !anonKey)
+  throw new Error("Supabase public environment variables are required.");
+if (!matchesPath && !openAiKey)
+  throw new Error("OPENAI_API_KEY is required to detect flyer crops.");
+if (apply && !serviceRoleKey)
+  throw new Error("SUPABASE_SERVICE_ROLE_KEY is required with --apply.");
 
-const readClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false } });
+const readClient = createClient(supabaseUrl, anonKey, {
+  auth: { persistSession: false },
+});
 const writeClient = apply
-  ? createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
+  ? createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    })
   : null;
 
 async function collectPaged(table, select) {
   const rows = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await readClient.from(table).select(select).range(from, from + 999);
+    const { data, error } = await readClient
+      .from(table)
+      .select(select)
+      .range(from, from + 999);
     if (error) throw error;
     rows.push(...data);
     if (data.length < 1000) return rows;
@@ -52,29 +70,54 @@ async function collectPaged(table, select) {
 
 async function listProducts() {
   try {
-    return await collectPaged("products", "id,korean_name,english_name,unit,thumbnail_url");
+    return await collectPaged(
+      "products",
+      "id,korean_name,english_name,unit,thumbnail_url",
+    );
   } catch (error) {
-    if (!String(error?.message ?? error).toLowerCase().includes("korean_name")) throw error;
+    if (
+      !String(error?.message ?? error)
+        .toLowerCase()
+        .includes("korean_name")
+    )
+      throw error;
     return collectPaged("products", "id,name,english_name,unit,thumbnail_url");
   }
 }
 
 function isActive(price, now) {
-  const start = price.valid_from ? Date.parse(price.valid_from) : Number.NEGATIVE_INFINITY;
-  const end = price.valid_to ? Date.parse(price.valid_to) : Number.POSITIVE_INFINITY;
+  const start = price.valid_from
+    ? Date.parse(price.valid_from)
+    : Number.NEGATIVE_INFINITY;
+  const end = price.valid_to
+    ? Date.parse(price.valid_to)
+    : Number.POSITIVE_INFINITY;
   return start <= now && end >= now;
 }
 
 const [products, stores, prices] = await Promise.all([
   listProducts(),
   collectPaged("stores", "id,brand,name"),
-  collectPaged("product_prices", "product_id,store_id,price,valid_from,valid_to"),
+  collectPaged(
+    "product_prices",
+    "product_id,store_id,price,valid_from,valid_to",
+  ),
 ]);
-const storeIds = new Set(stores.filter((store) => store.brand === "H-Mart").map((store) => store.id));
-const currentPrices = prices.filter((price) => storeIds.has(price.store_id) && isActive(price, Date.now()));
-const priceByProduct = new Map(currentPrices.map((price) => [price.product_id, price.price]));
+const storeIds = new Set(
+  stores.filter((store) => store.brand === "H-Mart").map((store) => store.id),
+);
+const currentPrices = prices.filter(
+  (price) => storeIds.has(price.store_id) && isActive(price, Date.now()),
+);
+const priceByProduct = new Map(
+  currentPrices.map((price) => [price.product_id, price.price]),
+);
 const activeProducts = products
-  .filter((product) => priceByProduct.has(product.id) && !String(product.thumbnail_url ?? "").trim())
+  .filter(
+    (product) =>
+      priceByProduct.has(product.id) &&
+      !String(product.thumbnail_url ?? "").trim(),
+  )
   .map((product) => ({
     id: product.id,
     englishName: product.english_name ?? "",
@@ -112,7 +155,15 @@ async function detectMatches(imageBuffer, tileLabel) {
             width: { type: "number" },
             height: { type: "number" },
           },
-          required: ["productId", "matchedText", "confidence", "x", "y", "width", "height"],
+          required: [
+            "productId",
+            "matchedText",
+            "confidence",
+            "x",
+            "y",
+            "width",
+            "height",
+          ],
         },
       },
     },
@@ -129,28 +180,56 @@ async function detectMatches(imageBuffer, tileLabel) {
   ].join("\n");
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
-    headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${openAiKey}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini",
-      input: [{ role: "user", content: [
-        { type: "input_text", text: prompt },
-        { type: "input_image", image_url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}` },
-      ] }],
+      model: process.env.OPENAI_MODEL?.trim() || "gpt-5-mini",
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: prompt },
+            {
+              type: "input_image",
+              image_url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`,
+            },
+          ],
+        },
+      ],
       max_output_tokens: 24000,
-      text: { format: { type: "json_schema", name: "hmart_flyer_matches", schema, strict: true } },
+      text: {
+        format: {
+          type: "json_schema",
+          name: "hmart_flyer_matches",
+          schema,
+          strict: true,
+        },
+      },
     }),
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error?.message || `OpenAI request failed with ${response.status}.`);
+  if (!response.ok)
+    throw new Error(
+      payload.error?.message ||
+        `OpenAI request failed with ${response.status}.`,
+    );
   const text = outputText(payload);
   if (!text) throw new Error("OpenAI returned no flyer matches.");
   return JSON.parse(text).rows;
 }
 
 function validBox(row) {
-  return [row.x, row.y, row.width, row.height].every(Number.isFinite) &&
-    row.x >= 0 && row.y >= 0 && row.width > 0 && row.height > 0 &&
-    row.x + row.width <= 1.001 && row.y + row.height <= 1.001;
+  return (
+    [row.x, row.y, row.width, row.height].every(Number.isFinite) &&
+    row.x >= 0 &&
+    row.y >= 0 &&
+    row.width > 0 &&
+    row.height > 0 &&
+    row.x + row.width <= 1.001 &&
+    row.y + row.height <= 1.001
+  );
 }
 
 const imageBuffer = await readFile(flyerPath);
@@ -172,17 +251,19 @@ async function detectTiledMatches() {
       const sourceWidth = Math.round(source.width * (right - left));
       const sourceHeight = Math.round(source.height * (bottom - top));
       const tile = createCanvas(sourceWidth, sourceHeight);
-      tile.getContext("2d").drawImage(
-        source,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        0,
-        0,
-        sourceWidth,
-        sourceHeight,
-      );
+      tile
+        .getContext("2d")
+        .drawImage(
+          source,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          0,
+          0,
+          sourceWidth,
+          sourceHeight,
+        );
       const matches = await detectMatches(
         await tile.encode("jpeg", 88),
         `tile ${row + 1},${column + 1}`,
@@ -201,7 +282,8 @@ async function detectTiledMatches() {
   const bestByProduct = new Map();
   for (const match of found) {
     const current = bestByProduct.get(match.productId);
-    if (!current || match.confidence > current.confidence) bestByProduct.set(match.productId, match);
+    if (!current || match.confidence > current.confidence)
+      bestByProduct.set(match.productId, match);
   }
   return [...bestByProduct.values()];
 }
@@ -209,9 +291,12 @@ async function detectTiledMatches() {
 const rawMatches = matchesPath
   ? JSON.parse(await readFile(matchesPath, "utf8")).rows
   : await detectTiledMatches();
-if (!matchesPath) await writeFile(outputPath, JSON.stringify({ rows: rawMatches }, null, 2));
+if (!matchesPath)
+  await writeFile(outputPath, JSON.stringify({ rows: rawMatches }, null, 2));
 
-const productById = new Map(activeProducts.map((product) => [product.id, product]));
+const productById = new Map(
+  activeProducts.map((product) => [product.id, product]),
+);
 const seen = new Set();
 const accepted = rawMatches.filter((row) => {
   if (includeIds.size > 0 && !includeIds.has(row.productId)) return false;
@@ -232,7 +317,10 @@ function cropRect(row) {
 const columns = 5;
 const tileWidth = 220;
 const tileHeight = 190;
-const preview = createCanvas(columns * tileWidth, Math.max(1, Math.ceil(accepted.length / columns)) * tileHeight);
+const preview = createCanvas(
+  columns * tileWidth,
+  Math.max(1, Math.ceil(accepted.length / columns)) * tileHeight,
+);
 const previewContext = preview.getContext("2d");
 previewContext.fillStyle = "white";
 previewContext.fillRect(0, 0, preview.width, preview.height);
@@ -245,10 +333,29 @@ for (const [index, row] of accepted.entries()) {
   const scale = Math.min(200 / crop.width, 145 / crop.height);
   const width = crop.width * scale;
   const height = crop.height * scale;
-  previewContext.drawImage(source, crop.x, crop.y, crop.width, crop.height, left + (tileWidth - width) / 2, top, width, height);
+  previewContext.drawImage(
+    source,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
+    left + (tileWidth - width) / 2,
+    top,
+    width,
+    height,
+  );
   const label = productById.get(row.productId)?.englishName || row.matchedText;
-  previewContext.fillText(label.slice(0, 30), left + 8, top + 164, tileWidth - 16);
-  previewContext.fillText(`${Math.round(row.confidence * 100)}%`, left + 8, top + 181);
+  previewContext.fillText(
+    label.slice(0, 30),
+    left + 8,
+    top + 164,
+    tileWidth - 16,
+  );
+  previewContext.fillText(
+    `${Math.round(row.confidence * 100)}%`,
+    left + 8,
+    top + 181,
+  );
 }
 await writeFile(previewPath, await preview.encode("jpeg", 85));
 
@@ -263,29 +370,53 @@ if (writeClient) {
     const scale = Math.min(472 / crop.width, 472 / crop.height);
     const width = crop.width * scale;
     const height = crop.height * scale;
-    context.drawImage(source, crop.x, crop.y, crop.width, crop.height, (512 - width) / 2, (512 - height) / 2, width, height);
+    context.drawImage(
+      source,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      (512 - width) / 2,
+      (512 - height) / 2,
+      width,
+      height,
+    );
     const objectPath = `hmart-flyer/${row.productId}.webp`;
     const bytes = await canvas.encode("webp", 86);
-    const upload = await writeClient.storage.from(bucket).upload(objectPath, bytes, {
-      contentType: "image/webp",
-      upsert: true,
-    });
+    const upload = await writeClient.storage
+      .from(bucket)
+      .upload(objectPath, bytes, {
+        contentType: "image/webp",
+        upsert: true,
+      });
     if (upload.error) throw upload.error;
-    const publicUrl = writeClient.storage.from(bucket).getPublicUrl(objectPath).data.publicUrl;
-    const update = await writeClient.from("products").update({ thumbnail_url: publicUrl })
-      .eq("id", row.productId).is("thumbnail_url", null).select("id").maybeSingle();
+    const publicUrl = writeClient.storage.from(bucket).getPublicUrl(objectPath)
+      .data.publicUrl;
+    const update = await writeClient
+      .from("products")
+      .update({ thumbnail_url: publicUrl })
+      .eq("id", row.productId)
+      .is("thumbnail_url", null)
+      .select("id")
+      .maybeSingle();
     if (update.error) throw update.error;
     if (update.data) applied.push(row.productId);
   }
 }
 
-console.log(JSON.stringify({
-  mode: apply ? "apply" : "dry-run",
-  source: path.basename(flyerPath),
-  activeMissingProducts: activeProducts.length,
-  detectedMatches: rawMatches.length,
-  acceptedMatches: accepted.length,
-  applied: applied.length,
-  matchesPath: matchesPath || outputPath,
-  previewPath,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      mode: apply ? "apply" : "dry-run",
+      source: path.basename(flyerPath),
+      activeMissingProducts: activeProducts.length,
+      detectedMatches: rawMatches.length,
+      acceptedMatches: accepted.length,
+      applied: applied.length,
+      matchesPath: matchesPath || outputPath,
+      previewPath,
+    },
+    null,
+    2,
+  ),
+);

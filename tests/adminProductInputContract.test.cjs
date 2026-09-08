@@ -16,10 +16,12 @@ test("product import template omits GTIN and product brand columns", () => {
     source.indexOf("export function productsToCsv"),
   );
 
-  assert.doesNotMatch(templateSource, /"gtin"/);
-  assert.doesNotMatch(templateSource, /"product_brand"/);
-  assert.match(templateSource, /"english_name"/);
-  assert.match(templateSource, /"korean_name"/);
+  const { PRODUCT_TEMPLATE_COLUMNS } = require("../.tmp-tests/utils/productCsvHeaders.js");
+  assert.match(templateSource, /const header = PRODUCT_TEMPLATE_COLUMNS/);
+  assert.equal(PRODUCT_TEMPLATE_COLUMNS.includes("gtin"), false);
+  assert.equal(PRODUCT_TEMPLATE_COLUMNS.includes("product_brand"), false);
+  assert.ok(PRODUCT_TEMPLATE_COLUMNS.includes("english_name"));
+  assert.ok(PRODUCT_TEMPLATE_COLUMNS.includes("korean_name"));
 });
 
 test("product form modal does not render GTIN or product brand inputs", () => {

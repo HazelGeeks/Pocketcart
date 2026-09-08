@@ -36,6 +36,8 @@ function PreviewBody({ preview, styles: st }: { preview: ProductCsvImportPreview
         <Stat label="Review" value={summary.rowsForReview} styles={st} />
         <Stat label="Invalid" value={summary.invalidRows} styles={st} />
         <Stat label="Prices" value={summary.priceEntriesToImport} styles={st} />
+        <Stat label="Price errors" value={summary.pricesSkipped} styles={st} />
+        <Stat label="No price supplied" value={summary.pricesMissing} styles={st} />
       </View>
       {preview.rows.slice(0, 100).map((row) => (
         <View key={`product-import-${row.rowNumber}`} style={st.dataRow}>
@@ -45,6 +47,12 @@ function PreviewBody({ preview, styles: st }: { preview: ProductCsvImportPreview
             </Text>
             <Text style={st.dataMuted}>
               {[row.input.koreanName, row.input.category, row.input.unit].filter(Boolean).join(" · ")}
+            </Text>
+            <Text style={st.dataMuted}>
+              Retailer: {String(row.reviewPayload.store_brand ?? "—")} · Branch: {String(row.reviewPayload.store_name ?? "All active branches")}
+              {" · "}Price: {String(row.reviewPayload.price ?? "—")}
+              {" · "}{String(row.reviewPayload.sale_start_date ?? "—")} – {String(row.reviewPayload.sale_end_date ?? "—")}
+              {row.price.status === "ready" ? ` · ${row.price.storeIds.length} store(s) matched` : ""}
             </Text>
             {row.message || row.price.message ? (
               <Text style={st.productReviewReason}>{row.message ?? row.price.message}</Text>

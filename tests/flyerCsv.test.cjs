@@ -33,11 +33,11 @@ test("flyerRowsToProductCsv exports current product import columns", () => {
   const [header, row] = csv.trim().replace(/^\uFEFF/, "").split(/\r?\n/);
   assert.equal(
     header,
-    "store_brand,store_name,sale_start_date,sale_end_date,english_name,korean_name,category,thumbnail_url,source_price,unit,memo",
+    "product_id,english_name,korean_name,category,unit,thumbnail_url,store_brand,store_name,store_id,price,sale_start_date,sale_end_date",
   );
   assert.equal(
     row,
-    "Safeway,Robson,2026-06-28,2026-07-04,Snack Mix,스낵믹스,Snacks,https://example.com/product-images/snack-mix.webp,7.98,BOX,member price",
+    ",Snack Mix,스낵믹스,Snacks,BOX,,Safeway,Robson,,7.98,2026-06-28,2026-07-04",
   );
 });
 
