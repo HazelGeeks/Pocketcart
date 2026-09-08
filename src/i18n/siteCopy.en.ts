@@ -108,23 +108,15 @@ export const enSiteCopy: SiteCopy = {
       items: [
         {
           q: "Do I need an account before I can compare prices?",
-          a:
-            "No. You can search and compare immediately. Sign in is " +
-            "optional and only needed for syncing your watchlist and " +
-            "budget across devices.",
+          a: "No. Browse prices in the app without an account. Sign in to save a watchlist and sync your shopping list.",
         },
         {
           q: "How often are prices refreshed?",
-          a:
-            "Popular items refresh frequently during peak hours, and " +
-            "all tracked items are checked on a recurring schedule for " +
-            "reliable alerts.",
+          a: "Prices follow the sale periods we collect from supported stores. Coverage varies, and updates are not real-time. Check the sale dates before you shop.",
         },
         {
           q: "Can I use PocketCart on both mobile and web?",
-          a:
-            "Yes. Your data stays in sync across iOS, Android, and web " +
-            "when you use the same account.",
+          a: "The shopping experience is built for iOS and Android. This website introduces the app and provides support; web price comparison is not currently available.",
         },
       ],
     },

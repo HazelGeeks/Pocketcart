@@ -137,8 +137,8 @@ export const sectionStyles = {
   /* ── FAQ ── */
   faqWrap: {
     backgroundColor: P.white,
-    paddingTop: 112,
-    paddingBottom: 120,
+    paddingTop: 64,
+    paddingBottom: 64,
     overflow: "hidden",
   },
   faqInner: { width: "100%", maxWidth: 1280, alignSelf: "center", gap: 64 },

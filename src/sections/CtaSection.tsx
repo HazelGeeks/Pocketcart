@@ -1,91 +1,35 @@
-import { Text, View } from "react-native";
-import { motion } from "framer-motion";
-import { isWeb, fadeUp } from "../constants/variants";
-import useLayout from "../hooks/useLayout";
-import { BadgeRow } from "../components/StoreBadge";
-import s from "../styles";
+import { GroceryPhoto } from "../components/marketing/ProductPreview";
+import { marketingCopy } from "../components/marketing/marketingCopy";
 import { useSiteI18n } from "../i18n/siteI18n";
 
 export default function CtaSection() {
-  const { isLg, pad } = useLayout();
-  const { copy } = useSiteI18n();
-
+  const { locale } = useSiteI18n();
+  const c = marketingCopy[locale];
   return (
-    <View
-      role="region"
-      aria-label="Download"
-      style={[s.ctaWrap, { paddingHorizontal: pad }]}
-    >
-      <View
-        style={[
-          s.ctaInner,
-          { maxWidth: 720, alignSelf: "center", width: "100%" },
-        ]}
-      >
-        {isWeb ? (
-          <>
-            <motion.div
-              variants={fadeUp}
-              custom={0}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-            >
-              <Text style={s.ctaEyebrow}>{copy.cta.eyebrow}</Text>
-            </motion.div>
-            <motion.div
-              variants={fadeUp}
-              custom={1}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-            >
-              <Text
-                accessibilityRole="header"
-                aria-level={2}
-                style={[s.ctaTitle, isLg && { fontSize: 48, lineHeight: 56 }]}
-              >
-                {copy.cta.titleLine1}
-                {"\n"}
-                {copy.cta.titleLine2}
-              </Text>
-            </motion.div>
-            <motion.div
-              variants={fadeUp}
-              custom={2}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-            >
-              <Text style={[s.ctaSub, { maxWidth: 480 }]}>{copy.cta.sub}</Text>
-            </motion.div>
-            <motion.div
-              variants={fadeUp}
-              custom={3}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.4 }}
-            >
-              <BadgeRow center />
-            </motion.div>
-          </>
-        ) : (
-          <>
-            <Text style={s.ctaEyebrow}>{copy.cta.eyebrow}</Text>
-            <Text
-              accessibilityRole="header"
-              aria-level={2}
-              style={[s.ctaTitle, isLg && { fontSize: 48, lineHeight: 56 }]}
-            >
-              {copy.cta.titleLine1}
-              {"\n"}
-              {copy.cta.titleLine2}
-            </Text>
-            <Text style={[s.ctaSub, { maxWidth: 480 }]}>{copy.cta.sub}</Text>
-            <BadgeRow center />
-          </>
-        )}
-      </View>
-    </View>
+    <section id="download" className="pc-marketing pc-download" aria-labelledby="pc-download-title">
+      <div className="pc-container pc-download-grid">
+        <div>
+          <p className="pc-eyebrow">{c.ctaEyebrow}</p>
+          <h2 id="pc-download-title">{c.ctaTitle}</h2>
+          <p className="pc-download-description">{c.ctaBody}</p>
+          <div className="pc-platforms">
+            <span>
+              {c.ios}
+              <small>{c.available}</small>
+            </span>
+            <span>
+              {c.android}
+              <small>{c.available}</small>
+            </span>
+          </div>
+        </div>
+        <div className="pc-download-photo">
+          <GroceryPhoto />
+          <span>
+            PocketCart<span aria-hidden="true">↗</span>
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }

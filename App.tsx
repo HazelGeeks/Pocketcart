@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -43,6 +43,7 @@ const queryClient = new QueryClient({
 });
 
 function AppShell() {
+  const homeScrollRef = useRef<ScrollView>(null);
   const { locale, copy } = useSiteI18n();
   const [pendingSection, setPendingSection] = useState<SectionId | null>(null);
   const [routeState, setRouteState] = useState<RouteState>(() =>
@@ -78,6 +79,7 @@ function AppShell() {
         window.history.pushState({}, "", path);
       }
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      homeScrollRef.current?.scrollTo({ y: 0, animated: false });
     }
   }, []);
 
@@ -85,7 +87,10 @@ function AppShell() {
     if (!isWeb) return;
     const section = document.getElementById(id);
     if (!section) return;
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    section.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "start",
+    });
   }, []);
 
   const navigateSection = useCallback(
@@ -204,6 +209,7 @@ function AppShell() {
         <View style={s.root}>
           <StatusBar barStyle="dark-content" />
           <ScrollView
+            ref={homeScrollRef}
             role="main"
             style={s.scroll}
             contentContainerStyle={s.scrollContent}

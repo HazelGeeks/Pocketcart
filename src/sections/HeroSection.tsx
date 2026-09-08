@@ -1,149 +1,57 @@
-import { Text, View } from "react-native";
-import { motion } from "framer-motion";
-import { isWeb, fadeUp, fadeIn, scaleIn, slideLeft } from "../constants/variants";
-import useLayout from "../hooks/useLayout";
-import { BadgeRow } from "../components/StoreBadge";
-import { HeroProductPreview } from "../components/HeroProductPreview";
-import s from "../styles";
+import type { MouseEvent } from "react";
+import ProductPreview from "../components/marketing/ProductPreview";
+import { marketingCopy } from "../components/marketing/marketingCopy";
 import { useSiteI18n } from "../i18n/siteI18n";
+import "../components/marketing/marketing.css";
 
 export default function HeroSection() {
-  const { isMd, isLg, pad } = useLayout();
-  const { copy } = useSiteI18n();
-  const pills = copy.hero.pills;
-
+  const { locale } = useSiteI18n();
+  const c = marketingCopy[locale];
+  const scrollToSection = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const hash = event.currentTarget.hash;
+    const section = document.getElementById(hash.slice(1));
+    if (!section) return;
+    event.preventDefault();
+    if (window.location.hash !== hash) window.history.pushState(null, "", hash);
+    section.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "start",
+    });
+  };
   return (
-    <View role="banner" style={[s.heroWrap, { paddingHorizontal: pad }]}>
-      <View
-        style={[
-          s.heroContent,
-          { maxWidth: 1280, alignSelf: "center", width: "100%" },
-          isMd && { flexDirection: "row", alignItems: "center" },
-        ]}
-      >
-        {/* Left — copy */}
-        <View style={[s.heroCopy, isMd && { flex: 1 }]}>
-          {/* Pills */}
-          {isWeb ? (
-            <motion.div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
-              }}
-              variants={fadeIn}
-              custom={0}
-              initial="hidden"
-              animate="visible"
-            >
-              {pills.map((p, i) => (
-                <motion.div
-                  key={p}
-                  variants={scaleIn}
-                  custom={i * 0.5}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <View style={s.heroPill}>
-                    <Text style={s.heroPillText}>{p}</Text>
-                  </View>
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <View style={s.heroPillRow}>
-              {pills.map((p) => (
-                <View key={p} style={s.heroPill}>
-                  <Text style={s.heroPillText}>{p}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Title */}
-          {isWeb ? (
-            <motion.div
-              variants={fadeUp}
-              custom={1}
-              initial="hidden"
-              animate="visible"
-            >
-              <Text
-                accessibilityRole="header"
-                aria-level={1}
-                style={[s.heroTitle, isLg && { fontSize: 68, lineHeight: 72 }]}
-              >
-                {copy.hero.titleLine1}
-                {"\n"}
-                {copy.hero.titleLine2}
-              </Text>
-            </motion.div>
-          ) : (
-            <Text
-              accessibilityRole="header"
-              aria-level={1}
-              style={[s.heroTitle, isLg && { fontSize: 68, lineHeight: 72 }]}
-            >
-              {copy.hero.titleLine1}
-              {"\n"}
-              {copy.hero.titleLine2}
-            </Text>
-          )}
-
-          {/* Subtitle */}
-          {isWeb ? (
-            <motion.div
-              variants={fadeUp}
-              custom={2}
-              initial="hidden"
-              animate="visible"
-            >
-              <Text style={[s.heroSub, { maxWidth: 520 }]}>{copy.hero.sub}</Text>
-            </motion.div>
-          ) : (
-            <Text style={[s.heroSub, { maxWidth: 520 }]}>{copy.hero.sub}</Text>
-          )}
-
-          {/* Badges */}
-          {isWeb ? (
-            <motion.div
-              variants={fadeUp}
-              custom={3}
-              initial="hidden"
-              animate="visible"
-            >
-              <BadgeRow />
-            </motion.div>
-          ) : (
-            <BadgeRow />
-          )}
-        </View>
-
-        {/* Right — product experience preview */}
-        {isWeb ? (
-            <motion.div
-              variants={slideLeft}
-              initial="hidden"
-              animate={{ opacity: 1, x: 0 }}
-              transition={{
-                opacity: { duration: 0.7, ease: "easeOut" as const },
-                x: { duration: 0.7, ease: "easeOut" as const },
-              }}
-               style={{
-                 width: isLg ? 540 : isMd ? 390 : "100%",
-                 minHeight: isMd ? 520 : 460,
-                 position: "relative",
-               }}
-             >
-               <HeroProductPreview {...copy.hero.card} />
-             </motion.div>
-           ) : (
-             <View style={s.heroCardWrap}>
-               <HeroProductPreview {...copy.hero.card} />
-             </View>
-          )}
-      </View>
-    </View>
+    <section className="pc-marketing pc-hero">
+      <div className="pc-container pc-hero-grid">
+        <div className="pc-hero-copy">
+          <p className="pc-eyebrow">
+            <span className="pc-dot" />
+            {c.eyebrow}
+          </p>
+          <h1>
+            {c.title}
+            <br />
+            <span>{c.accent}</span>
+          </h1>
+          <p className="pc-lead">{c.intro}</p>
+          <div className="pc-actions">
+            {/* biome-ignore lint/a11y/useValidAnchor: this is section navigation; the handler enhances scrolling and preserves modified clicks. */}
+            <a className="pc-button" href="/#features" onClick={scrollToSection}>
+              {c.explore}
+              <span aria-hidden="true">↗</span>
+            </a>
+            {/* biome-ignore lint/a11y/useValidAnchor: this is section navigation; the href remains a working fallback. */}
+            <a className="pc-text-link" href="/#how-it-works" onClick={scrollToSection}>
+              {c.how}
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+          <div className="pc-hero-footnote">
+            <span>{c.platform}</span>
+            <span>{c.note}</span>
+          </div>
+        </div>
+        <ProductPreview />
+      </div>
+    </section>
   );
 }

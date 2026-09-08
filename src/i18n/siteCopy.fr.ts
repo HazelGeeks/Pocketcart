@@ -108,21 +108,15 @@ export const frSiteCopy: SiteCopy = {
       items: [
         {
           q: "Faut-il un compte pour comparer les prix ?",
-          a:
-            "Non. Vous pouvez comparer tout de suite. Le compte est " +
-            "utile pour synchroniser suivi et budget entre appareils.",
+          a: "Non. Consultez les prix dans l’application sans compte. Connectez-vous pour suivre vos favoris et synchroniser votre liste de courses.",
         },
         {
           q: "A quelle frequence les prix sont-ils mis a jour ?",
-          a:
-            "Les articles populaires sont rafraichis regulierement et " +
-            "les produits suivis sont verifies sur un cycle continu.",
+          a: "Les prix suivent les promotions recueillies auprès des magasins couverts. Les mises à jour ne sont pas en temps réel. Vérifiez les dates avant vos courses.",
         },
         {
           q: "Puis-je utiliser PocketCart sur mobile et web ?",
-          a:
-            "Oui. Vos donnees restent synchronisees sur iOS, Android " +
-            "et web avec le meme compte.",
+          a: "Les fonctions de courses sont conçues pour iOS et Android. Ce site présente l’application et propose de l’aide ; la comparaison de prix sur le web n’est pas disponible actuellement.",
         },
       ],
     },

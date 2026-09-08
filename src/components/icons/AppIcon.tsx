@@ -1,3 +1,5 @@
+import Search from "lucide-react-native/icons/search";
+import ChartNoAxesColumn from "lucide-react-native/icons/chart-no-axes-column";
 import Bell from "lucide-react-native/icons/bell";
 import CalendarDays from "lucide-react-native/icons/calendar-days";
 import Check from "lucide-react-native/icons/check";
@@ -20,6 +22,8 @@ import Trash2 from "lucide-react-native/icons/trash-2";
 import X from "lucide-react-native/icons/x";
 
 export type AppIconName =
+  | "search"
+  | "chart"
   | "alert"
   | "basket"
   | "bell"
@@ -42,6 +46,8 @@ export type AppIconName =
   | "sparkles";
 
 const ICONS = {
+  search: Search,
+  chart: ChartNoAxesColumn,
   alert: AlertTriangle,
   basket: ShoppingBasket,
   bell: Bell,

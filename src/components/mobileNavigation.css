@@ -1,0 +1,11 @@
+.pc-mobile-navigation { position: relative; flex-shrink: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.pc-mobile-menu-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #d7e0ce; border-radius: 10px; background: #f6f8ef; cursor: pointer; }
+.pc-mobile-menu-toggle[aria-expanded="true"] { background: #e3edcf; }
+.pc-mobile-menu-toggle:focus-visible, .pc-mobile-menu-panel a:focus-visible { outline: 2px solid #518254; outline-offset: 3px; }
+.pc-mobile-menu-panel { position: absolute; right: 0; top: calc(100% + 14px); width: min(300px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px; background: #f8f9f2; border: 1px solid #dce4d2; border-radius: 14px; box-shadow: 0 16px 36px #17332224; }
+.pc-mobile-menu-panel[hidden] { display: none; }
+.pc-mobile-menu-label { display: block; font-size: 9px; line-height: 1.5; letter-spacing: 1.5px; color: #637659; margin-bottom: 9px; }
+.pc-mobile-menu-panel a { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; min-height: 44px; box-sizing: border-box; border-bottom: 1px solid #e0e6d7; color: #214d35; text-decoration: none; font-size: 15px; }
+.pc-mobile-menu-panel a:last-child { border-bottom: 0; }
+.pc-mobile-menu-panel a:hover { color: #518254; }
+.pc-mobile-menu-panel a > span:last-child { font-size: 13px; color: #7b8c6d; }

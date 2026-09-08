@@ -1,26 +1,14 @@
-import React from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import { getBlogPost, getBlogPosts } from "../data/blogPosts";
+import { useEffect, useMemo, useRef } from "react";
+import { ScrollView, View } from "react-native";
+import { getBlogPost, getBlogPosts, type BlogPost } from "../data/blogPosts";
 import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "../components/WebLink";
 import Navbar, { type SectionId } from "../components/Navbar";
 import FooterSection from "../components/FooterSection";
-import P from "../constants/palette";
+import { GroceryPhoto } from "../components/marketing/ProductPreview";
 import type { Route } from "../constants/palette";
-
-function useLayout() {
-  const { width: w } = useWindowDimensions();
-  const isMd = w >= 768;
-  const isLg = w >= 1024;
-  return { isMd, isLg, pad: isLg ? 56 : isMd ? 36 : 20 };
-}
+import "../components/marketing/marketing.css";
+import "../components/marketing/blog.css";
 
 export default function BlogScreen({
   currentSlug,
@@ -37,393 +25,200 @@ export default function BlogScreen({
   onNavigate: (route: Route) => void;
   onNavigateSection: (section: SectionId) => void;
 }) {
-  const { isMd, isLg, pad } = useLayout();
+  const scrollRef = useRef<ScrollView>(null);
   const { locale, copy } = useSiteI18n();
   const posts = getBlogPosts(locale);
-  const selectedPost =
-    getBlogPost(locale, currentSlug) ?? getBlogPost("en", currentSlug);
+  const selectedPost = getBlogPost(locale, currentSlug) ?? getBlogPost("en", currentSlug);
   const featurePost = posts[0] ?? getBlogPosts("en")[0];
-  const latestPosts = posts.slice(1);
-  const relatedPosts = posts
-    .filter((post) => post.slug !== selectedPost?.slug)
-    .slice(0, 3);
-  const dateFormatter = React.useMemo(
+  const relatedPosts = posts.filter((post) => post.slug !== selectedPost?.slug).slice(0, 3);
+  const dateFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale === "fr" ? "fr-FR" : "en-US", {
+      new Intl.DateTimeFormat(locale === "fr" ? "fr-CA" : "en-CA", {
         month: "long",
         day: "numeric",
         year: "numeric",
+        timeZone: "UTC",
       }),
     [locale],
   );
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [currentSlug]);
 
-  const formatMeta = React.useCallback(
-    (publishedAt: string, readMinutes: number) =>
-      `${dateFormatter.format(new Date(publishedAt))} · ${readMinutes} ${copy.blog.minutesRead}`,
-    [copy.blog.minutesRead, dateFormatter],
+  const metadata = (post: BlogPost) => (
+    <div className="pc-blog-meta">
+      <time dateTime={post.publishedAt}>{dateFormatter.format(new Date(post.publishedAt))}</time>
+      <span aria-hidden="true">·</span>
+      <span>
+        {post.readMinutes} {copy.blog.minutesRead}
+      </span>
+    </div>
+  );
+  const postLink = (post: BlogPost) => (
+    <WebLink
+      href={`/blog/${post.slug}`}
+      onPress={() => onOpenPost(post.slug)}
+      accessibilityLabel={`${copy.blog.readArticle}: ${post.title}`}
+    >
+      <span className="pc-blog-read">
+        {copy.blog.readArticle}
+        <span aria-hidden="true">↗</span>
+      </span>
+    </WebLink>
+  );
+  const cards = (items: BlogPost[]) => (
+    <div className="pc-blog-grid">
+      {items.map((post, i) => (
+        <article key={post.slug} className="pc-blog-card">
+          <div className="pc-blog-card-top">
+            <span className="pc-eyebrow">POCKETCART JOURNAL</span>
+            <span className="pc-blog-index" aria-hidden="true">
+              0{i + 1}
+            </span>
+          </div>
+          {metadata(post)}
+          <h3>
+            <WebLink href={`/blog/${post.slug}`} onPress={() => onOpenPost(post.slug)}>
+              {post.title}
+            </WebLink>
+          </h3>
+          <p>{post.excerpt}</p>
+          {postLink(post)}
+        </article>
+      ))}
+    </div>
   );
 
   return (
-    <View style={st.root}>
-      <Navbar
-        onNavigate={onNavigate}
-        onNavigateSection={onNavigateSection}
-      />
+    <View style={{ flex: 1, backgroundColor: "#f5f6ef" }}>
+      <Navbar onNavigate={onNavigate} onNavigateSection={onNavigateSection} />
       <ScrollView
+        ref={scrollRef}
         role="main"
-        style={st.scroll}
-        contentContainerStyle={st.scrollContent}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[
-            st.topBar,
-            { paddingHorizontal: pad },
-            Platform.OS === "web" &&
-              ({ position: "sticky", top: 0, zIndex: 50 } as any),
-          ]}
-        >
-          <WebLink
-            href={selectedPost ? "/blog" : "/"}
-            onPress={selectedPost ? onBackToBlog : onBackHome}
-          >
-            <View style={st.backBtn}>
-              <Text style={st.backArrow}>←</Text>
-              <Text style={st.backText}>
-                {selectedPost ? copy.blog.backToBlog : copy.blog.back}
-              </Text>
-            </View>
-          </WebLink>
-        </View>
-
-        <View
-          style={[
-            st.container,
-            { paddingHorizontal: pad, maxWidth: isLg ? 1040 : 760 },
-          ]}
-        >
+        <div className="pc-marketing pc-blog">
+          <div className="pc-container pc-blog-breadcrumb">
+            <WebLink
+              href={selectedPost ? "/blog" : "/"}
+              onPress={selectedPost ? onBackToBlog : onBackHome}
+            >
+              <span aria-hidden="true">←</span>
+              <span>{selectedPost ? copy.blog.backToBlog : copy.blog.back}</span>
+            </WebLink>
+          </div>
           {selectedPost ? (
             <>
-              <View style={st.articleHeader}>
-                <Text style={st.eyebrow}>{copy.blog.eyebrow}</Text>
-                <Text style={st.articleMeta}>
-                  {formatMeta(
-                    selectedPost.publishedAt,
-                    selectedPost.readMinutes,
-                  )}
-                </Text>
-                <Text
-                  accessibilityRole="header"
-                  aria-level={1}
-                  style={[st.title, isLg && { fontSize: 50, lineHeight: 58 }]}
-                >
-                  {selectedPost.title}
-                </Text>
-                <Text style={[st.sub, { maxWidth: 720 }]}>
-                  {selectedPost.description}
-                </Text>
-              </View>
-
-              <View style={st.articleCard}>
-                {selectedPost.sections.map((section) => (
-                  <View key={section.heading} style={st.articleSection}>
-                    <Text style={st.sectionTitle}>{section.heading}</Text>
-                    {section.paragraphs.map((paragraph) => (
-                      <Text key={paragraph} style={st.articleBody}>
-                        {paragraph}
-                      </Text>
+              <header className="pc-container pc-blog-article-header">
+                <p className="pc-eyebrow">POCKETCART JOURNAL</p>
+                {metadata(selectedPost)}
+                <h1>{selectedPost.title}</h1>
+                <p className="pc-blog-intro">{selectedPost.description}</p>
+              </header>
+              <div className="pc-blog-reading">
+                <div className="pc-container pc-blog-reading-grid">
+                  <aside className="pc-blog-sidebar">
+                    <span className="pc-eyebrow">
+                      {locale === "fr" ? "DANS CET ARTICLE" : "IN THIS ARTICLE"}
+                    </span>
+                    <nav aria-label={locale === "fr" ? "Sommaire" : "Table of contents"}>
+                      {selectedPost.sections.map((section, i) => (
+                        <a key={section.heading} href={`#article-section-${i}`}>
+                          <span>0{i + 1}</span>
+                          {section.heading}
+                        </a>
+                      ))}
+                    </nav>
+                  </aside>
+                  <article className="pc-blog-prose">
+                    {selectedPost.sections.map((section, i) => (
+                      <section id={`article-section-${i}`} key={section.heading}>
+                        <h2>{section.heading}</h2>
+                        {section.paragraphs.map((paragraph) => (
+                          <p key={paragraph}>{paragraph}</p>
+                        ))}
+                      </section>
                     ))}
-                  </View>
-                ))}
-              </View>
-
-              <View style={st.relatedWrap}>
-                <Text style={st.relatedTitle}>{copy.blog.relatedPosts}</Text>
-                <View style={[st.grid, isMd && st.gridDesktop]}>
-                  {relatedPosts.map((post) => (
-                    <View
-                      key={post.slug}
-                      style={[st.card, isMd && st.cardDesktop]}
-                    >
-                      <Text style={st.cardDate}>
-                        {formatMeta(post.publishedAt, post.readMinutes)}
-                      </Text>
-                      <Text style={st.cardTitle}>{post.title}</Text>
-                      <Text style={st.cardBody}>{post.excerpt}</Text>
-                      <WebLink
-                        href={`/blog/${post.slug}`}
-                        onPress={() => onOpenPost(post.slug)}
-                      >
-                        <View style={st.readBtn}>
-                          <Text style={st.readBtnText}>
-                            {copy.blog.readArticle}
-                          </Text>
-                        </View>
+                    <div className="pc-blog-article-end">
+                      <span>PocketCart Journal</span>
+                      <WebLink href="/blog" onPress={onBackToBlog}>
+                        {copy.blog.backToBlog} <span aria-hidden="true">↗</span>
                       </WebLink>
-                    </View>
-                  ))}
-                </View>
-              </View>
+                    </div>
+                  </article>
+                </div>
+              </div>
+              <section className="pc-container pc-blog-latest" aria-labelledby="pc-blog-related">
+                <div className="pc-blog-section-heading">
+                  <h2 id="pc-blog-related">{copy.blog.relatedPosts}</h2>
+                </div>
+                {cards(relatedPosts)}
+              </section>
             </>
           ) : (
             <>
-              <View style={st.headerBlock}>
-                <Text style={st.eyebrow}>{copy.blog.eyebrow}</Text>
-                <Text
-                  accessibilityRole="header"
-                  aria-level={1}
-                  style={[st.title, isLg && { fontSize: 46, lineHeight: 54 }]}
-                >
-                  {copy.blog.title}
-                </Text>
-                <Text style={[st.sub, { maxWidth: 680 }]}>{copy.blog.sub}</Text>
-              </View>
-
-              <View style={st.featureCard}>
-                <View style={st.featureCopy}>
-                  <Text style={st.featureLabel}>{copy.blog.featuredLabel}</Text>
-                  <Text style={st.featureTitle}>{featurePost.title}</Text>
-                  <Text style={st.cardDate}>
-                    {formatMeta(
-                      featurePost.publishedAt,
-                      featurePost.readMinutes,
-                    )}
-                  </Text>
-                  <Text style={st.cardBody}>{featurePost.description}</Text>
-                  <WebLink
-                    href={`/blog/${featurePost.slug}`}
-                    onPress={() => onOpenPost(featurePost.slug)}
-                  >
-                    <View style={st.readBtn}>
-                      <Text style={st.readBtnText}>
-                        {copy.blog.readArticle}
-                      </Text>
-                    </View>
-                  </WebLink>
-                </View>
-              </View>
-
-              <View style={st.latestWrap}>
-                <Text style={st.relatedTitle}>{copy.blog.latestLabel}</Text>
-                <View style={[st.grid, isMd && st.gridDesktop]}>
-                  {latestPosts.map((post) => (
-                    <View
-                      key={post.slug}
-                      style={[st.card, isMd && st.cardDesktop]}
+              <header className="pc-container pc-blog-header">
+                <div>
+                  <p className="pc-eyebrow">POCKETCART JOURNAL</p>
+                  <h1>
+                    {locale === "fr" ? "De bonnes habitudes." : "Small habits."}
+                    <br />
+                    <span>
+                      {locale === "fr" ? "De meilleures courses." : "Better grocery runs."}
+                    </span>
+                  </h1>
+                </div>
+                <p className="pc-blog-intro">
+                  {locale === "fr"
+                    ? "Des idées pratiques pour comparer les prix, préparer vos courses et acheter avec confiance."
+                    : "Fresh perspectives on everyday shopping. Practical reads to help you compare, plan, and buy with confidence."}
+                </p>
+              </header>
+              <section
+                className="pc-container pc-blog-feature"
+                aria-labelledby="pc-blog-feature-title"
+              >
+                <div className="pc-blog-feature-photo">
+                  <GroceryPhoto />
+                  <span>
+                    {locale === "fr"
+                      ? "UN PEU DE PRÉPARATION CHANGE TOUT."
+                      : "A LITTLE PLANNING GOES A LONG WAY."}
+                  </span>
+                </div>
+                <div className="pc-blog-feature-copy">
+                  <span className="pc-eyebrow">{copy.blog.featuredLabel}</span>
+                  {metadata(featurePost)}
+                  <h2 id="pc-blog-feature-title">
+                    <WebLink
+                      href={`/blog/${featurePost.slug}`}
+                      onPress={() => onOpenPost(featurePost.slug)}
                     >
-                      <Text style={st.cardDate}>
-                        {formatMeta(post.publishedAt, post.readMinutes)}
-                      </Text>
-                      <Text style={st.cardTitle}>{post.title}</Text>
-                      <Text style={st.cardBody}>{post.excerpt}</Text>
-                      <WebLink
-                        href={`/blog/${post.slug}`}
-                        onPress={() => onOpenPost(post.slug)}
-                      >
-                        <View style={st.readBtn}>
-                          <Text style={st.readBtnText}>
-                            {copy.blog.readArticle}
-                          </Text>
-                        </View>
-                      </WebLink>
-                    </View>
-                  ))}
-                </View>
-              </View>
+                      {featurePost.title}
+                    </WebLink>
+                  </h2>
+                  <p>{featurePost.description}</p>
+                  {postLink(featurePost)}
+                </div>
+              </section>
+              <section className="pc-container pc-blog-latest" aria-labelledby="pc-blog-latest">
+                <div className="pc-blog-section-heading">
+                  <h2 id="pc-blog-latest">{copy.blog.latestLabel}</h2>
+                  <span className="pc-eyebrow">
+                    {locale === "fr"
+                      ? "À LIRE AVANT VOS PROCHAINES COURSES"
+                      : "FOR YOUR NEXT GROCERY RUN"}
+                  </span>
+                </div>
+                {cards(posts.slice(1))}
+              </section>
             </>
           )}
-        </View>
+        </div>
+        <FooterSection navigate={onNavigate} />
       </ScrollView>
-      <FooterSection navigate={onNavigate} />
     </View>
   );
 }
-
-const st = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: P.bg,
-    ...(Platform.OS === "web"
-      ? ({ minHeight: "100vh", width: "100%" } as any)
-      : {}),
-  },
-  scroll: { flex: 1 },
-  scrollContent: { flexGrow: 1, paddingBottom: 56 },
-  topBar: {
-    backgroundColor: P.glass,
-    borderBottomWidth: 1,
-    borderBottomColor: P.line,
-    paddingVertical: 12,
-    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(16px)" } as any) : {}),
-  },
-  backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    alignSelf: "flex-start",
-    maxWidth: 1200,
-    width: "100%",
-  },
-  backArrow: {
-    fontSize: 18,
-    color: P.primaryDeep,
-    fontWeight: "700",
-  },
-  backText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: P.primaryDeep,
-  },
-  container: {
-    alignSelf: "center",
-    width: "100%",
-    paddingTop: 52,
-    gap: 28,
-  },
-  headerBlock: {
-    gap: 10,
-  },
-  articleHeader: {
-    gap: 12,
-  },
-  eyebrow: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: P.primary,
-    letterSpacing: 2,
-  },
-  articleMeta: {
-    fontSize: 13,
-    color: P.textMuted,
-    fontWeight: "700",
-  },
-  title: {
-    fontSize: 38,
-    lineHeight: 46,
-    fontWeight: "800",
-    color: P.text,
-  },
-  sub: {
-    fontSize: 17,
-    lineHeight: 27,
-    color: P.textSoft,
-    marginTop: 4,
-  },
-  featureCard: {
-    borderRadius: 28,
-    padding: 28,
-    borderWidth: 1,
-    borderColor: P.line,
-    backgroundColor: "rgba(255,255,255,0.84)",
-    ...(Platform.OS === "web"
-      ? ({ boxShadow: "0 18px 44px rgba(30,46,12,0.08)" } as any)
-      : {}),
-  },
-  featureCopy: {
-    gap: 10,
-    maxWidth: 720,
-  },
-  featureLabel: {
-    alignSelf: "flex-start",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.2,
-    color: P.primaryDeep,
-    backgroundColor: "rgba(97,227,146,0.14)",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  featureTitle: {
-    fontSize: 32,
-    lineHeight: 40,
-    fontWeight: "800",
-    color: P.text,
-  },
-  latestWrap: {
-    gap: 18,
-  },
-  relatedWrap: {
-    gap: 18,
-    paddingTop: 4,
-  },
-  relatedTitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "800",
-    color: P.text,
-  },
-  grid: {
-    gap: 18,
-  },
-  gridDesktop: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  card: {
-    backgroundColor: P.white,
-    borderWidth: 1,
-    borderColor: P.line,
-    borderRadius: 20,
-    padding: 24,
-    gap: 10,
-  },
-  cardDesktop: {
-    flexBasis: 0,
-    flexGrow: 1,
-    minWidth: 280,
-  },
-  cardDate: {
-    fontSize: 13,
-    color: P.textMuted,
-    fontWeight: "600",
-  },
-  cardTitle: {
-    fontSize: 21,
-    lineHeight: 28,
-    color: P.text,
-    fontWeight: "800",
-  },
-  cardBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: P.textSoft,
-  },
-  readBtn: {
-    marginTop: 6,
-    alignSelf: "flex-start",
-    borderRadius: 999,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: "rgba(97,227,146,0.35)",
-    backgroundColor: "rgba(97,227,146,0.12)",
-  },
-  readBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: P.primaryDeep,
-  },
-  articleCard: {
-    gap: 24,
-    borderRadius: 28,
-    padding: 28,
-    backgroundColor: P.white,
-    borderWidth: 1,
-    borderColor: P.line,
-  },
-  articleSection: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: "800",
-    color: P.text,
-  },
-  articleBody: {
-    fontSize: 16,
-    lineHeight: 28,
-    color: P.textSoft,
-  },
-});

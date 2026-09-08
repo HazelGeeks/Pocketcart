@@ -1,98 +1,35 @@
-import React from "react";
-import { Text, View } from "react-native";
-import { motion } from "framer-motion";
-import { isWeb, fadeUp, scaleIn } from "../constants/variants";
-import useLayout from "../hooks/useLayout";
-import s from "../styles";
+import { AppIcon, type AppIconName } from "../components/icons/AppIcon";
+import { marketingCopy } from "../components/marketing/marketingCopy";
 import { useSiteI18n } from "../i18n/siteI18n";
 
+const icons: AppIconName[] = ["search", "chart", "list"];
 export default function HowItWorksSection() {
-  const { isMd, isLg, pad } = useLayout();
-  const { copy } = useSiteI18n();
-
+  const { locale } = useSiteI18n();
+  const c = marketingCopy[locale];
+  const examples = [c.searchExample, c.compareExample, c.listExample];
   return (
-    <View
-      nativeID="how-it-works"
-      {...(isWeb ? ({ id: "how-it-works" } as any) : {})}
-      role="region"
-      aria-label="How it works"
-      style={[
-        s.howWrap,
-        { paddingHorizontal: pad },
-        isWeb && ({ scrollMarginTop: 96 } as any),
-      ]}
-    >
-      <View style={[s.sectionInner, { maxWidth: 1280 }]}>
-        <View style={[s.howEditorial, isMd && { flexDirection: "row" }]}>
-          <View style={[s.howIntro, isMd && { flex: 0.82 }]}>
-            <Text style={s.sectionEyebrow}>{copy.how.eyebrow}</Text>
-            <Text
-              accessibilityRole="header"
-              aria-level={2}
-              style={[s.sectionTitle, isLg && { fontSize: 48, lineHeight: 54 }]}
-            >
-              {copy.how.titleLine1}{"\n"}{copy.how.titleLine2}
-            </Text>
-            <View style={s.howRule} />
-          </View>
-
-          <View style={[s.workflowList, isMd && { flex: 1.18 }]}>
-            {copy.how.steps.map((step, index) => {
-              const content = (
-                <View style={s.workflowRow}>
-                  <Text style={s.workflowNum}>{step.num}</Text>
-                  <View style={s.workflowCopy}>
-                    <Text style={s.workflowTitle}>{step.title}</Text>
-                    <Text style={s.workflowBody}>{step.body}</Text>
-                  </View>
-                </View>
-              );
-
-              if (!isWeb) return <React.Fragment key={step.num}>{content}</React.Fragment>;
-
-              return (
-                <motion.div
-                  key={step.num}
-                  variants={fadeUp}
-                  custom={index}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, amount: 0.3 }}
-                >
-                  {content}
-                </motion.div>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={[s.statRow, isMd && { flexDirection: "row" }]}>
-          {copy.how.stats.map((stat, index) => {
-            const content = (
-              <View style={[s.statCard, isMd && { flex: 1 }]}>
-                <Text style={s.statValue}>{stat.value}</Text>
-                <Text style={s.statLabel}>{stat.label}</Text>
-              </View>
-            );
-
-            if (!isWeb) return <React.Fragment key={stat.label}>{content}</React.Fragment>;
-
-            return (
-              <motion.div
-                key={stat.label}
-                variants={scaleIn}
-                custom={index}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-                style={{ flex: isMd ? 1 : undefined }}
-              >
-                {content}
-              </motion.div>
-            );
-          })}
-        </View>
-      </View>
-    </View>
+    <section id="how-it-works" className="pc-marketing pc-how" aria-labelledby="pc-how-title">
+      <div className="pc-container">
+        <p className="pc-eyebrow">{c.howEyebrow}</p>
+        <h2 id="pc-how-title">{c.howTitle}</h2>
+        <div className="pc-steps">
+          {c.steps.map((step, i) => (
+            <article key={step.title}>
+              <div className="pc-step-number">
+                <span>0{i + 1}</span>
+                <span aria-hidden="true">{i < 2 ? "→" : "✓"}</span>
+              </div>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+              <div className="pc-step-example">
+                <AppIcon name={icons[i]} size={19} color="#28533a" />
+                <span>{examples[i]}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="pc-small-note">{c.example}</p>
+      </div>
+    </section>
   );
 }
