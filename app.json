@@ -19,7 +19,7 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.pocketcart.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "entitlements": {
         "keychain-access-groups": [
           "$(AppIdentifierPrefix)$(CFBundleIdentifier)"

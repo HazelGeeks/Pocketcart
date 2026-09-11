@@ -191,25 +191,26 @@ test("shopping uses list dividers and reserves tint for the recommended plan", (
   assert.match(styles, /shoppingCompareCard:[^}]*borderBottomWidth: 1/);
 });
 
-test("settings uses open divider groups instead of bordered cards", () => {
+test("account uses a profile header and open divider menu groups", () => {
   const headerCopy = read("src/screens/nativeAppHeader.ts");
   const shell = read("src/components/nativeApp/NativeShell.tsx");
   const styles = read("src/screens/nativeAppStyles/settingsStyles.ts");
+  const overview = read("src/screens/nativeAppStyles/accountOverviewStyles.ts");
   const locationCard = read("src/components/nativeApp/SettingsLocationCard.tsx");
   const locationCopy = read("src/utils/nativeLocationSettings.ts");
 
   assert.match(headerCopy, /title: "Settings"/);
   assert.doesNotMatch(headerCopy, /status:/);
   assert.doesNotMatch(shell, /contextStatusPill/);
-  assert.match(styles, /settingsPage:[^}]*gap: 24/);
-  assert.match(styles, /settingsProfileCard:[^}]*borderBottomWidth: 1/);
-  assert.doesNotMatch(styles, /settingsProfileCard:[^}]*borderRadius/);
+  assert.match(overview, /settingsPage:[^}]*gap: 28/);
+  assert.match(overview, /settingsProfileCard:[^}]*backgroundColor: C.primaryPale/);
+  assert.match(overview, /settingsAccountTitle:/);
   assert.match(styles, /settingsGroup:[^}]*borderTopWidth: 1/);
   assert.match(styles, /settingsGroup:[^}]*borderBottomWidth: 1/);
   assert.doesNotMatch(styles, /settingsGroup:[^}]*borderRadius/);
   assert.match(styles, /settingsLocationBlock:[^}]*paddingVertical: 10/);
   assert.match(styles, /settingsInput:[\s\S]*minHeight: 44/);
-  assert.match(styles, /settingsLinkRow:[\s\S]*minHeight: 46/);
+  assert.match(overview, /settingsLinkRow:[\s\S]*minHeight: 68/);
   assert.match(styles, /settingsSummaryRow:[^}]*borderBottomWidth/);
   assert.match(locationCard, />Shopping area</);
   assert.match(locationCard, /editing \? \(/);

@@ -3,53 +3,15 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const settingsStyles = StyleSheet.create({
-  settingsPage: {
-    gap: 24,
-  },
-  settingsProfileCard: {
-    gap: 14,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line,
-  },
   settingsProfileIdentity: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
-  settingsAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.primaryGhost,
-  },
   settingsProfileCopy: {
     minWidth: 0,
     flex: 1,
     gap: 2,
-  },
-  settingsProfileTitle: {
-    color: C.text,
-    fontSize: 15,
-    fontFamily: F.extraBold,
-  },
-  settingsProfileSubtitle: {
-    color: C.textSoft,
-    fontSize: 12,
-    lineHeight: 16,
-    fontFamily: F.regular,
-  },
-  settingsSection: {
-    gap: 8,
-  },
-  settingsSectionLabel: {
-    color: C.textMuted,
-    fontSize: 10,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    fontFamily: F.bold,
   },
   settingsGroup: {
     borderTopWidth: 1,
@@ -143,11 +105,6 @@ export const settingsStyles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  settingsRowTitle: {
-    color: C.text,
-    fontSize: 14,
-    fontFamily: F.bold,
-  },
   settingsRowValue: {
     maxWidth: "48%",
     color: C.textMuted,
@@ -215,14 +172,6 @@ export const settingsStyles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 0,
     paddingVertical: 8,
-  },
-  settingsLinkRow: {
-    minHeight: 46,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    paddingHorizontal: 0,
   },
   settingsRowPressed: {
     backgroundColor: C.primaryGhost,

@@ -271,8 +271,8 @@ if (app.ios?.bundleIdentifier === "com.pocketcart.app") {
   fail(`Unexpected iOS bundle identifier: ${app.ios?.bundleIdentifier}`);
 }
 
-if (app.ios?.buildNumber === "1") {
-  pass("iOS build number is 1");
+if (/^[1-9]\d*$/.test(app.ios?.buildNumber ?? "")) {
+  pass(`iOS build number is a positive integer: ${app.ios.buildNumber}`);
 } else {
   fail(`Unexpected iOS build number: ${app.ios?.buildNumber}`);
 }
@@ -422,11 +422,20 @@ includes(
   "<key>aps-environment</key>",
   "iOS Debug entitlements declare APNs access",
 );
-includes(
-  "ios/PocketCart/PocketCartDebug.entitlements",
-  "$(APS_ENVIRONMENT)",
-  "iOS Debug APNs entitlement follows its build configuration",
-);
+// EAS reads entitlements before Xcode expands build settings. APNs must be literal.
+for (const [file, environment] of [
+  ["ios/PocketCart/PocketCartDebug.entitlements", "development"],
+  ["ios/PocketCart/PocketCart.entitlements", "production"],
+]) {
+  const apnsValue = read(file).match(
+    /<key>aps-environment<\/key>\s*<string>([^<]+)<\/string>/,
+  )?.[1];
+  if (apnsValue === environment) {
+    pass(`${file} uses the literal APNs ${environment} environment for EAS`);
+  } else {
+    fail(`${file} must set aps-environment to literal ${environment}, found ${apnsValue}`);
+  }
+}
 includes(
   "ios/PocketCart/PocketCartDebug.entitlements",
   "<key>keychain-access-groups</key>",
@@ -448,11 +457,6 @@ includes(
   "ios/PocketCart/PocketCart.entitlements",
   "<key>aps-environment</key>",
   "iOS Release entitlements declare APNs access",
-);
-includes(
-  "ios/PocketCart/PocketCart.entitlements",
-  "$(APS_ENVIRONMENT)",
-  "iOS Release APNs entitlement follows its build configuration",
 );
 includes(
   "ios/PocketCart/PocketCart.entitlements",
@@ -487,11 +491,6 @@ if (
 } else {
   fail("iOS Debug builds must use PocketCartDebug.entitlements");
 }
-if (targetDebugConfiguration.includes("APS_ENVIRONMENT = development;")) {
-  pass("iOS Debug builds request the APNs development environment");
-} else {
-  fail("iOS Debug builds must set APS_ENVIRONMENT to development");
-}
 if (
   targetReleaseConfiguration.includes(
     "CODE_SIGN_ENTITLEMENTS = PocketCart/PocketCart.entitlements;",
@@ -500,11 +499,6 @@ if (
   pass("iOS Release builds use the store entitlement set");
 } else {
   fail("iOS Release builds must use PocketCart.entitlements");
-}
-if (targetReleaseConfiguration.includes("APS_ENVIRONMENT = production;")) {
-  pass("iOS Release builds request the APNs production environment");
-} else {
-  fail("iOS Release builds must set APS_ENVIRONMENT to production");
 }
 const targetBuildConfigurationList =
   xcodeProject.match(

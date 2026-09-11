@@ -1,13 +1,9 @@
-import type React from "react";
 import { Linking, Pressable, Switch, Text, View } from "react-native";
 import type { UserProfile } from "../../services/userProfile";
-import {
-  SHOPPING_FREQUENCY_LABELS,
-  type ProfilePreferences,
-} from "../../services/profilePreferences";
+import type { ProfilePreferences } from "../../services/profilePreferences";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
-import { AppIcon } from "../icons/AppIcon";
+import { SettingsLinkRow, SettingsSection } from "./SettingsMenu";
 import { SettingsLocationCard } from "./SettingsLocationCard";
 import { SettingsProfileCard } from "./SettingsProfileCard";
 
@@ -54,33 +50,38 @@ export function MorePanel(props: MorePanelProps) {
         </View>
       ) : null}
 
-      <ShoppingProfileSection {...props} />
-      <MyKitchenSection {...props} />
+      <MyAccountSection {...props} />
       <PreferencesSection {...props} />
       <SupportSection />
       <AccountSection {...props} />
+      {props.profile ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: props.loading || props.deletingAccount }}
+          disabled={props.loading || props.deletingAccount}
+          onPress={props.onSignOut}
+          style={({ pressed }) => [st.settingsLogout, pressed && st.settingsRowPressed]}
+        >
+          <Text style={st.settingsLogoutText}>{props.loading ? "Please wait…" : "Log Out"}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
-function MyKitchenSection({ profile, onOpenMyFreezer, onOpenSignIn }: MorePanelProps) {
+function MyAccountSection(props: MorePanelProps) {
   return (
-    <SettingsSection label="My Kitchen">
-      <SettingsLinkRow
-        label="My Freezer"
-        value={profile ? "Open" : "Sign in required"}
-        onPress={profile ? onOpenMyFreezer : onOpenSignIn}
-      />
+    <SettingsSection label="My account">
+      {props.profile ? (
+        <>
+          <SettingsLinkRow label="Personal information" value={props.profile.email || "Edit your profile"} icon="edit" onPress={props.onEditProfile} disabled={props.loading} />
+          <View style={st.settingsDivider} />
+        </>
+      ) : null}
+      <SettingsLinkRow label="Shopping profile" value={props.preferences.completed ? "Your interests and favorite stores" : "Personalize your deals"} icon="filter" onPress={props.onEditPreferences} />
+      <View style={st.settingsDivider} />
+      <SettingsLinkRow label="My Freezer" value={props.profile ? "Manage your saved food" : "Sign in to save your food"} icon="freezer" onPress={props.profile ? props.onOpenMyFreezer : props.onOpenSignIn} />
     </SettingsSection>
-  );
-}
-
-function SettingsSection({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={st.settingsSection}>
-      <Text style={st.settingsSectionLabel}>{label}</Text>
-      <View style={st.settingsGroup}>{children}</View>
-    </View>
   );
 }
 
@@ -151,53 +152,16 @@ function PreferencesSection({
 
 function SupportSection() {
   return (
-    <SettingsSection label="Support">
-      <SettingsLinkRow label="Help & Support" onPress={() => openExternalUrl(SUPPORT_URL)} />
-      <View style={st.settingsDivider} />
-      <SettingsLinkRow label="Privacy Policy" onPress={() => openExternalUrl(PRIVACY_URL)} />
-      <View style={st.settingsDivider} />
-      <SettingsLinkRow label="Terms of Service" onPress={() => openExternalUrl(TERMS_URL)} />
-    </SettingsSection>
-  );
-}
-
-function SettingsLinkRow({
-  label,
-  value,
-  destructive = false,
-  disabled = false,
-  onPress,
-}: {
-  label: string;
-  value?: string;
-  destructive?: boolean;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={value ? `${label}, ${value}` : label}
-      accessibilityState={{ disabled }}
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        st.settingsLinkRow,
-        pressed && st.settingsRowPressed,
-        disabled && { opacity: 0.5 },
-      ]}
-    >
-      <Text style={[st.settingsRowTitle, destructive && st.settingsDangerText]}>{label}</Text>
-      <View style={st.settingsLinkMeta}>
-        {value ? <Text style={st.settingsRowValue}>{value}</Text> : null}
-        <AppIcon
-          name="chevron-right"
-          color={destructive ? "#A83939" : C.textMuted}
-          size={20}
-          strokeWidth={2.1}
-        />
-      </View>
-    </Pressable>
+    <>
+      <SettingsSection label="Support">
+        <SettingsLinkRow label="Help & Support" value="Questions, issues, and feedback" onPress={() => openExternalUrl(SUPPORT_URL)} />
+      </SettingsSection>
+      <SettingsSection label="Our policies">
+        <SettingsLinkRow label="Terms of Service" onPress={() => openExternalUrl(TERMS_URL)} />
+        <View style={st.settingsDivider} />
+        <SettingsLinkRow label="Privacy Policy" onPress={() => openExternalUrl(PRIVACY_URL)} />
+      </SettingsSection>
+    </>
   );
 }
 
@@ -244,52 +208,6 @@ function AccountSection({
         <SettingsLinkRow label="Delete Account" destructive onPress={onStartDeleteAccount} />
       )}
     </SettingsSection>
-  );
-}
-
-function ShoppingProfileSection({ profile, preferences, onEditPreferences }: MorePanelProps) {
-  if (!profile && !preferences.completed) return null;
-
-  if (!preferences.completed) {
-    return (
-      <SettingsSection label="Shopping Profile">
-        <SettingsLinkRow
-          label="Personalize your deals"
-          value="Optional"
-          onPress={onEditPreferences}
-        />
-      </SettingsSection>
-    );
-  }
-
-  const interestText = preferences.interestedCategories.length > 0
-    ? preferences.interestedCategories.join(", ")
-    : "Not selected";
-  const frequencyText = preferences.shoppingFrequency
-    ? SHOPPING_FREQUENCY_LABELS[preferences.shoppingFrequency]
-    : "Not selected";
-  const storeText = preferences.favoriteStores.length > 0
-    ? preferences.favoriteStores.join(", ")
-    : "Not selected";
-
-  return (
-    <SettingsSection label="Shopping Profile">
-      <View>
-        <PreferenceSummary label="Interested in" value={interestText} />
-        <PreferenceSummary label="Shopping frequency" value={frequencyText} />
-        <PreferenceSummary label="Favorite stores" value={storeText} />
-      </View>
-      <SettingsLinkRow label="Edit Shopping Profile" onPress={onEditPreferences} />
-    </SettingsSection>
-  );
-}
-
-function PreferenceSummary({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={st.settingsSummaryRow}>
-      <Text style={st.settingsHelp}>{label}</Text>
-      <Text style={st.settingsSummaryValue}>{value}</Text>
-    </View>
   );
 }
 
