@@ -13,6 +13,8 @@ const STORE_LOGOS = {
   priceSmart: require("../../../assets/store-logos/pricesmart-foods.png"),
   marketRibbon: require("../../../assets/store-logos/market-ribbon.png"),
   tAndT: require("../../../assets/store-logos/t-and-t.png"),
+  saveOnFoods: require("../../../assets/store-logos/save-on-foods.png"),
+  walmart: require("../../../assets/store-logos/walmart.png"),
 };
 
 export function getStoreDisplayName(store: MarketStore) {
@@ -57,6 +59,8 @@ export function StoreResultCard({
 }: StoreResultCardProps) {
   const distance = formatStoreDistance(store.distance_km);
   const logo = getStoreLogo(store);
+  const isSaveOnFoods = getStoreBrandLogoKey(store) === "saveOnFoods";
+  const isWalmart = getStoreBrandLogoKey(store) === "walmart";
 
   return (
     <View
@@ -72,12 +76,12 @@ export function StoreResultCard({
           onPress={onFocus}
           style={st.storeResultFocusContent}
         >
-          <View style={[st.storeResultBadge, logo && st.storeResultBadgeWithLogo]}>
+          <View style={[st.storeResultBadge, logo && st.storeResultBadgeWithLogo, isSaveOnFoods && st.storeSaveOnFoodsBackground, isWalmart && st.storeWalmartBackground]}>
             {logo ? (
               <Image
                 source={logo}
                 resizeMode="contain"
-                style={st.storeResultLogo}
+                style={[st.storeResultLogo, isSaveOnFoods && st.storeSaveOnFoodsImage]}
               />
             ) : (
               <Text style={st.storeResultBadgeText}>

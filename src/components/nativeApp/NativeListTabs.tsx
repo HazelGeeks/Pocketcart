@@ -18,7 +18,13 @@ export function NativeListTabs({ activeTab, alerts, onBrowseDeals, onOpenStore, 
     return (
       <ShoppingListPanel
         items={shopping.items}
+        onAddProduct={shopping.addProduct}
+        onAddCustom={shopping.addCustomItem}
+        onToggleCompleted={shopping.toggleCompleted}
+        onUndo={shopping.undoRemove}
+        undoCount={shopping.undoCount}
         loading={shopping.pricesLoading}
+        listLoading={shopping.listLoading}
         message={shopping.syncMessage ?? shopping.message}
         recommendation={shopping.recommendation}
         onBrowseDeals={onBrowseDeals}

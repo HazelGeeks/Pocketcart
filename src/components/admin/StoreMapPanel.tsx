@@ -27,6 +27,8 @@ const STORE_LOGO_ASSETS: Record<StoreBrandLogoKey, StoreLogoAsset> = {
   priceSmart: require("../../../assets/store-logos/pricesmart-foods.png"),
   marketRibbon: require("../../../assets/store-logos/market-ribbon.png"),
   tAndT: require("../../../assets/store-logos/t-and-t.png"),
+  saveOnFoods: require("../../../assets/store-logos/save-on-foods.png"),
+  walmart: require("../../../assets/store-logos/walmart.png"),
 };
 
 function getStoreLogoUrl(store: AdminStore): string | null {
@@ -56,6 +58,8 @@ function storeLeafletMapSrcDoc(
       storeType: store.store_type,
       isActive: store.is_active,
       logoUrl: getStoreLogoUrl(store),
+      isSaveOnFoods: getStoreBrandLogoKey(store) === "saveOnFoods",
+      isWalmart: getStoreBrandLogoKey(store) === "walmart",
       latitude: Number(store.latitude),
       longitude: Number(store.longitude),
       selected: selectedStore?.id === store.id,
@@ -98,6 +102,9 @@ function storeLeafletMapSrcDoc(
       height: 100%;
       object-fit: contain;
     }
+    .store-logo-marker.save-on-foods { background: #78BE20; }
+    .store-logo-marker.walmart { background: #0153E3; }
+    .store-logo-marker.save-on-foods img { width: 80%; height: 80%; margin: 10%; }
   </style>
 </head>
 <body>
@@ -131,7 +138,7 @@ function storeLeafletMapSrcDoc(
       const markerSize = point.selected ? 54 : 46;
       const logoIcon = point.logoUrl
         ? L.divIcon({
-            className: "store-logo-marker" + (point.selected ? " is-selected" : ""),
+            className: "store-logo-marker" + (point.selected ? " is-selected" : "") + (point.isSaveOnFoods ? " save-on-foods" : "") + (point.isWalmart ? " walmart" : ""),
             html: '<img src="' + escapeHtml(point.logoUrl) + '" alt="" />',
             iconSize: [markerSize, markerSize],
             iconAnchor: [markerSize / 2, markerSize / 2],

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
+import { randomUUID } from "expo-crypto";
 import type { MarketProduct } from "../services/marketData";
 import { productDisplayName } from "../utils/productNames";
 import {
@@ -13,6 +14,8 @@ import {
   mergeShoppingListItems,
   normalizeShoppingListItems,
   removeShoppingListProduct,
+  toggleShoppingListItem,
+  restoreShoppingListItems,
   type ShoppingListItem,
 } from "../utils/shoppingListState";
 import { persistShoppingListMigration } from "../utils/shoppingListStorage";
@@ -29,7 +32,9 @@ function storageKey(profileId: string | null) {
 export default function useShoppingList(profileId: string | null) {
   const [items, setItems] = React.useState<ShoppingListItem[]>([]);
   const [loadedKey, setLoadedKey] = React.useState<string | null>(null);
+  const [remoteReadyKey, setRemoteReadyKey] = React.useState<string | null>(null);
   const [syncReadyKey, setSyncReadyKey] = React.useState<string | null>(null);
+  const [localMessage, setLocalMessage] = React.useState<string | null>(null);
   const [syncMessage, setSyncMessage] = React.useState<string | null>(null);
   const itemsRef = React.useRef(items);
   const writeChainRef = React.useRef(Promise.resolve());
@@ -38,6 +43,7 @@ export default function useShoppingList(profileId: string | null) {
   const pendingMutationsRef = React.useRef<Array<(
     current: ShoppingListItem[],
   ) => ShoppingListItem[]>>([]);
+  const [undo, setUndo] = React.useState<{ key: string; items: ShoppingListItem[] } | null>(null);
   const key = storageKey(profileId);
   const guestKey = storageKey(null);
   activeKeyRef.current = key;
@@ -52,14 +58,18 @@ export default function useShoppingList(profileId: string | null) {
     if (loadedKey !== key || syncReadyKey !== key) {
       pendingMutationsRef.current.push(mutation);
     }
-    setItems((current) => mutation(current));
+    const next = mutation(itemsRef.current);
+    itemsRef.current = next;
+    setItems(next);
   }, [key, loadedKey, syncReadyKey]);
 
   React.useEffect(() => {
     let active = true;
     setLoadedKey(null);
     setSyncReadyKey(null);
+    setRemoteReadyKey(null);
     setSyncMessage(null);
+    setLocalMessage(null);
     const inMemoryGuestItems = profileId && lastHydratedKeyRef.current === guestKey
       ? itemsRef.current
       : [];
@@ -109,6 +119,7 @@ export default function useShoppingList(profileId: string | null) {
           }
         }
         if (!active) return;
+        itemsRef.current = nextItems;
         setItems(nextItems);
         lastHydratedKeyRef.current = key;
         setLoadedKey(key);
@@ -132,11 +143,21 @@ export default function useShoppingList(profileId: string | null) {
     }
 
     let active = true;
+    const beforeSync = itemsRef.current;
+    pendingMutationsRef.current = [];
     void listSyncedShoppingListItems(profileId).then(({ data, error }) => {
       if (!active) return;
-      const merged = mergeShoppingListItems(itemsRef.current, data);
-      setItems(merged);
+      const merged = mergeShoppingListItems(beforeSync, data);
+      const next = pendingMutationsRef.current.reduce((current, mutation) => mutation(current), merged);
+      pendingMutationsRef.current = [];
+      itemsRef.current = next;
+      setItems(next);
       setSyncMessage(error);
+      if (!error) setRemoteReadyKey(key);
+      setSyncReadyKey(key);
+    }).catch(() => {
+      if (!active) return;
+      setSyncMessage("Couldn't sync your list. Changes will stay on this device for now.");
       setSyncReadyKey(key);
     });
     return () => {
@@ -149,27 +170,31 @@ export default function useShoppingList(profileId: string | null) {
     const snapshot = items.map((item) => ({ ...item }));
     const writeKey = key;
     writeChainRef.current = writeChainRef.current.then(async () => {
-      await persistShoppingListMigration(
-        AsyncStorage,
-        writeKey,
-        LEGACY_STORAGE_KEY,
-        snapshot,
-      ).catch(() => undefined);
-      if (!profileId) return;
+      try {
+        await persistShoppingListMigration(AsyncStorage, writeKey, LEGACY_STORAGE_KEY, snapshot);
+        if (activeKeyRef.current === writeKey) setLocalMessage(null);
+      } catch {
+        if (activeKeyRef.current === writeKey) setLocalMessage("Couldn't save your list on this device. Keep the app open and try again.");
+        return;
+      }
+      if (!profileId || remoteReadyKey !== writeKey) return;
 
       const error = await replaceSyncedShoppingListItems(profileId, snapshot);
       if (activeKeyRef.current === writeKey) setSyncMessage(error);
       if (!error) {
         await AsyncStorage.removeItem(guestKey).catch(() => undefined);
       }
+    }).catch(() => {
+      if (activeKeyRef.current === writeKey) setSyncMessage("Couldn't sync your list. Changes are saved on this device.");
     });
-  }, [guestKey, items, key, loadedKey, profileId, syncReadyKey]);
+  }, [guestKey, items, key, loadedKey, profileId, remoteReadyKey, syncReadyKey]);
 
   const addProduct = React.useCallback((product: MarketProduct) => {
     mutateItems((current) => addShoppingListProduct(current, {
       id: product.id,
       name: productDisplayName(product),
       unit: product.unit,
+      category: product.category,
     }));
   }, [mutateItems]);
 
@@ -177,19 +202,44 @@ export default function useShoppingList(profileId: string | null) {
     mutateItems((current) => changeShoppingListQuantity(current, productId, delta));
   }, [mutateItems]);
 
-  const removeProduct = React.useCallback((productId: string) => {
-    mutateItems((current) => removeShoppingListProduct(current, productId));
+  const addCustomItem = React.useCallback((name: string) => {
+    const trimmed = name.trim().slice(0, 120);
+    if (!trimmed) return;
+    const id = `custom:${randomUUID()}`;
+    mutateItems((current) => addShoppingListProduct(current, { id, name: trimmed, unit: null, category: "Other items" }));
   }, [mutateItems]);
 
-  const clear = React.useCallback(() => mutateItems(() => []), [mutateItems]);
+  const toggleCompleted = React.useCallback((id: string) => {
+    mutateItems((current) => toggleShoppingListItem(current, id));
+  }, [mutateItems]);
+
+  const removeProduct = React.useCallback((productId: string) => {
+    setUndo({ key, items: itemsRef.current.filter((item) => item.productId === productId) });
+    mutateItems((current) => removeShoppingListProduct(current, productId));
+  }, [key, mutateItems]);
+
+  const clear = React.useCallback(() => {
+    setUndo({ key, items: [...itemsRef.current] });
+    mutateItems(() => []);
+  }, [key, mutateItems]);
+
+  const undoRemove = React.useCallback(() => {
+    if (!undo || undo.key !== key) return;
+    mutateItems((current) => restoreShoppingListItems(current, undo.items));
+    setUndo(null);
+  }, [key, mutateItems, undo]);
 
   return {
+    addCustomItem,
+    toggleCompleted,
+    undoRemove,
+    undoCount: undo?.key === key ? undo.items.length : 0,
     addProduct,
     changeQuantity,
     clear,
     items,
     loaded: loadedKey === key && syncReadyKey === key,
     removeProduct,
-    syncMessage,
+    syncMessage: localMessage ?? syncMessage,
   };
 }

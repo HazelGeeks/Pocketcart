@@ -3,7 +3,9 @@ export type StoreBrandLogoKey =
   | "hannamMart"
   | "priceSmart"
   | "marketRibbon"
-  | "tAndT";
+  | "tAndT"
+  | "saveOnFoods"
+  | "walmart";
 
 export function getStoreBrandLogoKey(store: {
   brand?: string | null;
@@ -19,6 +21,8 @@ export function getStoreBrandLogoKey(store: {
     return "hannamMart";
   }
   if (/(^|\s)price\s*smart(\s|$)/.test(identity)) return "priceSmart";
+  if (/(^|\s)save\s*on\s*foods(\s|$)/.test(identity)) return "saveOnFoods";
+  if (/(^|\s)wal\s*mart(\s|$)/.test(identity)) return "walmart";
   if (/(^|\s)(?:t\s+t|tnt)(?:\s+supermarket)?(\s|$)/.test(identity)) {
     return "tAndT";
   }

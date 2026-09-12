@@ -2,7 +2,6 @@ import React from "react";
 import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
-import { type CategoryImageUrls, categoryImageKey } from "../../utils/categoryImages";
 import { AppIcon } from "../icons/AppIcon";
 import { CategoryFilterTile } from "./CategoryFilterTile";
 import { type HomeSortMode, SORT_OPTIONS } from "./homeCatalogUtils";
@@ -11,7 +10,6 @@ type Props = {
   query: string;
   category: string;
   categories: string[];
-  categoryImageUrls: CategoryImageUrls;
   sortMode: HomeSortMode;
   onSaleOnly: boolean;
   storeFilterName: string | null;
@@ -26,7 +24,6 @@ export function HomeCatalogControls({
   query,
   category,
   categories,
-  categoryImageUrls,
   sortMode,
   onSaleOnly,
   storeFilterName,
@@ -117,24 +114,25 @@ export function HomeCatalogControls({
             })}
           </View>
         ) : null}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={st.categoryRow}
-        >
-          {["All", ...categories].map((option) => {
-            const active = category === option;
-            return (
-              <CategoryFilterTile
-                key={option}
-                active={active}
-                imageUrl={categoryImageUrls[categoryImageKey(option)]}
-                label={option}
-                onPress={() => onChangeCategory(option)}
-              />
-            );
-          })}
-        </ScrollView>
+        {categories.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={st.categoryRow}
+          >
+            {["All", ...categories].map((option) => {
+              const active = category === option;
+              return (
+                <CategoryFilterTile
+                  key={option}
+                  active={active}
+                  label={option}
+                  onPress={() => onChangeCategory(option)}
+                />
+              );
+            })}
+          </ScrollView>
+        ) : null}
       </View>
     </>
   );

@@ -3,9 +3,11 @@ export type ShoppingListItem = {
   name: string;
   unit: string | null;
   quantity: number;
+  category?: string;
+  completed?: boolean;
 };
 
-type ShoppingListProduct = Pick<ShoppingListItem, "name" | "unit"> & { id: string };
+type ShoppingListProduct = Pick<ShoppingListItem, "name" | "unit" | "category"> & { id: string };
 
 export function normalizeShoppingListItems(value: unknown): ShoppingListItem[] {
   if (!Array.isArray(value)) return [];
@@ -23,6 +25,8 @@ export function normalizeShoppingListItems(value: unknown): ShoppingListItem[] {
       name: candidate.name,
       unit: typeof candidate.unit === "string" ? candidate.unit : null,
       quantity: Math.max(1, Math.min(99, Math.round(Number(candidate.quantity) || 1))),
+      ...(typeof candidate.category === "string" ? { category: candidate.category } : {}),
+      ...(typeof candidate.completed === "boolean" ? { completed: candidate.completed } : {}),
     }];
   });
 }
@@ -35,7 +39,7 @@ export function addShoppingListProduct(
   if (existing) {
     return items.map((item) =>
       item.productId === product.id
-        ? { ...item, quantity: Math.min(99, item.quantity + 1) }
+        ? { ...item, ...(item.completed ? { completed: false } : {}), quantity: item.completed ? item.quantity : Math.min(99, item.quantity + 1) }
         : item,
     );
   }
@@ -45,6 +49,7 @@ export function addShoppingListProduct(
     name: product.name,
     unit: product.unit,
     quantity: 1,
+    ...(product.category ? { category: product.category } : {}),
   }];
 }
 
@@ -81,6 +86,8 @@ export function mergeShoppingListItems(
     }
 
     merged.set(item.productId, {
+      ...current,
+      ...item,
       productId: item.productId,
       name: item.name || current.name,
       unit: item.unit ?? current.unit,
@@ -98,4 +105,17 @@ export function mergeShoppingListItemSources(
     (merged, source) => mergeShoppingListItems(merged, source),
     [],
   );
+}
+
+export function isCustomShoppingItem(item: Pick<ShoppingListItem, "productId">): boolean {
+  return item.productId.startsWith("custom:");
+}
+
+export function toggleShoppingListItem(items: ShoppingListItem[], productId: string): ShoppingListItem[] {
+  return items.map((item) => item.productId === productId ? { ...item, completed: !item.completed } : item);
+}
+
+export function restoreShoppingListItems(items: ShoppingListItem[], removed: ShoppingListItem[]): ShoppingListItem[] {
+  // Restore only deleted entries; preserve quantity changes and new additions made since deletion.
+  return [...items, ...removed.filter((item) => !items.some((current) => current.productId === item.productId))];
 }

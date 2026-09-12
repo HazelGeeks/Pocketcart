@@ -31,7 +31,6 @@ export function NativeHomeTab({
         query={catalog.query}
         category={catalog.category}
         categories={catalog.categories}
-        categoryImageUrls={catalog.categoryImageUrls}
         message={catalog.message}
         actionMessage={catalog.actionMessage}
         loading={catalog.loading}

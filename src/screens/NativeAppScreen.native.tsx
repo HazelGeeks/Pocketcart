@@ -31,7 +31,6 @@ import useNativeStoreMap from "../hooks/useNativeStoreMap";
 import { isScrollNearEnd } from "../utils/infiniteScroll";
 import { getNativeHeaderContent } from "./nativeAppHeader";
 import { st } from "./nativeAppStyles";
-
 export default function NativeAppScreen() {
   const { pad, w } = useLayout();
   const insets = useSafeAreaInsets();
@@ -196,7 +195,7 @@ export default function NativeAppScreen() {
           topInset={insets.top}
         />
       ) : (
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           style={st.scroll}
           contentContainerStyle={[
             st.scrollContent,

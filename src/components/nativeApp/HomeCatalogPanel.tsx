@@ -1,7 +1,6 @@
 import { Text, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 import type { MarketProduct } from "../../services/marketData";
-import type { CategoryImageUrls } from "../../utils/categoryImages";
 import { HomeCatalogControls } from "./HomeCatalogControls";
 import { HomePhotoBanner } from "./HomePhotoDiscovery";
 import { HomeProductList } from "./HomeProductList";
@@ -11,7 +10,6 @@ type Props = {
   query: string;
   category: string;
   categories: string[];
-  categoryImageUrls: CategoryImageUrls;
   message: string | null;
   actionMessage: string | null;
   loading: boolean;
@@ -47,7 +45,6 @@ export function HomeCatalogPanel(props: Props) {
         query={props.query}
         category={props.category}
         categories={props.categories}
-        categoryImageUrls={props.categoryImageUrls}
         sortMode={props.sortMode}
         onSaleOnly={props.onSaleOnly}
         storeFilterName={props.storeFilterName}

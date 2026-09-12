@@ -1,4 +1,4 @@
-import type { ShoppingListItem } from "../utils/shoppingListState";
+import { isCustomShoppingItem, type ShoppingListItem } from "../utils/shoppingListState";
 import { hasSupabaseEnv, supabase } from "./supabaseClient";
 
 type ServiceResult<T> = {
@@ -48,10 +48,12 @@ export async function listSyncedShoppingListItems(
 
 export async function replaceSyncedShoppingListItems(
   userId: string,
-  items: ShoppingListItem[],
+  allItems: ShoppingListItem[],
 ): Promise<string | null> {
   const authError = await validateUser(userId);
   if (authError || !supabase) return authError;
+
+  const items = allItems.filter((item) => !isCustomShoppingItem(item));
 
   if (items.length > 0) {
     const { error } = await supabase.from("shopping_list_items").upsert(

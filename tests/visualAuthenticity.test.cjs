@@ -32,13 +32,13 @@ test("photo discovery appears only after the default catalog has loaded", () => 
   assert.doesNotMatch(catalog, /HomePhotoPicks/);
 });
 
-test("category filters use catalog photography with an icon fallback", () => {
+test("category filters use only icons and hide the row when no categories are available", () => {
   const controls = read("src/components/nativeApp/HomeCatalogControls.tsx");
   const tile = read("src/components/nativeApp/CategoryFilterTile.tsx");
 
-  assert.match(controls, /categoryImageUrls\[categoryImageKey\(option\)\]/);
-  assert.match(tile, /source=\{\{ uri: imageUrl \}\}/);
-  assert.match(tile, /label === "All" \|\| label === "Grocery"/);
+  assert.match(controls, /categories\.length > 0/);
+  assert.doesNotMatch(controls, /categoryImageUrls/);
+  assert.doesNotMatch(tile, /<Image\b|imageUrl/);
   assert.match(tile, /<CategoryPlaceholderIcon/);
   assert.doesNotMatch(tile, /fresh-grocery-basket/);
 });
@@ -178,11 +178,16 @@ test("home products load automatically from the parent scroll position", () => {
 
 test("shopping uses list dividers and reserves tint for the recommended plan", () => {
   const panel = read("src/components/nativeApp/ShoppingListPanel.tsx");
+  const row = read("src/components/nativeApp/ShoppingBasketRow.tsx");
   const styles = read("src/screens/nativeAppStyles/shoppingListStyles.ts");
 
   assert.match(panel, /style=\{st\.shoppingPage\}/);
-  assert.match(panel, /My basket · \{items\.length\}/);
-  assert.match(panel, /<AppIcon name="close"/);
+  assert.match(panel, /<ShoppingListGroups/);
+  assert.match(row, /<AppIcon name="delete"/);
+  assert.match(row, /disabled=\{item.quantity <= 1\}/);
+  assert.match(row, /disabled=\{item.quantity >= 99\}/);
+  assert.match(panel, /Clear shopping list\?/);
+  assert.match(read("src/components/nativeApp/ShoppingRecommendationPanel.tsx"), /accessibilityState=\{\{ expanded: showComparison \}\}/);
   assert.match(styles, /shoppingItemsCard:[^}]*borderTopWidth: 1/);
   assert.match(styles, /shoppingItemRow:[^}]*borderBottomWidth: 1/);
   assert.doesNotMatch(styles, /shoppingItemsCard:[^}]*borderRadius/);

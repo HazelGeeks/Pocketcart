@@ -6,12 +6,10 @@ import {
   type NativeTabId,
 } from "../screens/nativeAppData";
 import {
-  listProductCategories,
   listProductPriceDetails,
   listProducts,
   type MarketProduct,
 } from "../services/marketData";
-import { type CategoryImageUrls, mergeCategoryImageUrls } from "../utils/categoryImages";
 
 type UseNativeCatalogOptions = {
   activeTab: NativeTabId;
@@ -37,8 +35,6 @@ export default function useNativeCatalog({
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [category, setCategory] = React.useState("All");
   const [products, setProducts] = React.useState<MarketProduct[]>([]);
-  const [categories, setCategories] = React.useState<string[]>([]);
-  const [categoryImageUrls, setCategoryImageUrls] = React.useState<CategoryImageUrls>({});
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = React.useState("");
@@ -57,14 +53,30 @@ export default function useNativeCatalog({
   const [storeFilterId, setStoreFilterId] = React.useState<string | null>(null);
   const [storeFilterName, setStoreFilterName] = React.useState<string | null>(null);
   const productsRequestIdRef = React.useRef(0);
-  const categoriesRequestIdRef = React.useRef(0);
   const priceDetailsRequestIdRef = React.useRef(0);
   const pendingProductOpenRef = React.useRef(false);
 
-  const filteredProducts = React.useMemo(() => {
+  const scopedProducts = React.useMemo(() => {
     if (!storeFilterId) return products;
     return products.filter((product) => product.preferred_store_id === storeFilterId);
   }, [products, storeFilterId]);
+
+  const categories = React.useMemo(
+    () => [...new Set(scopedProducts.map((product) => product.category).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b)),
+    [scopedProducts],
+  );
+  const visibleCategory = categories.includes(category) ? category : "All";
+  const filteredProducts = React.useMemo(
+    () => visibleCategory === "All"
+      ? scopedProducts
+      : scopedProducts.filter((product) => product.category === visibleCategory),
+    [scopedProducts, visibleCategory],
+  );
+
+  React.useEffect(() => {
+    if (!loading && !message && category !== visibleCategory) setCategory(visibleCategory);
+  }, [category, loading, message, visibleCategory]);
 
   const selectedProduct = React.useMemo(
     () =>
@@ -87,10 +99,6 @@ export default function useNativeCatalog({
   );
 
   React.useEffect(() => {
-    setCategoryImageUrls((current) => mergeCategoryImageUrls(current, products));
-  }, [products]);
-
-  React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query.trim()), 400);
     return () => clearTimeout(timer);
   }, [query]);
@@ -108,7 +116,6 @@ export default function useNativeCatalog({
     setLoading(true);
     const { data, error } = await listProducts({
       search: debouncedQuery,
-      category: category === "All" ? undefined : category,
       preferredStoreIds: storeFilterId ? [storeFilterId] : favoriteStoreIds,
       onSaleOnly,
     });
@@ -116,16 +123,7 @@ export default function useNativeCatalog({
     setProducts(data);
     setLoading(false);
     setMessage(error ?? null);
-  }, [category, debouncedQuery, favoriteStoreIds, onSaleOnly, storeFilterId]);
-
-  const loadCategories = React.useCallback(async () => {
-    const requestId = categoriesRequestIdRef.current + 1;
-    categoriesRequestIdRef.current = requestId;
-    const { data, error } = await listProductCategories();
-    if (categoriesRequestIdRef.current !== requestId) return;
-    setCategories(data);
-    if (error) setMessage(error);
-  }, []);
+  }, [debouncedQuery, favoriteStoreIds, onSaleOnly, storeFilterId]);
 
   const loadProductPriceDetails = React.useCallback(async (productId: string) => {
     const requestId = priceDetailsRequestIdRef.current + 1;
@@ -152,8 +150,7 @@ export default function useNativeCatalog({
     if (activeTab !== "home") return;
     if (pendingProductOpenRef.current) pendingProductOpenRef.current = false;
     else setRoute("catalog");
-    void loadCategories();
-  }, [activeTab, loadCategories]);
+  }, [activeTab]);
 
   React.useEffect(() => {
     if (activeTab !== "home") return;
@@ -217,8 +214,7 @@ export default function useNativeCatalog({
     actionMessage,
     addSubmitting,
     categories,
-    categoryImageUrls,
-    category,
+    category: visibleCategory,
     chart,
     clearStoreFilter,
     filteredProducts,

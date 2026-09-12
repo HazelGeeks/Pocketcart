@@ -3,6 +3,7 @@ import { Image, Text, View } from "react-native";
 import type MapView from "react-native-maps";
 import { Marker, type Region } from "react-native-maps";
 import type { MarketStore } from "../../services/marketData";
+import { getStoreBrandLogoKey } from "../../utils/storeBrandLogo";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
 import {
@@ -112,6 +113,8 @@ export function StoreMapMarkers({
     const active = store.id === focusedStoreId;
     const favorite = favoriteStoreIds.has(store.id);
     const logo = getStoreLogo(store);
+    const isSaveOnFoods = getStoreBrandLogoKey(store) === "saveOnFoods";
+    const isWalmart = getStoreBrandLogoKey(store) === "walmart";
     return (
       <Marker
         key={cluster.key}
@@ -129,13 +132,16 @@ export function StoreMapMarkers({
               st.storeMapMarker,
               logo && st.storeMapMarkerWithLogo,
               active && st.storeMapMarkerActive,
+              (isSaveOnFoods || isWalmart) && { width: active ? 54 : 46 },
+              isSaveOnFoods && st.storeSaveOnFoodsBackground,
+              isWalmart && st.storeWalmartBackground,
             ]}
           >
             {logo ? (
               <Image
                 source={logo}
                 resizeMode="contain"
-                style={st.storeMapMarkerImage}
+                style={[st.storeMapMarkerImage, isSaveOnFoods && st.storeSaveOnFoodsImage]}
               />
             ) : (
               <Text

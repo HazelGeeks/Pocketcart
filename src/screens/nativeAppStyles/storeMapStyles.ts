@@ -111,6 +111,9 @@ export const storeMapStyles = StyleSheet.create({
   },
   storeMapMarkerWithLogo: { overflow: "hidden", backgroundColor: C.white, paddingHorizontal: 4 },
   storeMapMarkerImage: { width: "100%", height: "100%" },
+  storeSaveOnFoodsBackground: { backgroundColor: "#78BE20", padding: 0, paddingHorizontal: 0 },
+  storeSaveOnFoodsImage: { width: "80%", height: "80%" },
+  storeWalmartBackground: { backgroundColor: "#0153E3", padding: 0, paddingHorizontal: 0 },
   storeMapMarkerText: { color: C.white, fontSize: 13, fontFamily: F.extraBold },
   storeMapMarkerTextActive: { color: C.primaryDeep, fontSize: 15 },
   storeMapClusterMarker: {

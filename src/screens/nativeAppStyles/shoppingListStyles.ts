@@ -3,6 +3,20 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const shoppingListStyles = StyleSheet.create({
+  shoppingComposer: { gap: 12 },
+  shoppingSearchBox: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingLeft: 12, backgroundColor: C.white },
+  shoppingSearchInput: { flex: 1, minWidth: 0, minHeight: 48, color: C.text, fontSize: 16, fontFamily: F.regular, paddingVertical: 12 },
+  shoppingSearchResults: { borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, gap: 8 },
+  shoppingSearchResult: { minHeight: 52, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line },
+  shoppingGroupOptions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  shoppingGroupButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" },
+  shoppingGroupButtonActive: { borderColor: C.primary, backgroundColor: C.primaryGhost },
+  shoppingUndoBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: C.primaryGhost },
+  shoppingCheckTarget: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  shoppingCheckbox: { width: 24, height: 24, borderWidth: 2, borderColor: C.primary, borderRadius: 7, alignItems: "center", justifyContent: "center" },
+  shoppingCheckboxChecked: { backgroundColor: C.primary },
+  shoppingPurchasedName: { textDecorationLine: "line-through", color: C.textMuted },
+  shoppingPurchasedRow: { minHeight: 72 },
   shoppingPage: {
     gap: 18,
   },
@@ -64,14 +78,21 @@ export const shoppingListStyles = StyleSheet.create({
     borderTopColor: C.line,
   },
   shoppingItemRow: {
-    minHeight: 76,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 9,
-    paddingVertical: 12,
+    minHeight: 120,
+    gap: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: C.line,
   },
+  shoppingBasketHeading: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  shoppingBasketControls: { flexDirection: "row", alignItems: "center", gap: 16, flexWrap: "wrap" },
+  shoppingProductName: { color: C.text, fontSize: 17, lineHeight: 24, fontFamily: F.bold },
+  shoppingBodyText: { color: C.textSoft, fontSize: 14, lineHeight: 21, fontFamily: F.regular },
+  shoppingItemTotal: { color: C.text, fontSize: 16, lineHeight: 23, fontFamily: F.extraBold },
+  shoppingControlDisabled: { opacity: 0.35 },
+  shoppingAddButton: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8 },
+  shoppingCompareToggle: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  shoppingStopItem: { flexDirection: "row", alignItems: "flex-start", gap: 16 },
   shoppingItemCopy: { flex: 1, minWidth: 0, gap: 2 },
   quantityControl: {
     flexDirection: "row",
@@ -96,7 +117,7 @@ export const shoppingListStyles = StyleSheet.create({
     fontFamily: F.extraBold,
   },
   shoppingRemoveBtn: {
-    width: 36,
+    width: 44,
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
@@ -115,7 +136,7 @@ export const shoppingListStyles = StyleSheet.create({
   },
   shoppingEyebrow: {
     color: C.primaryDeep,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 1.2,
     fontFamily: F.extraBold,
   },
@@ -129,14 +150,14 @@ export const shoppingListStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  shoppingRefreshText: { color: C.primaryDeep, fontSize: 11, fontFamily: F.extraBold },
+  shoppingRefreshText: { color: C.primaryDeep, fontSize: 13, fontFamily: F.extraBold },
   shoppingSavingsText: {
     color: C.primaryDeep,
     fontSize: 14,
     lineHeight: 20,
     fontFamily: F.extraBold,
   },
-  shoppingWarningText: { color: C.textSoft, fontSize: 12, lineHeight: 17, fontFamily: F.semibold },
+  shoppingWarningText: { color: C.textSoft, fontSize: 14, lineHeight: 20, fontFamily: F.semibold },
   shoppingStops: {
     borderTopWidth: 1,
     borderTopColor: C.line,
@@ -156,7 +177,7 @@ export const shoppingListStyles = StyleSheet.create({
   shoppingStopCopy: { flex: 1, minWidth: 0, gap: 2 },
   shoppingStopNumber: {
     color: C.primaryDeep,
-    fontSize: 9,
+    fontSize: 12,
     letterSpacing: 0.8,
     fontFamily: F.extraBold,
   },
@@ -169,7 +190,7 @@ export const shoppingListStyles = StyleSheet.create({
   },
   shoppingMapLink: {
     color: C.primaryDeep,
-    fontSize: 11,
+    fontSize: 13,
     textDecorationLine: "underline",
     fontFamily: F.bold,
   },
@@ -190,5 +211,5 @@ export const shoppingListStyles = StyleSheet.create({
     gap: 12,
   },
   shoppingCompareValue: { color: C.text, fontSize: 18, fontFamily: F.extraBold },
-  shoppingFootnote: { color: C.textMuted, fontSize: 11, lineHeight: 16, fontFamily: F.regular },
+  shoppingFootnote: { color: C.textMuted, fontSize: 13, lineHeight: 19, fontFamily: F.regular },
 });
