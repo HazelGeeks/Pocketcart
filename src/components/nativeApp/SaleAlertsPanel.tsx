@@ -8,6 +8,7 @@ import { AppIcon } from "../icons/AppIcon";
 import type { WatchlistItem } from "../../services/watchlist";
 
 type SaleAlertsPanelProps = {
+  onOpenFlyerStore: (id: string) => void;
   onOpenProduct: (id: string) => void;
   monitoredItems: WatchlistItem[];
   activeIds: string[];
@@ -23,7 +24,7 @@ type SaleAlertsPanelProps = {
 };
 
 export function SaleAlertsPanel({
-  onOpenProduct, monitoredItems, activeIds, unlimited, removingId, onRemoveProduct,
+  onOpenProduct, onOpenFlyerStore, monitoredItems, activeIds, unlimited, removingId, onRemoveProduct,
   alerts,
   loading,
   markingRead,
@@ -69,14 +70,14 @@ export function SaleAlertsPanel({
           </View>
           <Text style={st.alertActivityEmptyTitle}>No activity yet</Text>
           <Text style={st.alertActivityEmptyCopy}>
-            Sale updates for products you monitor will appear here.
+            Flyer updates and sale alerts for products you monitor will appear here.
           </Text>
         </View>
       ) : (
         alerts.map((alert) => (
-          <Pressable accessibilityRole={alert.product_id ? "button" : undefined} disabled={!alert.product_id}
-            accessibilityLabel={alert.product_id ? `${alert.title}. ${alert.body}. ${formatAlertActivityTime(alert.created_at)}. View current price` : undefined}
-            onPress={() => { if (alert.product_id) onOpenProduct(alert.product_id); }}
+          <Pressable accessibilityRole={(alert.product_id || alert.alert_key.startsWith("flyer|")) ? "button" : undefined} disabled={!alert.product_id && !alert.alert_key.startsWith("flyer|")}
+            accessibilityLabel={alert.product_id ? `${alert.title}. ${alert.body}. ${formatAlertActivityTime(alert.created_at)}. View current price` : alert.alert_key.startsWith("flyer|") ? `${alert.title}. ${alert.body}. View retailer deals` : undefined}
+            onPress={() => { if (alert.product_id) onOpenProduct(alert.product_id); else if (alert.alert_key.startsWith("flyer|")) onOpenFlyerStore(alert.id); }}
             key={alert.id}
             style={[st.alertActivityRow, alert.read_at === null && st.alertActivityRowUnread]}
           >
@@ -86,7 +87,7 @@ export function SaleAlertsPanel({
             <View style={st.alertActivityCopy}>
               <View style={st.alertActivityMetaRow}>
                 <Text numberOfLines={1} style={st.alertActivitySource}>
-                  Pocketcart price alert
+                  {alert.alert_key.startsWith("flyer|") ? "PocketCart flyer update" : "Pocketcart price alert"}
                 </Text>
                 <Text style={st.alertActivityTime}>
                   {formatAlertActivityTime(alert.created_at)}

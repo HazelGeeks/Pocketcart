@@ -50,16 +50,16 @@ export default function useNativeCatalog({
   const [historyMessage, setHistoryMessage] = React.useState<string | null>(null);
   const [actionMessage, setActionMessage] = React.useState<string | null>(null);
   const [addSubmitting, setAddSubmitting] = React.useState(false);
-  const [storeFilterId, setStoreFilterId] = React.useState<string | null>(null);
+  const [storeFilterIds, setStoreFilterIds] = React.useState<string[] | null>(null);
   const [storeFilterName, setStoreFilterName] = React.useState<string | null>(null);
   const productsRequestIdRef = React.useRef(0);
   const priceDetailsRequestIdRef = React.useRef(0);
   const pendingProductOpenRef = React.useRef(false);
 
   const scopedProducts = React.useMemo(() => {
-    if (!storeFilterId) return products;
-    return products.filter((product) => product.preferred_store_id === storeFilterId);
-  }, [products, storeFilterId]);
+    if (!storeFilterIds) return products;
+    return products.filter((product) => storeFilterIds.includes(product.preferred_store_id ?? ""));
+  }, [products, storeFilterIds]);
 
   const categories = React.useMemo(
     () => [...new Set(scopedProducts.map((product) => product.category).filter(Boolean))]
@@ -116,14 +116,14 @@ export default function useNativeCatalog({
     setLoading(true);
     const { data, error } = await listProducts({
       search: debouncedQuery,
-      preferredStoreIds: storeFilterId ? [storeFilterId] : favoriteStoreIds,
+      preferredStoreIds: storeFilterIds ?? favoriteStoreIds,
       onSaleOnly,
     });
     if (productsRequestIdRef.current !== requestId) return;
     setProducts(data);
     setLoading(false);
     setMessage(error ?? null);
-  }, [debouncedQuery, favoriteStoreIds, onSaleOnly, storeFilterId]);
+  }, [debouncedQuery, favoriteStoreIds, onSaleOnly, storeFilterIds]);
 
   const loadProductPriceDetails = React.useCallback(async (productId: string) => {
     const requestId = priceDetailsRequestIdRef.current + 1;
@@ -182,9 +182,9 @@ export default function useNativeCatalog({
     void loadProductPriceDetails(selectedProductId);
   }, [activeTab, loadProductPriceDetails, route, selectedProductId]);
 
-  const setStoreFilter = React.useCallback(
-    (storeId: string, storeName: string) => {
-      setStoreFilterId(storeId);
+  const setRetailerFilter = React.useCallback(
+    (storeIds: string[], storeName: string) => {
+      setStoreFilterIds(storeIds);
       setStoreFilterName(storeName);
       setRoute("catalog");
       setSelectedProductId("");
@@ -194,8 +194,12 @@ export default function useNativeCatalog({
     [onOpenHome, showToast],
   );
 
+  const setStoreFilter = React.useCallback((id: string, name: string) => {
+    setRetailerFilter([id], name);
+  }, [setRetailerFilter]);
+
   const clearStoreFilter = React.useCallback(() => {
-    setStoreFilterId(null);
+    setStoreFilterIds(null);
     setStoreFilterName(null);
   }, []);
 
@@ -238,6 +242,7 @@ export default function useNativeCatalog({
     setSelectedProductId,
     setSortMode,
     setStoreFilter,
+    setRetailerFilter,
     sortMode,
     storeFilterName,
     storePrices,

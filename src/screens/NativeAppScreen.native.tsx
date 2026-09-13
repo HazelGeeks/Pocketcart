@@ -19,6 +19,7 @@ import { NativeHomeTab } from "../components/nativeApp/NativeHomeTab";
 import { NativeListTabs } from "../components/nativeApp/NativeListTabs";
 import { NativeMapTab } from "../components/nativeApp/NativeMapTab";
 import { NativeBottomTabs, NativeContextHeader } from "../components/nativeApp/NativeShell";
+import useFlyerNotificationNavigation from "../hooks/useFlyerNotificationNavigation";
 import useFreezerReminders from "../hooks/useFreezerReminders";
 import useFavoriteStores from "../hooks/useFavoriteStores";
 import useLayout from "../hooks/useLayout";
@@ -95,6 +96,13 @@ function NativeAppContent() {
     profileId: account.profile?.id ?? null,
     productById: catalog.productById,
   });
+  const showFlyerDeals = React.useCallback((ids: string[], name: string) => {
+    catalog.setQuery("");
+    catalog.setCategory("All");
+    catalog.setOnSaleOnly(true);
+    catalog.setRetailerFilter(ids, name);
+  }, [catalog.setQuery, catalog.setCategory, catalog.setOnSaleOnly, catalog.setRetailerFilter]);
+  const openFlyerStore = useFlyerNotificationNavigation(account.profile?.id ?? null, showFlyerDeals, shell.showToast);
   const openFreezerReminder = React.useCallback(() => { shell.setActiveTab("freezer"); }, [shell.setActiveTab]);
   useFreezerReminders(account.profile?.id ?? null, openFreezerReminder);
   const navigation = useNativeBackNavigation({
@@ -231,7 +239,7 @@ function NativeAppContent() {
               loadMoreSignal={homeLoadMoreSignal}
             />
           ) : null}
-          <NativeListTabs onOpenProduct={openAlertProduct}
+          <NativeListTabs onOpenProduct={openAlertProduct} onOpenFlyerStore={openFlyerStore}
             onSignIn={() => { account.openSignIn(); shell.setActiveTab("more"); }}
             activeTab={shell.activeTab}
             alerts={alerts}

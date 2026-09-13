@@ -22,3 +22,7 @@ verify_jwt = false
 
 [functions.watchlist-access]
 verify_jwt = false
+
+[functions.admin-flyer-notification]
+# Auth.getUser and is_admin are both checked inside the handler.
+verify_jwt = false

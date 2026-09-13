@@ -50,6 +50,9 @@ jobs:
       - name: Deploy send-sale-alert-push function
         run: npx supabase functions deploy send-sale-alert-push --project-ref "$SUPABASE_PROJECT_ID"
 
+      - name: Deploy admin Flyer notification function
+        run: npx supabase functions deploy admin-flyer-notification --project-ref "$SUPABASE_PROJECT_ID"
+
       - name: Deploy sync-sale-alerts function
         run: npx supabase functions deploy sync-sale-alerts --project-ref "$SUPABASE_PROJECT_ID"
 

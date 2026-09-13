@@ -6,6 +6,7 @@ import { SaleAlertsPanel } from "./SaleAlertsPanel";
 import { ShoppingListPanel } from "./ShoppingListPanel";
 
 type Props = {
+  onOpenFlyerStore: (id: string) => void;
   onOpenProduct: (id: string) => void;
   activeTab: NativeTabId;
   alerts: ReturnType<typeof useNativeSaleAlerts>;
@@ -14,7 +15,7 @@ type Props = {
   shopping: ReturnType<typeof useNativeShoppingPlan>;
 };
 
-export function NativeListTabs({ onOpenProduct, activeTab, alerts, onBrowseDeals, shopping, onSignIn }: Props) {
+export function NativeListTabs({ onOpenProduct, onOpenFlyerStore, activeTab, alerts, onBrowseDeals, shopping, onSignIn }: Props) {
   if (activeTab === "shopping") {
     return (
       <ShoppingListPanel
@@ -41,7 +42,7 @@ export function NativeListTabs({ onOpenProduct, activeTab, alerts, onBrowseDeals
   if (activeTab !== "alerts") return null;
   return (
     <View>
-      <SaleAlertsPanel onOpenProduct={onOpenProduct}
+      <SaleAlertsPanel onOpenProduct={onOpenProduct} onOpenFlyerStore={onOpenFlyerStore}
         monitoredItems={alerts.monitoredItems} activeIds={alerts.activeIds} unlimited={alerts.unlimited}
         removingId={alerts.removingId} onRemoveProduct={alerts.removeMonitoredProduct}
         alerts={alerts.saleAlerts}

@@ -2,6 +2,7 @@ import { Text } from "react-native";
 import type { AdminWorkspaceActions } from "../../hooks/useAdminWorkspaceActions";
 import type { AdminWorkspaceData } from "../../hooks/useAdminWorkspaceData";
 import { st } from "../../screens/adminScreenStyles";
+import AdminNotificationsPanel from "./AdminNotificationsPanel";
 import AdminFlyerPanel from "./AdminFlyerPanel";
 import AdminOverviewPanel from "./AdminOverviewPanel";
 import AdminProductsPanel from "./AdminProductsPanel";
@@ -39,6 +40,7 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           }
         />
       ) : null}
+      {adminUi.activeMenu === "notifications" ? <AdminNotificationsPanel stores={backend.stores} /> : null}
       {adminUi.activeMenu === "users" ? (
         <AdminUsersPanel users={backend.users} loading={backend.loading.users} styles={st} />
       ) : null}

@@ -37,6 +37,7 @@ export default function useAdminWorkspaceData() {
     { key: "products" as const, label: "Products", badge: backend.products.length },
     { key: "stores" as const, label: "Branches", badge: dashboard.displayStores.length },
     { key: "flyer" as const, label: "Flyer" },
+    { key: "notifications" as const, label: "Notifications" },
   ];
   const panelTitle =
     adminUi.activeMenu === "overview"
@@ -47,7 +48,7 @@ export default function useAdminWorkspaceData() {
           ? "Products"
           : adminUi.activeMenu === "stores"
             ? "Retailer Branches"
-            : "Flyer";
+            : adminUi.activeMenu === "notifications" ? "Notifications" : "Flyer";
 
   return { isLg, state, backend, dashboard, sectionMenu, panelTitle };
 }
