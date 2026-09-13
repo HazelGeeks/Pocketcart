@@ -6,7 +6,7 @@ export function parseFamilyInvite(value: string): string | null {
   try {
     const url = new URL(text);
     const app = url.protocol === "pocketcart:" && url.hostname === "family";
-    const web = url.origin === ORIGIN && url.pathname === "/family.html";
+    const web = url.origin === ORIGIN && (url.pathname === "/family.html" || url.pathname === "/family");
     if (!app && !web) return null;
     const token = new URLSearchParams(url.hash.slice(1)).get("invite") ?? url.searchParams.get("invite");
     return token && TOKEN.test(token) ? token : null;
@@ -14,5 +14,5 @@ export function parseFamilyInvite(value: string): string | null {
 }
 export function familyInviteUrl(token: string) {
   if (!TOKEN.test(token)) throw new Error("Invalid family invite");
-  return `${ORIGIN}/family.html#invite=${token}`;
+  return `${ORIGIN}/family#invite=${token}`;
 }

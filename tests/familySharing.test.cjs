@@ -5,6 +5,8 @@ const { mutateFamilyCart } = require('../.tmp-tests/utils/familyCartSync.js');
 const token = 'a'.repeat(64);
 test('family invite accepts app, landing link and copied token, rejects spoofed origins', () => {
   assert.equal(parseFamilyInvite(familyInviteUrl(token)), token);
+  assert.equal(parseFamilyInvite(`https://pocketcart.hazelgeeks.workers.dev/family#invite=${token}`), token);
+  assert.equal(parseFamilyInvite(`https://pocketcart.hazelgeeks.workers.dev/family.html#invite=${token}`), token);
   assert.equal(parseFamilyInvite(`pocketcart://family?invite=${token}`), token);
   assert.equal(parseFamilyInvite(token), token);
   for (const link of [`https://evil.test/family.html#invite=${token}`, `https://pocketcart.hazelgeeks.workers.dev.evil.test/family.html#invite=${token}`, `pocketcart://auth?invite=${token}`, `https://pocketcart.hazelgeeks.workers.dev/family.html#invite=bad`, 'javascript:alert(1)']) assert.equal(parseFamilyInvite(link), null);
