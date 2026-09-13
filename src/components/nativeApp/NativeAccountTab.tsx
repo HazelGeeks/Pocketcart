@@ -138,7 +138,7 @@ export function NativeAccountTab({
       );
     }
     return (
-      <PersonalizationPanel
+      <PersonalizationPanel editing={!account.pendingEmailVerification}
         initialPreferences={account.profilePreferences}
         storeOptions={storeOptions}
         saving={account.preferencesSaving}
@@ -146,7 +146,7 @@ export function NativeAccountTab({
           void account.savePersonalization(next);
         }}
         onDraftChange={account.updatePersonalizationDraft}
-        onSkip={account.skipPersonalization}
+        onSkip={account.pendingEmailVerification ? account.skipPersonalization : () => account.setAccountRoute("settings")}
       />
     );
   }

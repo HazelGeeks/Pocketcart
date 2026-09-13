@@ -66,7 +66,7 @@ export default function useNativeProductActions({
       const alreadyAdded = shopping.productIds.has(product.id);
       shopping.addProduct(product);
       shell.showToast(
-        alreadyAdded ? "Shopping list quantity increased." : "Added to shopping list.",
+        alreadyAdded ? "Cart quantity increased." : "Added to cart.",
       );
     },
     [shell, shopping],

@@ -1,3 +1,4 @@
+import { AlertManager } from "./AlertManager";
 import { Pressable, Text, View } from "react-native";
 import type { SaleAlert } from "../../services/saleAlerts";
 import { st } from "../../screens/nativeAppStyles";
@@ -7,6 +8,7 @@ import { AppIcon } from "../icons/AppIcon";
 import type { WatchlistItem } from "../../services/watchlist";
 
 type SaleAlertsPanelProps = {
+  onOpenProduct: (id: string) => void;
   monitoredItems: WatchlistItem[];
   activeIds: string[];
   unlimited: boolean;
@@ -21,7 +23,7 @@ type SaleAlertsPanelProps = {
 };
 
 export function SaleAlertsPanel({
-  monitoredItems, activeIds, unlimited, removingId, onRemoveProduct,
+  onOpenProduct, monitoredItems, activeIds, unlimited, removingId, onRemoveProduct,
   alerts,
   loading,
   markingRead,
@@ -31,19 +33,7 @@ export function SaleAlertsPanel({
 }: SaleAlertsPanelProps) {
   return (
     <View style={st.alertActivity}>
-      <View style={st.shoppingRecommendationCard}>
-        <Text style={st.shoppingSectionTitle}>Product alerts · {unlimited ? "Unlimited" : `${activeIds.length}/5`}</Text>
-        <Text style={st.shoppingFootnote}>Free: 5 products · Plus: unlimited. My Freezer is unlimited on both plans.</Text>
-        {monitoredItems.map(item => <View key={item.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <View style={{ flex: 1 }}><Text style={st.shoppingBodyText}>{item.name}</Text>
-            {!activeIds.includes(item.id) ? <Text style={st.shoppingFootnote}>Paused · free plan limit</Text> : null}
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Remove alert for ${item.name}`}
-            disabled={Boolean(removingId)} onPress={() => onRemoveProduct(item.id)} style={st.shoppingAddButton}>
-            <Text style={st.shoppingRefreshText}>{removingId === item.id ? "Removing…" : "Remove"}</Text>
-          </Pressable>
-        </View>)}
-      </View>
+      <AlertManager items={monitoredItems} activeIds={activeIds} unlimited={unlimited} removingId={removingId} onRemove={onRemoveProduct} onOpenProduct={onOpenProduct} />
       <View style={st.alertActivityHeader}>
         <Text accessibilityRole="header" style={st.alertActivityHeading}>
           Activity
@@ -84,7 +74,9 @@ export function SaleAlertsPanel({
         </View>
       ) : (
         alerts.map((alert) => (
-          <View
+          <Pressable accessibilityRole={alert.product_id ? "button" : undefined} disabled={!alert.product_id}
+            accessibilityLabel={alert.product_id ? `${alert.title}. ${alert.body}. ${formatAlertActivityTime(alert.created_at)}. View current price` : undefined}
+            onPress={() => { if (alert.product_id) onOpenProduct(alert.product_id); }}
             key={alert.id}
             style={[st.alertActivityRow, alert.read_at === null && st.alertActivityRowUnread]}
           >
@@ -103,7 +95,7 @@ export function SaleAlertsPanel({
               <Text style={st.alertActivityTitle}>{alert.title}</Text>
               <Text style={st.alertActivityBody}>{alert.body}</Text>
             </View>
-          </View>
+          </Pressable>
         ))
       )}
     </View>

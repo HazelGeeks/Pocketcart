@@ -32,7 +32,6 @@ type Props = {
 export function HomeCatalogPanel(props: Props) {
   const resetKey = `${props.category}|${props.query}|${props.sortMode}|${props.onSaleOnly}|${props.storeFilterName ?? ""}`;
   const showPhotoDiscovery =
-    !props.loading &&
     props.products.length > 0 &&
     !props.query.trim() &&
     props.category === "All" &&
@@ -64,7 +63,7 @@ export function HomeCatalogPanel(props: Props) {
           <Text style={st.itemMeta}>{props.actionMessage}</Text>
         </View>
       ) : null}
-      {props.loading ? (
+      {props.loading && props.products.length === 0 ? (
         <View style={st.rowCard}>
           <Text style={st.itemMeta}>Loading products...</Text>
         </View>

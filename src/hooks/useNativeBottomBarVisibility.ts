@@ -8,12 +8,14 @@ import {
 } from "../utils/nativeBottomBarVisibility";
 
 type Options = {
+  autoHide?: boolean;
   activeTab: NativeTabId;
   bottomInset: number;
   screenKey: string;
 };
 
 export default function useNativeBottomBarVisibility({
+  autoHide = true,
   activeTab,
   bottomInset,
   screenKey,
@@ -22,7 +24,7 @@ export default function useNativeBottomBarVisibility({
   const scrollStateRef = React.useRef(INITIAL_BOTTOM_BAR_SCROLL_STATE);
   const hiddenRef = React.useRef(false);
   const [hidden, setHidden] = React.useState(false);
-  const autoHideEnabled = shouldAutoHideBottomBar(activeTab);
+  const autoHideEnabled = autoHide && shouldAutoHideBottomBar(activeTab);
 
   const updateHidden = React.useCallback(
     (nextHidden: boolean) => {

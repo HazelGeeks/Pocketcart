@@ -57,10 +57,6 @@ export function EditProfilePanel({
 
   return (
     <View style={st.authPage}>
-      <View style={st.authIntro}>
-        <Text style={st.authTitle}>Edit profile</Text>
-        <Text style={st.authDescription}>Update the name and email associated with your PocketCart account.</Text>
-      </View>
       <View style={st.authCard}>
         {message ? <View style={st.settingsMessage} accessibilityRole="alert"><Text style={st.settingsMessageText}>{message}</Text></View> : null}
         <View style={st.authField}>

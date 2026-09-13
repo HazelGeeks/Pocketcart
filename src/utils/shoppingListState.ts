@@ -4,6 +4,7 @@ export type ShoppingListItem = {
   unit: string | null;
   quantity: number;
   category?: string;
+  thumbnailUrl?: string | null;
   completed?: boolean;
   freezerItemId?: string;
 };

@@ -23,7 +23,7 @@ export function SettingsProfileCard({
 }: Props) {
   if (!hasSupabaseEnv) {
     return (
-      <View style={st.settingsProfileCard}>
+      <View style={[st.settingsProfileCard, { padding: 16, backgroundColor: "transparent" }]}>
       <Text accessibilityRole="header" style={st.settingsAccountTitle}>Account</Text>
         <ProfileIdentity title="Account unavailable" subtitle="Account services are not configured." />
       </View>
@@ -33,24 +33,20 @@ export function SettingsProfileCard({
   if (profile) {
     const label = billing.loading ? "Checking…" : billing.planStatus === "plus" ? "Plus" : billing.planStatus === "general" ? "General" : billing.message ? "Check status" : "Checking…";
     return (
-      <View style={st.settingsProfileCard}>
-        <View style={styles.heading}>
-          <Text accessibilityRole="header" style={st.settingsAccountTitle}>Account</Text>
+      <View style={[st.settingsProfileCard, { padding: 16, backgroundColor: "transparent" }]}>
+        <View style={[styles.heading, { alignItems: "center" }]}>
+          <View style={{ flex: 1 }}><ProfileIdentity title={profile.full_name?.trim() || "PocketCart member"} subtitle={profile.email || "Signed in"} /></View>
           <Pressable accessibilityRole="button" accessibilityLabel={`Account plan: ${label}. View subscription details`} onPress={onOpenSubscription}
             style={[styles.badge, billing.planStatus === "plus" && styles.plusBadge]}>
             <Text style={[styles.badgeText, billing.planStatus === "plus" && styles.plusText]}>{label}</Text>
           </Pressable>
         </View>
-        <ProfileIdentity
-          title={profile.full_name?.trim() || "PocketCart member"}
-          subtitle={profile.email || "Signed in"}
-        />
       </View>
     );
   }
 
   return (
-    <View style={st.settingsProfileCard}>
+    <View style={[st.settingsProfileCard, { padding: 16, backgroundColor: "transparent" }]}>
       <Text accessibilityRole="header" style={st.settingsAccountTitle}>Account</Text>
       <ProfileIdentity
         title="Your PocketCart account"

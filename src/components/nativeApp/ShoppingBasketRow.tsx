@@ -1,4 +1,6 @@
 import React from "react";
+import { CartProductThumbnail } from "./CartProductThumbnail";
+import { CartSwipeRow } from "./CartSwipeRow";
 import { Pressable, Text, View } from "react-native";
 import type { ShoppingListItem } from "../../hooks/useShoppingList";
 import { money } from "../../screens/nativeAppData";
@@ -23,21 +25,15 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
   const stop = plan?.stops.find((candidate) => candidate.items.some((entry) => entry.productId === item.productId));
   const price = stop?.items.find((entry) => entry.productId === item.productId);
   return (
+    <CartSwipeRow completed={Boolean(item.completed)} onPurchase={() => onToggleCompleted(item.productId)} onDelete={() => onRemove(item.productId)}>
     <View style={[st.shoppingItemRow, item.completed && st.shoppingPurchasedRow]}>
       <View style={st.shoppingBasketHeading}>
-        <Pressable accessibilityRole="checkbox" accessibilityLabel={`${item.completed ? "Mark as still to buy" : "Mark as purchased"}: ${item.name}`}
-          accessibilityHint="Purchased items move to the Purchased section and are excluded from the remaining total."
-          aria-checked={Boolean(item.completed)} accessibilityState={{ checked: Boolean(item.completed) }} onPress={() => onToggleCompleted(item.productId)}
-          style={st.shoppingCheckTarget}>
-          <View style={[st.shoppingCheckbox, item.completed && st.shoppingCheckboxChecked]}>
-            {item.completed ? <AppIcon name="check" color={C.white} size={17} /> : null}
-          </View>
-        </Pressable>
+        <CartProductThumbnail uri={item.thumbnailUrl} category={item.category} name={item.name} />
         <View style={st.shoppingItemCopy}>
           <Text style={[st.shoppingProductName, item.completed && st.shoppingPurchasedName]}>{item.name}</Text>
           <Text style={st.shoppingFootnote} numberOfLines={1}>{[item.unit, !item.completed && stop?.storeName].filter(Boolean).join(" · ") || "Item"}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Edit quantity or remove ${item.name}`}
+        <Pressable accessibilityRole="button" accessibilityLabel={`Actions for ${item.name}`}
           accessibilityState={{ expanded: editing }} onPress={() => setEditing(!editing)} style={st.shoppingRowAmount}>
           {!item.completed ? <Text style={loading || !price ? st.shoppingFootnote : st.shoppingItemTotal}>
             {loading ? "Checking…" : price ? money.format(price.total) : isCustomShoppingItem(item) ? "Custom item" : "No current price"}
@@ -55,6 +51,11 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
         <Text style={st.shoppingRefreshText}>{item.freezerItemId ? "Added to My Freezer" : "Add to My Freezer"}</Text>
       </Pressable> : null}
       {editing ? <View style={st.shoppingBasketControls}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${item.completed ? "Mark as still to buy" : "Mark as purchased"}: ${item.name}`}
+          onPress={() => onToggleCompleted(item.productId)} style={st.shoppingAddButton}>
+          <AppIcon name="check" color={C.primaryDeep} size={18} />
+          <Text style={st.shoppingRefreshText}>{item.completed ? "To buy again" : "Purchased"}</Text>
+        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.name}`}
           onPress={() => onRemove(item.productId)} style={st.shoppingAddButton}>
           <AppIcon name="delete" color={C.textSoft} size={18} />
@@ -77,5 +78,6 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
         </View>
       </View> : null}
     </View>
+    </CartSwipeRow>
   );
 }

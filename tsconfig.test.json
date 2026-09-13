@@ -11,6 +11,8 @@
     "allowImportingTsExtensions": false
   },
   "include": [
+    "src/utils/calendarDays.ts",
+    "src/utils/cartSwipe.ts",
     "src/utils/familyInvite.ts",
     "src/utils/familyCartSync.ts",
     "src/routing/routeState.ts",

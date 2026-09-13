@@ -88,3 +88,15 @@ test('ambiguous locations remain selectable, while retailer searches focus the s
   map.selectLocation(map.locationResults[1]); map = await h.render(); assert.equal(map.region.latitude, 48);
   h.hook.unmount();
 });
+
+test('outside user locations retain real distances while centering on supported stores', async () => {
+  const h = setup();
+  h.options.onboardingState = { locationMode: 'share', locationLatitude: 37.77, locationLongitude: -122.42, postalCode: null };
+  let map = await h.render();
+  map.setFocusMode('user'); map = await h.render();
+  assert.equal(map.distanceScope, 'outside');
+  assert.equal(map.region.latitude, map.filteredStores[0].latitude);
+  assert.equal(map.userLocation.latitude, 37.77);
+  assert.ok(map.filteredStores[0].distance_km > 1000);
+  h.hook.unmount();
+});

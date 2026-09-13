@@ -79,7 +79,7 @@ function MyAccountSection(props: MorePanelProps) {
     <SettingsSection label="My account">
       {props.profile ? (
         <>
-          <SettingsLinkRow label="Personal information" value={props.profile.email || "Edit your profile"} icon="edit" onPress={props.onEditProfile} disabled={props.loading} />
+          <SettingsLinkRow label="Personal information" value="Name & email" icon="edit" onPress={props.onEditProfile} disabled={props.loading} />
           <View style={st.settingsDivider} />
         </>
       ) : null}
@@ -93,6 +93,7 @@ function MyAccountSection(props: MorePanelProps) {
 }
 
 function PreferencesSection({
+  message,
   locationLabel,
   alertsEnabled,
   settingsPostalCode,
@@ -108,7 +109,7 @@ function PreferencesSection({
 }: MorePanelProps) {
   return (
     <SettingsSection label="Preferences">
-      <SettingsLocationCard
+      <SettingsLocationCard message={message}
         locationLabel={locationLabel}
         settingsPostalCode={settingsPostalCode}
         loading={loading}
@@ -183,7 +184,7 @@ function AccountSection({
   if (!profile) return null;
 
   return (
-    <SettingsSection label="Account">
+    <SettingsSection label="Account actions">
       {deleteConfirming ? (
         <View style={st.settingsDangerBlock}>
           <Text style={st.settingsRowTitle}>Delete your account?</Text>

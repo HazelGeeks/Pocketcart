@@ -1,8 +1,10 @@
+import { BestBeforePicker } from "./BestBeforePicker";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 import type { FreezerItemDraft, FreezerStorageArea } from "../../utils/freezerItem";
 
 type Props = {
+  hideHeader?: boolean;
   draft: FreezerItemDraft;
   editing: boolean;
   saving: boolean;
@@ -11,22 +13,21 @@ type Props = {
   onSubmit: () => void;
 };
 
-export function MyFreezerItemForm({ draft, editing, saving, onCancel, onChange, onSubmit }: Props) {
+export function MyFreezerItemForm({ hideHeader = false, draft, editing, saving, onCancel, onChange, onSubmit }: Props) {
   const setField = <K extends keyof FreezerItemDraft>(key: K, value: FreezerItemDraft[K]) => {
     onChange({ ...draft, [key]: value });
   };
 
   return (
-    <View style={st.freezerForm}>
-      <View style={st.freezerFormHeader}>
+    <View style={[st.freezerForm, hideHeader && { backgroundColor: "transparent", padding: 0 }]}>
+      {!hideHeader ? <View style={st.freezerFormHeader}>
         <View style={st.freezerFormHeaderCopy}>
           <Text style={st.freezerFormTitle}>{editing ? "Edit food" : "Add food"}</Text>
-          <Text style={st.freezerHelp}>Keep quantities and best-before dates easy to scan.</Text>
         </View>
         <Pressable accessibilityRole="button" disabled={saving} onPress={onCancel} style={st.freezerTextButton}>
           <Text style={st.freezerTextButtonLabel}>Cancel</Text>
         </Pressable>
-      </View>
+      </View> : null}
 
       <LabeledField label="Food name">
         <TextInput
@@ -87,15 +88,7 @@ export function MyFreezerItemForm({ draft, editing, saving, onCancel, onChange, 
       </View>
 
       <LabeledField label="Best before · optional">
-        <TextInput
-          accessibilityLabel="Best-before date"
-          value={draft.expiresOn}
-          onChangeText={(value) => setField("expiresOn", value)}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#7A8B80"
-          maxLength={10}
-          style={st.freezerInput}
-        />
+        <BestBeforePicker value={draft.expiresOn} onChange={(value) => setField("expiresOn", value)} />
       </LabeledField>
 
       <LabeledField label="Note · optional">

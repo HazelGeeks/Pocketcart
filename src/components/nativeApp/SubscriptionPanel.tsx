@@ -12,9 +12,8 @@ export function SubscriptionPanel({ billing, signedIn, onSignIn }: Props) {
   const disabled = billing.busy || billing.loading;
   return <View style={st.shoppingPage}>
     <View style={st.shoppingRecommendationCard}>
-      <Text style={st.shoppingTotalHeadline}>Pocketcart Plus</Text>
-      <Text style={st.shoppingBodyText}>Free: sale alerts for 5 products. Plus: unlimited product alerts.</Text>
-      <Text style={st.shoppingFootnote}>My Freezer and expiry reminders stay free, with unlimited food storage.</Text>
+      <Text style={st.shoppingBodyText}>General: sale alerts for 5 products. Plus: unlimited product alerts.</Text>
+      <Text style={st.shoppingFootnote}>My Freezer and expiry reminders are included, with unlimited food storage.</Text>
       <Text style={st.shoppingBodyText}>{billing.isPlus ? "Your subscription is active." : billing.storeActive
         ? "Purchase found. Subscription verification is pending." : unavailable ? "Subscriptions are coming soon." : "Choose a subscription plan."}</Text>
       {billing.expirationDate ? <Text style={st.shoppingFootnote}>{billing.willRenew ? "Renews" : "Access until"} {new Date(billing.expirationDate).toLocaleDateString()}</Text> : null}
@@ -40,13 +39,11 @@ export function SubscriptionPanel({ billing, signedIn, onSignIn }: Props) {
       </Pressable>
       <Text style={st.shoppingFootnote}>Payment is charged to your store account after confirmation. The subscription renews automatically unless canceled in store settings. The store confirmation shows the final price and any applicable offer.</Text>
     </> : null}
-    {signedIn && unavailable && !billing.storeActive && !billing.isPlus && !billing.loading ?
-      <Text style={st.shoppingBodyText}>Plans are not available for purchase yet.</Text> : null}
     {signedIn ? <>
-      <Pressable accessibilityRole="button" disabled={disabled || !billing.configured} onPress={() => void billing.restore()} style={st.shoppingCompareToggle}>
+      <Pressable accessibilityRole="button" disabled={disabled || !billing.configured} onPress={() => void billing.restore()} style={[st.shoppingCompareToggle, (disabled || !billing.configured) && { opacity: 0.4 }]}>
         <Text style={st.shoppingRefreshText}>Restore purchases</Text>
       </Pressable>
-      <Pressable accessibilityRole="button" disabled={disabled || !billing.configured} onPress={() => void billing.manage()} style={st.shoppingCompareToggle}>
+      <Pressable accessibilityRole="button" disabled={disabled || !billing.configured} onPress={() => void billing.manage()} style={[st.shoppingCompareToggle, (disabled || !billing.configured) && { opacity: 0.4 }]}>
         <Text style={st.shoppingRefreshText}>Manage subscription</Text>
       </Pressable>
       <Pressable accessibilityRole="button" disabled={disabled} onPress={() => void billing.refresh()} style={st.shoppingCompareToggle}>

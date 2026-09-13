@@ -5,6 +5,8 @@ import { HomeCatalogPanel } from "./HomeCatalogPanel";
 import { ProductDetailPanel } from "./ProductDetailPanel";
 
 type Props = {
+  alertEnabled: boolean;
+  onManageAlerts: () => void;
   catalog: ReturnType<typeof useNativeCatalog>;
   favoriteStoreIds: string[];
   onAddProductToShoppingList: (product: MarketProduct) => void;
@@ -16,6 +18,8 @@ type Props = {
 };
 
 export function NativeHomeTab({
+  alertEnabled,
+  onManageAlerts,
   catalog,
   favoriteStoreIds,
   onAddProductToShoppingList,
@@ -56,10 +60,9 @@ export function NativeHomeTab({
   }
 
   return (
-    <ProductDetailPanel
+    <ProductDetailPanel alertEnabled={alertEnabled} onManageAlerts={onManageAlerts}
       product={catalog.selectedProduct}
       chart={catalog.chart}
-      previousPriceRows={catalog.previousPriceRows}
       actionMessage={catalog.actionMessage}
       historyMessage={catalog.historyMessage}
       historyLoading={catalog.historyLoading}

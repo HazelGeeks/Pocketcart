@@ -37,7 +37,8 @@ export function HomeProductList({
   onSelectProduct,
   onAddToShoppingList,
 }: Props) {
-  const [visibleCount, setVisibleCount] = React.useState(HOME_PRODUCT_BATCH_SIZE);
+  const [visibleCount, setVisibleCount] = React.useState(() => HOME_PRODUCT_BATCH_SIZE * (loadMoreSignal + 1));
+  const previousResetKey = React.useRef(resetKey);
   const lastLoadMoreSignalRef = React.useRef(loadMoreSignal);
   const favoriteStoreIdSet = React.useMemo(() => new Set(favoriteStoreIds), [favoriteStoreIds]);
   const sortedProducts = React.useMemo(
@@ -45,6 +46,8 @@ export function HomeProductList({
     [products, sortMode],
   );
   React.useEffect(() => {
+    if (previousResetKey.current === resetKey) return;
+    previousResetKey.current = resetKey;
     setVisibleCount(HOME_PRODUCT_BATCH_SIZE);
     lastLoadMoreSignalRef.current = loadMoreSignal;
   }, [resetKey]);
@@ -142,7 +145,7 @@ export function HomeProductList({
                 style={[st.homeListBtn, inList && st.homeListBtnActive]}
               >
                 <Text style={[st.homeListBtnText, inList && st.homeListBtnTextActive]}>
-                  {inList ? "In list" : "Add to list"}
+                  {inList ? "In cart" : "Add to cart"}
                 </Text>
               </Pressable>
             </View>

@@ -1,20 +1,18 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
-import { money, type PreviousPriceRow, type PriceChart } from "../../screens/nativeAppData";
+import { money, type PriceChart } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { selectLowestPriceByRetailer } from "../../utils/retailerPriceDisplay";
 
 type ProductPriceTrendSectionProps = {
   chart: PriceChart | null;
-  previousPriceRows: PreviousPriceRow[];
   historyLoading: boolean;
 };
 
 export function ProductPriceTrendSection({
   chart,
-  previousPriceRows,
   historyLoading,
 }: ProductPriceTrendSectionProps) {
   const lowestStoresByPeriod = chart ? [...chart.points].reverse() : [];
@@ -159,21 +157,6 @@ export function ProductPriceTrendSection({
         </>
       )}
 
-      <Text style={st.historyTitle}>Previous prices</Text>
-      {previousPriceRows.length === 0 ? (
-        <Text style={st.itemMeta}>No previous price points yet.</Text>
-      ) : (
-        previousPriceRows.map((row) => (
-          <View key={row.key} style={st.historyRow}>
-            <Text style={st.historyLabel}>{row.label}</Text>
-            <Text style={st.historyPrice}>{money.format(row.price)}</Text>
-            <Text style={[st.historyDiff, row.diff > 0 ? st.historyDiffUp : st.historyDiffDown]}>
-              {row.diff > 0 ? "+" : ""}
-              {money.format(row.diff)}
-            </Text>
-          </View>
-        ))
-      )}
     </View>
   );
 }

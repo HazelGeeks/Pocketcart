@@ -67,10 +67,10 @@ export default function useNativeStoreMap({
   const distanceScope = getStoreDistanceScope(filteredStores, Boolean(origin));
   const region = React.useMemo<Region>(() => {
     const center = focusMode === "search" && selected ? selected
-      : focusMode === "user" && userLocation ? userLocation
+      : focusMode === "user" && userLocation && distanceScope !== "outside" ? userLocation
       : activeStore ?? origin ?? DEFAULT_REGION;
     return { latitude: center.latitude, longitude: center.longitude, latitudeDelta: 0.045, longitudeDelta: 0.045 };
-  }, [focusMode, selected, userLocation, activeStore?.latitude, activeStore?.longitude, origin]);
+  }, [distanceScope, focusMode, selected, userLocation, activeStore?.latitude, activeStore?.longitude, origin]);
 
   React.useEffect(() => {
     mapRef.current?.animateToRegion(region, 220);

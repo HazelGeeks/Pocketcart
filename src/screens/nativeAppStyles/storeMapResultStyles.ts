@@ -3,14 +3,14 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const storeMapResultStyles = StyleSheet.create({
-  storeResultCard: { borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.white, overflow: "hidden", shadowColor: "#10281F", shadowOpacity: 0.09, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  storeResultCard: { borderBottomWidth: 1, borderColor: C.line, backgroundColor: C.white },
   storeResultCardActive: { borderColor: C.primaryLight },
   storeResultCardCompact: { shadowOpacity: 0, elevation: 0 },
-  storeResultMain: { minHeight: 78, flexDirection: "row", alignItems: "center", paddingHorizontal: 13, paddingVertical: 10 },
+  storeResultMain: { minHeight: 78, flexDirection: "row", alignItems: "center", paddingHorizontal: 0, paddingVertical: 10 },
   storeResultFocusContent: { minWidth: 0, flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
   storeFavoriteButton: { width: 44, height: 44, marginLeft: 8, borderRadius: 22, borderWidth: 1, borderColor: C.line, backgroundColor: C.white, alignItems: "center", justifyContent: "center" },
   storeFavoriteButtonActive: { borderColor: C.primary, backgroundColor: C.primaryGhost },
-  storeResultBadge: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: C.primaryGhost, borderWidth: 2, borderColor: C.primary },
+  storeResultBadge: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: C.primaryGhost, borderWidth: 2, borderColor: C.primary },
   storeResultBadgeWithLogo: { overflow: "hidden", backgroundColor: C.white, padding: 4 },
   storeResultLogo: { width: "100%", height: "100%" },
   storeResultBadgeText: { color: C.primaryDeep, fontSize: 14, fontFamily: F.extraBold },

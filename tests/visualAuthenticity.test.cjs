@@ -21,10 +21,10 @@ test("the grocery photo is local and licensed", () => {
   assert.doesNotMatch(discovery, /Photo picks|Catalog images only/);
 });
 
-test("photo discovery appears only after the default catalog has loaded", () => {
+test("default catalog keeps loaded content visible during background refresh", () => {
   const catalog = read("src/components/nativeApp/HomeCatalogPanel.tsx");
 
-  assert.match(catalog, /!props\.loading/);
+  assert.match(catalog, /props\.loading && props\.products\.length === 0/);
   assert.match(catalog, /props\.products\.length > 0/);
   assert.match(catalog, /props\.category === "All"/);
   assert.match(catalog, /props\.onSaleOnly/);
@@ -99,8 +99,9 @@ test("product details use divider sections instead of nested bordered cards", ()
   const detailStyles = read("src/screens/nativeAppStyles/productDetailStyles.ts");
   const historyStyles = read("src/screens/nativeAppStyles/productHistoryStyles.ts");
 
-  assert.match(panel, /productInfoSection/);
-  assert.match(panel, /style=\{st\.productInfoRow\}/);
+  assert.match(panel, /<ProductPriceTrendSection/);
+  assert.match(panel, /<ProductStoreComparison/);
+  assert.doesNotMatch(panel, /productInfoSection/);
   assert.doesNotMatch(panel, /productInfoGrid|productInfoCell/);
   assert.doesNotMatch(detailStyles, /productHeroCard:[^}]*borderWidth/);
   assert.match(detailStyles, /productHeroBody:[^}]*borderBottomWidth: 1/);
@@ -186,7 +187,7 @@ test("shopping uses list dividers and reserves tint for the recommended plan", (
   assert.match(row, /<AppIcon name="delete"/);
   assert.match(row, /disabled=\{item.quantity <= 1\}/);
   assert.match(row, /disabled=\{item.quantity >= 99\}/);
-  assert.match(panel, /Clear shopping list\?/);
+  assert.match(panel, /Clear Cart\?/);
   assert.match(read("src/components/nativeApp/ShoppingRecommendationPanel.tsx"), /accessibilityState=\{\{ expanded: showComparison \}\}/);
   assert.match(styles, /shoppingItemsCard:[^}]*borderTopWidth: 1/);
   assert.match(styles, /shoppingItemRow:[^}]*borderBottomWidth: 1/);
@@ -218,7 +219,7 @@ test("account uses a profile header and open divider menu groups", () => {
   assert.match(overview, /settingsLinkRow:[\s\S]*minHeight: 68/);
   assert.match(styles, /settingsSummaryRow:[^}]*borderBottomWidth/);
   assert.match(locationCard, />Shopping area</);
-  assert.match(locationCard, /editing \? \(/);
+  assert.match(locationCard, /<AppSheet title="Shopping area" visible=\{editing\}/);
   assert.match(locationCard, /editing \? "Done" : "Change"/);
   assert.match(locationCard, />Use my current location</);
   assert.match(locationCard, />Update</);

@@ -1,0 +1,21 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ts = require('typescript');
+test('route scroll positions are isolated and restored without cross-page leakage', () => {
+  let cursor = 0; const refs = [];
+  const react = { useRef(v) { const index = cursor++; refs[index] ??= { current: v }; return refs[index]; }, useCallback(fn) { return fn; } };
+  const mod = { exports: {} };
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/hooks/useNativeDetailScroll.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, esModuleInterop: true } }).outputText, { exports: mod.exports, require: () => react });
+  const render = key => { cursor = 0; return mod.exports.default(key); };
+  render('home:query').recordOffset(750);
+  assert.equal(render('detail:1').initialOffset, 0);
+  render('detail:1').recordOffset(300);
+  assert.equal(render('shopping').initialOffset, 0);
+  render('shopping').recordOffset(-30);
+  assert.equal(render('shopping').initialOffset, 0);
+  assert.equal(render('home:query').initialOffset, 750);
+  assert.equal(render('home:new-filter').initialOffset, 0);
+  assert.equal(render('detail:1').initialOffset, 300);
+});

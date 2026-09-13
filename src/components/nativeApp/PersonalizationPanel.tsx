@@ -22,6 +22,7 @@ const FREQUENCY_OPTIONS = Object.entries(SHOPPING_FREQUENCY_LABELS) as Array<
 >;
 
 type PersonalizationPanelProps = {
+  editing?: boolean;
   initialPreferences: ProfilePreferences;
   storeOptions: string[];
   saving: boolean;
@@ -31,6 +32,7 @@ type PersonalizationPanelProps = {
 };
 
 export function PersonalizationPanel({
+  editing = false,
   initialPreferences,
   storeOptions,
   saving,
@@ -43,28 +45,50 @@ export function PersonalizationPanel({
   const [favoriteStores, setFavoriteStores] = React.useState(initialPreferences.favoriteStores);
 
   React.useEffect(() => {
+    if (editing) return;
     onDraftChange({
       interestedCategories: interests,
       shoppingFrequency: frequency,
       favoriteStores,
       completed: initialPreferences.completed,
     });
-  }, [favoriteStores, frequency, initialPreferences.completed, interests, onDraftChange]);
+  }, [editing, favoriteStores, frequency, initialPreferences.completed, interests, onDraftChange]);
 
   const toggleValue = (value: string, values: string[], setValues: (next: string[]) => void) => {
     setValues(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
   };
 
+  const actions = (
+    <View style={[st.personalizationActions, editing && { flexDirection: "row", alignItems: "center" }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onSave({
+            interestedCategories: interests,
+            shoppingFrequency: frequency,
+            favoriteStores,
+            completed: true,
+          })}
+          style={[st.settingsButton, st.settingsButtonPrimary, editing && { flex: 1 }]}
+          disabled={saving}
+        >
+          <Text style={st.settingsButtonPrimaryText}>{saving ? "Saving..." : "Save Preferences"}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onSkip} style={st.personalizationSkipButton} disabled={saving}>
+          <Text style={st.authTextButtonLabel}>{editing ? "Cancel" : "Skip for now"}</Text>
+        </Pressable>
+      </View>
+  );
   return (
     <View style={st.personalizationPage}>
-      <View style={st.authIntro}>
+      {editing ? actions : null}
+      {!editing ? <View style={st.authIntro}>
         <Text style={st.authTitle}>Make PocketCart more useful</Text>
         <Text style={st.authDescription}>
           Three quick questions help us prioritize relevant deals. Every question is optional.
         </Text>
-      </View>
+      </View> : null}
 
-      <SurveyQuestion number="1" title="What do you usually shop for?" description="Choose as many as you like.">
+      <SurveyQuestion compact={editing} number="1" title="What do you usually shop for?" description="Choose as many as you like.">
         <View style={st.surveyChipWrap}>
           {INTEREST_OPTIONS.map((option) => (
             <ChoiceChip
@@ -77,7 +101,7 @@ export function PersonalizationPanel({
         </View>
       </SurveyQuestion>
 
-      <SurveyQuestion number="2" title="How often do you buy groceries?">
+      <SurveyQuestion compact={editing} number="2" title="How often do you buy groceries?">
         <View style={st.surveyOptionStack}>
           {FREQUENCY_OPTIONS.map(([value, label]) => (
             <Pressable
@@ -96,7 +120,7 @@ export function PersonalizationPanel({
         </View>
       </SurveyQuestion>
 
-      <SurveyQuestion number="3" title="Which stores do you visit most?" description="Select any stores you regularly use.">
+      <SurveyQuestion compact={editing} number="3" title="Which stores do you visit most?" description="Select any stores you regularly use.">
         <View style={st.surveyChipWrap}>
           {storeOptions.map((option) => (
             <ChoiceChip
@@ -109,43 +133,28 @@ export function PersonalizationPanel({
         </View>
       </SurveyQuestion>
 
-      <View style={st.personalizationActions}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onSave({
-            interestedCategories: interests,
-            shoppingFrequency: frequency,
-            favoriteStores,
-            completed: true,
-          })}
-          style={[st.settingsButton, st.settingsButtonPrimary]}
-          disabled={saving}
-        >
-          <Text style={st.settingsButtonPrimaryText}>{saving ? "Saving..." : "Save Preferences"}</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" onPress={onSkip} style={st.personalizationSkipButton} disabled={saving}>
-          <Text style={st.authTextButtonLabel}>Skip for now</Text>
-        </Pressable>
-      </View>
+      {!editing ? actions : null}
     </View>
   );
 }
 
 function SurveyQuestion({
+  compact,
   number,
   title,
   description,
   children,
 }: {
+  compact?: boolean;
   number: string;
   title: string;
   description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <View style={st.surveyCard}>
+    <View style={compact ? { gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#dce8df" } : st.surveyCard}>
       <View style={st.surveyQuestionHeader}>
-        <View style={st.surveyNumber}><Text style={st.surveyNumberText}>{number}</Text></View>
+        {!compact ? <View style={st.surveyNumber}><Text style={st.surveyNumberText}>{number}</Text></View> : null}
         <View style={st.settingsRowCopy}>
           <Text style={st.surveyTitle}>{title}</Text>
           {description ? <Text style={st.settingsHelp}>{description}</Text> : null}

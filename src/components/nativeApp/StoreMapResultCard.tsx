@@ -131,16 +131,10 @@ export function StoreResultCard({
             color={C.primaryDeep}
           />
         </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`View deals at ${getStoreDisplayName(store)}`} onPress={onViewDeals} style={st.headerIconButton}>
+          <AppIcon name="chevron-right" color={C.primaryDeep} size={20} />
+        </Pressable>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`View deals at ${getStoreDisplayName(store)}`}
-        onPress={onViewDeals}
-        style={st.storeResultDealsButton}
-      >
-        <Text style={st.storeResultDealsText}>View deals</Text>
-        <AppIcon name="chevron-right" color={C.primaryDeep} size={18} strokeWidth={2.2} />
-      </Pressable>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import useNativeAlertProduct from "../hooks/useNativeAlertProduct";
 import React from "react";
 import { FamilyProvider } from "../contexts/FamilyContext";
 import useFamilyNavigation from "../hooks/useFamilyNavigation";
@@ -103,8 +104,9 @@ function NativeAppContent() {
     shell,
     width: w,
   });
-  const detailScrollRef = useNativeDetailScroll(shell.activeTab === "home" && catalog.route === "detail" ? `detail:${catalog.selectedProduct?.id ?? ""}` : null);
-  const bottomBar = useNativeBottomBarVisibility({
+  const scrollKey = shell.activeTab === "home" ? (catalog.route === "detail" ? `detail:${catalog.selectedProduct?.id ?? ""}` : `home:${catalog.query}:${catalog.category}:${catalog.storeFilterName}:${catalog.sortMode}:${catalog.onSaleOnly}`) : `${shell.activeTab}:${shell.activeTab === "more" ? account.accountRoute : ""}`;
+  const { scrollRef: detailScrollRef, initialOffset, recordOffset } = useNativeDetailScroll(scrollKey);
+  const bottomBar = useNativeBottomBarVisibility({ autoHide: false,
     activeTab: shell.activeTab,
     bottomInset: insets.bottom,
     screenKey: `${shell.activeTab}:${catalog.route}:${account.accountRoute}`,
@@ -116,6 +118,7 @@ function NativeAppContent() {
     shell,
     shopping,
   });
+  const openAlertProduct = useNativeAlertProduct(shell.activeTab, catalog.openProduct, shell.showToast);
   const openAlerts = React.useCallback(() => {
     catalog.setRoute("catalog");
     shell.setActiveTab("alerts");
@@ -129,7 +132,7 @@ function NativeAppContent() {
   const handleAppScroll = React.useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
-      bottomBar.handleScroll(contentOffset.y);
+      recordOffset(contentOffset.y); bottomBar.handleScroll(contentOffset.y);
       if (shell.activeTab !== "home" || catalog.route !== "catalog") {
         homeWasNearEndRef.current = false;
         return;
@@ -144,17 +147,13 @@ function NativeAppContent() {
       }
       homeWasNearEndRef.current = nearEnd;
     },
-    [bottomBar.handleScroll, catalog.route, shell.activeTab],
+    [recordOffset, bottomBar.handleScroll, catalog.route, shell.activeTab],
   );
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination whenever catalog filters change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: filters reset pagination
   React.useEffect(() => {
-    homeWasNearEndRef.current = false;
+    homeWasNearEndRef.current = false; setHomeLoadMoreSignal(0);
   }, [
-    catalog.category,
-    catalog.onSaleOnly,
-    catalog.query,
-    catalog.sortMode,
-    catalog.storeFilterName,
+    catalog.category, catalog.onSaleOnly, catalog.query, catalog.sortMode, catalog.storeFilterName,
   ]);
   return (
     <Animated.View
@@ -163,11 +162,14 @@ function NativeAppContent() {
     >
       {shell.activeTab !== "map" ? (
         <NativeContextHeader
+          showCartHelp={shell.activeTab === "shopping"}
           title={header.title}
           topInset={insets.top}
           pad={pad}
           onBack={
-            shell.activeTab === "alerts"
+            shell.activeTab === "home" && catalog.route === "detail"
+              ? () => catalog.setRoute("catalog")
+              : shell.activeTab === "alerts"
               ? shell.openHome
               : shell.activeTab === "more" && account.accountRoute !== "settings"
                 ? account.closeSubpage
@@ -197,7 +199,7 @@ function NativeAppContent() {
           topInset={insets.top}
         />
       ) : (
-        <ScrollView ref={detailScrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+        <ScrollView key={scrollKey} ref={detailScrollRef} contentOffset={{ x: 0, y: initialOffset }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           style={st.scroll}
           contentContainerStyle={[
             st.scrollContent,
@@ -215,6 +217,8 @@ function NativeAppContent() {
         >
           {shell.activeTab === "home" ? (
             <NativeHomeTab
+              alertEnabled={Boolean(catalog.selectedProduct && alerts.monitoredItems.some(item => item.product_id === catalog.selectedProduct?.id && alerts.activeIds.includes(item.id)))}
+              onManageAlerts={openAlerts}
               catalog={catalog}
               favoriteStoreIds={favoriteStores.storeIds}
               onAddProductToShoppingList={productActions.addProductToShoppingList}
@@ -225,12 +229,11 @@ function NativeAppContent() {
               loadMoreSignal={homeLoadMoreSignal}
             />
           ) : null}
-          <NativeListTabs
+          <NativeListTabs onOpenProduct={openAlertProduct}
             onSignIn={() => { account.openSignIn(); shell.setActiveTab("more"); }}
             activeTab={shell.activeTab}
             alerts={alerts}
             onBrowseDeals={shell.openHome}
-            onOpenStore={map.openStore}
             shopping={shopping}
           />
           {shell.activeTab === "scan" ? (
@@ -265,12 +268,8 @@ function NativeAppContent() {
         requesting={permissions.requesting}
         message={onboarding.message}
         onChangePostalCode={onboarding.setPostalCode}
-        onShareLocation={() => {
-          void permissions.shareLocation("onboarding");
-        }}
-        onSetPostalLocation={() => {
-          void permissions.usePostalLocation("onboarding");
-        }}
+        onShareLocation={() => void permissions.shareLocation("onboarding")}
+        onSetPostalLocation={() => void permissions.usePostalLocation("onboarding")}
         onSkipLocation={permissions.skipLocation}
         onSetAlerts={onboarding.setAlertsEnabled}
         onFinish={() => {

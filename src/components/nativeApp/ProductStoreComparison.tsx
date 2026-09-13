@@ -19,7 +19,7 @@ export function ProductStoreComparison({ rows, loading }: ProductStoreComparison
         <Text style={st.itemMeta}>No current retailer prices yet.</Text>
       ) : (
         <>
-          <StorePriceBarChart rows={rows} />
+          {rows.length > 1 ? <StorePriceBarChart rows={rows} /> : null}
           {rows.map((row, index) => (
             <View key={row.id} style={[st.storeCompareRow, index === 0 && st.bestStoreRow]}>
               <View style={st.storeCompareTopRow}>

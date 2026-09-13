@@ -15,9 +15,6 @@ export const shoppingListStyles = StyleSheet.create({
   shoppingGroupButton: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" },
   shoppingGroupButtonActive: { borderColor: C.primary, backgroundColor: C.primaryGhost },
   shoppingUndoBar: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, borderRadius: 12, backgroundColor: C.primaryGhost },
-  shoppingCheckTarget: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
-  shoppingCheckbox: { width: 24, height: 24, borderWidth: 2, borderColor: C.primary, borderRadius: 7, alignItems: "center", justifyContent: "center" },
-  shoppingCheckboxChecked: { backgroundColor: C.primary },
   shoppingPurchasedName: { textDecorationLine: "line-through", color: C.textMuted },
   shoppingPurchasedRow: { minHeight: 72 },
   shoppingPage: {

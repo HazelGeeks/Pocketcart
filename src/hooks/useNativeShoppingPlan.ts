@@ -50,20 +50,20 @@ export default function useNativeShoppingPlan({
     () => items.filter((item) => !item.completed && !isCustomShoppingItem(item)).map((item) => item.productId).sort().join("|"),
     [items],
   );
-  const missingCategoryKey = items.filter((item) => !item.category && !isCustomShoppingItem(item))
+  const missingDetailsKey = items.filter((item) => !isCustomShoppingItem(item) && !productById.has(item.productId))
     .map((item) => item.productId).sort().join("|");
   React.useEffect(() => {
-    if (!loaded || activeTab !== "shopping" || !missingCategoryKey) return;
+    if (!loaded || activeTab !== "shopping" || !missingDetailsKey) return;
     let active = true;
-    void listProducts({ productIds: missingCategoryKey.split("|"), onSaleOnly: false, includePriceSummaries: false })
+    void listProducts({ productIds: missingDetailsKey.split("|"), onSaleOnly: false, includePriceSummaries: false })
       .then(({ data }) => { if (active) setCatalogDetails(data); })
-      .catch(() => { /* Keep uncategorized entries visible if metadata cannot be loaded. */ });
+      .catch(() => { /* Keep Cart entries visible with image placeholders if metadata cannot be loaded. */ });
     return () => { active = false; };
-  }, [activeTab, loaded, missingCategoryKey]);
+  }, [activeTab, loaded, missingDetailsKey]);
   const displayItems = React.useMemo(
     () => items.map((item) => {
       const product = productById.get(item.productId) ?? catalogDetails.find((entry) => entry.id === item.productId);
-      return product ? { ...item, name: productDisplayName(product), category: product.category || item.category } : item;
+      return product ? { ...item, name: productDisplayName(product), category: product.category || item.category, thumbnailUrl: product.thumbnail_url } : item;
     }),
     [catalogDetails, items, productById],
   );
@@ -99,11 +99,11 @@ export default function useNativeShoppingPlan({
       const result = await listLatestStorePricesForProducts(ids);
       if (requestId !== requestIdRef.current) return;
       setPrices(result.data);
-      setMessage(result.error ? "Could not load prices. Tap Refresh prices to retry." : null);
+      setMessage(result.error ? "Could not load prices. Reopen Cart to retry." : null);
     } catch {
       if (requestId !== requestIdRef.current) return;
       setPrices([]);
-      setMessage("Could not load prices. Tap Refresh prices to retry.");
+      setMessage("Could not load prices. Reopen Cart to retry.");
     } finally {
       if (requestId === requestIdRef.current) setPricesLoading(false);
     }

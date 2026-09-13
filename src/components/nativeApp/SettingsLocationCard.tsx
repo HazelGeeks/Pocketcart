@@ -1,10 +1,12 @@
 import React from "react";
+import { AppSheet } from "./AppSheet";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
 import { AppIcon } from "../icons/AppIcon";
 
 type Props = {
+  message: string | null;
   locationLabel: string;
   settingsPostalCode: string;
   loading: boolean;
@@ -14,6 +16,7 @@ type Props = {
 };
 
 export function SettingsLocationCard({
+  message,
   locationLabel,
   settingsPostalCode,
   loading,
@@ -21,6 +24,7 @@ export function SettingsLocationCard({
   onShareLocation,
   onSetPostalLocation,
 }: Props) {
+  const [attempted, setAttempted] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
 
   return (
@@ -39,7 +43,7 @@ export function SettingsLocationCard({
           accessibilityRole="button"
           accessibilityLabel={editing ? "Close location editor" : "Change shopping area"}
           accessibilityState={{ expanded: editing }}
-          onPress={() => setEditing((current) => !current)}
+          onPress={() => { setAttempted(false); setEditing((current) => !current); }}
           style={({ pressed }) => [
             st.settingsLocationAction,
             pressed && st.settingsRowPressed,
@@ -51,11 +55,12 @@ export function SettingsLocationCard({
         </Pressable>
       </View>
 
-      {editing ? (
+      <AppSheet title="Shopping area" visible={editing} busy={loading} onClose={() => setEditing(false)}>
         <View style={st.settingsLocationEditor}>
+          {attempted && message ? <Text accessibilityRole="alert" style={st.shoppingWarningText}>{message}</Text> : null}
           <Pressable
             accessibilityRole="button"
-            onPress={onShareLocation}
+            onPress={() => { setAttempted(true); onShareLocation(); }}
             style={({ pressed }) => [
               st.settingsCurrentLocationButton,
               pressed && st.settingsRowPressed,
@@ -81,7 +86,7 @@ export function SettingsLocationCard({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Update postal code"
-              onPress={onSetPostalLocation}
+              onPress={() => { setAttempted(true); onSetPostalLocation(); }}
               style={({ pressed }) => [
                 st.settingsPostalButton,
                 pressed && st.settingsPostalButtonPressed,
@@ -93,7 +98,7 @@ export function SettingsLocationCard({
             </Pressable>
           </View>
         </View>
-      ) : null}
+      </AppSheet>
     </View>
   );
 }

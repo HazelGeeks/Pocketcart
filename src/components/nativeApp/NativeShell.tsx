@@ -1,3 +1,4 @@
+import { CartHelpButton } from "./CartHelpButton";
 import { Animated, Pressable, Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { TABS, type NativeTabId } from "../../screens/nativeAppData";
@@ -22,6 +23,7 @@ type NativeContextHeaderProps = {
   onBack?: () => void;
   onOpenAlerts?: () => void;
   onOpenMenu?: () => void;
+  showCartHelp?: boolean;
   unreadAlertCount?: number;
 };
 
@@ -32,6 +34,7 @@ export function NativeContextHeader({
   onBack,
   onOpenAlerts,
   onOpenMenu,
+  showCartHelp,
   unreadAlertCount = 0,
 }: NativeContextHeaderProps) {
   return (
@@ -68,7 +71,7 @@ export function NativeContextHeader({
             {title}
           </Text>
         </View>
-        {onOpenAlerts || onOpenMenu ? (
+        {onOpenAlerts || onOpenMenu || showCartHelp ? (
           <View style={st.contextHeaderActions}>
             {onOpenAlerts ? (
               <Pressable
@@ -85,6 +88,7 @@ export function NativeContextHeader({
                 {unreadAlertCount > 0 ? <View style={st.headerAlertDot} /> : null}
               </Pressable>
             ) : null}
+            {showCartHelp ? <CartHelpButton /> : null}
             {onOpenMenu ? (
               <Pressable
                 accessibilityRole="button"

@@ -1,4 +1,5 @@
 import React from "react";
+import { AppSheet } from "./AppSheet";
 import { useFamily } from "../../contexts/FamilyContext";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import useMyFreezer from "../../hooks/useMyFreezer";
@@ -19,6 +20,7 @@ import { MyFreezerItemForm } from "./MyFreezerItemForm";
 export function MyFreezerPanel({ userId }: { userId: string }) {
   const family = useFamily();
   const freezer = useMyFreezer(userId);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [formOpen, setFormOpen] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<MyFreezerItem | null>(null);
   const [draft, setDraft] = React.useState<FreezerItemDraft>(emptyFreezerItemDraft);
@@ -69,11 +71,12 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
     <View style={st.freezerPage}>
       <View style={st.freezerIntroRow}>
         <View style={st.freezerIntroCopy}>
-          <Text style={st.freezerIntroTitle}>Know what you already have</Text>
+          <Text style={st.freezerIntroTitle}>{family.family ? `${family.family.name} · Shared` : "My food"}</Text>
           <Text style={st.freezerHelp}>
-            {family.family ? `Shared with ${family.family.name}. Everyone can update this food.` : "Track refrigerated and frozen food privately in your account."}
+            {`${freezer.items.length} items · ${attentionCount} use soon`}
           </Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Freezer reminder settings" onPress={() => setSettingsOpen(true)} style={st.headerIconButton}><AppIcon name="bell" color={C.primaryDeep} size={22} /></Pressable>
         {!formOpen ? (
           <Pressable accessibilityRole="button" onPress={openAdd} style={st.freezerAddButton}>
             <AppIcon name="add" color={C.white} size={18} strokeWidth={2.4} />
@@ -82,21 +85,16 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
         ) : null}
       </View>
 
-      <FreezerReminderSettings userId={userId} />
-      <View style={st.freezerSummaryRow}>
-        <Summary label="Refrigerator" value={fridgeItems.length} icon="fridge" />
-        <Summary label="Freezer" value={frozenItems.length} icon="freezer" />
-        <Summary label="Use soon" value={attentionCount} icon="calendar" />
-      </View>
-
+      <AppSheet title="Freezer reminders" visible={settingsOpen} onClose={() => setSettingsOpen(false)}><FreezerReminderSettings userId={userId} /></AppSheet>
       {freezer.message ? (
         <View style={st.freezerMessage} accessibilityRole="alert">
           <Text style={st.freezerMessageText}>{freezer.message}</Text>
         </View>
       ) : null}
 
-      {formOpen ? (
-        <MyFreezerItemForm
+      <AppSheet title={editingItem ? "Edit food" : "Add food"} visible={formOpen} busy={freezer.saving} onClose={closeForm}>
+        {freezer.message ? <Text accessibilityRole="alert" style={st.freezerMessageText}>{freezer.message}</Text> : null}
+        <MyFreezerItemForm hideHeader
           draft={draft}
           editing={Boolean(editingItem)}
           saving={freezer.saving}
@@ -104,7 +102,7 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
           onChange={setDraft}
           onSubmit={() => void submit()}
         />
-      ) : null}
+      </AppSheet>
 
       {freezer.loading ? (
         <View style={st.freezerLoading}>
@@ -142,16 +140,6 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
           />
         </View>
       )}
-    </View>
-  );
-}
-
-function Summary({ label, value, icon }: { label: string; value: number; icon: "fridge" | "freezer" | "calendar" }) {
-  return (
-    <View style={st.freezerSummaryCard}>
-      <AppIcon name={icon} color={C.primaryDeep} size={18} strokeWidth={2} />
-      <Text style={st.freezerSummaryValue}>{value}</Text>
-      <Text style={st.freezerSummaryLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }

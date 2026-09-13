@@ -1,5 +1,4 @@
 import { Image, Pressable, Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
 import type { MarketProduct } from "../../services/marketData";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
@@ -11,6 +10,8 @@ import { formatSignedPercent } from "./priceDisplay";
 import type { ProductPriceView } from "./productDetailData";
 
 type ProductDetailHeroProps = {
+  alertEnabled: boolean;
+  onManageAlerts: () => void;
   product: MarketProduct;
   priceView: ProductPriceView;
   addSubmitting: boolean;
@@ -22,6 +23,8 @@ type ProductDetailHeroProps = {
 };
 
 export function ProductDetailHero({
+  alertEnabled,
+  onManageAlerts,
   product,
   priceView,
   addSubmitting,
@@ -122,43 +125,24 @@ export function ProductDetailHero({
 
         <Text style={st.productDecisionText}>{decisionText}</Text>
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={addSubmitting}
-          onPress={onAddToWatchlist}
-          style={st.watchlistCtaBtn}
-        >
-          <Svg width={19} height={19} viewBox="0 0 24 24" fill="none">
-            <Path
-              d="m12 4 2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 16l-4.7 2.45.9-5.23-3.8-3.7 5.25-.76L12 4Z"
-              stroke={C.white}
-              strokeWidth={2.1}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </Svg>
-          <Text style={st.watchlistCtaText}>
-            {addSubmitting ? "Enabling..." : "Notify me when on sale"}
-          </Text>
-        </Pressable>
-
         <View style={st.productHeroActions}>
           <Pressable
             accessibilityRole="button"
             onPress={onAddToShoppingList}
             style={[
               st.shoppingDetailAddBtn,
+              { backgroundColor: C.primaryDeep },
               st.productHeroPrimaryAction,
-              isInShoppingList && st.shoppingDetailAddBtnActive,
+
             ]}
           >
             <Text
               style={[
                 st.shoppingDetailAddText,
-                isInShoppingList && st.shoppingDetailAddTextActive,
+                { color: C.white },
               ]}
             >
-              {isInShoppingList ? "Add another" : "Add to shopping list"}
+              {isInShoppingList ? "Add another" : "Add to cart"}
             </Text>
           </Pressable>
           {canOpenStore ? (
@@ -175,10 +159,9 @@ export function ProductDetailHero({
           ) : null}
         </View>
 
-        <Text style={st.watchlistCtaHelp}>
-          Sale alerts stay active for future weekly prices. Your shopping list
-          is for this trip only.
-        </Text>
+        <Pressable accessibilityRole="button" disabled={addSubmitting} onPress={alertEnabled ? onManageAlerts : onAddToWatchlist} style={st.shoppingAddButton}>
+          <Text style={st.shoppingRefreshText}>{addSubmitting ? "Enabling…" : alertEnabled ? "Alert enabled · Manage" : "Notify me when on sale"}</Text>
+        </Pressable>
       </View>
     </View>
   );
