@@ -17,3 +17,13 @@ test('double taps produce only one store purchase and restore reports no active 
  let state=await h.render('a');const first=state.purchase('monthly');const second=state.purchase('monthly');assert.equal(calls,1);finish(info);await Promise.all([first,second]);
  state=await h.render('a');assert.equal(state.busy,false);await state.restore();state=await h.render('a');assert.match(state.message,/No active Plus/);h.unmount();
 });
+test('account plan is verified even when store purchasing is not configured',async()=>{
+ for(const isPlus of [false,true]){
+  const h=billingHookHarness(service({billingConfigured:false,verifyBillingAccess:async()=>isPlus,loadBilling:async()=>{throw Error('Store SDK must not load')}}));
+  const state=await h.render('user-a');assert.equal(state.planStatus,isPlus?'plus':'general');assert.equal(state.isPlus,isPlus);h.unmount();
+ }
+});
+test('failed account plan verification is unknown rather than General',async()=>{
+ const h=billingHookHarness(service({verifyBillingAccess:async()=>{throw Error('offline')}}));
+ const state=await h.render('user-a');assert.equal(state.planStatus,'unknown');h.unmount();
+});

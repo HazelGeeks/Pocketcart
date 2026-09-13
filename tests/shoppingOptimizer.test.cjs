@@ -11,6 +11,20 @@ const entries = [
   { productId: "bread", name: "Bread", quantity: 1 },
 ];
 
+test("prices remain visible when a basket needs three or more stores", () => {
+  const items = ['squash', 'lettuce', 'fruit'].map(productId => ({ productId, name: productId, quantity: 2 }));
+  const prices = items.map((item, i) => ({ productId: item.productId, storeId: `store-${i}`, storeName: `Store ${i}`, storeArea: null, price: i + 1 }));
+  const result = buildShoppingRecommendation(items, prices);
+  assert.equal(result.bestSingle, null);
+  assert.equal(result.bestSplit, null);
+  assert.equal(result.recommended.stops.length, 3);
+  assert.equal(result.recommended.total, 12);
+  assert.deepEqual(result.unpricedProductIds, []);
+  const partial = buildShoppingRecommendation([...items, { productId: 'unpriced', name: 'Unpriced', quantity: 1 }], prices);
+  assert.equal(partial.recommended.total, 12);
+  assert.deepEqual(partial.unpricedProductIds, ['unpriced']);
+});
+
 test("shopping optimizer recommends the cheapest complete one-store basket", () => {
   const result = buildShoppingRecommendation(entries, [
     { productId: "milk", storeId: "a", storeName: "Store A", storeArea: null, price: 3 },

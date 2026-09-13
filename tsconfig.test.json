@@ -11,6 +11,8 @@
     "allowImportingTsExtensions": false
   },
   "include": [
+    "src/utils/familyInvite.ts",
+    "src/utils/familyCartSync.ts",
     "src/routing/routeState.ts",
     "src/screens/nativeAppData.ts",
     "src/constants/palette.ts",

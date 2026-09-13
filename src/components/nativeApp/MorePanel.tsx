@@ -1,10 +1,12 @@
 import { Linking, Pressable, Switch, Text, View } from "react-native";
+import type useBilling from "../../hooks/useBilling";
 import type { UserProfile } from "../../services/userProfile";
 import type { ProfilePreferences } from "../../services/profilePreferences";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
 import { SettingsLinkRow, SettingsSection } from "./SettingsMenu";
 import { SettingsLocationCard } from "./SettingsLocationCard";
+import { FamilyPanel } from "./FamilyPanel";
 import { SettingsProfileCard } from "./SettingsProfileCard";
 
 const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
@@ -12,6 +14,7 @@ const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
 const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
 
 type MorePanelProps = {
+  billing: ReturnType<typeof useBilling>;
   profile: UserProfile | null;
   loading: boolean;
   message: string | null;
@@ -52,6 +55,7 @@ export function MorePanel(props: MorePanelProps) {
       ) : null}
 
       <MyAccountSection {...props} />
+      <FamilyPanel onSignIn={props.onOpenSignIn} onSignUp={props.onOpenSignUp} />
       <PreferencesSection {...props} />
       <SupportSection />
       <AccountSection {...props} />
@@ -184,7 +188,7 @@ function AccountSection({
         <View style={st.settingsDangerBlock}>
           <Text style={st.settingsRowTitle}>Delete your account?</Text>
           <Text style={st.settingsHelp}>
-            This permanently deletes your profile, shopping preferences, My Freezer inventory, and saved price alert subscriptions.
+            This permanently deletes your profile, shopping preferences, My Freezer inventory, and saved price alert subscriptions. Shared family items remain with the family if other members are still present.
           </Text>
           <View style={st.settingsButtonRow}>
             <Pressable

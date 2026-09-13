@@ -195,12 +195,14 @@ function TabIcon({ tabId, active }: { tabId: NativeTabId; active: boolean }) {
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
           <Path
-            d="M7 5.5h12M7 12h12M7 18.5h12M3.5 5.5h.01M3.5 12h.01M3.5 18.5h.01"
+            d="M2 3h2l2.4 12h12.2L21 7H5M7 15l-1 3h13"
             stroke={color}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          <Circle cx="8" cy="21" r="1" fill={color} />
+          <Circle cx="18" cy="21" r="1" fill={color} />
         </Svg>
       );
     case "map":

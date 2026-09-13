@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from "react-native";
+import type useBilling from "../../hooks/useBilling";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import type { UserProfile } from "../../services/userProfile";
 import { hasSupabaseEnv } from "../../services/supabaseClient";
@@ -6,6 +7,8 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
 
 type Props = {
+  billing: ReturnType<typeof useBilling>;
+  onOpenSubscription: () => void;
   profile: UserProfile | null;
   onOpenSignIn: () => void;
   onOpenSignUp: () => void;
@@ -13,6 +16,8 @@ type Props = {
 
 export function SettingsProfileCard({
   profile,
+  billing,
+  onOpenSubscription,
   onOpenSignIn,
   onOpenSignUp,
 }: Props) {
@@ -26,9 +31,16 @@ export function SettingsProfileCard({
   }
 
   if (profile) {
+    const label = billing.loading ? "Checking…" : billing.planStatus === "plus" ? "Plus" : billing.planStatus === "general" ? "General" : billing.message ? "Check status" : "Checking…";
     return (
       <View style={st.settingsProfileCard}>
-      <Text accessibilityRole="header" style={st.settingsAccountTitle}>Account</Text>
+        <View style={styles.heading}>
+          <Text accessibilityRole="header" style={st.settingsAccountTitle}>Account</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Account plan: ${label}. View subscription details`} onPress={onOpenSubscription}
+            style={[styles.badge, billing.planStatus === "plus" && styles.plusBadge]}>
+            <Text style={[styles.badgeText, billing.planStatus === "plus" && styles.plusText]}>{label}</Text>
+          </Pressable>
+        </View>
         <ProfileIdentity
           title={profile.full_name?.trim() || "PocketCart member"}
           subtitle={profile.email || "Signed in"}
@@ -77,3 +89,11 @@ function ProfileIdentity({ title, subtitle }: { title: string; subtitle: string 
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  heading: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 12 },
+  badge: { minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: C.white, justifyContent: "center", alignItems: "center" },
+  plusBadge: { backgroundColor: C.primaryDeep },
+  badgeText: { color: C.primaryDeep, fontFamily: "Nunito_800ExtraBold", fontSize: 14 },
+  plusText: { color: C.white },
+});

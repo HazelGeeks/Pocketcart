@@ -30,7 +30,7 @@ exports.shoppingHookHarness = function shoppingHookHarness(storage, sync = {}) {
   };
   let nextId = 0;
   const mod = { exports: {} };
-  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/hooks/useShoppingList.ts', 'utf8'), {
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/hooks/usePersonalShoppingList.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText, {
     exports: mod.exports,

@@ -18,6 +18,7 @@ export function NativeListTabs({ activeTab, alerts, onBrowseDeals, onOpenStore, 
   if (activeTab === "shopping") {
     return (
       <ShoppingListPanel
+        familyName={shopping.familyName} onImportPersonal={shopping.importPersonal} personalCount={shopping.personalCount}
         userId={shopping.profileId} onSignIn={onSignIn} onStored={shopping.markStored}
         items={shopping.items}
         onAddProduct={shopping.addProduct}
@@ -33,6 +34,7 @@ export function NativeListTabs({ activeTab, alerts, onBrowseDeals, onOpenStore, 
         onChangeQuantity={shopping.changeQuantity}
         onClear={shopping.clear}
         onRefresh={() => {
+          void shopping.reload();
           void shopping.loadPrices();
         }}
         onRemove={shopping.removeProduct}

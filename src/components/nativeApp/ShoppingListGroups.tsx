@@ -40,6 +40,7 @@ export function ShoppingListGroups(props: Props) {
           </Pressable>
         ))}
       </View>
+      {groups.length > 0 ? <Text style={st.shoppingFootnote}>Check the box after you buy an item.</Text> : null}
       {groups.length === 0 && completed.length > 0 ? (
         <View style={st.shoppingEmptyCard}>
           <Text style={st.shoppingSectionTitle}>All done!</Text>

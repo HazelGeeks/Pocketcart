@@ -152,7 +152,7 @@ export function buildShoppingRecommendation(
   const recommended =
     bestSplit && (!bestSingle || bestSplit.total < bestSingle.total)
       ? bestSplit
-      : bestSingle ?? bestSplit;
+      : bestSingle ?? bestSplit ?? buildPlan(pricedEntries, storeIds, priceByProductAndStore, stores);
   const recommendedUsesPreferredStores = Boolean(
     recommended &&
     recommended.stops.length > 0 &&

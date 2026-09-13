@@ -4,7 +4,7 @@ function setup(){
  const rows=new Map();let user='u';
  const client={auth:{getUser:async()=>({data:{user:{id:user}},error:null})},from:()=>({upsert(payload){rows.set(payload.id,payload);return {select:()=>({single:async()=>({data:payload,error:null})})}}})};
  const mod={exports:{}};
- vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/services/myFreezer.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:mod.exports,require(name){if(name.includes('paginatedQuery'))return require('../.tmp-tests/utils/paginatedQuery.js');if(name.includes('freezerItem'))return require('../.tmp-tests/utils/freezerItem.js');if(name.includes('supabaseClient'))return {hasSupabaseEnv:true,supabase:client};throw Error(name)}});
+ vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/services/myFreezer.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports:mod.exports,require(name){if(name==='./family')return {loadFamily:async()=>null};if(name.includes('paginatedQuery'))return require('../.tmp-tests/utils/paginatedQuery.js');if(name.includes('freezerItem'))return require('../.tmp-tests/utils/freezerItem.js');if(name.includes('supabaseClient'))return {hasSupabaseEnv:true,supabase:client};throw Error(name)}});
  return {save:mod.exports.saveMyFreezerItem,rows,setUser:v=>user=v};
 }
 test('retries with the same transfer id create only one freezer record',async()=>{
@@ -16,4 +16,9 @@ test('invalid dates and account changes prevent a transfer write',async()=>{
  const h=setup(),draft={...emptyFreezerItemDraft(),name:'Milk',quantity:'2',expiresOn:'2026-02-30'};
  assert.match((await h.save({userId:'u',creationId:'id',draft})).error,/YYYY-MM-DD/);assert.equal(h.rows.size,0);
  h.setUser('other');assert.match((await h.save({userId:'u',creationId:'id',draft:{...draft,expiresOn:''}})).error,/sign in/);assert.equal(h.rows.size,0);
+});
+test('changed family prevents a transfer into a different inventory',async()=>{
+ const h=setup(),draft={...emptyFreezerItemDraft(),name:'Milk'};
+ const result=await h.save({userId:'u',creationId:'id',draft,expectedFamilyId:'old-family'});
+ assert.match(result.error,/family changed/);assert.equal(h.rows.size,0);
 });

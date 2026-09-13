@@ -1,4 +1,5 @@
 import React from "react";
+import { useFamily } from "../../contexts/FamilyContext";
 import { randomUUID } from "expo-crypto";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +13,8 @@ import { MyFreezerItemForm } from "./MyFreezerItemForm";
 type Props = { item: ShoppingListItem; userId: string; onClose: () => void;
   onSaved: (productId: string, freezerId: string, warning: string | null) => void };
 export function ShoppingFreezerSheet({ item, userId, onClose, onSaved }: Props) {
+  const family = useFamily();
+  const [expectedFamilyId] = React.useState(family.family?.id ?? null);
   const [draft, setDraft] = React.useState(() => shoppingItemFreezerDraft(item));
   const [creationId] = React.useState(() => randomUUID());
   const [saving, setSaving] = React.useState(false);
@@ -23,7 +26,7 @@ export function ShoppingFreezerSheet({ item, userId, onClose, onSaved }: Props) 
     if (submitting.current) return;
     submitting.current = true; setSaving(true); setMessage(null);
     try {
-      const result = await saveMyFreezerItem({ userId, creationId, draft });
+      const result = await saveMyFreezerItem({ userId, creationId, draft, expectedFamilyId });
       if (!alive.current) return;
       if (result.error || !result.data) { setMessage(result.error ?? "Food could not be saved. Please try again."); return; }
       const warning = await refreshFreezerReminders(userId);
@@ -36,7 +39,7 @@ export function ShoppingFreezerSheet({ item, userId, onClose, onSaved }: Props) 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 12 }}>
           <Text style={st.shoppingSectionTitle}>Add to My Freezer</Text>
-          <Text style={st.shoppingFootnote}>Check storage and best-before date. Your purchased item stays in Shopping.</Text>
+          <Text style={st.shoppingFootnote}>Check storage and best-before date. Your purchased item stays in Cart.</Text>
           {message ? <Text accessibilityRole="alert" style={st.shoppingWarningText}>{message}</Text> : null}
           <MyFreezerItemForm draft={draft} editing={false} saving={saving} onChange={setDraft}
             onCancel={() => { if (!submitting.current) onClose(); }} onSubmit={() => void save()} />

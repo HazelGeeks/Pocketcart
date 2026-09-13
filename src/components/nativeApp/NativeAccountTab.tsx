@@ -31,6 +31,7 @@ export function NativeAccountTab({
   if (account.accountRoute === "settings") {
     return (
       <MorePanel
+        billing={account.billing}
         onOpenSubscription={() => account.setAccountRoute("subscription")}
         profile={account.profile}
         loading={account.moreLoading}

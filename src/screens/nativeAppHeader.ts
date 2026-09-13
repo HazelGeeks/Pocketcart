@@ -13,7 +13,7 @@ export function getNativeHeaderContent(options: HeaderOptions) {
     return options.homeRoute === "detail" ? { title: "Product Details" } : { title: "Discover" };
   }
   if (options.activeTab === "shopping") {
-    return { title: "Shopping List" };
+    return { title: "Cart" };
   }
   if (options.activeTab === "map") {
     return { title: "Stores" };

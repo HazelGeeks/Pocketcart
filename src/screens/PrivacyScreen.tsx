@@ -36,7 +36,7 @@ Personal Information Provided by You:
 • Account Data — name and email address when you create an account. Authentication credentials are processed by Supabase Auth; we do not store plaintext passwords.
 • Watchlist Data — products you choose to track, target prices, in-app alerts, and budget preferences.
 • Shopping Profile Data — optional product interests, grocery shopping frequency, and favorite stores that you provide to personalize deal recommendations.
-• My Freezer Data — food names, storage location, quantity, unit, best-before date, and notes you choose to save in your private account inventory.
+• My Freezer Data — food names, storage location, quantity, unit, best-before date, and notes you choose to save in your personal or shared family inventory.
 • Food Scan Data — camera images you choose to capture for food or ingredient-label analysis, detected barcodes, and the resulting analysis. PocketCart does not add these captures to your device photo library.
 • Support & Deletion Request Data — account email, platform, request details, and technical request metadata when you submit a support or account deletion request.
 • Usage Data — how you interact with the App, including searches performed, features used, and time spent.
@@ -50,7 +50,7 @@ Information Automatically Collected:
     title: "3. How We Use Your Information",
     body: `We use the information we collect or receive for the following purposes:
 
-• To provide and maintain the Service — including price comparison, watchlist tracking, budget planning, and your private My Freezer inventory.
+• To provide and maintain the Service — including price comparison, watchlist tracking, budget planning, and your personal or shared family My Freezer inventory.
 • To provide in-app alerts — price drop highlights, watchlist updates, and other service-related alert states you have opted into.
 • To provide Food Scan — sending the image you choose to capture to an image-analysis provider and returning visible food, ripeness, ingredient-label, allergen, and general nutrition guidance.
 • To improve our Service — we analyze usage patterns to enhance app performance, fix bugs, and develop new features.
@@ -62,6 +62,8 @@ We do not sell your personal information to third parties. We do not use your da
   {
     title: "4. Data Sharing & Third Parties",
     body: `We may share your information in the following situations:
+
+• Family Sharing — When you create or join a family, members can see your display name and read, add, edit, and remove items in the shared Cart and My Freezer. Existing personal items are shared only when you choose to copy or move them. Leaving removes your access; shared items remain with the remaining members, including after account deletion. If the last member leaves or deletes their account, the shared inventory is deleted. Product alerts and subscription access remain personal.
 
 • Subscriptions — If you use in-app subscriptions, Apple or Google processes the payment. RevenueCat processes your app account identifier and purchase/subscription status to validate access and restore purchases. Pocketcart does not receive your full payment card details.
 

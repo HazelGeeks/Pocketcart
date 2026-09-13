@@ -1,0 +1,25 @@
+name: Family Sharing Backend Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: family-sharing-backend-release
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Apply only the family sharing migration
+        run: node scripts/deploy-family-sharing.mjs
+      - name: Verify invitation and family access with disposable accounts
+        run: node scripts/test-live-family-sharing.mjs

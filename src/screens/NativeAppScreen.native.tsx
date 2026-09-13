@@ -1,4 +1,6 @@
 import React from "react";
+import { FamilyProvider } from "../contexts/FamilyContext";
+import useFamilyNavigation from "../hooks/useFamilyNavigation";
 import {
   Animated,
   type NativeScrollEvent,
@@ -33,7 +35,8 @@ import useNativeStoreMap from "../hooks/useNativeStoreMap";
 import { isScrollNearEnd } from "../utils/infiniteScroll";
 import { getNativeHeaderContent } from "./nativeAppHeader";
 import { st } from "./nativeAppStyles";
-export default function NativeAppScreen() {
+export default function NativeAppScreen() { return <FamilyProvider><NativeAppContent /></FamilyProvider>; }
+function NativeAppContent() {
   const { pad, w } = useLayout();
   const insets = useSafeAreaInsets();
   const shell = useNativeShellState();
@@ -52,6 +55,7 @@ export default function NativeAppScreen() {
     onOpenMore: shell.openMore,
     showToast: shell.showToast,
   });
+  useFamilyNavigation(account, shell.openMore, onboarding.setVisible);
   const favoriteStores = useFavoriteStores(account.profile?.id ?? null, shell.showToast);
   const catalog = useNativeCatalog({
     activeTab: shell.activeTab,
@@ -182,7 +186,6 @@ export default function NativeAppScreen() {
           unreadAlertCount={alerts.unreadAlertCount}
         />
       ) : null}
-
       {shell.activeTab === "map" ? (
         <NativeMapTab
           bottomInset={insets.bottom}
@@ -243,7 +246,6 @@ export default function NativeAppScreen() {
           ) : null}
         </ScrollView>
       )}
-
       {shell.activeTab !== "more" || account.accountRoute === "settings" ? (
         <NativeBottomTabs
           activeTab={shell.activeTab}
@@ -255,7 +257,6 @@ export default function NativeAppScreen() {
           onSelectTab={navigation.selectTab}
         />
       ) : null}
-
       <NativeAppOnboarding
         visible={onboarding.visible}
         step={onboarding.step}
@@ -276,7 +277,6 @@ export default function NativeAppScreen() {
           void permissions.finishAlertsStep();
         }}
       />
-
       {shell.toastMessage ? (
         <View
           pointerEvents="none"

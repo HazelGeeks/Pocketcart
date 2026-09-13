@@ -6,6 +6,7 @@ import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
 import type { ShoppingPlan } from "../../utils/shoppingOptimizer";
 import { AppIcon } from "../icons/AppIcon";
+import { isCustomShoppingItem } from "../../utils/shoppingListState";
 
 type Props = {
   item: ShoppingListItem;
@@ -24,7 +25,8 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
   return (
     <View style={[st.shoppingItemRow, item.completed && st.shoppingPurchasedRow]}>
       <View style={st.shoppingBasketHeading}>
-        <Pressable accessibilityRole="checkbox" accessibilityLabel={`Purchased ${item.name}`}
+        <Pressable accessibilityRole="checkbox" accessibilityLabel={`${item.completed ? "Mark as still to buy" : "Mark as purchased"}: ${item.name}`}
+          accessibilityHint="Purchased items move to the Purchased section and are excluded from the remaining total."
           aria-checked={Boolean(item.completed)} accessibilityState={{ checked: Boolean(item.completed) }} onPress={() => onToggleCompleted(item.productId)}
           style={st.shoppingCheckTarget}>
           <View style={[st.shoppingCheckbox, item.completed && st.shoppingCheckboxChecked]}>
@@ -37,8 +39,8 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={`Edit quantity or remove ${item.name}`}
           accessibilityState={{ expanded: editing }} onPress={() => setEditing(!editing)} style={st.shoppingRowAmount}>
-          {!item.completed ? <Text style={st.shoppingItemTotal} accessibilityLabel={loading ? "Checking price" : price ? undefined : "No tracked price"}>
-            {loading ? "…" : price ? money.format(price.total) : "—"}
+          {!item.completed ? <Text style={loading || !price ? st.shoppingFootnote : st.shoppingItemTotal}>
+            {loading ? "Checking…" : price ? money.format(price.total) : isCustomShoppingItem(item) ? "Custom item" : "No current price"}
           </Text> : null}
           <View style={st.shoppingQuantityPill}>
             <Text style={st.shoppingRefreshText}>×{item.quantity}</Text>

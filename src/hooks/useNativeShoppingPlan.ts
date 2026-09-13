@@ -27,6 +27,7 @@ export default function useNativeShoppingPlan({
   const [message, setMessage] = React.useState<string | null>(null);
   const requestIdRef = React.useRef(0);
   const {
+    familyName, importPersonal, personalCount, reload,
     markStored,
     addCustomItem,
     toggleCompleted,
@@ -94,11 +95,18 @@ export default function useNativeShoppingPlan({
     }
 
     setPricesLoading(true);
-    const result = await listLatestStorePricesForProducts(ids);
-    if (requestId !== requestIdRef.current) return;
-    setPrices(result.data);
-    setMessage(result.error);
-    setPricesLoading(false);
+    try {
+      const result = await listLatestStorePricesForProducts(ids);
+      if (requestId !== requestIdRef.current) return;
+      setPrices(result.data);
+      setMessage(result.error ? "Could not load prices. Tap Refresh prices to retry." : null);
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setPrices([]);
+      setMessage("Could not load prices. Tap Refresh prices to retry.");
+    } finally {
+      if (requestId === requestIdRef.current) setPricesLoading(false);
+    }
   }, [productKey]);
 
   React.useEffect(() => {
@@ -107,6 +115,7 @@ export default function useNativeShoppingPlan({
   }, [activeTab, loadPrices, loaded]);
 
   return {
+    familyName, importPersonal, personalCount, reload,
     profileId,
     markStored,
     addCustomItem,

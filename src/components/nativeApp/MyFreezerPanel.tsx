@@ -1,4 +1,5 @@
 import React from "react";
+import { useFamily } from "../../contexts/FamilyContext";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import useMyFreezer from "../../hooks/useMyFreezer";
 import type { MyFreezerItem } from "../../services/myFreezer";
@@ -16,10 +17,13 @@ import { FreezerReminderSettings } from "./FreezerReminderSettings";
 import { MyFreezerItemForm } from "./MyFreezerItemForm";
 
 export function MyFreezerPanel({ userId }: { userId: string }) {
+  const family = useFamily();
   const freezer = useMyFreezer(userId);
   const [formOpen, setFormOpen] = React.useState(false);
   const [editingItem, setEditingItem] = React.useState<MyFreezerItem | null>(null);
   const [draft, setDraft] = React.useState<FreezerItemDraft>(emptyFreezerItemDraft);
+
+  React.useEffect(() => { setFormOpen(false); setEditingItem(null); }, [family.family?.id]);
 
   const openAdd = () => {
     setEditingItem(null);
@@ -50,7 +54,7 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
       freezer.setMessage(validated.error);
       return;
     }
-    const saved = await freezer.save(draft, editingItem?.id);
+    const saved = await freezer.save(draft, editingItem?.id, editingItem?.updated_at);
     if (saved) closeForm();
   };
 
@@ -67,7 +71,7 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
         <View style={st.freezerIntroCopy}>
           <Text style={st.freezerIntroTitle}>Know what you already have</Text>
           <Text style={st.freezerHelp}>
-            Track refrigerated and frozen food privately in your account.
+            {family.family ? `Shared with ${family.family.name}. Everyone can update this food.` : "Track refrigerated and frozen food privately in your account."}
           </Text>
         </View>
         {!formOpen ? (

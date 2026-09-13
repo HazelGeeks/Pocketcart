@@ -4,7 +4,7 @@ import type { CustomerInfo, PurchasesPackage } from "react-native-purchases";
 import { billingConfigured, billingError, loadBilling, manageBillingSubscription, PLUS_ENTITLEMENT,
   purchaseBillingPackage, purchasesEnabled, restoreBillingPurchases, setBillingUser, verifyBillingAccess, observeBillingChanges } from "../services/billingClient";
 
-type Snapshot = { owner: string; info: CustomerInfo; packages: PurchasesPackage[]; isPlus: boolean };
+type Snapshot = { owner: string; info: CustomerInfo | null; packages: PurchasesPackage[]; isPlus: boolean | null };
 export default function useBilling(userId: string | null) {
   const [snapshot, setSnapshot] = React.useState<Snapshot | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -20,10 +20,13 @@ export default function useBilling(userId: string | null) {
     try {
       await setBillingUser(userId);
       if (request !== generation.current || currentUser.current !== userId) return;
-      if (!userId || !billingConfigured) { setSnapshot(null); return; }
-      const result = await loadBilling(userId);
-      let isPlus = false;
+      if (!userId) { setSnapshot(null); return; }
+      let result: { info: CustomerInfo | null; packages: PurchasesPackage[] } = { info: null, packages: [] };
+      let isPlus: boolean | null = null;
       let warning: string | null = null;
+      if (billingConfigured) {
+        try { result = await loadBilling(userId); } catch (error) { warning = billingError(error); }
+      }
       try { isPlus = await verifyBillingAccess(); } catch (error) { warning = billingError(error); }
       if (request !== generation.current || currentUser.current !== userId) return;
       setSnapshot({ ...result, owner: userId, isPlus }); setMessage(warning);
@@ -63,8 +66,9 @@ export default function useBilling(userId: string | null) {
     finally { operating.current = false; setBusy(false); }
   };
   const state = snapshot?.owner === userId ? snapshot : null;
-  const entitlement = state?.info.entitlements.active[PLUS_ENTITLEMENT];
+  const entitlement = state?.info?.entitlements.active[PLUS_ENTITLEMENT];
   return {
+    planStatus: state?.isPlus === true ? "plus" as const : state?.isPlus === false ? "general" as const : "unknown" as const,
     configured: billingConfigured, purchasesEnabled, isPlus: state?.isPlus ?? false,
     storeActive: Boolean(entitlement), expirationDate: entitlement?.expirationDate ?? null,
     willRenew: entitlement?.willRenew ?? false, packages: state?.packages ?? [], loading, busy, message,
