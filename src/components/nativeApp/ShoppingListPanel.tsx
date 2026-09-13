@@ -1,3 +1,5 @@
+import React from "react";
+import { ShoppingFreezerSheet } from "./ShoppingFreezerSheet";
 import { Alert, Pressable, Text, View } from "react-native";
 import type { ShoppingListItem } from "../../hooks/useShoppingList";
 import { money } from "../../screens/nativeAppData";
@@ -11,6 +13,9 @@ import { ShoppingListGroups } from "./ShoppingListGroups";
 import { ShoppingRecommendationPanel } from "./ShoppingRecommendationPanel";
 
 type ShoppingListPanelProps = {
+  userId: string | null;
+  onSignIn: () => void;
+  onStored: (productId: string, freezerId: string) => void;
   items: ShoppingListItem[];
   loading: boolean;
   listLoading: boolean;
@@ -31,6 +36,18 @@ type ShoppingListPanelProps = {
 
 export function ShoppingListPanel(props: ShoppingListPanelProps) {
   const { items, listLoading, loading, recommendation } = props;
+  const [transferItem, setTransferItem] = React.useState<ShoppingListItem | null>(null);
+  const [transferMessage, setTransferMessage] = React.useState<string | null>(null);
+  React.useEffect(() => { setTransferItem(null); setTransferMessage(null); }, [props.userId]);
+  const addToFreezer = (item: ShoppingListItem) => {
+    if (!props.userId) {
+      Alert.alert("Sign in to use My Freezer", "Your shopping list will stay here.", [
+        { text: "Cancel", style: "cancel" }, { text: "Sign in", onPress: props.onSignIn },
+      ]);
+      return;
+    }
+    setTransferMessage(null); setTransferItem(item);
+  };
   const pending = items.filter((item) => !item.completed);
   const plan = loading ? null : recommendation.recommended;
   const partial = recommendation.unpricedProductIds.length > 0;
@@ -42,6 +59,12 @@ export function ShoppingListPanel(props: ShoppingListPanelProps) {
 
   return (
     <View style={st.shoppingPage}>
+      {transferItem && props.userId ? <ShoppingFreezerSheet key={`${props.userId}:${transferItem.productId}`} item={transferItem} userId={props.userId}
+        onClose={() => setTransferItem(null)} onSaved={(id, freezerId, warning) => {
+          props.onStored(id, freezerId); setTransferItem(null);
+          setTransferMessage(warning ? `Saved to My Freezer. ${warning}` : "Added to My Freezer.");
+        }} /> : null}
+      {transferMessage ? <Text accessibilityLiveRegion="polite" style={st.shoppingRefreshText}>{transferMessage}</Text> : null}
       <View style={st.shoppingHeaderRow}>
         <View style={st.shoppingHeaderCopy}>
           <Text style={st.shoppingBodyText}>{listLoading ? "Loading…" : `${pending.length} to buy`}</Text>
@@ -74,7 +97,7 @@ export function ShoppingListPanel(props: ShoppingListPanelProps) {
             <Text style={st.shoppingEmptyActionText}>Browse deals</Text>
           </Pressable>
         </View>
-      ) : <ShoppingListGroups items={items} loading={loading} plan={plan}
+      ) : <ShoppingListGroups onAddToFreezer={addToFreezer} items={items} loading={loading} plan={plan}
         onChangeQuantity={props.onChangeQuantity} onRemove={props.onRemove} onToggleCompleted={props.onToggleCompleted} />}
       {!listLoading && pending.length > 0 ? <ShoppingRecommendationPanel itemCount={pending.length}
         recommendation={recommendation} loading={loading} onRefresh={props.onRefresh} onOpenStore={props.onOpenStore} /> : null}

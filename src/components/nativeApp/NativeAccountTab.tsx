@@ -9,6 +9,7 @@ import {
   EmailVerificationPanel,
   ResetPasswordPanel,
 } from "./AccountFlowPanels";
+import { SubscriptionPanel } from "./SubscriptionPanel";
 import { MorePanel } from "./MorePanel";
 import { MyFreezerPanel } from "./MyFreezerPanel";
 import { PersonalizationPanel } from "./PersonalizationPanel";
@@ -26,9 +27,11 @@ export function NativeAccountTab({
   permissions,
   storeOptions,
 }: Props) {
+  if (account.accountRoute === "subscription") return <SubscriptionPanel billing={account.billing} signedIn={Boolean(account.profile)} onSignIn={account.openSignIn} />;
   if (account.accountRoute === "settings") {
     return (
       <MorePanel
+        onOpenSubscription={() => account.setAccountRoute("subscription")}
         profile={account.profile}
         loading={account.moreLoading}
         message={account.moreMessage}

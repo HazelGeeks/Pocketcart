@@ -43,6 +43,7 @@ exports.shoppingHookHarness = function shoppingHookHarness(storage, sync = {}) {
         replaceSyncedShoppingListItems: sync.write ?? (async () => null),
       };
       if (name.includes('productNames')) return { productDisplayName: (p) => p.english_name };
+      if (name.includes('shoppingFreezer')) return require('../../.tmp-tests/utils/shoppingFreezer.js');
       if (name.includes('shoppingListState')) return require('../../.tmp-tests/utils/shoppingListState.js');
       if (name.includes('shoppingListStorage')) return require('../../.tmp-tests/utils/shoppingListStorage.js');
       throw Error(name);

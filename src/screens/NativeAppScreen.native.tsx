@@ -15,6 +15,7 @@ import { NativeHomeTab } from "../components/nativeApp/NativeHomeTab";
 import { NativeListTabs } from "../components/nativeApp/NativeListTabs";
 import { NativeMapTab } from "../components/nativeApp/NativeMapTab";
 import { NativeBottomTabs, NativeContextHeader } from "../components/nativeApp/NativeShell";
+import useFreezerReminders from "../hooks/useFreezerReminders";
 import useFavoriteStores from "../hooks/useFavoriteStores";
 import useLayout from "../hooks/useLayout";
 import useNativeAccount from "../hooks/useNativeAccount";
@@ -88,6 +89,8 @@ export default function NativeAppScreen() {
     profileId: account.profile?.id ?? null,
     productById: catalog.productById,
   });
+  const openFreezerReminder = React.useCallback(() => { account.setAccountRoute("freezer"); shell.setActiveTab("more"); }, [account.setAccountRoute, shell.setActiveTab]);
+  useFreezerReminders(account.profile?.id ?? null, openFreezerReminder);
   const navigation = useNativeBackNavigation({
     account,
     catalog,
@@ -109,7 +112,6 @@ export default function NativeAppScreen() {
     shell,
     shopping,
   });
-
   const openAlerts = React.useCallback(() => {
     catalog.setRoute("catalog");
     shell.setActiveTab("alerts");
@@ -124,12 +126,10 @@ export default function NativeAppScreen() {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
       bottomBar.handleScroll(contentOffset.y);
-
       if (shell.activeTab !== "home" || catalog.route !== "catalog") {
         homeWasNearEndRef.current = false;
         return;
       }
-
       const nearEnd = isScrollNearEnd({
         contentHeight: contentSize.height,
         scrollY: contentOffset.y,
@@ -152,7 +152,6 @@ export default function NativeAppScreen() {
     catalog.sortMode,
     catalog.storeFilterName,
   ]);
-
   return (
     <Animated.View
       {...navigation.backPanHandlers}
@@ -224,6 +223,7 @@ export default function NativeAppScreen() {
             />
           ) : null}
           <NativeListTabs
+            onSignIn={() => { account.openSignIn(); shell.setActiveTab("more"); }}
             activeTab={shell.activeTab}
             alerts={alerts}
             onBrowseDeals={shell.openHome}

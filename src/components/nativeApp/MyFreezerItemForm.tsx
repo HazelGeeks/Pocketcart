@@ -23,7 +23,7 @@ export function MyFreezerItemForm({ draft, editing, saving, onCancel, onChange, 
           <Text style={st.freezerFormTitle}>{editing ? "Edit food" : "Add food"}</Text>
           <Text style={st.freezerHelp}>Keep quantities and best-before dates easy to scan.</Text>
         </View>
-        <Pressable accessibilityRole="button" onPress={onCancel} style={st.freezerTextButton}>
+        <Pressable accessibilityRole="button" disabled={saving} onPress={onCancel} style={st.freezerTextButton}>
           <Text style={st.freezerTextButtonLabel}>Cancel</Text>
         </Pressable>
       </View>

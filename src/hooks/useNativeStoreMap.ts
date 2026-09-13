@@ -103,9 +103,15 @@ export default function useNativeStoreMap({
     void search(query);
   }, [query, search]);
   const submitSearch = React.useCallback(() => {
-    if (filteredStores.length && !selected) focusStore(filteredStores[0]);
+    // Only a retailer-name query is a store search. Matching an address or
+    // city in the catalogue must still resolve the requested location.
+    const normalize = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const text = normalize(query);
+    const brandMatch = text.length >= 2 && filteredStores.find((store) =>
+      store.brand && normalize(store.brand).includes(text));
+    if (brandMatch && !selected) focusStore(brandMatch);
     else searchLocation();
-  }, [filteredStores, selected, focusStore, searchLocation]);
+  }, [query, filteredStores, selected, focusStore, searchLocation]);
   const selectLocation = React.useCallback((place: MapSearchLocation) => {
     cancel();
     Keyboard.dismiss();
@@ -114,6 +120,14 @@ export default function useNativeStoreMap({
     setFocusMode("search");
     updateQuery(place.label);
   }, [cancel, setSelected]);
+
+  React.useEffect(() => {
+    if (!selected) return;
+    setFocusMode("search");
+    setFocusedStoreId("");
+    updateQuery(selected.label);
+    mapRef.current?.animateToRegion({ ...selected, latitudeDelta: 0.045, longitudeDelta: 0.045 }, 220);
+  }, [selected]);
 
   const initializedPostal = React.useRef("");
   // Initialize a saved postal search once per setting change; clearing stays cleared.

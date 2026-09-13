@@ -1,0 +1,33 @@
+name: Alert and Billing Backend Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: alert-billing-backend-release
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Apply only this release's schema changes
+        run: node scripts/deploy-alert-billing.mjs
+      - name: Deploy watchlist and billing endpoints
+        run: |
+          npx --yes supabase functions deploy watchlist-access --project-ref "$SUPABASE_PROJECT_ID"
+          npx --yes supabase functions deploy billing-status --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Deploy quota-aware alert delivery
+        run: |
+          npx --yes supabase functions deploy sync-sale-alerts --project-ref "$SUPABASE_PROJECT_ID"
+          npx --yes supabase functions deploy send-sale-alert-push --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Verify disposable free-user flow
+        run: node scripts/test-live-alert-plan.mjs

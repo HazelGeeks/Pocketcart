@@ -18,6 +18,7 @@ import {
   restoreShoppingListItems,
   type ShoppingListItem,
 } from "../utils/shoppingListState";
+import { markShoppingItemStored } from "../utils/shoppingFreezer";
 import { persistShoppingListMigration } from "../utils/shoppingListStorage";
 
 export type { ShoppingListItem } from "../utils/shoppingListState";
@@ -213,6 +214,10 @@ export default function useShoppingList(profileId: string | null) {
     mutateItems((current) => toggleShoppingListItem(current, id));
   }, [mutateItems]);
 
+  const markStored = React.useCallback((productId: string, freezerItemId: string) => {
+    mutateItems(current => markShoppingItemStored(current, productId, freezerItemId));
+  }, [mutateItems]);
+
   const removeProduct = React.useCallback((productId: string) => {
     setUndo({ key, items: itemsRef.current.filter((item) => item.productId === productId) });
     mutateItems((current) => removeShoppingListProduct(current, productId));
@@ -230,6 +235,7 @@ export default function useShoppingList(profileId: string | null) {
   }, [key, mutateItems, undo]);
 
   return {
+    markStored,
     addCustomItem,
     toggleCompleted,
     undoRemove,

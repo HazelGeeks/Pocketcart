@@ -15,3 +15,10 @@ verify_jwt = true
 
 [functions.delete-account-request]
 verify_jwt = false
+
+[functions.billing-status]
+# This endpoint verifies the Supabase user JWT with Auth before querying RevenueCat.
+verify_jwt = false
+
+[functions.watchlist-access]
+verify_jwt = false

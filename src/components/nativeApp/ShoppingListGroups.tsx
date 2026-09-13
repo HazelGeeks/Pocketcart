@@ -15,6 +15,7 @@ type Props = {
   onChangeQuantity: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
   onToggleCompleted: (id: string) => void;
+  onAddToFreezer: (item: ShoppingListItem) => void;
 };
 
 export function ShoppingListGroups(props: Props) {
@@ -24,7 +25,10 @@ export function ShoppingListGroups(props: Props) {
   const completed = props.items.filter((item) => item.completed);
   const row = (item: ShoppingListItem) => <ShoppingBasketRow key={item.productId} item={item}
     plan={props.plan} loading={props.loading} onChangeQuantity={props.onChangeQuantity}
-    onRemove={props.onRemove} onToggleCompleted={props.onToggleCompleted} />;
+    onRemove={props.onRemove} onAddToFreezer={props.onAddToFreezer} onToggleCompleted={(id) => {
+      if (!item.completed) setShowCompleted(true);
+      props.onToggleCompleted(id);
+    }} />;
   return (
     <View style={st.shoppingComposer}>
       <View style={st.shoppingGroupOptions}>

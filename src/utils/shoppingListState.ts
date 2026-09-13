@@ -5,6 +5,7 @@ export type ShoppingListItem = {
   quantity: number;
   category?: string;
   completed?: boolean;
+  freezerItemId?: string;
 };
 
 type ShoppingListProduct = Pick<ShoppingListItem, "name" | "unit" | "category"> & { id: string };
@@ -26,6 +27,7 @@ export function normalizeShoppingListItems(value: unknown): ShoppingListItem[] {
       unit: typeof candidate.unit === "string" ? candidate.unit : null,
       quantity: Math.max(1, Math.min(99, Math.round(Number(candidate.quantity) || 1))),
       ...(typeof candidate.category === "string" ? { category: candidate.category } : {}),
+      ...(typeof candidate.freezerItemId === "string" ? { freezerItemId: candidate.freezerItemId } : {}),
       ...(typeof candidate.completed === "boolean" ? { completed: candidate.completed } : {}),
     }];
   });
@@ -39,7 +41,7 @@ export function addShoppingListProduct(
   if (existing) {
     return items.map((item) =>
       item.productId === product.id
-        ? { ...item, ...(item.completed ? { completed: false } : {}), quantity: item.completed ? item.quantity : Math.min(99, item.quantity + 1) }
+        ? { ...item, ...(item.completed ? { completed: false, freezerItemId: undefined } : {}), quantity: item.completed ? item.quantity : Math.min(99, item.quantity + 1) }
         : item,
     );
   }
@@ -112,7 +114,7 @@ export function isCustomShoppingItem(item: Pick<ShoppingListItem, "productId">):
 }
 
 export function toggleShoppingListItem(items: ShoppingListItem[], productId: string): ShoppingListItem[] {
-  return items.map((item) => item.productId === productId ? { ...item, completed: !item.completed } : item);
+  return items.map((item) => item.productId === productId ? { ...item, completed: !item.completed, ...(item.completed ? { freezerItemId: undefined } : {}) } : item);
 }
 
 export function restoreShoppingListItems(items: ShoppingListItem[], removed: ShoppingListItem[]): ShoppingListItem[] {

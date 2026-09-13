@@ -18,7 +18,7 @@ function useLayout() {
 
 /* ═══════════════════════════════════════════════════════════════ */
 
-const LAST_UPDATED = "August 22, 2026";
+const LAST_UPDATED = "September 12, 2026";
 const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
 
 const SECTIONS = [
@@ -62,6 +62,8 @@ We do not sell your personal information to third parties. We do not use your da
   {
     title: "4. Data Sharing & Third Parties",
     body: `We may share your information in the following situations:
+
+• Subscriptions — If you use in-app subscriptions, Apple or Google processes the payment. RevenueCat processes your app account identifier and purchase/subscription status to validate access and restore purchases. Pocketcart does not receive your full payment card details.
 
 • Service Providers — We share data with third-party vendors who perform services on our behalf, such as cloud hosting and authentication (Supabase), app delivery tooling (Expo), image analysis for Food Scan (OpenAI when configured), analytics where enabled (Google Analytics), and crash or diagnostic tooling where enabled. These providers process data according to our configuration and applicable agreements.
 • Legal Obligations — We may disclose your information where required by law, court order, or governmental regulation.

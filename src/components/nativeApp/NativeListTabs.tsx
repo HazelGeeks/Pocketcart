@@ -9,14 +9,16 @@ type Props = {
   activeTab: NativeTabId;
   alerts: ReturnType<typeof useNativeSaleAlerts>;
   onBrowseDeals: () => void;
+  onSignIn: () => void;
   onOpenStore: (storeId: string, storeName?: string) => void;
   shopping: ReturnType<typeof useNativeShoppingPlan>;
 };
 
-export function NativeListTabs({ activeTab, alerts, onBrowseDeals, onOpenStore, shopping }: Props) {
+export function NativeListTabs({ activeTab, alerts, onBrowseDeals, onOpenStore, shopping, onSignIn }: Props) {
   if (activeTab === "shopping") {
     return (
       <ShoppingListPanel
+        userId={shopping.profileId} onSignIn={onSignIn} onStored={shopping.markStored}
         items={shopping.items}
         onAddProduct={shopping.addProduct}
         onAddCustom={shopping.addCustomItem}
@@ -43,6 +45,8 @@ export function NativeListTabs({ activeTab, alerts, onBrowseDeals, onOpenStore, 
   return (
     <View>
       <SaleAlertsPanel
+        monitoredItems={alerts.monitoredItems} activeIds={alerts.activeIds} unlimited={alerts.unlimited}
+        removingId={alerts.removingId} onRemoveProduct={alerts.removeMonitoredProduct}
         alerts={alerts.saleAlerts}
         loading={alerts.alertsLoading}
         markingRead={alerts.alertsMarkingRead}

@@ -9,8 +9,10 @@ import {
 import { dedupeSaleAlertPayloads } from "../_shared/saleAlertDeduplication.ts";
 import { buildCanonicalSaleAlertIdentity } from "../_shared/saleAlertIdentity.ts";
 import { selectSaleAlertPrices } from "../_shared/saleAlertSelection.ts";
+import { eligibleWatchlist } from "../_shared/watchlistAccess.ts";
 
 type WatchlistRow = {
+  created_at: string;
   id: string;
   user_id: string;
   product_id: string | null;
@@ -213,12 +215,11 @@ Deno.serve(async (request) => {
   }
 
   const pageSize = 1000;
-  const watchlistItems: WatchlistRow[] = [];
+  let watchlistItems: WatchlistRow[] = [];
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await adminClient
       .from("watchlist_items")
-      .select("id, user_id, product_id, store_id, name, store")
-      .not("product_id", "is", null)
+      .select("id, user_id, product_id, store_id, name, store, created_at")
       .order("id", { ascending: true })
       .range(from, from + pageSize - 1);
     if (error) return jsonResponse({ error: error.message }, 500);
@@ -227,6 +228,7 @@ Deno.serve(async (request) => {
     if (page.length < pageSize) break;
   }
 
+  watchlistItems = await eligibleWatchlist(watchlistItems);
   const productIds = uniqueStrings(watchlistItems.map((item) => item.product_id));
   if (productIds.length === 0) {
     return jsonResponse({ created: 0, sent: 0, skipped: 0, receipts: receiptSync });

@@ -289,6 +289,8 @@ PODS:
   - hermes-engine (0.14.1):
     - hermes-engine/Pre-built (= 0.14.1)
   - hermes-engine/Pre-built (0.14.1)
+  - PurchasesHybridCommon (18.37.0):
+    - RevenueCat (= 5.88.0)
   - RCT-Folly (2024.11.18.00):
     - boost
     - DoubleConversion
@@ -2928,6 +2930,7 @@ PODS:
     - React-perflogger (= 0.83.10)
     - React-utils (= 0.83.10)
     - SocketRocket
+  - RevenueCat (5.88.0)
   - RNCAsyncStorage (2.2.0):
     - boost
     - DoubleConversion
@@ -2956,6 +2959,9 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - RNPurchases (10.9.1):
+    - PurchasesHybridCommon (= 18.37.0)
+    - React-Core
   - RNSVG (15.15.3):
     - boost
     - DoubleConversion
@@ -3128,12 +3134,15 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
+  - RNPurchases (from `../node_modules/react-native-purchases`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - SocketRocket (~> 0.7.1)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
   trunk:
+    - PurchasesHybridCommon
+    - RevenueCat
     - SocketRocket
     - ZXingObjC
 
@@ -3349,6 +3358,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
+  RNPurchases:
+    :path: "../node_modules/react-native-purchases"
   RNSVG:
     :path: "../node_modules/react-native-svg"
   Yoga:
@@ -3387,6 +3398,7 @@ SPEC CHECKSUMS:
   fmt: 530618a01105dae0fa3a2f27c81ae11fa8f67eac
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: b0e6b0e06954be78359c8da5ac3d971b58d1a760
+  PurchasesHybridCommon: 2e72564d3393d480ca126d4d057737435dd7ccba
   RCT-Folly: b29feb752b08042c62badaef7d453f3bb5e6ae23
   RCTDeprecation: f05668eea7b0e209e77e8ab1dc6a5e3b342f6f65
   RCTRequired: c1ddbcb9ab4d51c36bda2a96556d064cb8825357
@@ -3459,7 +3471,9 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 5cc0b8b95a5be99ad92aee2d59bc59987df97753
   ReactCodegen: def1d229e98dfa107fa837df57870ee7b9114a63
   ReactCommon: d71e3b6d0134b09c1ec8e656f81daefae6902a97
+  RevenueCat: 96e12da1f3de201c65f337ff661506ac28ee1514
   RNCAsyncStorage: 29f0230e1a25f36c20b05f65e2eb8958d6526e82
+  RNPurchases: 2575285384b5e4705a0aca11dfd0791c8484f216
   RNSVG: 595abfa0f9ac26d56afcaaedf4e37a00f54cab71
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: d2ed98551adb569fc38be0148666854e1ff60692

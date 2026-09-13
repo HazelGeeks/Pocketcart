@@ -14,9 +14,10 @@ type Props = {
   onChangeQuantity: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
   onToggleCompleted: (id: string) => void;
+  onAddToFreezer: (item: ShoppingListItem) => void;
 };
 
-export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRemove, onToggleCompleted }: Props) {
+export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRemove, onToggleCompleted, onAddToFreezer }: Props) {
   const [editing, setEditing] = React.useState(false);
   const stop = plan?.stops.find((candidate) => candidate.items.some((entry) => entry.productId === item.productId));
   const price = stop?.items.find((entry) => entry.productId === item.productId);
@@ -45,6 +46,12 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
           </View>
         </Pressable>
       </View>
+      {item.completed ? <Pressable accessibilityRole="button" accessibilityLabel={item.freezerItemId ? `${item.name} added to My Freezer` : `Add ${item.name} to My Freezer`}
+        disabled={Boolean(item.freezerItemId)} accessibilityState={{ disabled: Boolean(item.freezerItemId) }}
+        onPress={() => onAddToFreezer(item)} style={st.shoppingAddButton}>
+        <AppIcon name={item.freezerItemId ? "check" : "freezer"} color={C.primaryDeep} size={18} />
+        <Text style={st.shoppingRefreshText}>{item.freezerItemId ? "Added to My Freezer" : "Add to My Freezer"}</Text>
+      </Pressable> : null}
       {editing ? <View style={st.shoppingBasketControls}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.name}`}
           onPress={() => onRemove(item.productId)} style={st.shoppingAddButton}>

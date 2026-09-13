@@ -1,4 +1,5 @@
 import React from "react";
+import useBilling from "./useBilling";
 import type { NativeTabId } from "../screens/nativeAppData";
 import type { ProfilePreferences } from "../services/profilePreferences";
 import { hasSupabaseEnv } from "../services/supabaseClient";
@@ -44,6 +45,7 @@ export default function useNativeAccount(options: Options) {
   const [preferencesSaving, setPreferencesSaving] = React.useState(false);
   const [pendingEmailVerification, setPendingEmailVerification] = React.useState(false);
 
+  const billing = useBilling(profile?.id ?? null);
   const preferences = useProfilePreferences(
     profile?.id ?? null,
     profile?.email ?? (pendingEmailVerification ? signUpEmail : null),
@@ -144,6 +146,7 @@ export default function useNativeAccount(options: Options) {
   }, [accountRoute]);
 
   return {
+    billing,
     accountRoute,
     authMode,
     closeSubpage,

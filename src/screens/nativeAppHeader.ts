@@ -31,6 +31,7 @@ export function getNativeHeaderContent(options: HeaderOptions) {
     verify: { title: "Verify Email" },
     personalize: { title: "Shopping Profile" },
     freezer: { title: "My Freezer" },
+    subscription: { title: "Pocketcart Plus" },
     editProfile: { title: "Edit Profile" },
     resetPassword: { title: "New Password" },
   };

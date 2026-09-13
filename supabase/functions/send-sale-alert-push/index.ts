@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
+import { eligibleWatchlist } from "../_shared/watchlistAccess.ts";
 import {
   deliverPushAlerts,
   type PushDeliveryResult,
@@ -6,6 +7,7 @@ import {
 } from "../_shared/pushDelivery.ts";
 
 type SaleAlertRow = {
+  product_id: string | null;
   id: string;
   user_id: string;
   title: string;
@@ -73,7 +75,7 @@ Deno.serve(async (request) => {
 
   let alertQuery = adminClient
     .from("sale_alerts")
-    .select("id, user_id, title, body, push_sent_at")
+    .select("id, user_id, title, body, push_sent_at, product_id")
     .in("id", alertIds);
   if (authedUserId) {
     alertQuery = alertQuery.eq("user_id", authedUserId);
@@ -82,10 +84,24 @@ Deno.serve(async (request) => {
   const { data: alertRows, error: alertError } = await alertQuery;
   if (alertError) return jsonResponse({ error: alertError.message }, 500);
 
-  const alerts = ((alertRows ?? []) as SaleAlertRow[]).filter((alert) => !alert.push_sent_at);
+  let alerts = ((alertRows ?? []) as SaleAlertRow[]).filter((alert) => !alert.push_sent_at);
   if (alerts.length === 0) return jsonResponse({ sent: 0, skipped: alertIds.length });
 
   const userIds = uniqueStrings(alerts.map((alert) => alert.user_id));
+  const watchlist: { id: string; user_id: string; product_id: string | null; created_at: string }[] = [];
+  for (const userId of userIds) {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await adminClient.from("watchlist_items")
+        .select("id, user_id, product_id, created_at").eq("user_id", userId).order("id").range(from, from + 999);
+      if (error) return jsonResponse({ error: "Could not verify alert products." }, 503);
+      const page = (data ?? []) as unknown as typeof watchlist;
+      watchlist.push(...page); if (page.length < 1000) break;
+    }
+  }
+  const eligible = await eligibleWatchlist(watchlist);
+  const allowed = new Set(eligible.map(item => `${item.user_id}:${item.product_id}`));
+  // Product-less diagnostic notifications do not consume a product slot.
+  alerts = alerts.filter(item => !item.product_id || allowed.has(`${item.user_id}:${item.product_id}`));
   const { data: tokenRows, error: tokenError } = await adminClient
     .from("user_push_tokens")
     .select("id, user_id, token")

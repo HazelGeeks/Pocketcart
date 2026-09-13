@@ -146,117 +146,10 @@ export async function addWatchlistItem(params: {
     return { data: null, error: userError ?? "Please sign in first." };
   }
 
-  const payload = {
-    user_id: userId,
-    product_id: params.productId?.trim() ? params.productId.trim() : null,
-    store_id: params.storeId?.trim() ? params.storeId.trim() : null,
-    name: params.name,
-    store: params.store,
-    target_price: params.targetPrice?.trim() ? params.targetPrice.trim() : null,
-  };
+  const result = await watchlistRequest({ action: "add", item: params });
+  const saved = result.data?.data;
+  return { data: (Array.isArray(saved) ? saved[0] : saved) ?? null, error: result.error };
 
-  let missingProductStoreColumns = false;
-
-  if (payload.product_id) {
-    const existing = await supabase
-      .from("watchlist_items")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("product_id", payload.product_id)
-      .limit(1)
-      .maybeSingle();
-
-    if (existing.error) {
-      if (isWatchlistSchemaError(existing.error.message)) {
-        missingProductStoreColumns = true;
-      } else {
-        return { data: null, error: existing.error.message };
-      }
-    } else if (existing.data?.id) {
-      const { data, error } = await supabase
-        .from("watchlist_items")
-        .update(payload)
-        .eq("id", existing.data.id)
-        .eq("user_id", userId)
-        .select(WATCHLIST_FIELD_SELECT)
-        .single();
-
-      if (!error) {
-        return {
-          data: data ?? null,
-          error: null,
-        };
-      }
-
-      if (isWatchlistSchemaError(error.message)) {
-        missingProductStoreColumns = true;
-        const legacyUpdated = await supabase
-          .from("watchlist_items")
-          .update({
-            name: payload.name,
-            store: payload.store,
-            target_price: payload.target_price,
-          })
-          .eq("id", existing.data.id)
-          .eq("user_id", userId)
-          .select(WATCHLIST_FIELD_SELECT_LEGACY)
-          .single();
-
-        if (legacyUpdated.error) {
-          return { data: null, error: legacyUpdated.error.message };
-        }
-
-        return {
-          data: normalizeLegacyWatchlistRow(legacyUpdated.data as Record<string, unknown>),
-          error: null,
-        };
-      }
-
-      return { data: null, error: error.message };
-    }
-  }
-
-  if (!missingProductStoreColumns) {
-    const { data, error } = await supabase
-      .from("watchlist_items")
-      .insert(payload)
-      .select(WATCHLIST_FIELD_SELECT)
-      .single();
-
-    if (!error) {
-      return {
-        data: data ?? null,
-        error: null,
-      };
-    }
-
-    if (!isWatchlistSchemaError(error.message)) {
-      return { data: null, error: error.message };
-    }
-
-    missingProductStoreColumns = true;
-  }
-
-  const legacyInsert = await supabase
-    .from("watchlist_items")
-    .insert({
-      user_id: payload.user_id,
-      name: payload.name,
-      store: payload.store,
-      target_price: payload.target_price,
-      latest_price: null,
-    })
-    .select(WATCHLIST_FIELD_SELECT_LEGACY)
-    .single();
-
-  if (legacyInsert.error) {
-    return { data: null, error: legacyInsert.error.message };
-  }
-
-  return {
-    data: normalizeLegacyWatchlistRow(legacyInsert.data as Record<string, unknown>),
-    error: null,
-  };
 }
 
 export async function removeWatchlistItem(
@@ -281,4 +174,21 @@ export async function removeWatchlistItem(
     data: null,
     error: error ? error.message : null,
   };
+}
+
+async function watchlistRequest(body: Record<string, unknown>): Promise<ServiceResult<any>> {
+  if (!supabase) return missingEnvResult(null);
+  try {
+    const { data, error } = await supabase.functions.invoke("watchlist-access", { body });
+    if (error) {
+      const detail = await error.context?.json?.().catch(() => null);
+      return { data: null, error: detail?.error ?? "Could not check your alert plan. Please try again." };
+    }
+    return { data, error: data?.error ?? null };
+  } catch { return { data: null, error: "Could not check your alert plan. Please try again." }; }
+}
+export async function getWatchlistAccess(): Promise<ServiceResult<{ items: WatchlistItem[]; activeIds: string[]; isPlus: boolean } | null>> {
+  const auth = await getAuthedUserId();
+  if (auth.error) return { data: null, error: auth.error };
+  return watchlistRequest({ action: "status" });
 }

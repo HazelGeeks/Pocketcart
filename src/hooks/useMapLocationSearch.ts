@@ -29,7 +29,12 @@ export default function useMapLocationSearch() {
         }),
       ]);
       if (id !== request.current) return;
-      setResults(places);
+      if (places.length === 1) {
+        setSelected(places[0]);
+        setResults([]);
+      } else {
+        setResults(places);
+      }
       if (!places.length) setMessage("Location not found. Try a full address, city and province, or postal code.");
     } catch (error) {
       if (id === request.current) setMessage(error instanceof Error ? error.message : "Location search failed. Please try again.");

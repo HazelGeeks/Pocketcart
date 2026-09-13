@@ -4,6 +4,7 @@ import {
   validateFreezerItemDraft,
 } from "../utils/freezerItem";
 import { hasSupabaseEnv, supabase } from "./supabaseClient";
+import { collectPagedRows } from "../utils/paginatedQuery";
 
 export type MyFreezerItem = {
   id: string;
@@ -50,13 +51,16 @@ export async function listMyFreezerItems(
   const authError = await validateUser(userId);
   if (authError || !supabase) return { data: [], error: authError };
 
-  const { data, error } = await supabase
+  const client = supabase;
+  const { data, error } = await collectPagedRows<MyFreezerItem, { message?: string; code?: string }>(async (from, to) => await client
     .from("freezer_items")
     .select(SELECT_FIELDS)
     .eq("user_id", userId)
     .order("storage_area", { ascending: true })
     .order("expires_on", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .range(from, to));
 
   return {
     data: (data ?? []) as MyFreezerItem[],
@@ -67,6 +71,7 @@ export async function listMyFreezerItems(
 export async function saveMyFreezerItem(params: {
   userId: string;
   itemId?: string;
+  creationId?: string;
   draft: FreezerItemDraft;
 }): Promise<ServiceResult<MyFreezerItem | null>> {
   const authError = await validateUser(params.userId);
@@ -91,7 +96,9 @@ export async function saveMyFreezerItem(params: {
         .update(payload)
         .eq("id", params.itemId)
         .eq("user_id", params.userId)
-    : supabase.from("freezer_items").insert(payload);
+    : params.creationId
+      ? supabase.from("freezer_items").upsert({ ...payload, id: params.creationId }, { onConflict: "id" })
+      : supabase.from("freezer_items").insert(payload);
   const { data, error } = await query.select(SELECT_FIELDS).single();
 
   return {

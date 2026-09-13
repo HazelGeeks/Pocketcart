@@ -12,6 +12,7 @@ import {
   validateFreezerItemDraft,
 } from "../../utils/freezerItem";
 import { AppIcon } from "../icons/AppIcon";
+import { FreezerReminderSettings } from "./FreezerReminderSettings";
 import { MyFreezerItemForm } from "./MyFreezerItemForm";
 
 export function MyFreezerPanel({ userId }: { userId: string }) {
@@ -77,6 +78,7 @@ export function MyFreezerPanel({ userId }: { userId: string }) {
         ) : null}
       </View>
 
+      <FreezerReminderSettings userId={userId} />
       <View style={st.freezerSummaryRow}>
         <Summary label="Refrigerator" value={fridgeItems.length} icon="fridge" />
         <Summary label="Freezer" value={frozenItems.length} icon="freezer" />

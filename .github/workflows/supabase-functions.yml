@@ -52,3 +52,8 @@ jobs:
 
       - name: Deploy sync-sale-alerts function
         run: npx supabase functions deploy sync-sale-alerts --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Deploy billing and watchlist access functions
+        run: |
+          npx supabase functions deploy billing-status --project-ref "$SUPABASE_PROJECT_ID"
+          npx supabase functions deploy watchlist-access --project-ref "$SUPABASE_PROJECT_ID"

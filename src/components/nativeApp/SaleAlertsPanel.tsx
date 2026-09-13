@@ -4,8 +4,14 @@ import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { formatAlertActivityTime } from "../../utils/alertActivity";
 import { AppIcon } from "../icons/AppIcon";
+import type { WatchlistItem } from "../../services/watchlist";
 
 type SaleAlertsPanelProps = {
+  monitoredItems: WatchlistItem[];
+  activeIds: string[];
+  unlimited: boolean;
+  removingId: string | null;
+  onRemoveProduct: (id: string) => void;
   alerts: SaleAlert[];
   loading: boolean;
   markingRead: boolean;
@@ -15,6 +21,7 @@ type SaleAlertsPanelProps = {
 };
 
 export function SaleAlertsPanel({
+  monitoredItems, activeIds, unlimited, removingId, onRemoveProduct,
   alerts,
   loading,
   markingRead,
@@ -24,6 +31,19 @@ export function SaleAlertsPanel({
 }: SaleAlertsPanelProps) {
   return (
     <View style={st.alertActivity}>
+      <View style={st.shoppingRecommendationCard}>
+        <Text style={st.shoppingSectionTitle}>Product alerts · {unlimited ? "Unlimited" : `${activeIds.length}/5`}</Text>
+        <Text style={st.shoppingFootnote}>Free: 5 products · Plus: unlimited. My Freezer is unlimited on both plans.</Text>
+        {monitoredItems.map(item => <View key={item.id} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ flex: 1 }}><Text style={st.shoppingBodyText}>{item.name}</Text>
+            {!activeIds.includes(item.id) ? <Text style={st.shoppingFootnote}>Paused · free plan limit</Text> : null}
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Remove alert for ${item.name}`}
+            disabled={Boolean(removingId)} onPress={() => onRemoveProduct(item.id)} style={st.shoppingAddButton}>
+            <Text style={st.shoppingRefreshText}>{removingId === item.id ? "Removing…" : "Remove"}</Text>
+          </Pressable>
+        </View>)}
+      </View>
       <View style={st.alertActivityHeader}>
         <Text accessibilityRole="header" style={st.alertActivityHeading}>
           Activity

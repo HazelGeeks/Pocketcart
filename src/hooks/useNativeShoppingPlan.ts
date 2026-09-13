@@ -27,6 +27,7 @@ export default function useNativeShoppingPlan({
   const [message, setMessage] = React.useState<string | null>(null);
   const requestIdRef = React.useRef(0);
   const {
+    markStored,
     addCustomItem,
     toggleCompleted,
     undoRemove,
@@ -106,6 +107,8 @@ export default function useNativeShoppingPlan({
   }, [activeTab, loadPrices, loaded]);
 
   return {
+    profileId,
+    markStored,
     addCustomItem,
     toggleCompleted,
     undoRemove,

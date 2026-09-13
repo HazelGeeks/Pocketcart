@@ -1,4 +1,5 @@
 import React from "react";
+import { refreshFreezerReminders } from "../services/freezerNotifications";
 import {
   deleteMyFreezerItem,
   listMyFreezerItems,
@@ -48,7 +49,8 @@ export default function useMyFreezer(userId: string) {
       ...current.filter((item) => item.id !== result.data?.id),
       result.data!,
     ]));
-    setMessage(itemId ? "Item updated." : "Item added to My Freezer.");
+    const reminderWarning = await refreshFreezerReminders(userId);
+    setMessage(reminderWarning ? `Item saved. ${reminderWarning}` : (itemId ? "Item updated." : "Item added to My Freezer."));
     return true;
   }, [userId]);
 
@@ -61,7 +63,8 @@ export default function useMyFreezer(userId: string) {
       return false;
     }
     setItems((current) => current.filter((item) => item.id !== itemId));
-    setMessage("Item removed from My Freezer.");
+    const reminderWarning = await refreshFreezerReminders(userId);
+    setMessage(reminderWarning ? `Item removed. ${reminderWarning}` : "Item removed from My Freezer.");
     return true;
   }, [userId]);
 
