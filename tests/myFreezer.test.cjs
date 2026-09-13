@@ -68,14 +68,14 @@ test("My Freezer schema isolates every row to its authenticated owner", () => {
   }
 });
 
-test("My Freezer is an account subpage and not a bottom tab", () => {
-  const routes = read("src/hooks/nativeAccountTypes.ts");
+test("Freezer replaces Map in bottom tabs and Map is available in Settings", () => {
   const nativeData = read("src/screens/nativeAppData.ts");
   const settings = read("src/components/nativeApp/MorePanel.tsx");
+  const tabs = nativeData.match(/export const TABS[^=]*= \[([\s\S]*?)\];/)?.[1] ?? "";
 
-  assert.match(routes, /\| "freezer"/);
-  assert.doesNotMatch(nativeData.match(/export type NativeTabId = ([^;]+)/)?.[0] ?? "", /freezer/);
-  assert.match(settings, /My Freezer/);
+  assert.match(tabs, /id: "freezer", label: "Freezer"/);
+  assert.doesNotMatch(tabs, /id: "map"/);
+  assert.match(settings, /label="Map"[^>]*onPress=\{props.onOpenMap\}/);
 });
 
 test("My Freezer service scopes reads and writes to the signed-in user", () => {

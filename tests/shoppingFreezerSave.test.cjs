@@ -22,3 +22,11 @@ test('changed family prevents a transfer into a different inventory',async()=>{
  const result=await h.save({userId:'u',creationId:'id',draft,expectedFamilyId:'old-family'});
  assert.match(result.error,/family changed/);assert.equal(h.rows.size,0);
 });
+test('Cart product identity is persisted with food and retained when quantities or notes change',async()=>{
+ const h=setup(),productId='11111111-1111-1111-1111-111111111111';
+ const draft={...emptyFreezerItemDraft(),name:'Milk',productId};
+ assert.equal((await h.save({userId:'u',creationId:'stable-id',draft})).error,null);
+ assert.equal(h.rows.get('stable-id').product_id,productId);
+ await h.save({userId:'u',creationId:'stable-id',draft:{...draft,quantity:'3',note:'Top shelf'}});
+ assert.equal(h.rows.get('stable-id').product_id,productId);assert.equal(h.rows.size,1);
+});

@@ -1,10 +1,14 @@
+import { FreezerFoodNameField } from "./FreezerFoodNameField";
+import type { FreezerStorageUnit } from "../../services/freezerStorage";
+import { FreezerStoragePicker } from "./FreezerStoragePicker";
 import { BestBeforePicker } from "./BestBeforePicker";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
-import type { FreezerItemDraft, FreezerStorageArea } from "../../utils/freezerItem";
+import type { FreezerItemDraft } from "../../utils/freezerItem";
 
 type Props = {
   hideHeader?: boolean;
+  storageUnits: FreezerStorageUnit[];
   draft: FreezerItemDraft;
   editing: boolean;
   saving: boolean;
@@ -13,7 +17,7 @@ type Props = {
   onSubmit: () => void;
 };
 
-export function MyFreezerItemForm({ hideHeader = false, draft, editing, saving, onCancel, onChange, onSubmit }: Props) {
+export function MyFreezerItemForm({ hideHeader = false, storageUnits, draft, editing, saving, onCancel, onChange, onSubmit }: Props) {
   const setField = <K extends keyof FreezerItemDraft>(key: K, value: FreezerItemDraft[K]) => {
     onChange({ ...draft, [key]: value });
   };
@@ -29,33 +33,10 @@ export function MyFreezerItemForm({ hideHeader = false, draft, editing, saving, 
         </Pressable>
       </View> : null}
 
-      <LabeledField label="Food name">
-        <TextInput
-          accessibilityLabel="Food name"
-          value={draft.name}
-          onChangeText={(value) => setField("name", value)}
-          placeholder="e.g. Dumplings"
-          placeholderTextColor="#7A8B80"
-          maxLength={100}
-          style={st.freezerInput}
-        />
-      </LabeledField>
+      <FreezerFoodNameField draft={draft} saving={saving} onChange={onChange} />
 
       <LabeledField label="Stored in">
-        <View style={st.freezerSegmentedControl}>
-          <StorageOption
-            area="fridge"
-            label="Refrigerator"
-            selected={draft.storageArea === "fridge"}
-            onSelect={(area) => setField("storageArea", area)}
-          />
-          <StorageOption
-            area="freezer"
-            label="Freezer"
-            selected={draft.storageArea === "freezer"}
-            onSelect={(area) => setField("storageArea", area)}
-          />
-        </View>
+        <FreezerStoragePicker units={storageUnits} draft={draft} disabled={saving} onChange={onChange} />
       </LabeledField>
 
       <View style={st.freezerFieldRow}>
@@ -129,30 +110,5 @@ function LabeledField({ label, children }: { label: string; children: React.Reac
       <Text style={st.freezerFieldLabel}>{label}</Text>
       {children}
     </View>
-  );
-}
-
-function StorageOption({
-  area,
-  label,
-  selected,
-  onSelect,
-}: {
-  area: FreezerStorageArea;
-  label: string;
-  selected: boolean;
-  onSelect: (area: FreezerStorageArea) => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={() => onSelect(area)}
-      style={[st.freezerSegment, selected && st.freezerSegmentSelected]}
-    >
-      <Text style={[st.freezerSegmentText, selected && st.freezerSegmentTextSelected]}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }

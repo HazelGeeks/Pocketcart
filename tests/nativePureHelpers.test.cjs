@@ -198,7 +198,7 @@ test("native back destinations include alerts and account subpages", () => {
   assert.equal(hasNativeBackDestination("alerts", "catalog", "settings"), true);
   assert.equal(hasNativeBackDestination("more", "catalog", "auth"), true);
   assert.equal(hasNativeBackDestination("more", "catalog", "settings"), false);
-  assert.equal(hasNativeBackDestination("map", "catalog", "settings"), false);
+  assert.equal(hasNativeBackDestination("map", "catalog", "settings"), true);
 });
 
 test("native back gesture starts only from the left edge with horizontal intent", () => {

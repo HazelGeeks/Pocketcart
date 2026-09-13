@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { NativeFreezerTab } from "../components/nativeApp/NativeFreezerTab";
 import { FoodScanPanel } from "../components/nativeApp/FoodScanPanel";
 import { NativeAccountTab } from "../components/nativeApp/NativeAccountTab";
 import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding";
@@ -94,7 +95,7 @@ function NativeAppContent() {
     profileId: account.profile?.id ?? null,
     productById: catalog.productById,
   });
-  const openFreezerReminder = React.useCallback(() => { account.setAccountRoute("freezer"); shell.setActiveTab("more"); }, [account.setAccountRoute, shell.setActiveTab]);
+  const openFreezerReminder = React.useCallback(() => { shell.setActiveTab("freezer"); }, [shell.setActiveTab]);
   useFreezerReminders(account.profile?.id ?? null, openFreezerReminder);
   const navigation = useNativeBackNavigation({
     account,
@@ -121,8 +122,8 @@ function NativeAppContent() {
   const openAlertProduct = useNativeAlertProduct(shell.activeTab, catalog.openProduct, shell.showToast);
   const openAlerts = React.useCallback(() => {
     catalog.setRoute("catalog");
-    shell.setActiveTab("alerts");
-  }, [catalog.setRoute, shell.setActiveTab]);
+    shell.openAlerts();
+  }, [catalog.setRoute, shell.openAlerts]);
   const header = getNativeHeaderContent({
     accountRoute: account.accountRoute,
     activeTab: shell.activeTab,
@@ -160,34 +161,35 @@ function NativeAppContent() {
       {...navigation.backPanHandlers}
       style={[st.root, { transform: [{ translateX: navigation.backTranslateX }] }]}
     >
-      {shell.activeTab !== "map" ? (
-        <NativeContextHeader
-          showCartHelp={shell.activeTab === "shopping"}
-          title={header.title}
-          topInset={insets.top}
-          pad={pad}
-          onBack={
-            shell.activeTab === "home" && catalog.route === "detail"
-              ? () => catalog.setRoute("catalog")
-              : shell.activeTab === "alerts"
-              ? shell.openHome
-              : shell.activeTab === "more" && account.accountRoute !== "settings"
-                ? account.closeSubpage
-                : undefined
-          }
-          onOpenAlerts={
-            shell.activeTab === "home" && catalog.route === "catalog" ? openAlerts : undefined
-          }
-          onOpenMenu={
-            shell.activeTab !== "more" &&
-            shell.activeTab !== "alerts" &&
-            (shell.activeTab !== "home" || catalog.route === "catalog")
-              ? () => navigation.selectTab("more")
+      <NativeContextHeader
+        showCartHelp={shell.activeTab === "shopping"}
+        showFreezerHelp={shell.activeTab === "freezer"}
+        title={header.title}
+        topInset={insets.top}
+        pad={pad}
+        onBack={
+          shell.activeTab === "home" && catalog.route === "detail"
+            ? () => catalog.setRoute("catalog")
+            : shell.activeTab === "map"
+            ? () => navigation.selectTab("more")
+            : shell.activeTab === "alerts"
+            ? shell.closeAlerts
+            : shell.activeTab === "more" && account.accountRoute !== "settings"
+              ? account.closeSubpage
               : undefined
-          }
-          unreadAlertCount={alerts.unreadAlertCount}
-        />
-      ) : null}
+        }
+        onOpenAlerts={
+          (shell.activeTab === "home" && catalog.route === "catalog") || shell.activeTab === "freezer" ? openAlerts : undefined
+        }
+        onOpenMenu={
+          shell.activeTab !== "map" && shell.activeTab !== "more" &&
+          shell.activeTab !== "alerts" &&
+          (shell.activeTab !== "home" || catalog.route === "catalog")
+            ? () => navigation.selectTab("more")
+            : undefined
+        }
+        unreadAlertCount={alerts.unreadAlertCount}
+      />
       {shell.activeTab === "map" ? (
         <NativeMapTab
           bottomInset={insets.bottom}
@@ -196,7 +198,7 @@ function NativeAppContent() {
           map={map}
           onViewStoreInHome={catalog.setStoreFilter}
           permissions={permissions}
-          topInset={insets.top}
+          topInset={0}
         />
       ) : (
         <ScrollView key={scrollKey} ref={detailScrollRef} contentOffset={{ x: 0, y: initialOffset }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
@@ -236,12 +238,12 @@ function NativeAppContent() {
             onBrowseDeals={shell.openHome}
             shopping={shopping}
           />
-          {shell.activeTab === "scan" ? (
-            <FoodScanPanel onOpenProduct={catalog.openProduct} />
-          ) : null}
+          {shell.activeTab === "freezer" ? <NativeFreezerTab cartItems={shopping.items} userId={account.profile?.id ?? null} onSignIn={() => { account.openSignIn(); shell.openMore(); }} /> : null}
+          {shell.activeTab === "scan" ? <FoodScanPanel onOpenProduct={catalog.openProduct} /> : null}
           {shell.activeTab === "more" ? (
             <NativeAccountTab
               account={account}
+              onOpenMap={() => navigation.selectTab("map")}
               onboarding={onboarding}
               permissions={permissions}
               storeOptions={map.personalizationStoreOptions}
@@ -251,7 +253,7 @@ function NativeAppContent() {
       )}
       {shell.activeTab !== "more" || account.accountRoute === "settings" ? (
         <NativeBottomTabs
-          activeTab={shell.activeTab}
+          activeTab={shell.activeTab === "map" ? "more" : shell.activeTab}
           bottomInset={insets.bottom}
           hidden={bottomBar.hidden}
           pad={pad}

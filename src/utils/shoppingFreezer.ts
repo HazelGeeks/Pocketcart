@@ -1,8 +1,9 @@
+import { isCatalogProductId } from "./freezerProductImages";
 import { emptyFreezerItemDraft, type FreezerItemDraft } from "./freezerItem";
 import type { ShoppingListItem } from "./shoppingListState";
 
 export function shoppingItemFreezerDraft(item: ShoppingListItem): FreezerItemDraft {
-  return { ...emptyFreezerItemDraft(), name: item.name, quantity: String(item.quantity), unit: item.unit ?? "" };
+  return { ...emptyFreezerItemDraft(), name: item.name, quantity: String(item.quantity), unit: item.unit ?? "", ...(isCatalogProductId(item.productId) ? { productId: item.productId } : {}) };
 }
 
 export function markShoppingItemStored(items: ShoppingListItem[], productId: string, freezerItemId: string) {

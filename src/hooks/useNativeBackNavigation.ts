@@ -64,8 +64,13 @@ export default function useNativeBackNavigation({
     account.accountRoute,
   );
   const navigateBack = React.useCallback(() => {
+    if (shell.activeTab === "map") {
+      account.setAccountRoute("settings");
+      shell.openMore();
+      return true;
+    }
     if (shell.activeTab === "alerts") {
-      shell.openHome();
+      shell.closeAlerts();
       return true;
     }
     if (shell.activeTab === "more" && account.accountRoute !== "settings") {
@@ -81,11 +86,13 @@ export default function useNativeBackNavigation({
   }, [
     account.accountRoute,
     account.closeSubpage,
+    account.setAccountRoute,
+    shell.openMore,
     catalog.route,
     catalog.selectedProduct,
     catalog.setRoute,
     shell.activeTab,
-    shell.openHome,
+    shell.closeAlerts,
   ]);
 
   const resetBackPosition = React.useCallback(() => {

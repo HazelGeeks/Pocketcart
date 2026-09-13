@@ -34,7 +34,7 @@ type MorePanelProps = {
   onOpenSignIn: () => void;
   onOpenSignUp: () => void;
   onEditPreferences: () => void;
-  onOpenMyFreezer: () => void;
+  onOpenMap: () => void;
   onOpenSubscription: () => void;
   onEditProfile: () => void;
   onSignOut: () => void;
@@ -87,7 +87,7 @@ function MyAccountSection(props: MorePanelProps) {
       <View style={st.settingsDivider} />
       <SettingsLinkRow label="Pocketcart Plus" value="Subscription & purchases" icon="sparkles" onPress={props.onOpenSubscription} />
       <View style={st.settingsDivider} />
-      <SettingsLinkRow label="My Freezer" value={props.profile ? "Manage your saved food" : "Sign in to save your food"} icon="freezer" onPress={props.profile ? props.onOpenMyFreezer : props.onOpenSignIn} />
+      <SettingsLinkRow label="Map" value="Find nearby stores" icon="map" onPress={props.onOpenMap} />
     </SettingsSection>
   );
 }

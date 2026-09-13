@@ -4,6 +4,7 @@ import { F } from "./fonts";
 
 export const freezerStyles = StyleSheet.create({
   freezerPage: { gap: 20 },
+  freezerStorageOption: { minHeight: 54, flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderWidth: 1, borderColor: C.line, borderRadius: 10, backgroundColor: C.white },
   freezerIntroRow: {
     flexDirection: "row",
     alignItems: "flex-start",

@@ -106,7 +106,7 @@ export default function useNativeSaleAlerts({
   );
 
   React.useEffect(() => {
-    if (activeTab !== "home" && activeTab !== "alerts") return;
+    if (activeTab !== "home" && activeTab !== "freezer" && activeTab !== "alerts") return;
     void loadWatchlist(true);
   }, [activeTab, loadWatchlist]);
 

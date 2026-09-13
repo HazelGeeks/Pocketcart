@@ -2,7 +2,7 @@ import type { Region } from "react-native-maps";
 import type { MarketPeriodStorePrice, MarketPricePoint } from "../services/marketData";
 import { BUSINESS_TIME_ZONE } from "../utils/businessDateTime";
 
-export type NativeTabId = "home" | "shopping" | "map" | "scan" | "alerts" | "more";
+export type NativeTabId = "home" | "shopping" | "freezer" | "map" | "scan" | "alerts" | "more";
 export type HomeRoute = "catalog" | "detail";
 
 type PriceChartPoint = {
@@ -40,7 +40,7 @@ export type PreviousPriceRow = {
 export const TABS: Array<{ id: NativeTabId; label: string }> = [
   { id: "home", label: "Home" },
   { id: "shopping", label: "Cart" },
-  { id: "map", label: "Map" },
+  { id: "freezer", label: "Freezer" },
   { id: "scan", label: "Scan" },
   { id: "more", label: "Settings" },
 ];

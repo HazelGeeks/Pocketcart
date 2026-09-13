@@ -1,4 +1,5 @@
 import React from "react";
+import useFreezerStorage from "../../hooks/useFreezerStorage";
 import { useFamily } from "../../contexts/FamilyContext";
 import { randomUUID } from "expo-crypto";
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text } from "react-native";
@@ -14,6 +15,7 @@ type Props = { item: ShoppingListItem; userId: string; onClose: () => void;
   onSaved: (productId: string, freezerId: string, warning: string | null) => void };
 export function ShoppingFreezerSheet({ item, userId, onClose, onSaved }: Props) {
   const family = useFamily();
+  const storage = useFreezerStorage(userId);
   const [expectedFamilyId] = React.useState(family.family?.id ?? null);
   const [draft, setDraft] = React.useState(() => shoppingItemFreezerDraft(item));
   const [creationId] = React.useState(() => randomUUID());
@@ -23,7 +25,7 @@ export function ShoppingFreezerSheet({ item, userId, onClose, onSaved }: Props) 
   const alive = React.useRef(true);
   React.useEffect(() => () => { alive.current = false; }, []);
   const save = async () => {
-    if (submitting.current) return;
+    if (submitting.current || storage.loading) return;
     submitting.current = true; setSaving(true); setMessage(null);
     try {
       const result = await saveMyFreezerItem({ userId, creationId, draft, expectedFamilyId });
@@ -41,7 +43,9 @@ export function ShoppingFreezerSheet({ item, userId, onClose, onSaved }: Props) 
           <Text style={st.shoppingSectionTitle}>Add to My Freezer</Text>
           <Text style={st.shoppingFootnote}>Check storage and best-before date. Your purchased item stays in Cart.</Text>
           {message ? <Text accessibilityRole="alert" style={st.shoppingWarningText}>{message}</Text> : null}
-          <MyFreezerItemForm draft={draft} editing={false} saving={saving} onChange={setDraft}
+          {storage.error ? <Text accessibilityRole="alert" style={st.shoppingWarningText}>{storage.error}</Text> : null}
+          {storage.loading ? <Text style={st.shoppingFootnote}>Loading storage locations…</Text> : null}
+          <MyFreezerItemForm storageUnits={storage.units} draft={draft} editing={false} saving={saving || storage.loading} onChange={setDraft}
             onCancel={() => { if (!submitting.current) onClose(); }} onSubmit={() => void save()} />
         </ScrollView>
       </KeyboardAvoidingView>

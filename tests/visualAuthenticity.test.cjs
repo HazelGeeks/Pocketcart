@@ -162,7 +162,8 @@ test("Food Scan replaces the bottom alert tab without removing alert access", ()
   assert.match(catalog, /setLinkedProduct\(product\)/);
   assert.match(scanResult, /Scan again/);
   assert.match(scanNotice, /cannot detect bacteria/);
-  assert.match(screen, /shell\.setActiveTab\("alerts"\)/);
+  assert.match(screen, /shell\.openAlerts\(\)/);
+  assert.match(read("src/hooks/useNativeShellState.ts"), /setActiveTab\("alerts"\)/);
   assert.match(functionSource, /Never claim that meat, fish, dairy/);
   assert.match(functionSource, /Never invent hidden ingredients/);
 });

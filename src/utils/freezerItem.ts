@@ -3,6 +3,8 @@ export type FreezerStorageArea = "fridge" | "freezer";
 export type FreezerItemDraft = {
   name: string;
   storageArea: FreezerStorageArea;
+  storageUnitId?: string | null;
+  productId?: string | null;
   quantity: string;
   unit: string;
   expiresOn: string;
@@ -12,6 +14,8 @@ export type FreezerItemDraft = {
 export type ValidFreezerItemInput = {
   name: string;
   storageArea: FreezerStorageArea;
+  storageUnitId?: string | null;
+  productId?: string | null;
   quantity: number;
   unit: string | null;
   expiresOn: string | null;
@@ -49,6 +53,15 @@ export function validateFreezerItemDraft(
   if (!name) return { ok: false, error: "Food name is required." };
   if (name.length > 100) return { ok: false, error: "Food name must be 100 characters or fewer." };
 
+  if (!["fridge", "freezer"].includes(draft.storageArea)) return { ok: false, error: "Choose a refrigerator or freezer." };
+  if (draft.storageUnitId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft.storageUnitId)) {
+    return { ok: false, error: "Choose a valid storage location." };
+  }
+
+  if (draft.productId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(draft.productId)) {
+    return { ok: false, error: "Choose a valid catalog product." };
+  }
+
   const quantity = Number(draft.quantity.trim());
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 9999) {
     return { ok: false, error: "Quantity must be greater than 0 and no more than 9,999." };
@@ -70,6 +83,8 @@ export function validateFreezerItemDraft(
     value: {
       name,
       storageArea: draft.storageArea,
+      ...(draft.storageUnitId ? { storageUnitId: draft.storageUnitId } : {}),
+      ...(draft.productId !== undefined ? { productId: draft.productId } : {}),
       quantity: Math.round(quantity * 100) / 100,
       unit: unit || null,
       expiresOn: expiresOn || null,

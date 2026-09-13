@@ -1,3 +1,4 @@
+import { FreezerHelpButton } from "./FreezerHelpButton";
 import { CartHelpButton } from "./CartHelpButton";
 import { Animated, Pressable, Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
@@ -24,6 +25,7 @@ type NativeContextHeaderProps = {
   onOpenAlerts?: () => void;
   onOpenMenu?: () => void;
   showCartHelp?: boolean;
+  showFreezerHelp?: boolean;
   unreadAlertCount?: number;
 };
 
@@ -35,6 +37,7 @@ export function NativeContextHeader({
   onOpenAlerts,
   onOpenMenu,
   showCartHelp,
+  showFreezerHelp,
   unreadAlertCount = 0,
 }: NativeContextHeaderProps) {
   return (
@@ -71,7 +74,7 @@ export function NativeContextHeader({
             {title}
           </Text>
         </View>
-        {onOpenAlerts || onOpenMenu || showCartHelp ? (
+        {onOpenAlerts || onOpenMenu || showCartHelp || showFreezerHelp ? (
           <View style={st.contextHeaderActions}>
             {onOpenAlerts ? (
               <Pressable
@@ -89,6 +92,7 @@ export function NativeContextHeader({
               </Pressable>
             ) : null}
             {showCartHelp ? <CartHelpButton /> : null}
+            {showFreezerHelp ? <FreezerHelpButton /> : null}
             {onOpenMenu ? (
               <Pressable
                 accessibilityRole="button"
@@ -209,24 +213,8 @@ function TabIcon({ tabId, active }: { tabId: NativeTabId; active: boolean }) {
           <Circle cx="18" cy="21" r="1" fill={color} />
         </Svg>
       );
-    case "map":
-      return (
-        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Path
-            d="M9 5 4.5 7v12L9 17l6 2 4.5-2V5L15 7 9 5Z"
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <Path
-            d="M9 5v12M15 7v12"
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-        </Svg>
-      );
+    case "freezer":
+      return <AppIcon name="fridge" color={color} size={iconSize} strokeWidth={strokeWidth} />;
     case "alerts":
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">

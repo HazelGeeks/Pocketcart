@@ -19,6 +19,7 @@ type Props = {
   onboarding: ReturnType<typeof useNativeOnboarding>;
   permissions: ReturnType<typeof useNativePermissions>;
   storeOptions: string[];
+  onOpenMap: () => void;
 };
 
 export function NativeAccountTab({
@@ -26,6 +27,7 @@ export function NativeAccountTab({
   onboarding,
   permissions,
   storeOptions,
+  onOpenMap,
 }: Props) {
   if (account.accountRoute === "subscription") return <SubscriptionPanel billing={account.billing} signedIn={Boolean(account.profile)} onSignIn={account.openSignIn} />;
   if (account.accountRoute === "settings") {
@@ -64,7 +66,7 @@ export function NativeAccountTab({
         onOpenSignIn={account.openSignIn}
         onOpenSignUp={account.openSignUp}
         onEditPreferences={() => account.setAccountRoute("personalize")}
-        onOpenMyFreezer={() => account.setAccountRoute("freezer")}
+        onOpenMap={onOpenMap}
         onEditProfile={() => {
           account.setMoreMessage(null);
           account.setAccountRoute("editProfile");
