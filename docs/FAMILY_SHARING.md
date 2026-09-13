@@ -14,7 +14,7 @@ Freezer edits use the version read when the editor opened. A conflicting edit re
 
 ## Release order and verification
 
-1. Run the existing prerequisite migrations (profiles/My Freezer), then apply **only** `supabase/migrations/20260914010000_family_sharing.sql`. Do not replay unrelated historical migrations.
+1. Run the existing prerequisite migrations (profiles/My Freezer), then apply **only** `supabase/migrations/20260914010000_family_sharing.sql` followed by `20260914020000_family_function_privileges.sql`. The Family Sharing Backend Release workflow applies these with a base-schema checksum guard and exercises disposable accounts. Do not replay unrelated historical migrations.
 2. Deploy the web export containing `family.html` to the existing PocketCart web origin.
 3. Build and submit the updated native app. Its `pocketcart` URL scheme already exists. This implementation does not add Universal Links or automatic App Store deferred deep links: after installation, reopen the invite or paste it in Settings.
 4. Test two separate accounts/devices: create family, signup from invite, accept, edit Cart from both, add/edit/remove food, revoke/reuse/expire an invite, remove/leave, and re-enter the app. Verify the migration is deployed before native rollout: the app fails closed if membership cannot be resolved.

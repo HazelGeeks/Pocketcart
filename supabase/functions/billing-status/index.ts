@@ -15,7 +15,7 @@ Deno.serve(async request => {
   const url = Deno.env.get("SUPABASE_URL");
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
   const key = Deno.env.get("REVENUECAT_SECRET_API_KEY");
-  if (!url || !anon || !key) return response({ error: "Subscription verification is not configured" }, 503);
+  if (!url || !anon) return response({ error: "Subscription verification is not configured" }, 503);
   try {
     // Resolve the caller from their token; never accept a client-supplied user id.
     const auth = await fetch(`${url}/auth/v1/user`, {
@@ -24,6 +24,8 @@ Deno.serve(async request => {
     if (!auth.ok) return response({ error: "Sign in required" }, 401);
     const user = await auth.json() as { id?: string };
     if (!user.id) return response({ error: "Sign in required" }, 401);
+    // Match watchlist-access: until billing is configured, authenticated accounts use the free plan.
+    if (!key) return response({ isPlus: false });
     const result = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(user.id)}`, {
       headers: { Authorization: `Bearer ${key}`, Accept: "application/json" }, signal: AbortSignal.timeout(10000),
     });

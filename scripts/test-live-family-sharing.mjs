@@ -18,6 +18,9 @@ try {
     users.at(-1).token=session.access_token;
   }
   const [owner,member,outsider]=users;
+  const plan=ok(await request('/functions/v1/billing-status',{method:'POST',token:owner.token,body:{}}),'Read General account status');
+  assert.equal(plan.isPlus,false);
+  assert.equal((await request('/rest/v1/rpc/family_action',{method:'POST',token:'invalid-token',body:{p_action:'create',p_value:'Denied'}})).response.ok,false);
   const family=ok(await action(owner,'create','Disposable family QA'),'Create family').family_id;
   const invite=ok(await action(owner,'invite'),'Create invitation').token;
   assert.match(invite,/^[a-f0-9]{64}$/);

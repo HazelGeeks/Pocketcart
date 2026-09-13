@@ -19,6 +19,7 @@ const [before] = await query(`select to_regclass('public.families') is not null 
 if (!before.freezer_exists) throw new Error('My Freezer prerequisite missing. No schema changes applied.');
 if (before.installed && before.marker !== marker) throw new Error('Existing family schema has a different migration marker. Refusing to overwrite it.');
 if (!before.installed) await query(`begin;\n${sql}\ncomment on table public.families is '${marker}';\ncommit;`, false);
+await query(await fs.readFile("supabase/migrations/20260914020000_family_function_privileges.sql", "utf8"), false);
 const [check] = await query(`select
  has_table_privilege('authenticated','public.family_invites','select') as can_read_invite_hashes,
  has_table_privilege('authenticated','public.family_members','insert') as can_forge_membership,

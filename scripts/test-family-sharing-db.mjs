@@ -12,7 +12,9 @@ const freezerMigration = (await fs.readdir('supabase/migrations')).find(name => 
 if (!freezerMigration) throw new Error('Freezer migration missing');
 await db.exec(await fs.readFile(`supabase/migrations/${freezerMigration}`, 'utf8'));
 await db.exec('grant all on public.freezer_items to authenticated');
+await db.exec('alter default privileges in schema public grant execute on functions to anon, authenticated');
 await db.exec(await fs.readFile('supabase/migrations/20260914010000_family_sharing.sql', 'utf8'));
+await db.exec(await fs.readFile('supabase/migrations/20260914020000_family_function_privileges.sql', 'utf8'));
 const uid = n => `10000000-0000-0000-0000-${String(n).padStart(12,'0')}`;
 for (let n=1;n<=4;n++) await db.query('insert into auth.users values($1)',[uid(n)]);
 const as = async n => { await db.exec('reset role'); await db.query("select set_config('request.jwt.claim.sub',$1,false)",[n ? uid(n) : '']); await db.exec(n ? 'set role authenticated' : 'set role anon'); };

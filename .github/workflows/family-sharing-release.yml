@@ -21,5 +21,7 @@ jobs:
           node-version: 22
       - name: Apply only the family sharing migration
         run: node scripts/deploy-family-sharing.mjs
+      - name: Deploy authenticated account plan status
+        run: npx --yes supabase functions deploy billing-status --project-ref "$SUPABASE_PROJECT_ID"
       - name: Verify invitation and family access with disposable accounts
         run: node scripts/test-live-family-sharing.mjs

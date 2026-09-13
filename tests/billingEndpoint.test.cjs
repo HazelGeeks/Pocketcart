@@ -15,3 +15,11 @@ test('provider failures and missing configuration never return paid access',asyn
  let calls=0;const failed=endpoint(env,async()=>++calls===1?new Response(JSON.stringify({id:'u'})):new Response('unavailable',{status:500}));
  const result=await failed(new Request('https://local',{method:'POST',headers:{Authorization:'Bearer token'}}));assert.equal(result.status,503);assert.equal((await result.json()).isPlus,undefined);
 });
+test('unconfigured billing reports General only after verifying the caller',async()=>{
+ const freeEnv={SUPABASE_URL:env.SUPABASE_URL,SUPABASE_ANON_KEY:env.SUPABASE_ANON_KEY};
+ let calls=0;const handler=endpoint(freeEnv,async()=>{calls++;return new Response(JSON.stringify({id:'u'}))});
+ const response=await handler(new Request('https://local',{method:'POST',headers:{Authorization:'Bearer token'}}));
+ assert.equal(response.status,200);assert.deepEqual(await response.json(),{isPlus:false});assert.equal(calls,1);
+ const invalid=endpoint(freeEnv,async()=>new Response('{}',{status:401}));
+ assert.equal((await invalid(new Request('https://local',{method:'POST',headers:{Authorization:'Bearer bad'}}))).status,401);
+});
