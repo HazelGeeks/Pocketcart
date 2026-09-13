@@ -71,5 +71,5 @@ export function formatStoreDistance(
   if (distance <= NEARBY_STORE_RADIUS_KM) {
     return `${distance.toFixed(1)} km away`;
   }
-  return `${Math.round(distance)} km from your location`;
+  return `${Math.round(distance)} km away`;
 }

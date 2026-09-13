@@ -33,7 +33,7 @@ export function matchesStoreFilter(store: MarketStore, search?: string): boolean
   const q = normalizeStoreSearchText(search);
   if (!q) return true;
   return normalizeStoreSearchText(
-    `${store.brand ?? ""} ${store.name} ${store.area} ${store.price_note ?? ""}`,
+    `${store.brand ?? ""} ${store.name} ${store.area} ${store.address ?? ""} ${store.price_note ?? ""}`,
   ).includes(q);
 }
 

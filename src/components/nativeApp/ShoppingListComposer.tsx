@@ -27,7 +27,7 @@ export function ShoppingListComposer({ disabled, onAddProduct, onAddCustom }: Pr
     <View style={st.shoppingComposer}>
       <View style={st.shoppingSearchBox}>
         <AppIcon name="search" color={C.textSoft} size={20} />
-        <TextInput accessibilityLabel="Search products or add a custom item" placeholder="Search or add an item"
+        <TextInput accessibilityLabel="Search products or add a custom item" placeholder="Add an item…"
           placeholderTextColor={C.textMuted} value={query} editable={!disabled} maxLength={120}
           onChangeText={(text) => { setQuery(text); setNotice(""); }} style={st.shoppingSearchInput}
           returnKeyType="search" autoCorrect={false} />
@@ -41,7 +41,7 @@ export function ShoppingListComposer({ disabled, onAddProduct, onAddCustom }: Pr
           {loading ? <Text style={st.shoppingBodyText}>Searching products…</Text> : null}
           {error ? <Text accessibilityRole="alert" style={st.shoppingWarningText}>{error}</Text> : null}
           {!loading && !error && query.trim().length >= 2 && products.length === 0 ?
-            <Text style={st.shoppingBodyText}>No catalog matches. You can still add this item.</Text> : null}
+            <Text style={st.shoppingBodyText}>No matching products</Text> : null}
           {products.map((product) => (
             <Pressable key={product.id} accessibilityRole="button"
               accessibilityLabel={`Add ${productDisplayName(product)} to shopping list`}
@@ -55,7 +55,7 @@ export function ShoppingListComposer({ disabled, onAddProduct, onAddCustom }: Pr
           ))}
           <Pressable accessibilityRole="button" onPress={addCustom} style={st.shoppingSearchResult}>
             <View style={st.shoppingItemCopy}>
-              <Text style={st.shoppingRefreshText}>Add “{query.trim()}” as a custom item</Text>
+              <Text style={st.shoppingRefreshText}>Add “{query.trim()}”</Text>
               <Text style={st.shoppingFootnote}>No tracked price · saved on this device</Text>
             </View>
             <AppIcon name="add" color={C.primaryDeep} size={20} />

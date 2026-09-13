@@ -3,6 +3,9 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const shoppingListStyles = StyleSheet.create({
+  shoppingTotalHeadline: { color: C.text, fontSize: 34, lineHeight: 42, fontFamily: F.extraBold },
+  shoppingRowAmount: { minWidth: 60, minHeight: 48, alignItems: "flex-end", justifyContent: "center", gap: 4 },
+  shoppingQuantityPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: C.primaryGhost },
   shoppingComposer: { gap: 12 },
   shoppingSearchBox: { flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingLeft: 12, backgroundColor: C.white },
   shoppingSearchInput: { flex: 1, minWidth: 0, minHeight: 48, color: C.text, fontSize: 16, fontFamily: F.regular, paddingVertical: 12 },
@@ -78,14 +81,14 @@ export const shoppingListStyles = StyleSheet.create({
     borderTopColor: C.line,
   },
   shoppingItemRow: {
-    minHeight: 120,
+    minHeight: 80,
     gap: 12,
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: C.line,
   },
-  shoppingBasketHeading: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  shoppingBasketControls: { flexDirection: "row", alignItems: "center", gap: 16, flexWrap: "wrap" },
+  shoppingBasketHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
+  shoppingBasketControls: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" },
   shoppingProductName: { color: C.text, fontSize: 17, lineHeight: 24, fontFamily: F.bold },
   shoppingBodyText: { color: C.textSoft, fontSize: 14, lineHeight: 21, fontFamily: F.regular },
   shoppingItemTotal: { color: C.text, fontSize: 16, lineHeight: 23, fontFamily: F.extraBold },

@@ -44,3 +44,18 @@ export function shouldCompleteNativeBackGesture(gesture: Pick<BackGesture, "dx" 
     (gesture.dx >= BACK_DISTANCE || gesture.vx >= BACK_VELOCITY)
   );
 }
+
+export function shouldStartNativeForwardGesture(
+  gesture: Pick<BackGesture, "dx" | "dy" | "x0">,
+  width: number,
+) {
+  return width > 0 && gesture.x0 <= width && shouldStartNativeBackGesture({
+    x0: width - gesture.x0,
+    dx: -gesture.dx,
+    dy: gesture.dy,
+  });
+}
+
+export function shouldCompleteNativeForwardGesture(gesture: Pick<BackGesture, "dx" | "dy" | "vx">) {
+  return shouldCompleteNativeBackGesture({ dx: -gesture.dx, dy: gesture.dy, vx: -gesture.vx });
+}

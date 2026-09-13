@@ -4,6 +4,8 @@ import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import type { MarketProduct } from "../../services/marketData";
 import type { ShoppingRecommendation } from "../../utils/shoppingOptimizer";
+import { AppIcon } from "../icons/AppIcon";
+import { marketingPalette as C } from "../../shared/design/palette";
 import { ShoppingListComposer } from "./ShoppingListComposer";
 import { ShoppingListGroups } from "./ShoppingListGroups";
 import { ShoppingRecommendationPanel } from "./ShoppingRecommendationPanel";
@@ -30,7 +32,6 @@ type ShoppingListPanelProps = {
 export function ShoppingListPanel(props: ShoppingListPanelProps) {
   const { items, listLoading, loading, recommendation } = props;
   const pending = items.filter((item) => !item.completed);
-  const completedCount = items.length - pending.length;
   const plan = loading ? null : recommendation.recommended;
   const partial = recommendation.unpricedProductIds.length > 0;
   const confirmClear = () => Alert.alert(
@@ -43,20 +44,17 @@ export function ShoppingListPanel(props: ShoppingListPanelProps) {
     <View style={st.shoppingPage}>
       <View style={st.shoppingHeaderRow}>
         <View style={st.shoppingHeaderCopy}>
-          <Text style={st.shoppingSectionTitle}>{listLoading ? "Your shopping list" : `${pending.length} to buy · ${completedCount} purchased`}</Text>
-          <Text style={st.shoppingBodyText}>
-            {listLoading ? "Loading your list…" : pending.length === 0 ? "Add items below for your next trip."
-              : loading ? "Checking current prices…"
-                : plan ? `${money.format(plan.total)} ${partial ? "priced subtotal" : "estimated"} · remaining items`
-                  : "Remaining items have no complete store estimate."}
-          </Text>
-          {!loading && !listLoading && partial && pending.length > 0 ? (
-            <Text style={st.shoppingFootnote}>{recommendation.unpricedProductIds.length} without a tracked price · excluded from estimate</Text>
-          ) : null}
+          <Text style={st.shoppingBodyText}>{listLoading ? "Loading…" : `${pending.length} to buy`}</Text>
+          <Text style={st.shoppingTotalHeadline}>{listLoading || loading ? "…" : pending.length === 0 ? "All set" : plan ? money.format(plan.total) : "—"}</Text>
+          <Text style={st.shoppingFootnote}>{pending.length === 0 ? "Ready for your next trip" : plan ? partial ? `Subtotal · ${recommendation.unpricedProductIds.length} unpriced` : "Estimated total" : "No tracked total"}</Text>
         </View>
         {items.length > 0 && !listLoading ? (
-          <Pressable accessibilityRole="button" onPress={confirmClear} style={st.shoppingClearBtn}>
-            <Text style={st.shoppingClearText}>Clear list</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Shopping list options" onPress={() => Alert.alert("List options", undefined, [
+              { text: "About prices & sync", onPress: () => Alert.alert("Prices & sync", "Totals cover remaining items with tracked sale prices. Unpriced items and travel costs are excluded. Catalog items sync when signed in; custom items and purchase checkmarks stay on this device.") },
+              { text: "Clear list", style: "destructive", onPress: confirmClear },
+              { text: "Cancel", style: "cancel" },
+            ])} style={st.shoppingClearBtn}>
+            <AppIcon name="menu" color={C.textSoft} size={21} />
           </Pressable>
         ) : null}
       </View>
@@ -70,17 +68,16 @@ export function ShoppingListPanel(props: ShoppingListPanelProps) {
       <ShoppingListComposer disabled={listLoading} onAddProduct={props.onAddProduct} onAddCustom={props.onAddCustom} />
       {listLoading ? null : items.length === 0 ? (
         <View style={st.shoppingEmptyCard}>
-          <Text style={st.shoppingSectionTitle}>Build this week's basket</Text>
-          <Text style={st.shoppingBodyText}>Search above or type anything you need. You can also add products from current deals.</Text>
+          <Text style={st.shoppingSectionTitle}>Your next grocery run</Text>
+          <Text style={st.shoppingBodyText}>Add your first item above.</Text>
           <Pressable accessibilityRole="button" onPress={props.onBrowseDeals} style={st.shoppingEmptyAction}>
-            <Text style={st.shoppingEmptyActionText}>Browse current deals</Text>
+            <Text style={st.shoppingEmptyActionText}>Browse deals</Text>
           </Pressable>
         </View>
       ) : <ShoppingListGroups items={items} loading={loading} plan={plan}
         onChangeQuantity={props.onChangeQuantity} onRemove={props.onRemove} onToggleCompleted={props.onToggleCompleted} />}
       {!listLoading && pending.length > 0 ? <ShoppingRecommendationPanel itemCount={pending.length}
         recommendation={recommendation} loading={loading} onRefresh={props.onRefresh} onOpenStore={props.onOpenStore} /> : null}
-      <Text style={st.shoppingFootnote}>Catalog items sync when signed in. Custom items and purchase checkmarks are saved on this device.</Text>
     </View>
   );
 }

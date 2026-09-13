@@ -30,7 +30,7 @@ test("an out-of-area location never labels distant stores as nearby", () => {
   assert.match(getStoreScopeMessage("outside", 28), /No tracked stores within/);
   assert.equal(
     formatStoreDistance(1260),
-    "1260 km from your location",
+    "1260 km away",
   );
 });
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { FlatList, Text, View } from "react-native";
-import MapView, { type Region } from "react-native-maps";
+import MapView, { Marker, type Region } from "react-native-maps";
 import type { MarketStore } from "../../services/marketData";
 import { st } from "../../screens/nativeAppStyles";
 import {
@@ -14,7 +14,9 @@ import { StoreMapMarkers } from "./StoreMapMarkers";
 import { StoreMapModeButton } from "./StoreMapModeButton";
 import { getStoreDisplayName, StoreResultCard } from "./StoreMapResultCard";
 
-type StoreMapPanelProps = {
+import type { LocationSearchProps } from "./StoreLocationResults";
+
+type StoreMapPanelProps = LocationSearchProps & {
   mapRef: React.RefObject<MapView | null>;
   query: string;
   message: string | null;
@@ -70,10 +72,12 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
   const [visibleRegion, setVisibleRegion] = React.useState(region);
   const favoriteStoreIdSet = React.useMemo(() => new Set(favoriteStoreIds), [favoriteStoreIds]);
   const activeStore = stores.find((store) => store.id === focusedStoreId) ?? stores[0] ?? null;
-  const scopeTitle = getStoreScopeTitle(distanceScope, favoriteFilterActive);
+  const scopeTitle = props.searchOrigin && !favoriteFilterActive ? "Stores around searched location" : getStoreScopeTitle(distanceScope, favoriteFilterActive);
   const scopeMessage = favoriteFilterActive
     ? `${stores.length} saved ${stores.length === 1 ? "store" : "stores"}`
-    : getStoreScopeMessage(distanceScope, stores.length);
+    : props.searchOrigin
+      ? `${distanceScope === "outside" ? "No tracked stores within 100 km. " : ""}Distances from ${props.searchOrigin.label}. Sorted nearest first.`
+      : getStoreScopeMessage(distanceScope, stores.length);
   const showScopeNotice = !favoriteFilterActive && distanceScope !== "nearby";
 
   React.useEffect(() => {
@@ -82,6 +86,12 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
 
   const controls = (overlay: boolean) => (
     <StoreMapControls
+      locationResults={props.locationResults}
+      searchingLocation={props.searchingLocation}
+      searchOrigin={props.searchOrigin}
+      onSearchLocation={props.onSearchLocation}
+      onSelectLocation={props.onSelectLocation}
+      onSubmitSearch={props.onSubmitSearch}
       overlay={overlay}
       topInset={topInset}
       horizontalPad={horizontalPad}
@@ -168,6 +178,7 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
       <MapView
         ref={mapRef}
         initialRegion={region}
+        onMapReady={() => mapRef.current?.animateToRegion(region, 0)}
         showsUserLocation={Boolean(userLocation)}
         showsMyLocationButton={false}
         showsCompass={false}
@@ -175,6 +186,11 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
         onRegionChangeComplete={setVisibleRegion}
         style={st.storeMapCanvas}
       >
+        {props.searchOrigin ? (
+          <Marker coordinate={props.searchOrigin} title="Searched location"
+            description={props.searchOrigin.label} pinColor="#0B7D5A"
+            accessibilityLabel={`Searched location: ${props.searchOrigin.label}`} />
+        ) : null}
         <StoreMapMarkers
           mapRef={mapRef}
           stores={stores}

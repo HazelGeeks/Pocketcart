@@ -1,3 +1,4 @@
+import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type { ShoppingListItem } from "../../hooks/useShoppingList";
 import { money } from "../../screens/nativeAppData";
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRemove, onToggleCompleted }: Props) {
+  const [editing, setEditing] = React.useState(false);
   const stop = plan?.stops.find((candidate) => candidate.items.some((entry) => entry.productId === item.productId));
   const price = stop?.items.find((entry) => entry.productId === item.productId);
   return (
@@ -30,20 +32,25 @@ export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRem
         </Pressable>
         <View style={st.shoppingItemCopy}>
           <Text style={[st.shoppingProductName, item.completed && st.shoppingPurchasedName]}>{item.name}</Text>
-          <Text style={st.shoppingBodyText}>{item.unit || "Each"}</Text>
+          <Text style={st.shoppingFootnote} numberOfLines={1}>{[item.unit, !item.completed && stop?.storeName].filter(Boolean).join(" · ") || "Item"}</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.name}`}
-          onPress={() => onRemove(item.productId)} style={st.shoppingRemoveBtn}>
-          <AppIcon name="delete" color={C.textSoft} size={20} />
+        <Pressable accessibilityRole="button" accessibilityLabel={`Edit quantity or remove ${item.name}`}
+          accessibilityState={{ expanded: editing }} onPress={() => setEditing(!editing)} style={st.shoppingRowAmount}>
+          {!item.completed ? <Text style={st.shoppingItemTotal} accessibilityLabel={loading ? "Checking price" : price ? undefined : "No tracked price"}>
+            {loading ? "…" : price ? money.format(price.total) : "—"}
+          </Text> : null}
+          <View style={st.shoppingQuantityPill}>
+            <Text style={st.shoppingRefreshText}>×{item.quantity}</Text>
+            <AppIcon name={editing ? "close" : "edit"} color={C.primaryDeep} size={13} />
+          </View>
         </Pressable>
       </View>
-      {!item.completed ? <View style={st.shoppingBasketControls}>
-        <View style={st.shoppingItemCopy}>
-          <Text style={st.shoppingItemTotal}>
-            {loading ? "Checking price…" : price ? money.format(price.total) : "Estimate unavailable"}
-          </Text>
-          {price && stop ? <Text style={st.shoppingBodyText}>{money.format(price.unitPrice)} each · {stop.storeName}</Text> : null}
-        </View>
+      {editing ? <View style={st.shoppingBasketControls}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.name}`}
+          onPress={() => onRemove(item.productId)} style={st.shoppingAddButton}>
+          <AppIcon name="delete" color={C.textSoft} size={18} />
+          <Text style={st.shoppingBodyText}>Remove</Text>
+        </Pressable>
         <View style={st.quantityControl}>
           <Pressable accessibilityRole="button" accessibilityLabel={`Decrease quantity of ${item.name}`}
             accessibilityState={{ disabled: item.quantity <= 1 }} disabled={item.quantity <= 1}

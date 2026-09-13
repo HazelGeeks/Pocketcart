@@ -4,6 +4,8 @@ import type { ShoppingListItem } from "../../hooks/useShoppingList";
 import { st } from "../../screens/nativeAppStyles";
 import { groupShoppingList, type ShoppingGroupMode } from "../../utils/shoppingListGroups";
 import type { ShoppingPlan } from "../../utils/shoppingOptimizer";
+import { AppIcon } from "../icons/AppIcon";
+import { marketingPalette as C } from "../../shared/design/palette";
 import { ShoppingBasketRow } from "./ShoppingBasketRow";
 
 type Props = {
@@ -37,18 +39,18 @@ export function ShoppingListGroups(props: Props) {
       {groups.length === 0 && completed.length > 0 ? (
         <View style={st.shoppingEmptyCard}>
           <Text style={st.shoppingSectionTitle}>All done!</Text>
-          <Text style={st.shoppingBodyText}>Everything is checked off. Uncheck an item below to buy it again.</Text>
+          <AppIcon name="check" color={C.primaryDeep} size={30} />
         </View>
       ) : null}
       {groups.map((group) => <View key={group.key}>
-        <Text style={st.shoppingSectionTitle}>{group.label} · {group.items.length}</Text>
+        {mode !== "list" ? <Text style={st.shoppingRefreshText}>{group.label} · {group.items.length}</Text> : null}
         <View style={st.shoppingItemsCard}>{group.items.map(row)}</View>
       </View>)}
       {completed.length > 0 ? <View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showCompleted }}
           onPress={() => setShowCompleted((value) => !value)} style={st.shoppingCompareToggle}>
           <Text style={st.shoppingSectionTitle}>Purchased · {completed.length}</Text>
-          <Text style={st.shoppingRefreshText}>{showCompleted ? "Hide" : "Show"}</Text>
+          <AppIcon name={showCompleted ? "close" : "chevron-right"} color={C.textSoft} size={18} />
         </Pressable>
         {showCompleted ? <View style={st.shoppingItemsCard}>{completed.map(row)}</View> : null}
       </View> : null}

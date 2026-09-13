@@ -8,6 +8,7 @@ import {
 import type { AdminStore } from "../../services/adminBackoffice";
 import {
   getStoreBrandLogoKey,
+  getStoreLogoBackground,
   type StoreBrandLogoKey,
 } from "../../utils/storeBrandLogo";
 
@@ -59,7 +60,7 @@ function storeLeafletMapSrcDoc(
       isActive: store.is_active,
       logoUrl: getStoreLogoUrl(store),
       isSaveOnFoods: getStoreBrandLogoKey(store) === "saveOnFoods",
-      isWalmart: getStoreBrandLogoKey(store) === "walmart",
+      logoBackground: getStoreLogoBackground(store) ?? "#FFFFFF",
       latitude: Number(store.latitude),
       longitude: Number(store.longitude),
       selected: selectedStore?.id === store.id,
@@ -102,8 +103,6 @@ function storeLeafletMapSrcDoc(
       height: 100%;
       object-fit: contain;
     }
-    .store-logo-marker.save-on-foods { background: #78BE20; }
-    .store-logo-marker.walmart { background: #0153E3; }
     .store-logo-marker.save-on-foods img { width: 80%; height: 80%; margin: 10%; }
   </style>
 </head>
@@ -138,8 +137,8 @@ function storeLeafletMapSrcDoc(
       const markerSize = point.selected ? 54 : 46;
       const logoIcon = point.logoUrl
         ? L.divIcon({
-            className: "store-logo-marker" + (point.selected ? " is-selected" : "") + (point.isSaveOnFoods ? " save-on-foods" : "") + (point.isWalmart ? " walmart" : ""),
-            html: '<img src="' + escapeHtml(point.logoUrl) + '" alt="" />',
+            className: "store-logo-marker" + (point.selected ? " is-selected" : "") + (point.isSaveOnFoods ? " save-on-foods" : ""),
+            html: '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:' + escapeHtml(point.logoBackground) + '"><img src="' + escapeHtml(point.logoUrl) + '" alt="" /></div>',
             iconSize: [markerSize, markerSize],
             iconAnchor: [markerSize / 2, markerSize / 2],
             popupAnchor: [0, -(markerSize / 2)]

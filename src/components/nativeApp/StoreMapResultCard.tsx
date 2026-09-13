@@ -4,7 +4,7 @@ import type { MarketStore } from "../../services/marketData";
 import { st } from "../../screens/nativeAppStyles";
 import { AppIcon } from "../icons/AppIcon";
 import { marketingPalette as C } from "../../shared/design/palette";
-import { getStoreBrandLogoKey } from "../../utils/storeBrandLogo";
+import { getStoreBrandLogoKey, getStoreLogoBackground } from "../../utils/storeBrandLogo";
 import { formatStoreDistance } from "../../utils/storeDistanceScope";
 
 const STORE_LOGOS = {
@@ -60,7 +60,7 @@ export function StoreResultCard({
   const distance = formatStoreDistance(store.distance_km);
   const logo = getStoreLogo(store);
   const isSaveOnFoods = getStoreBrandLogoKey(store) === "saveOnFoods";
-  const isWalmart = getStoreBrandLogoKey(store) === "walmart";
+  const logoBackground = getStoreLogoBackground(store);
 
   return (
     <View
@@ -76,7 +76,7 @@ export function StoreResultCard({
           onPress={onFocus}
           style={st.storeResultFocusContent}
         >
-          <View style={[st.storeResultBadge, logo && st.storeResultBadgeWithLogo, isSaveOnFoods && st.storeSaveOnFoodsBackground, isWalmart && st.storeWalmartBackground]}>
+          <View style={[st.storeResultBadge, logo && st.storeResultBadgeWithLogo, logoBackground && { backgroundColor: logoBackground, padding: 0, paddingHorizontal: 0 }]}>
             {logo ? (
               <Image
                 source={logo}

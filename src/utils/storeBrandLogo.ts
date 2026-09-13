@@ -34,3 +34,21 @@ export function getStoreBrandLogoKey(store: {
   }
   return null;
 }
+
+// Match each asset's background so circular map badges have no empty inset.
+const STORE_LOGO_BACKGROUNDS: Partial<Record<StoreBrandLogoKey, string>> = {
+  hMart: "#FFFFFF",
+  hannamMart: "#C81B1F",
+  marketRibbon: "#13594E",
+  tAndT: "#007953",
+  saveOnFoods: "#78BE20",
+  walmart: "#0153E3",
+};
+
+export function getStoreLogoBackground(store: {
+  brand?: string | null;
+  name: string;
+}): string | undefined {
+  const key = getStoreBrandLogoKey(store);
+  return key ? STORE_LOGO_BACKGROUNDS[key] : undefined;
+}

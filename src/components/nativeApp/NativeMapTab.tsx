@@ -24,6 +24,12 @@ export function NativeMapTab({
 }: Props) {
   return (
     <StoreMapPanel
+      locationResults={map.locationResults}
+      searchingLocation={map.searchingLocation}
+      searchOrigin={map.searchOrigin}
+      onSearchLocation={map.searchLocation}
+      onSelectLocation={map.selectLocation}
+      onSubmitSearch={map.submitSearch}
       mapRef={map.mapRef}
       query={map.query}
       message={map.message ?? favoriteStores.syncMessage}

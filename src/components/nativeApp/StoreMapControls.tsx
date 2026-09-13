@@ -12,7 +12,9 @@ import { AppIcon } from "../icons/AppIcon";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { StoreStarIcon } from "./StoreMapResultCard";
 
-type StoreMapControlsProps = {
+import { StoreLocationResults, type LocationSearchProps } from "./StoreLocationResults";
+
+type StoreMapControlsProps = LocationSearchProps & {
   overlay: boolean;
   topInset: number;
   horizontalPad: number;
@@ -40,6 +42,7 @@ export function StoreMapControls({
   onChangeQuery,
   onSetFavoriteFilter,
   onUseCurrentLocation,
+  ...locationSearch
 }: StoreMapControlsProps) {
   const clearFilters = () => {
     onChangeQuery("");
@@ -76,7 +79,9 @@ export function StoreMapControls({
           <TextInput
             value={query}
             onChangeText={onChangeQuery}
-            placeholder="Search stores or addresses"
+            onSubmitEditing={locationSearch.onSubmitSearch}
+            accessibilityLabel="Search stores, addresses or postal codes"
+            placeholder="Store, address, city or postal code"
             placeholderTextColor={C.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
@@ -127,6 +132,8 @@ export function StoreMapControls({
         </Pressable>
       </View>
 
+      <StoreLocationResults query={query} {...locationSearch} />
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -172,7 +179,7 @@ export function StoreMapControls({
         <Pressable
           accessibilityRole="button"
           accessibilityState={{
-            selected: Boolean(userLocation) && !favoriteFilterActive,
+            selected: Boolean(userLocation) && !query && !favoriteFilterActive,
           }}
           onPress={() => {
             clearFilters();
@@ -181,6 +188,7 @@ export function StoreMapControls({
           style={[
             st.storeMapFilterButton,
             userLocation &&
+              !query &&
               !favoriteFilterActive &&
               st.storeMapFilterButtonActive,
           ]}

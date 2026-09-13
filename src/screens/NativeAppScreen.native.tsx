@@ -21,6 +21,7 @@ import useNativeAccount from "../hooks/useNativeAccount";
 import useNativeBackNavigation from "../hooks/useNativeBackNavigation";
 import useNativeBottomBarVisibility from "../hooks/useNativeBottomBarVisibility";
 import useNativeCatalog from "../hooks/useNativeCatalog";
+import useNativeDetailScroll from "../hooks/useNativeDetailScroll";
 import useNativeOnboarding from "../hooks/useNativeOnboarding";
 import useNativePermissions from "../hooks/useNativePermissions";
 import useNativeProductActions from "../hooks/useNativeProductActions";
@@ -38,7 +39,6 @@ export default function NativeAppScreen() {
   const onboarding = useNativeOnboarding();
   const [homeLoadMoreSignal, setHomeLoadMoreSignal] = React.useState(0);
   const homeWasNearEndRef = React.useRef(false);
-
   const alerts = useNativeSaleAlerts({
     activeTab: shell.activeTab,
     alertsEnabled: onboarding.state.alertsEnabled,
@@ -96,6 +96,7 @@ export default function NativeAppScreen() {
     shell,
     width: w,
   });
+  const detailScrollRef = useNativeDetailScroll(shell.activeTab === "home" && catalog.route === "detail" ? `detail:${catalog.selectedProduct?.id ?? ""}` : null);
   const bottomBar = useNativeBottomBarVisibility({
     activeTab: shell.activeTab,
     bottomInset: insets.bottom,
@@ -141,7 +142,6 @@ export default function NativeAppScreen() {
     },
     [bottomBar.handleScroll, catalog.route, shell.activeTab],
   );
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination whenever catalog filters change
   React.useEffect(() => {
     homeWasNearEndRef.current = false;
@@ -195,7 +195,7 @@ export default function NativeAppScreen() {
           topInset={insets.top}
         />
       ) : (
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
+        <ScrollView ref={detailScrollRef} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           style={st.scroll}
           contentContainerStyle={[
             st.scrollContent,

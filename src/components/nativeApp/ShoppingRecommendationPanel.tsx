@@ -16,6 +16,7 @@ type Props = {
 };
 
 export function ShoppingRecommendationPanel({ itemCount, recommendation, loading, onRefresh, onOpenStore }: Props) {
+  const [showPlan, setShowPlan] = React.useState(false);
   const [showComparison, setShowComparison] = React.useState(false);
   const recommended = loading ? null : recommendation.recommended;
   const unpricedCount = recommendation.unpricedProductIds.length;
@@ -30,6 +31,16 @@ export function ShoppingRecommendationPanel({ itemCount, recommendation, loading
       : 0;
 
   return <View style={st.shoppingComposer}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Show shopping plan and price comparison"
+      accessibilityState={{ expanded: showPlan }} onPress={() => setShowPlan(!showPlan)} style={st.shoppingCompareToggle}>
+      <AppIcon name="map" color={C.primaryDeep} size={23} />
+      <View style={st.shoppingItemCopy}>
+        <Text style={st.shoppingSectionTitle}>Where to shop</Text>
+        <Text style={st.shoppingFootnote}>{loading ? "Checking prices…" : recommended ? `${recommended.stops.length} ${recommended.stops.length === 1 ? "store" : "stores"}${singleSavings > 0.009 && recommended.kind === "split" ? ` · Save ${money.format(singleSavings)}` : ""}` : "Price options"}</Text>
+      </View>
+      <AppIcon name={showPlan ? "close" : "chevron-right"} color={C.primaryDeep} size={20} />
+    </Pressable>
+    {showPlan ? <View style={st.shoppingComposer}>
           <View style={st.shoppingRecommendationCard}>
             <View style={st.shoppingPlanTitleRow}>
               <View style={st.shoppingItemCopy}>
@@ -99,5 +110,6 @@ export function ShoppingRecommendationPanel({ itemCount, recommendation, loading
             Estimates use currently tracked sale prices. Travel cost and untracked regular prices
             are not included.
           </Text>
+    </View> : null}
   </View>;
 }
