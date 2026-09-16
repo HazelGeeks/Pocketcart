@@ -36,6 +36,7 @@ type MorePanelProps = {
   onOpenSignUp: () => void;
   onEditPreferences: () => void;
   onOpenMap: () => void;
+  onOpenScan: () => void;
   onOpenSubscription: () => void;
   onEditProfile: () => void;
   onSignOut: () => void;
@@ -58,6 +59,8 @@ export function MorePanel(props: MorePanelProps) {
       {props.profile ? <MyAccountSection {...props} /> : null}
       <SettingsSection label="Features">
         <SettingsLinkRow label="Map" value="Find nearby stores" icon="map" onPress={props.onOpenMap} />
+        <View style={st.settingsDivider} />
+        <SettingsLinkRow label="Scan" value="Food & ingredient scanner" icon="scan" onPress={props.onOpenScan} />
       </SettingsSection>
       {props.profile ? <FamilyPanel onSignIn={props.onOpenSignIn} onSignUp={props.onOpenSignUp} /> : null}
       <PreferencesSection {...props} />
@@ -193,7 +196,7 @@ function AccountSection({
         <View style={st.settingsDangerBlock}>
           <Text style={st.settingsRowTitle}>Delete your account?</Text>
           <Text style={st.settingsHelp}>
-            This permanently deletes your profile, shopping preferences, My Freezer inventory, and saved price alert subscriptions. Shared family items remain with the family if other members are still present.
+            This permanently deletes your profile, shopping preferences, receipts and receipt photos, My Freezer inventory, and saved price alert subscriptions. Shared family items remain with the family if other members are still present.
           </Text>
           <View style={st.settingsButtonRow}>
             <Pressable

@@ -6,7 +6,7 @@ const code = ts.transpileModule(fs.readFileSync("supabase/functions/delete-accou
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 
-function harness({ authenticated = true, apple = true, revokeFails = false, deleteFails = false } = {}) {
+function harness({ authenticated = true, apple = true, revokeFails = false, deleteFails = false, cleanupFails = false } = {}) {
   let handler;
   const events = [];
   const client = {
@@ -22,6 +22,7 @@ function harness({ authenticated = true, apple = true, revokeFails = false, dele
   };
   new Function("require", "exports", "Deno", code)(
     (name) => name.includes("supabase-js") ? { createClient: () => client } : {
+      removeAccountReceiptPhotos: async () => { if (cleanupFails) throw new Error("Storage unavailable"); },
       revokeAppleAuthorization: async (_config, authorizationCode, subject) => {
         events.push(["revoke", authorizationCode, subject]);
         if (revokeFails) throw new Error("Provider unavailable");
@@ -67,4 +68,11 @@ test("a database deletion failure cannot produce a deleted response", async () =
   const response = await h.request({ appleAuthorizationCode: "code" });
   assert.equal(response.status, 500);
   assert.equal((await response.json()).deleted, undefined);
+});
+
+test("receipt cleanup failure keeps the account available for a retry", async () => {
+  const h = harness({ cleanupFails: true, apple: false });
+  const response = await h.request();
+  assert.equal(response.status, 503);
+  assert.deepEqual(h.events, []);
 });

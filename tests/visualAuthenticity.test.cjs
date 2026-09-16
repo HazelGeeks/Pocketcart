@@ -125,7 +125,7 @@ test("home header uses one notification action instead of a live-price status pi
   assert.match(screen, /unreadAlertCount=\{alerts\.unreadAlertCount\}/);
 });
 
-test("Food Scan replaces the bottom alert tab without removing alert access", () => {
+test("Receipts occupies the bottom tab while Food Scan remains in Account Features", () => {
   const tabData = read("src/screens/nativeAppData.ts");
   const scanner = read("src/components/nativeApp/FoodScanPanel.tsx");
   const scanMode = read("src/components/nativeApp/FoodScanModeSelector.tsx");
@@ -137,7 +137,9 @@ test("Food Scan replaces the bottom alert tab without removing alert access", ()
   const functionSource = read("supabase/functions/food-scan/index.ts");
   const catalog = read("src/hooks/useNativeCatalog.ts");
 
-  assert.match(tabData, /\{ id: "scan", label: "Scan" \}/);
+  assert.match(tabData, /\{ id: "receipts", label: "Receipts" \}/);
+  assert.doesNotMatch(tabData, /\{ id: "scan", label: "Scan" \}/);
+  assert.match(read("src/components/nativeApp/MorePanel.tsx"), /label="Scan"[^\n]*onPress=\{props.onOpenScan\}/);
   assert.doesNotMatch(tabData, /\{ id: "alerts", label: "Alerts" \}/);
   assert.match(scanner, /CameraView/);
   assert.doesNotMatch(scanner, /ImagePicker|launchImageLibraryAsync|Choose photo/);

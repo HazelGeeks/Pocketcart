@@ -38,6 +38,7 @@ Personal Information Provided by You:
 • Shopping Profile Data — optional product interests, grocery shopping frequency, and favorite stores that you provide to personalize deal recommendations.
 • Cart Data — products, quantities, and purchased status that you save in your personal or shared family cart.
 • My Freezer Data — food names, storage location, quantity, unit, best-before date, and notes you choose to save in your personal or shared family inventory.
+• Receipt Data — receipt photos you choose to save, stores, purchase dates, purchased items, quantities, prices, currency and payment totals. Saved receipts and photos are linked to your account for access across devices.
 • Food Scan Data — camera images you choose to capture for food or ingredient-label analysis, detected barcodes, and the resulting analysis. PocketCart does not add these captures to your device photo library.
 • Support & Deletion Request Data — account email, platform, request details, and technical request metadata when you submit a support or account deletion request.
 
@@ -53,6 +54,7 @@ Information Automatically Collected:
 
 • To provide and maintain the Service — including price comparison, watchlist tracking, budget planning, and your personal or shared family My Freezer inventory.
 • To provide in-app alerts — price drop highlights, watchlist updates, and other service-related alert states you have opted into.
+• To provide Receipts — privately storing your receipts, synchronizing them across your devices and calculating spending by purchase date. If you choose “Read receipt details,” we send the photo to OpenAI to extract purchase details for your review.
 • To provide Food Scan — sending the image you choose to capture to an image-analysis provider and returning visible food, ripeness, ingredient-label, allergen, and general nutrition guidance.
 • To maintain our Service — we use service and notification diagnostics to investigate errors and keep features working.
 • To communicate with you — responding to your inquiries, sending service updates, and providing customer support.
@@ -64,11 +66,11 @@ We do not sell your personal information to third parties. We do not use your da
     title: "4. Data Sharing & Third Parties",
     body: `We may share your information in the following situations:
 
-• Family Sharing — When you create or join a family, members can see your display name and read, add, edit, and remove items in the shared Cart and My Freezer. Existing personal items are shared only when you choose to copy or move them. Leaving removes your access; shared items remain with the remaining members, including after account deletion. If the last member leaves or deletes their account, the shared inventory is deleted. Product alerts and subscription access remain personal.
+• Family Sharing — When you create or join a family, members can see your display name and read, add, edit, and remove items in the shared Cart and My Freezer. Existing personal items are shared only when you choose to copy or move them. Leaving removes your access; shared items remain with the remaining members, including after account deletion. If the last member leaves or deletes their account, the shared inventory is deleted. Receipts, product alerts and subscription access remain personal and are not shared with family members.
 
 • Subscriptions — If you use in-app subscriptions, Apple or Google processes the payment. RevenueCat processes your app account identifier and purchase/subscription status to validate access and restore purchases. Pocketcart does not receive your full payment card details.
 
-• Service Providers — Supabase provides authentication, database storage, and server functions. Expo and Apple or Google deliver optional push notifications. Food Scan sends your chosen image to OpenAI for analysis when that service is configured. The Food Scan request does not include your PocketCart account identifier or login token. Avoid photographing personal or sensitive information. Google Analytics is used on the website where enabled, not in the native iOS app.
+• Service Providers — Supabase provides authentication, database storage, and server functions. Expo and Apple or Google deliver optional push notifications. Food Scan sends your chosen image to OpenAI for analysis when that service is configured. The Food Scan request does not include your PocketCart account identifier or login token. Receipt reading also sends your chosen photo to OpenAI, without your PocketCart account identifier or login token, and requests that the API response not be stored. Provider processing and retention remain subject to the provider settings and agreement. Avoid photographing personal or sensitive information such as payment card or loyalty details. Google Analytics is used on the website where enabled, not in the native iOS app.
 • Optional Support — The Ko-fi support link opens an external website. Ko-fi and its payment providers process any information you enter there under their own privacy policies. Supporting PocketCart does not unlock app features.
 • Legal Obligations — We may disclose your information where required by law, court order, or governmental regulation.
 • Business Transfers — In the event of a merger, acquisition, or asset sale, your data may be transferred as part of that transaction. We will notify you of any such change.
@@ -79,6 +81,8 @@ We do not sell your personal information to third parties. We do not use your da
     body: `We retain your personal information only for as long as necessary to fulfill the purposes outlined in this Privacy Policy, unless a longer retention period is required or permitted by law.
 
 When you delete your account, we will delete or anonymize your personal data within 30 days, except where we are required to retain certain information for legal or regulatory purposes.
+
+Saved receipt photos and purchase details remain in your account until you delete the receipt or your account. Deleted receipts are immediately excluded from your spending; photo removal is retried if the storage service is temporarily unavailable.
 
 PocketCart does not intentionally save Food Scan captures in its application database. Images are transmitted for analysis, and the image-analysis provider may process or retain request data according to the provider settings and applicable agreement.
 

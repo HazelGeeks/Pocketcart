@@ -16,6 +16,7 @@ export function getNativeHeaderContent(options: HeaderOptions) {
     return { title: "Cart" };
   }
   if (options.activeTab === "freezer") return { title: "My Freezer" };
+  if (options.activeTab === "receipts") return { title: "Receipts" };
   if (options.activeTab === "map") {
     return { title: "Stores" };
   }

@@ -5,6 +5,7 @@
   },
   "include": [
     "supabase/functions/_shared/appleRevocation.ts",
+    "supabase/functions/_shared/receiptPhotoCleanup.ts",
     "supabase/functions/_shared/watchlistPlan.ts",
     "supabase/functions/_shared/billingEntitlement.ts",
     "supabase/functions/_shared/pushTickets.ts",

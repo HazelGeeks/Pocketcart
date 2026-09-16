@@ -222,6 +222,8 @@ function TabIcon({ tabId, active }: { tabId: NativeTabId; active: boolean }) {
       );
     case "freezer":
       return <AppIcon name="fridge" color={color} size={iconSize} strokeWidth={strokeWidth} />;
+    case "receipts":
+      return <AppIcon name="receipt" color={color} size={iconSize} strokeWidth={strokeWidth} />;
     case "alerts":
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">

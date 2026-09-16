@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.106.2";
+import { removeAccountReceiptPhotos } from "../_shared/receiptPhotoCleanup.ts";
 import { revokeAppleAuthorization } from "../_shared/appleRevocation.ts";
 
 const corsHeaders = {
@@ -80,6 +81,12 @@ Deno.serve(async (request) => {
         // account deletion. Do not log tokens, codes, keys or provider responses.
       }
     }
+  }
+
+  try {
+    await removeAccountReceiptPhotos(supabaseUrl, serviceRoleKey, userId);
+  } catch {
+    return jsonResponse({ error: "Could not remove receipt photos. Please retry account deletion." }, 503);
   }
 
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);

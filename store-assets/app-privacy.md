@@ -45,3 +45,17 @@ Privacy policy: https://pocketcart.app/privacy
 Privacy choices / deletion: https://pocketcart.app/delete-account
 
 Reference: https://developer.apple.com/app-store/app-privacy-details/
+
+## Receipts release delta — pending publication
+
+The Receipts feature stores account-linked receipt photos and itemized purchases.
+Before releasing this version, update **Photos or Videos → Linked to identity → Yes**
+in App Store Connect (App Functionality; no tracking). Purchase History remains
+linked to identity for App Functionality. The table above describes the previously
+published build, not this unreleased change. No App Store answers were submitted
+by this implementation.
+
+Evidence: `src/services/receipts.ts`, `supabase/migrations/20260916010000_receipts.sql`,
+`supabase/functions/receipt-scan/index.ts`. Photo reading is optional, explicitly
+confirmed, and sent to OpenAI with `store: false`; that flag is not a zero-retention
+claim. Account deletion removes Storage objects before deleting the user.

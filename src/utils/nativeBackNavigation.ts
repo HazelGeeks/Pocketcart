@@ -25,6 +25,7 @@ export function hasNativeBackDestination(
     shouldHandleHomeDetailBack(activeTab, homeRoute) ||
     activeTab === "alerts" ||
     activeTab === "map" ||
+    activeTab === "scan" ||
     (activeTab === "more" && accountRoute !== "settings")
   );
 }

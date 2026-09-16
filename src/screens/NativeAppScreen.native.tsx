@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeFreezerTab } from "../components/nativeApp/NativeFreezerTab";
+import { NativeReceiptsTab } from "../components/nativeApp/receipts/NativeReceiptsTab";
 import { FoodScanPanel } from "../components/nativeApp/FoodScanPanel";
 import { NativeAuthSheet } from "../components/nativeApp/NativeAuthSheet";
 import { NativeAccountTab } from "../components/nativeApp/NativeAccountTab";
@@ -181,7 +182,7 @@ function NativeAppContent() {
         onBack={
           shell.activeTab === "home" && catalog.route === "detail"
             ? () => catalog.setRoute("catalog")
-            : shell.activeTab === "map"
+            : shell.activeTab === "map" || shell.activeTab === "scan"
             ? () => navigation.selectTab("more")
             : shell.activeTab === "alerts"
             ? shell.closeAlerts
@@ -252,10 +253,12 @@ function NativeAppContent() {
           />
           {shell.activeTab === "freezer" ? <NativeFreezerTab cartItems={shopping.items} userId={account.profile?.id ?? null} onSignIn={() => { account.openSignIn(); shell.openMore(); }} /> : null}
           {shell.activeTab === "scan" ? <FoodScanPanel onOpenProduct={catalog.openProduct} /> : null}
+          {shell.activeTab === "receipts" ? <NativeReceiptsTab key={account.profile?.id ?? "guest"} userId={account.profile?.id ?? null} onSignIn={() => { account.openSignIn(); shell.openMore(); }} /> : null}
           {shell.activeTab === "more" ? (
             <NativeAccountTab
               account={account}
               onOpenMap={() => navigation.selectTab("map")}
+              onOpenScan={() => navigation.selectTab("scan")}
               onboarding={onboarding}
               permissions={permissions}
               storeOptions={map.personalizationStoreOptions}
@@ -265,7 +268,7 @@ function NativeAppContent() {
       )}
       {shell.activeTab !== "more" || account.displayRoute === "settings" ? (
         <NativeBottomTabs
-          activeTab={shell.activeTab === "map" ? "more" : shell.activeTab}
+          activeTab={shell.activeTab === "map" || shell.activeTab === "scan" ? "more" : shell.activeTab}
           bottomInset={insets.bottom}
           hidden={bottomBar.hidden}
           pad={pad}

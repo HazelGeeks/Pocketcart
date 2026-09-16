@@ -26,3 +26,7 @@ verify_jwt = false
 [functions.admin-flyer-notification]
 # Auth.getUser and is_admin are both checked inside the handler.
 verify_jwt = false
+
+[functions.receipt-scan]
+# Caller JWT is verified with Auth before the scan quota or image API is used.
+verify_jwt = false

@@ -22,8 +22,12 @@ import Trash2 from "lucide-react-native/icons/trash-2";
 import X from "lucide-react-native/icons/x";
 import Settings from "lucide-react-native/icons/settings";
 import Mail from "lucide-react-native/icons/mail";
+import ReceiptText from "lucide-react-native/icons/receipt-text";
+import ScanLine from "lucide-react-native/icons/scan-line";
 
 export type AppIconName =
+  | "receipt"
+  | "scan"
   | "search"
   | "chart"
   | "alert"
@@ -50,6 +54,8 @@ export type AppIconName =
   | "sparkles";
 
 const ICONS = {
+  receipt: ReceiptText,
+  scan: ScanLine,
   search: Search,
   chart: ChartNoAxesColumn,
   alert: AlertTriangle,

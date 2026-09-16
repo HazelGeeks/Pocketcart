@@ -12,6 +12,8 @@
   },
   "include": [
     "src/utils/calendarDays.ts",
+    "src/utils/receipts.ts",
+    "src/utils/receiptDraft.ts",
     "src/utils/notificationRetailers.ts",
     "src/utils/notificationForm.ts",
     "src/utils/cartSwipe.ts",
