@@ -5,7 +5,6 @@ import { st } from "../../screens/nativeAppStyles";
 import type { MarketProduct } from "../../services/marketData";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
 import { HOME_PRODUCT_BATCH_SIZE, nextVisibleProductCount } from "../../utils/infiniteScroll";
-import { productDisplayName, productSecondaryName } from "../../utils/productNames";
 import { retailerNameFromStoreDisplayName } from "../../utils/retailerPriceDisplay";
 import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 import {
@@ -65,8 +64,7 @@ export function HomeProductList({
         </Text>
       </View>
       {sortedProducts.slice(0, visibleCount).map((product) => {
-        const displayName = productDisplayName(product);
-        const secondaryName = productSecondaryName(product);
+        const displayName = product.english_name?.trim() || "Unnamed product";
         const preferred = product.preferred_store_price !== null;
         const effectiveDelta = preferred ? product.preferred_price_delta : product.price_delta;
         const displayPrice = displayPriceForProduct(product);
@@ -113,11 +111,6 @@ export function HomeProductList({
                 </Text>
                 {favorite ? <Text style={st.homeFavoriteTag}>My store</Text> : null}
               </View>
-              {secondaryName ? (
-                <Text style={st.itemMeta} numberOfLines={1}>
-                  {secondaryName}
-                </Text>
-              ) : null}
               <Text style={st.itemMeta} numberOfLines={1}>
                 {product.category}
                 {product.unit ? ` / ${product.unit}` : ""}
