@@ -1,11 +1,11 @@
 import React from "react";
 import {
-  deleteCurrentUserAccount,
   signOutUser,
   updatePassword,
   updateUserProfile,
   type UserProfile,
 } from "../services/userProfile";
+import { deleteNativeUserAccount } from "../services/nativeSocialAuth";
 import type { NativeAccountRoute } from "./nativeAccountTypes";
 
 type SetState<T> = React.Dispatch<React.SetStateAction<T>>;
@@ -83,7 +83,7 @@ export default function useNativeProfileActions(options: Options) {
 
   const deleteAccount = React.useCallback(async () => {
     options.setDeletingAccount(true);
-    const { error } = await deleteCurrentUserAccount();
+    const { error, notice } = await deleteNativeUserAccount();
     options.setDeletingAccount(false);
     if (error) {
       options.setMoreMessage(error);
@@ -93,7 +93,7 @@ export default function useNativeProfileActions(options: Options) {
     options.setProfile(null);
     options.setPendingEmailVerification(false);
     options.clearWatchlist();
-    options.setMoreMessage("Account deleted.");
+    options.setMoreMessage(notice ?? "Account deleted.");
     options.showToast("Account deleted.");
   }, [options]);
 

@@ -1,28 +1,32 @@
 {
   "locale": "en-US",
-  "appName": "PocketCart",
+  "appName": "PocketCart: Grocery Savings",
   "subtitle": "Compare grocery deals",
   "shortDescription": "Track grocery prices, compare stores, and watch for better deals.",
-  "promotionalText": "Find better grocery prices before you shop.",
+  "promotionalText": "Compare grocery prices, plan your cart, and keep track of food at home. Pocket Cart brings everyday shopping tools together for Canadian shoppers.",
   "keywords": [
     "grocery",
     "deals",
-    "price tracker",
+    "price",
     "shopping",
-    "watchlist",
-    "flyers"
+    "flyers",
+    "cart",
+    "fridge",
+    "freezer",
+    "pantry",
+    "Canada"
   ],
   "category": {
     "ios": "Shopping",
     "android": "Shopping"
   },
-  "fullDescription": "PocketCart helps shoppers compare grocery prices, save products to a watchlist, keep a private fridge and freezer inventory, and spot better deals across nearby stores. Search products, review price history, check store prices, and use in-app alerts to decide when a deal is worth buying. The app is designed for practical grocery planning without ad tracking or data resale.",
+  "fullDescription": "Make everyday grocery shopping easier with Pocket Cart.\n\nCOMPARE GROCERY PRICES\nBrowse available deals from supported Canadian stores, compare product prices, and review price history before you shop. Coverage and prices vary by store and date; check the retailer for final pricing and availability.\n\nPLAN YOUR CART\nKeep products and quantities together in a simple shopping cart. Mark items as purchased and organize your next grocery trip.\n\nWATCH FOR DEALS\nSave up to five products for sale alerts on a free account, set target prices, and choose your favourite stores. Notifications are optional.\n\nKEEP TRACK OF FOOD AT HOME\nOrganize your fridge and freezer by storage location, track quantities and best-before dates, and set optional expiry reminders. Food storage and expiry reminders are free and unlimited.\n\nSHARE WITH YOUR HOUSEHOLD\nInvite family members to a shared cart and food inventory so everyone can help keep shopping and food records up to date.\n\nFIND NEARBY STORES\nExplore supported stores on the map. Location permission is optional; you can also search by city or postal code.\n\nPocket Cart is free to download. An account is needed for synced and shared features. You can delete your account in the app. Optional support through Ko-fi does not unlock app features.",
   "supportUrl": "https://pocketcart.hazelgeeks.workers.dev/support",
   "marketingUrl": "https://pocketcart.hazelgeeks.workers.dev",
   "privacyPolicyUrl": "https://pocketcart.hazelgeeks.workers.dev/privacy",
   "termsUrl": "https://pocketcart.hazelgeeks.workers.dev/terms",
   "accountDeletionUrl": "https://pocketcart.hazelgeeks.workers.dev/delete-account",
-  "reviewNotes": "PocketCart can be reviewed with a new email/password account from More. Account deletion is available inside More and on the web at https://pocketcart.hazelgeeks.workers.dev/delete-account. Location permission is optional and is only used when a reviewer chooses map-based store discovery.",
+  "reviewNotes": "PocketCart is a free grocery planning app for supported Canadian stores. Browse available products and store prices without granting location permission. Account features include a synced Cart, up to five monitored products for sale alerts, a fridge/freezer inventory, and optional family sharing. Location, camera and notification permissions are optional. Delete Account is available in Account > Settings. The Ko-fi link opens an external browser and does not unlock digital content or app features. The review sign-in credentials will be provided before submission.",
   "dataSafetyBaseline": {
     "dataSold": false,
     "thirdPartyAdTracking": false,
@@ -34,13 +38,23 @@
       "name",
       "email address",
       "user id",
-      "watchlist items",
-      "target prices",
+      "push notification token and delivery diagnostics",
+      "watchlist items and target prices",
+      "cart items, quantities, and purchased status",
       "in-app alert preferences",
       "support and account deletion request details",
-      "app preferences",
-      "private fridge and freezer inventory",
-      "optional location"
+      "app preferences and favourite stores",
+      "private or family fridge and freezer inventory",
+      "optional food scan photos (not linked to an account)"
     ]
+  },
+  "release": {
+    "price": 0,
+    "currency": "CAD",
+    "countries": [
+      "CA"
+    ],
+    "automaticNewTerritories": false,
+    "releaseMode": "MANUAL"
   }
 }

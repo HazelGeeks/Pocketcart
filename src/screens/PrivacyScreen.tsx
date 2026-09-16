@@ -18,7 +18,7 @@ function useLayout() {
 
 /* ═══════════════════════════════════════════════════════════════ */
 
-const LAST_UPDATED = "September 12, 2026";
+const LAST_UPDATED = "September 16, 2026";
 const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
 
 const SECTIONS = [
@@ -36,15 +36,16 @@ Personal Information Provided by You:
 • Account Data — name and email address when you create an account. Authentication credentials are processed by Supabase Auth; we do not store plaintext passwords.
 • Watchlist Data — products you choose to track, target prices, in-app alerts, and budget preferences.
 • Shopping Profile Data — optional product interests, grocery shopping frequency, and favorite stores that you provide to personalize deal recommendations.
+• Cart Data — products, quantities, and purchased status that you save in your personal or shared family cart.
 • My Freezer Data — food names, storage location, quantity, unit, best-before date, and notes you choose to save in your personal or shared family inventory.
 • Food Scan Data — camera images you choose to capture for food or ingredient-label analysis, detected barcodes, and the resulting analysis. PocketCart does not add these captures to your device photo library.
 • Support & Deletion Request Data — account email, platform, request details, and technical request metadata when you submit a support or account deletion request.
-• Usage Data — how you interact with the App, including searches performed, features used, and time spent.
 
 Information Automatically Collected:
-• Device Information — device type, operating system, unique device identifiers, and mobile network information.
-• Log & Usage Data — access times, pages viewed, app crashes, and other diagnostic data.
-• Location Data — optional approximate or precise location only when you choose to share it to find nearby stores. You can also use postal-code entry instead.`,
+• Push Notification Data — if you enable push alerts, we store your notification token, platform, enabled status, and delivery status or errors with your account so we can deliver and troubleshoot notifications.
+• Service Logs — our hosting and authentication providers process request metadata, such as IP addresses, request times, and error information, to operate and protect the Service.
+• Website Analytics — where enabled, our website uses Google Analytics. The native iOS app does not run this website analytics code.
+• Location — optional device location is used on your device to show nearby stores. PocketCart does not save your GPS coordinates to your account database. City or postal-code lookup uses the device's map and geocoding services. You can use these features without granting GPS access.`,
   },
   {
     title: "3. How We Use Your Information",
@@ -53,7 +54,7 @@ Information Automatically Collected:
 • To provide and maintain the Service — including price comparison, watchlist tracking, budget planning, and your personal or shared family My Freezer inventory.
 • To provide in-app alerts — price drop highlights, watchlist updates, and other service-related alert states you have opted into.
 • To provide Food Scan — sending the image you choose to capture to an image-analysis provider and returning visible food, ripeness, ingredient-label, allergen, and general nutrition guidance.
-• To improve our Service — we analyze usage patterns to enhance app performance, fix bugs, and develop new features.
+• To maintain our Service — we use service and notification diagnostics to investigate errors and keep features working.
 • To communicate with you — responding to your inquiries, sending service updates, and providing customer support.
 • To protect our Service — detecting and preventing fraud, abuse, and security incidents.
 
@@ -67,7 +68,8 @@ We do not sell your personal information to third parties. We do not use your da
 
 • Subscriptions — If you use in-app subscriptions, Apple or Google processes the payment. RevenueCat processes your app account identifier and purchase/subscription status to validate access and restore purchases. Pocketcart does not receive your full payment card details.
 
-• Service Providers — We share data with third-party vendors who perform services on our behalf, such as cloud hosting and authentication (Supabase), app delivery tooling (Expo), image analysis for Food Scan (OpenAI when configured), analytics where enabled (Google Analytics), and crash or diagnostic tooling where enabled. These providers process data according to our configuration and applicable agreements.
+• Service Providers — Supabase provides authentication, database storage, and server functions. Expo and Apple or Google deliver optional push notifications. Food Scan sends your chosen image to OpenAI for analysis when that service is configured. The Food Scan request does not include your PocketCart account identifier or login token. Avoid photographing personal or sensitive information. Google Analytics is used on the website where enabled, not in the native iOS app.
+• Optional Support — The Ko-fi support link opens an external website. Ko-fi and its payment providers process any information you enter there under their own privacy policies. Supporting PocketCart does not unlock app features.
 • Legal Obligations — We may disclose your information where required by law, court order, or governmental regulation.
 • Business Transfers — In the event of a merger, acquisition, or asset sale, your data may be transferred as part of that transaction. We will notify you of any such change.
 • With Your Consent — We may share your information for any other purpose with your explicit consent.`,
@@ -84,12 +86,7 @@ Aggregated and anonymized data that cannot be used to identify you may be retain
   },
   {
     title: "6. Data Security",
-    body: `We implement appropriate technical and organizational security measures to protect your personal information, including:
-
-• Encryption of data in transit (TLS 1.3) and at rest (AES-256).
-• Regular security assessments and penetration testing.
-• Access controls limiting employee access to personal data on a need-to-know basis.
-• Secure development practices following OWASP guidelines.
+    body: `We use HTTPS for connections to our services, authenticated requests for account features, and database access policies to restrict access to personal and family records. Server credentials are kept outside the distributed app.
 
 However, no electronic transmission or storage method is 100% secure. While we strive to use commercially acceptable means to protect your personal information, we cannot guarantee its absolute security.`,
   },
@@ -114,7 +111,7 @@ To exercise any of these rights, please use our support page at ${SUPPORT_URL}. 
     title: "9. International Data Transfers",
     body: `Your information may be transferred to and processed in countries other than your country of residence. These countries may have data protection laws that are different from the laws of your country.
 
-We ensure that appropriate safeguards are in place when transferring data internationally, including Standard Contractual Clauses approved by the European Commission where applicable.`,
+Our service providers' processing locations and contractual terms govern their handling of this data. Contact us through our support page with questions about international processing.`,
   },
   {
     title: "10. Changes to This Policy",
@@ -128,8 +125,6 @@ If we make material changes, we will notify you through the App or by email prio
 
 PocketCart
 Support: ${SUPPORT_URL}
-Address: Seoul, South Korea
-
 For data protection inquiries, include "Privacy request" in your support request details.`,
   },
 ];

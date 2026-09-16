@@ -5,7 +5,9 @@ import { Platform } from "react-native";
 import { hasSupabaseEnv, supabase } from "./supabaseClient";
 import {
   completeAuthSessionFromUrl,
+  deleteCurrentUserAccount,
   syncAuthenticatedUserProfile,
+  type AccountDeletionResult,
   type ServiceResult,
   type UserProfile,
 } from "./userProfile";
@@ -168,5 +170,39 @@ export async function signInWithGoogle(): Promise<ServiceResult<SocialAuthResult
     return unavailableResult(
       error instanceof Error ? error.message : "Google sign in failed.",
     );
+  }
+}
+
+export async function deleteNativeUserAccount(): Promise<AccountDeletionResult> {
+  const userResult = await supabase?.auth.getUser().catch(() => null);
+  if (userResult?.error || !userResult?.data.user) {
+    return { data: null, error: userResult?.error?.message ?? "Please sign in again before deleting your account." };
+  }
+  const appleIdentity = userResult?.data.user?.identities?.find(
+    (identity) => identity.provider === "apple",
+  );
+  let authorizationCode: string | undefined;
+  if (appleIdentity) {
+    try {
+      if (await isAppleSignInAvailable()) {
+        const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+        if (credential.user !== appleIdentity.identity_data?.sub) {
+          return { data: null, error: "Use the Apple account linked to this PocketCart account, then try again." };
+        }
+        authorizationCode = credential.authorizationCode || undefined;
+      }
+    } catch (error) {
+      if (typeof error === "object" && error !== null && "code" in error &&
+        error.code === "ERR_REQUEST_CANCELED") {
+        return { data: null, error: "Account deletion cancelled." };
+      }
+      // If Apple is unavailable, still honour the confirmed account deletion.
+      // The server response explains how to disconnect Apple manually.
+    }
+  }
+  try {
+    return await deleteCurrentUserAccount(authorizationCode);
+  } catch {
+    return { data: null, error: "Could not confirm account deletion. Check your connection and try again." };
   }
 }

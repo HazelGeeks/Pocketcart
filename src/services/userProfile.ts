@@ -335,7 +335,11 @@ export async function signOutUser(): Promise<ServiceResult<null>> {
   };
 }
 
-export async function deleteCurrentUserAccount(): Promise<ServiceResult<null>> {
+export type AccountDeletionResult = ServiceResult<null> & { notice?: string };
+
+export async function deleteCurrentUserAccount(
+  appleAuthorizationCode?: string,
+): Promise<AccountDeletionResult> {
   if (!hasSupabaseEnv || !supabase) {
     return missingEnvResult(null);
   }
@@ -360,7 +364,7 @@ export async function deleteCurrentUserAccount(): Promise<ServiceResult<null>> {
       apikey: supabaseAnonKey,
       "Content-Type": "application/json",
     },
-    body: "{}",
+    body: JSON.stringify({ appleAuthorizationCode }),
   });
 
   if (!response.ok) {
@@ -373,8 +377,17 @@ export async function deleteCurrentUserAccount(): Promise<ServiceResult<null>> {
     };
   }
 
+  const result = await response.json().catch(() => null) as {
+    appleAuthorizationRevoked?: boolean | null;
+  } | null;
   await supabase.auth.signOut().catch(() => undefined);
-  return { data: null, error: null };
+  return {
+    data: null,
+    error: null,
+    ...(result?.appleAuthorizationRevoked === false ? {
+      notice: "Your PocketCart account was deleted. To also remove its Apple connection, open iPhone Settings > your name > Sign in with Apple > PocketCart, then stop using Sign in with Apple.",
+    } : {}),
+  };
 }
 
 export async function submitAccountDeletionRequest(params: {

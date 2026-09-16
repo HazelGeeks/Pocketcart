@@ -25,11 +25,28 @@ Supabase automatically links identities that return the same verified email addr
 
 The app saves the name returned by Apple immediately because Apple normally supplies it only on the first authorization.
 
-Before an App Store submission, add server-side storage and revocation of the Apple
-authorization token used by each account. Apple requires apps that support Sign in
-with Apple to revoke the user's token when the account is deleted. Until that backend
-flow and its Apple private-key secrets are configured and verified, Apple sign-in is
-for internal testing only and the production store submission must remain blocked.
+Account deletion obtains a fresh Apple authorization code on iOS. The authenticated
+`delete-account` function exchanges it with Apple, checks that Apple's returned
+subject and audience match the Supabase Apple identity and this app, and revokes
+the returned refresh/access token before deleting the account. Tokens are not stored
+or logged. Cancelling the Apple prompt cancels deletion. If Apple is unavailable,
+the account is still deleted and the app explains how to disconnect Apple manually,
+as required by Apple's TN3194 account-deletion guidance.
+
+Before deploying this flow, create a Sign in with Apple key restricted to the
+PocketCart primary App ID and configure these **server-only** Supabase secrets:
+
+- `APPLE_CLIENT_ID=com.pocketcart.app`
+- `APPLE_TEAM_ID` — the Apple Developer team ID
+- `APPLE_KEY_ID` — the Sign in with Apple key ID
+- `APPLE_PRIVATE_KEY` — the downloaded `.p8` content; never commit this file
+
+Deploy `delete-account`, then install a new native build containing the
+reauthorization flow. Older clients can still delete their account but cannot send
+the fresh code. Until real-device revocation is verified with the configured key,
+the production store submission must remain blocked.
+
+Reference: https://developer.apple.com/documentation/technotes/tn3194-handling-account-deletions-and-revoking-tokens-for-sign-in-with-apple
 
 ## Google
 
