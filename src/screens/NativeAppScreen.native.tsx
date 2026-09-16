@@ -176,6 +176,7 @@ function NativeAppContent() {
         onOpenSettings={guestAccount ? () => account.setAccountRoute("guestSettings") : undefined}
         showCartHelp={shell.activeTab === "shopping"}
         showFreezerHelp={shell.activeTab === "freezer"}
+        showReceiptsHelp={shell.activeTab === "receipts"}
         title={header.title}
         topInset={insets.top}
         pad={pad}
@@ -191,7 +192,9 @@ function NativeAppContent() {
               : undefined
         }
         onOpenAlerts={
-          (shell.activeTab === "home" && catalog.route === "catalog") || shell.activeTab === "freezer" ? openAlerts : undefined
+          (shell.activeTab === "home" && catalog.route === "catalog") ||
+          shell.activeTab === "shopping" || shell.activeTab === "freezer" || shell.activeTab === "receipts"
+            ? openAlerts : undefined
         }
         onOpenMenu={
           shell.activeTab !== "map" && shell.activeTab !== "more" &&

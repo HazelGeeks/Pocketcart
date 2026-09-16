@@ -9,5 +9,6 @@ export function CartHelpButton() {
     <Text style={st.shoppingBodyText}>Tap the quantity to change it or use the purchase and delete buttons.</Text>
     <Text style={st.shoppingBodyText}>Prices load when you open Cart or change the items to buy. Estimates exclude items without tracked prices and travel costs.</Text>
     <Text style={st.shoppingBodyText}>Shared Cart changes are visible to your family members.</Text>
+    <Text style={st.shoppingBodyText}>Tap the bell in the top navigation bar to view notifications. The dot shows when you have unread alerts.</Text>
   </NativeHelpButton>;
 }

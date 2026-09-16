@@ -1,5 +1,6 @@
 import { FreezerHelpButton } from "./FreezerHelpButton";
 import { CartHelpButton } from "./CartHelpButton";
+import { ReceiptsHelpButton } from "./receipts/ReceiptsHelpButton";
 import { Animated, Pressable, Text, View } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 import { TABS, type NativeTabId } from "../../screens/nativeAppData";
@@ -27,6 +28,7 @@ type NativeContextHeaderProps = {
   onOpenSettings?: () => void;
   showCartHelp?: boolean;
   showFreezerHelp?: boolean;
+  showReceiptsHelp?: boolean;
   unreadAlertCount?: number;
 };
 
@@ -40,6 +42,7 @@ export function NativeContextHeader({
   onOpenSettings,
   showCartHelp,
   showFreezerHelp,
+  showReceiptsHelp,
   unreadAlertCount = 0,
 }: NativeContextHeaderProps) {
   return (
@@ -76,15 +79,15 @@ export function NativeContextHeader({
             {title}
           </Text>
         </View>
-        {onOpenAlerts || onOpenMenu || onOpenSettings || showCartHelp || showFreezerHelp ? (
+        {onOpenAlerts || onOpenMenu || onOpenSettings || showCartHelp || showFreezerHelp || showReceiptsHelp ? (
           <View style={st.contextHeaderActions}>
             {onOpenAlerts ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={
                   unreadAlertCount > 0
-                    ? `${unreadAlertCount} unread price alerts`
-                    : "Open price alerts"
+                    ? `${unreadAlertCount} unread notifications`
+                    : "Open notifications"
                 }
                 onPress={onOpenAlerts}
                 style={st.headerIconButton}
@@ -95,6 +98,7 @@ export function NativeContextHeader({
             ) : null}
             {showCartHelp ? <CartHelpButton /> : null}
             {showFreezerHelp ? <FreezerHelpButton /> : null}
+            {showReceiptsHelp ? <ReceiptsHelpButton /> : null}
             {onOpenSettings ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={onOpenSettings} style={st.headerIconButton}>
                 <AppIcon name="settings" color={C.primaryDeep} size={25} />

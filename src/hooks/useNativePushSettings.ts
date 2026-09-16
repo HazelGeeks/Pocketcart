@@ -4,7 +4,6 @@ import {
   disablePushTokensForCurrentUser,
   registerPushTokenForCurrentUser,
 } from "../services/pushNotifications";
-import { sendTestSaleAlertPushNotification } from "../services/pushNotificationTest";
 import type { UserProfile } from "../services/userProfile";
 import { isPushRegistrationReady } from "../utils/pushRegistrationState";
 import type useNativeOnboarding from "./useNativeOnboarding";
@@ -128,24 +127,8 @@ export default function useNativePushSettings({
     state,
   ]);
 
-  const sendTestAlert = React.useCallback(async () => {
-    setMoreLoading(true);
-    try {
-      const result = await sendTestSaleAlertPushNotification();
-      setMoreMessage(result.message);
-      showToast(result.sent ? "Test notification sent." : result.message);
-    } catch {
-      const message = "The test notification could not be sent.";
-      setMoreMessage(message);
-      showToast(message);
-    } finally {
-      setMoreLoading(false);
-    }
-  }, [setMoreLoading, setMoreMessage, showToast]);
-
   return {
     disableAlerts,
     enableAlerts,
-    sendTestAlert,
   };
 }

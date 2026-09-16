@@ -61,9 +61,6 @@ export function NativeAccountTab({
         onDisableAlerts={() => {
           void permissions.disableAlerts();
         }}
-        onSendTestAlert={() => {
-          void permissions.sendTestAlert();
-        }}
         onOpenAppSettings={() => {
           void Linking.openSettings();
         }}

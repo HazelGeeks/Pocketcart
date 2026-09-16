@@ -27,7 +27,6 @@ type MorePanelProps = {
   onSetPostalLocation: () => void;
   onEnableAlerts: () => void;
   onDisableAlerts: () => void;
-  onSendTestAlert: () => void;
   onOpenAppSettings: () => void;
   preferences: ProfilePreferences;
   deleteConfirming: boolean;
@@ -108,9 +107,7 @@ function PreferencesSection({
   onSetPostalLocation,
   onEnableAlerts,
   onDisableAlerts,
-  onSendTestAlert,
   onOpenAppSettings,
-  profile,
 }: MorePanelProps) {
   return (
     <SettingsSection label="Preferences">
@@ -145,18 +142,6 @@ function PreferencesSection({
       </View>
 
       <View style={st.settingsDivider} />
-
-      {profile && alertsEnabled ? (
-        <>
-          <SettingsLinkRow
-            label="Send test notification"
-            value={loading ? "Sending…" : "Device check"}
-            disabled={loading}
-            onPress={onSendTestAlert}
-          />
-          <View style={st.settingsDivider} />
-        </>
-      ) : null}
 
       <SettingsLinkRow label="Open App Settings" value="Permissions" onPress={onOpenAppSettings} />
     </SettingsSection>
