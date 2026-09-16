@@ -58,9 +58,22 @@ Without the migration, account storage is unavailable and the UI says so.
 
 Published the updated privacy page to https://pocketcart.app/privacy in Cloudflare
 Worker version `3e4ce690-1d37-4e86-a265-a19b86ab3cdd`.
-Before distributing the new native build, update App Store Connect Photos or Videos
+Before public App Store release, update App Store Connect Photos or Videos
 from not-linked to **linked to identity**. See `store-assets/app-privacy.md`;
-these store changes and a new iOS/TestFlight build have not been submitted.
+the disclosure change is still pending because the web login has expired.
+
+## Native release tracking
+
+- Feature source: `bd30615d5e673cfed7e7cd3972710963f6f4dba1`, pushed to `main`.
+- Feature CI: [Mobile Release Check 35066304485](https://github.com/HazelGeeks/Pocketcart/actions/runs/35066304485), passed.
+- iOS version: **1.0.0 (12)**. EAS increments the build number in `app.json` and
+  `ios/PocketCart/Info.plist`; these version changes are synchronized separately.
+- [EAS production build](https://expo.dev/accounts/w_sungjun/projects/pocketcart/builds/4cf4f1b7-46dc-4193-9d05-bf1c5fd7c7e6).
+- [App Store Connect TestFlight](https://appstoreconnect.apple.com/apps/6809854257/testflight/ios).
+  Build completion, submission and Apple processing are separate statuses; consult
+  these services for the current state.
+- Camera permission copy in both app config and the native Info.plist includes
+  photographing receipts.
 
 ## Validation
 
@@ -96,5 +109,5 @@ Local verification on September 16, 2026 (UTC): 417/417 tests passed, typecheck 
 lint passed, web export and iOS Hermes bundle export passed, isolated receipt DB
 tests passed, and `git diff --check` passed. Native visual verification stopped
 because the Mac was locked. Production migration, function deployment and backend
-smoke checks are now complete as recorded above. Git publication and native
-distribution remain separate outstanding release steps.
+smoke checks are now complete as recorded above. Native build and TestFlight
+provenance are tracked separately in the release links above.
