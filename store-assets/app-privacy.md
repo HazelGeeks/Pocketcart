@@ -1,14 +1,15 @@
 # iOS App Privacy disclosure
 
-Reviewed against the production 1.0.0 (9) code on September 16, 2026 (UTC).
-The answers were published in App Store Connect after the owner's explicit
-confirmation of Apple's accuracy and compliance declaration.
+Reviewed against the production 1.0.0 (12) code on September 16, 2026 (UTC).
+The initial answers were published after the owner's explicit confirmation of
+Apple's accuracy and compliance declaration. The Receipts photo-linkage update
+was published and verified in App Store Connect on September 16, 2026 (UTC).
 
 | Data type | Purpose | Linked to identity | Tracking |
 | --- | --- | --- | --- |
 | Name | App Functionality | Yes | No |
 | Email Address | App Functionality | Yes | No |
-| Photos or Videos | App Functionality | No | No |
+| Photos or Videos | App Functionality | Yes | No |
 | Customer Support | App Functionality | Yes | No |
 | Other User Content | App Functionality, Product Personalization | Yes | No |
 | User ID | App Functionality | Yes | No |
@@ -46,14 +47,13 @@ Privacy choices / deletion: https://pocketcart.app/delete-account
 
 Reference: https://developer.apple.com/app-store/app-privacy-details/
 
-## Receipts release delta — pending publication
+## Receipts release delta — published September 16, 2026
 
 The Receipts feature stores account-linked receipt photos and itemized purchases.
-Before releasing this version, update **Photos or Videos → Linked to identity → Yes**
-in App Store Connect (App Functionality; no tracking). Purchase History remains
-linked to identity for App Functionality. The table above describes the previously
-published build, not this unreleased change. No App Store answers were submitted
-by this implementation.
+Updated **Photos or Videos → Linked to identity → Yes** in App Store Connect
+(App Functionality; no tracking). Purchase History remains linked to identity for
+App Functionality. Verified the published timestamp and the Photos or Videos
+section showing both App Functionality and linkage to the user's identity.
 
 Evidence: `src/services/receipts.ts`, `supabase/migrations/20260916010000_receipts.sql`,
 `supabase/functions/receipt-scan/index.ts`. Photo reading is optional, explicitly

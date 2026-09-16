@@ -58,9 +58,9 @@ Without the migration, account storage is unavailable and the UI says so.
 
 Published the updated privacy page to https://pocketcart.app/privacy in Cloudflare
 Worker version `3e4ce690-1d37-4e86-a265-a19b86ab3cdd`.
-Before public App Store release, update App Store Connect Photos or Videos
-from not-linked to **linked to identity**. See `store-assets/app-privacy.md`;
-the disclosure change is still pending because the web login has expired.
+Updated and verified App Store Connect Photos or Videos from not-linked to
+**linked to identity**, for App Functionality without tracking. The user restored
+the expired web login before publication. See `store-assets/app-privacy.md`.
 
 ## Native release tracking
 
@@ -69,6 +69,10 @@ the disclosure change is still pending because the web login has expired.
 - iOS version: **1.0.0 (12)**. EAS increments the build number in `app.json` and
   `ios/PocketCart/Info.plist`; these version changes are synchronized separately.
 - [EAS production build](https://expo.dev/accounts/w_sungjun/projects/pocketcart/builds/4cf4f1b7-46dc-4193-9d05-bf1c5fd7c7e6).
+- Build and [submission 26a6ff4e](https://expo.dev/accounts/w_sungjun/projects/pocketcart/submissions/26a6ff4e-5d29-4f01-ade8-bafb09b59c26)
+  both finished successfully. Apple reported **VALID / IN_BETA_TESTING** for build
+  12, uploaded September 16, 2026 at 00:10 PDT. External beta review and public
+  App Store release were not performed.
 - [App Store Connect TestFlight](https://appstoreconnect.apple.com/apps/6809854257/testflight/ios).
   Build completion, submission and Apple processing are separate statuses; consult
   these services for the current state.
