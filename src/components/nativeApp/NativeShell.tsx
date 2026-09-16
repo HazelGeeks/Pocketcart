@@ -24,6 +24,7 @@ type NativeContextHeaderProps = {
   onBack?: () => void;
   onOpenAlerts?: () => void;
   onOpenMenu?: () => void;
+  onOpenSettings?: () => void;
   showCartHelp?: boolean;
   showFreezerHelp?: boolean;
   unreadAlertCount?: number;
@@ -36,6 +37,7 @@ export function NativeContextHeader({
   onBack,
   onOpenAlerts,
   onOpenMenu,
+  onOpenSettings,
   showCartHelp,
   showFreezerHelp,
   unreadAlertCount = 0,
@@ -74,7 +76,7 @@ export function NativeContextHeader({
             {title}
           </Text>
         </View>
-        {onOpenAlerts || onOpenMenu || showCartHelp || showFreezerHelp ? (
+        {onOpenAlerts || onOpenMenu || onOpenSettings || showCartHelp || showFreezerHelp ? (
           <View style={st.contextHeaderActions}>
             {onOpenAlerts ? (
               <Pressable
@@ -93,6 +95,11 @@ export function NativeContextHeader({
             ) : null}
             {showCartHelp ? <CartHelpButton /> : null}
             {showFreezerHelp ? <FreezerHelpButton /> : null}
+            {onOpenSettings ? (
+              <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={onOpenSettings} style={st.headerIconButton}>
+                <AppIcon name="settings" color={C.primaryDeep} size={25} />
+              </Pressable>
+            ) : null}
             {onOpenMenu ? (
               <Pressable
                 accessibilityRole="button"
@@ -250,9 +257,9 @@ function TabIcon({ tabId, active }: { tabId: NativeTabId; active: boolean }) {
     case "more":
       return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
-          <Circle cx={12} cy={12} r={2.7} stroke={color} strokeWidth={strokeWidth} />
+          <Circle cx={12} cy={7.5} r={3.5} stroke={color} strokeWidth={strokeWidth} />
           <Path
-            d="M12 4.5v2M12 17.5v2M5.65 7.15l1.42 1.42M16.93 15.43l1.42 1.42M4.5 12h2M17.5 12h2M5.65 16.85l1.42-1.42M16.93 8.57l1.42-1.42"
+            d="M5 21v-2a7 7 0 0 1 14 0v2"
             stroke={color}
             strokeWidth={strokeWidth}
             strokeLinecap="round"

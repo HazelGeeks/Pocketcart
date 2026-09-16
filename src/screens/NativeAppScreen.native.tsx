@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NativeFreezerTab } from "../components/nativeApp/NativeFreezerTab";
 import { FoodScanPanel } from "../components/nativeApp/FoodScanPanel";
+import { NativeAuthSheet } from "../components/nativeApp/NativeAuthSheet";
 import { NativeAccountTab } from "../components/nativeApp/NativeAccountTab";
 import { NativeAppOnboarding } from "../components/nativeApp/NativeAppOnboarding";
 import { NativeHomeTab } from "../components/nativeApp/NativeHomeTab";
@@ -58,6 +59,7 @@ function NativeAppContent() {
     onOpenMore: shell.openMore,
     showToast: shell.showToast,
   });
+  const guestAccount = shell.activeTab === "more" && !account.profile && account.displayRoute === "settings";
   useFamilyNavigation(account, shell.openMore, onboarding.setVisible);
   const favoriteStores = useFavoriteStores(account.profile?.id ?? null, shell.showToast);
   const catalog = useNativeCatalog({
@@ -108,12 +110,12 @@ function NativeAppContent() {
   const navigation = useNativeBackNavigation({
     account,
     catalog,
-    gestureEnabled: !onboarding.visible,
+    gestureEnabled: !onboarding.visible && account.accountRoute !== "auth",
     map,
     shell,
     width: w,
   });
-  const scrollKey = shell.activeTab === "home" ? (catalog.route === "detail" ? `detail:${catalog.selectedProduct?.id ?? ""}` : `home:${catalog.query}:${catalog.category}:${catalog.storeFilterName}:${catalog.sortMode}:${catalog.onSaleOnly}`) : `${shell.activeTab}:${shell.activeTab === "more" ? account.accountRoute : ""}`;
+  const scrollKey = shell.activeTab === "home" ? (catalog.route === "detail" ? `detail:${catalog.selectedProduct?.id ?? ""}` : `home:${catalog.query}:${catalog.category}:${catalog.storeFilterName}:${catalog.sortMode}:${catalog.onSaleOnly}`) : `${shell.activeTab}:${shell.activeTab === "more" ? account.displayRoute : ""}`;
   const { scrollRef: detailScrollRef, initialOffset, recordOffset } = useNativeDetailScroll(scrollKey);
   const bottomBar = useNativeBottomBarVisibility({ autoHide: false,
     activeTab: shell.activeTab,
@@ -133,7 +135,7 @@ function NativeAppContent() {
     shell.openAlerts();
   }, [catalog.setRoute, shell.openAlerts]);
   const header = getNativeHeaderContent({
-    accountRoute: account.accountRoute,
+    accountRoute: account.displayRoute,
     activeTab: shell.activeTab,
     authMode: account.authMode,
     homeRoute: catalog.route,
@@ -167,9 +169,10 @@ function NativeAppContent() {
   return (
     <Animated.View
       {...navigation.backPanHandlers}
-      style={[st.root, { transform: [{ translateX: navigation.backTranslateX }] }]}
+      style={[st.root, shell.activeTab === "more" && { backgroundColor: "white" }, { transform: [{ translateX: navigation.backTranslateX }] }]}
     >
       <NativeContextHeader
+        onOpenSettings={guestAccount ? () => account.setAccountRoute("guestSettings") : undefined}
         showCartHelp={shell.activeTab === "shopping"}
         showFreezerHelp={shell.activeTab === "freezer"}
         title={header.title}
@@ -182,7 +185,7 @@ function NativeAppContent() {
             ? () => navigation.selectTab("more")
             : shell.activeTab === "alerts"
             ? shell.closeAlerts
-            : shell.activeTab === "more" && account.accountRoute !== "settings"
+            : shell.activeTab === "more" && account.displayRoute !== "settings"
               ? account.closeSubpage
               : undefined
         }
@@ -213,10 +216,11 @@ function NativeAppContent() {
           style={st.scroll}
           contentContainerStyle={[
             st.scrollContent,
+            guestAccount && { flexGrow: 1 },
             {
               paddingHorizontal: pad,
               paddingBottom:
-                shell.activeTab === "more" && account.accountRoute !== "settings"
+                shell.activeTab === "more" && account.displayRoute !== "settings"
                   ? 24 + Math.max(insets.bottom, 10)
                   : 112 + Math.max(insets.bottom, 10),
             },
@@ -259,7 +263,7 @@ function NativeAppContent() {
           ) : null}
         </ScrollView>
       )}
-      {shell.activeTab !== "more" || account.accountRoute === "settings" ? (
+      {shell.activeTab !== "more" || account.displayRoute === "settings" ? (
         <NativeBottomTabs
           activeTab={shell.activeTab === "map" ? "more" : shell.activeTab}
           bottomInset={insets.bottom}
@@ -270,6 +274,7 @@ function NativeAppContent() {
           onSelectTab={navigation.selectTab}
         />
       ) : null}
+      {shell.activeTab === "more" && account.accountRoute === "auth" ? <NativeAuthSheet account={account} /> : null}
       <NativeAppOnboarding
         visible={onboarding.visible}
         step={onboarding.step}
@@ -295,7 +300,7 @@ function NativeAppContent() {
               left: pad,
               right: pad,
               bottom:
-                shell.activeTab === "more" && account.accountRoute !== "settings"
+                shell.activeTab === "more" && account.displayRoute !== "settings"
                   ? 18 + Math.max(insets.bottom, 10)
                   : 94 + Math.max(insets.bottom, 10),
             },

@@ -210,7 +210,7 @@ test("account uses a profile header and open divider menu groups", () => {
   assert.doesNotMatch(headerCopy, /status:/);
   assert.doesNotMatch(shell, /contextStatusPill/);
   assert.match(overview, /settingsPage:[^}]*gap: 28/);
-  assert.match(overview, /settingsProfileCard:[^}]*backgroundColor: C.primaryPale/);
+  assert.match(overview, /settingsProfileCard:[^}]*alignItems: "center"/);
   assert.match(overview, /settingsAccountTitle:/);
   assert.match(styles, /settingsGroup:[^}]*borderTopWidth: 1/);
   assert.match(styles, /settingsGroup:[^}]*borderBottomWidth: 1/);

@@ -3,7 +3,7 @@ import type useNativeAccount from "../../hooks/useNativeAccount";
 import type useNativeOnboarding from "../../hooks/useNativeOnboarding";
 import type useNativePermissions from "../../hooks/useNativePermissions";
 import { st } from "../../screens/nativeAppStyles";
-import { AccountAuthPanel } from "./AccountAuthPanel";
+import { GuestAccountPanel } from "./GuestAccountPanel";
 import {
   EditProfilePanel,
   EmailVerificationPanel,
@@ -29,8 +29,13 @@ export function NativeAccountTab({
   storeOptions,
   onOpenMap,
 }: Props) {
-  if (account.accountRoute === "subscription") return <SubscriptionPanel billing={account.billing} signedIn={Boolean(account.profile)} onSignIn={account.openSignIn} />;
-  if (account.accountRoute === "settings") {
+  const route = account.displayRoute;
+  if (route === "settings" && !account.profile) {
+    return <GuestAccountPanel onSignIn={account.openSignIn} onSignUp={account.openSignUp}
+      message={account.accountRoute === "auth" ? null : account.moreMessage} />;
+  }
+  if (route === "subscription") return <SubscriptionPanel billing={account.billing} signedIn={Boolean(account.profile)} onSignIn={account.openSignIn} />;
+  if (route === "settings" || route === "guestSettings") {
     return (
       <MorePanel
         billing={account.billing}
@@ -81,47 +86,11 @@ export function NativeAccountTab({
     );
   }
 
-  if (account.accountRoute === "freezer" && account.profile) {
+  if (route === "freezer" && account.profile) {
     return <MyFreezerPanel userId={account.profile.id} />;
   }
 
-  if (account.accountRoute === "auth") {
-    return (
-      <AccountAuthPanel
-        mode={account.authMode}
-        loading={account.moreLoading}
-        socialLoading={account.socialAuthLoading}
-        message={account.moreMessage}
-        signInEmail={account.signInEmail}
-        signInPassword={account.signInPassword}
-        signUpName={account.signUpName}
-        signUpEmail={account.signUpEmail}
-        signUpPassword={account.signUpPassword}
-        onChangeMode={(mode) => {
-          account.setAuthMode(mode);
-          account.setMoreMessage(null);
-        }}
-        onSignIn={account.signIn}
-        onSignUp={account.signUp}
-        onSignInWithApple={() => {
-          void account.signInWithProvider("apple");
-        }}
-        onSignInWithGoogle={() => {
-          void account.signInWithProvider("google");
-        }}
-        onForgotPassword={(email) => {
-          void account.requestReset(email);
-        }}
-        onChangeSignInEmail={account.setSignInEmail}
-        onChangeSignInPassword={account.setSignInPassword}
-        onChangeSignUpName={account.setSignUpName}
-        onChangeSignUpEmail={account.setSignUpEmail}
-        onChangeSignUpPassword={account.setSignUpPassword}
-      />
-    );
-  }
-
-  if (account.accountRoute === "verify") {
+  if (route === "verify") {
     return (
       <EmailVerificationPanel
         email={account.signUpEmail}
@@ -131,7 +100,7 @@ export function NativeAccountTab({
     );
   }
 
-  if (account.accountRoute === "personalize") {
+  if (route === "personalize") {
     if (!account.profilePreferencesLoaded) {
       return (
         <View style={st.authCard}>
@@ -153,7 +122,7 @@ export function NativeAccountTab({
     );
   }
 
-  if (account.accountRoute === "editProfile" && account.profile) {
+  if (route === "editProfile" && account.profile) {
     return (
       <EditProfilePanel
         profile={account.profile}
@@ -166,7 +135,7 @@ export function NativeAccountTab({
     );
   }
 
-  if (account.accountRoute === "resetPassword") {
+  if (route === "resetPassword") {
     return (
       <ResetPasswordPanel
         loading={account.moreLoading}

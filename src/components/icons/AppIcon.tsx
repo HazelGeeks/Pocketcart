@@ -20,6 +20,8 @@ import Snowflake from "lucide-react-native/icons/snowflake";
 import AlertTriangle from "lucide-react-native/icons/triangle-alert";
 import Trash2 from "lucide-react-native/icons/trash-2";
 import X from "lucide-react-native/icons/x";
+import Settings from "lucide-react-native/icons/settings";
+import Mail from "lucide-react-native/icons/mail";
 
 export type AppIconName =
   | "search"
@@ -39,6 +41,8 @@ export type AppIconName =
   | "location"
   | "map"
   | "menu"
+  | "settings"
+  | "mail"
   | "retake"
   | "add"
   | "edit"
@@ -63,6 +67,8 @@ const ICONS = {
   location: MapPin,
   map: MapIcon,
   menu: Menu,
+  settings: Settings,
+  mail: Mail,
   retake: RotateCcw,
   add: Plus,
   edit: Pencil,

@@ -36,16 +36,10 @@ export const settingsStyles = StyleSheet.create({
     alignItems: "center",
     gap: 9,
   },
-  settingsLocationIcon: {
-    width: 28,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   settingsLocationStatus: {
     color: C.textSoft,
     fontSize: 12,
-    fontFamily: F.semibold,
+    fontFamily: F.regular,
   },
   settingsLocationAction: {
     minHeight: 44,

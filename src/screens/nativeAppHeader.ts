@@ -29,6 +29,8 @@ export function getNativeHeaderContent(options: HeaderOptions) {
     return options.authMode === "signIn" ? { title: "Sign In" } : { title: "Create Account" };
   }
   const accountHeaders: Partial<Record<NativeAccountRoute, { title: string }>> = {
+    settings: { title: "Account" },
+    guestSettings: { title: "Settings" },
     verify: { title: "Verify Email" },
     personalize: { title: "Shopping Profile" },
     freezer: { title: "My Freezer" },

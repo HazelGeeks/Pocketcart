@@ -32,6 +32,7 @@ export default function useNativeAccount(options: Options) {
   const [moreLoading, setMoreLoading] = React.useState(false);
   const [moreMessage, setMoreMessage] = React.useState<string | null>(null);
   const [authMode, setAuthMode] = React.useState<NativeAuthMode>("signIn");
+  const [authReturnRoute, setAuthReturnRoute] = React.useState<NativeAccountRoute>("settings");
   const [socialAuthLoading, setSocialAuthLoading] = React.useState<
     "apple" | "google" | null
   >(null);
@@ -134,20 +135,27 @@ export default function useNativeAccount(options: Options) {
   }, [preferences.preferences, savePersonalization]);
 
   const openAuth = React.useCallback((mode: NativeAuthMode) => {
+    setAuthReturnRoute(accountRoute === "auth" ? authReturnRoute : accountRoute);
     setAuthMode(mode);
     setMoreMessage(null);
     setAccountRoute("auth");
-  }, []);
+  }, [accountRoute, authReturnRoute]);
   const openSignIn = React.useCallback(() => openAuth("signIn"), [openAuth]);
   const openSignUp = React.useCallback(() => openAuth("signUp"), [openAuth]);
   const closeSubpage = React.useCallback(() => {
-    setAccountRoute("settings");
-    if (accountRoute === "auth") setMoreMessage(null);
-  }, [accountRoute]);
+    if (accountRoute === "auth") {
+      if (moreLoading || socialAuthLoading) return;
+      setAccountRoute(authReturnRoute);
+      setMoreMessage(null);
+      setSignInPassword("");
+      setSignUpPassword("");
+    } else setAccountRoute("settings");
+  }, [accountRoute, authReturnRoute, moreLoading, socialAuthLoading]);
 
   return {
     billing,
     accountRoute,
+    displayRoute: accountRoute === "auth" ? authReturnRoute : accountRoute,
     authMode,
     closeSubpage,
     deleteAccount: profileActions.deleteAccount,

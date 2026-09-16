@@ -42,7 +42,7 @@ export const TABS: Array<{ id: NativeTabId; label: string }> = [
   { id: "shopping", label: "Cart" },
   { id: "freezer", label: "Freezer" },
   { id: "scan", label: "Scan" },
-  { id: "more", label: "Settings" },
+  { id: "more", label: "Account" },
 ];
 
 export const DEFAULT_REGION: Region = {

@@ -1,10 +1,13 @@
 import React from "react";
 import * as AppleAuthentication from "expo-apple-authentication";
-import { Linking, Pressable, Text, TextInput, View } from "react-native";
+import { Keyboard, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { st } from "../../screens/nativeAppStyles";
+import { F } from "../../screens/nativeAppStyles/fonts";
+import { AppIcon } from "../icons/AppIcon";
+import { AccountEmailForm } from "./AccountEmailForm";
 
-type AccountAuthPanelProps = {
+export type AccountAuthPanelProps = {
   mode: "signIn" | "signUp";
   loading: boolean;
   socialLoading: "apple" | "google" | null;
@@ -15,6 +18,7 @@ type AccountAuthPanelProps = {
   signUpEmail: string;
   signUpPassword: string;
   onChangeMode: (mode: "signIn" | "signUp") => void;
+  onClearMessage: () => void;
   onSignIn: () => void;
   onSignUp: () => void;
   onSignInWithApple: () => void;
@@ -28,214 +32,87 @@ type AccountAuthPanelProps = {
 };
 
 export function AccountAuthPanel(props: AccountAuthPanelProps) {
-  const isSignIn = props.mode === "signIn";
+  const signIn = props.mode === "signIn";
+  const busy = props.loading || props.socialLoading !== null;
+  const [emailForm, setEmailForm] = React.useState(false);
   const [appleAvailable, setAppleAvailable] = React.useState(false);
-
   React.useEffect(() => {
     let active = true;
-    void AppleAuthentication.isAvailableAsync()
-      .then((available) => {
-        if (active) setAppleAvailable(available);
-      })
-      .catch(() => {
-        if (active) setAppleAvailable(false);
-      });
-    return () => {
-      active = false;
-    };
+    void AppleAuthentication.isAvailableAsync().then(value => { if (active) setAppleAvailable(value); }).catch(() => {});
+    return () => { active = false; };
   }, []);
 
-  return (
-    <View style={st.authPage}>
-      <View style={st.authIntro}>
-        <Text style={st.authTitle}>{isSignIn ? "Welcome back" : "Create your account"}</Text>
-        <Text style={st.authDescription}>
-          {isSignIn
-            ? "Sign in to sync your profile, My Freezer, and price alerts."
-            : "Save your shopping preferences and keep price alerts available across devices."}
-        </Text>
-      </View>
-
-      <View style={st.authCard}>
-        {props.message ? (
-          <View style={st.settingsMessage} accessibilityRole="alert">
-            <Text style={st.settingsMessageText}>{props.message}</Text>
-          </View>
-        ) : null}
-
-        <View style={st.authSocialGroup}>
-          {appleAvailable ? (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-              cornerRadius={12}
-              onPress={() => {
-                if (!props.loading && !props.socialLoading) props.onSignInWithApple();
-              }}
-              style={st.authAppleButton}
-            />
-          ) : null}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Continue with Google"
-            disabled={props.loading || props.socialLoading !== null}
-            onPress={props.onSignInWithGoogle}
-            style={({ pressed }) => [
-              st.authGoogleButton,
-              pressed && st.authGoogleButtonPressed,
-            ]}
-          >
-            <Text style={st.authGoogleMark}>G</Text>
-            <Text style={st.authGoogleButtonText}>
-              {props.socialLoading === "google" ? "Connecting to Google..." : "Continue with Google"}
-            </Text>
-          </Pressable>
-          {props.socialLoading === "apple" ? (
-            <Text style={st.authSocialStatus}>Connecting to Apple...</Text>
-          ) : null}
-        </View>
-
-        <View style={st.authDividerRow}>
-          <View style={st.authDividerLine} />
-          <Text style={st.authDividerText}>or continue with email</Text>
-          <View style={st.authDividerLine} />
-        </View>
-
-        {isSignIn ? (
-          <>
-            <AuthField label="Email">
-              <TextInput
-                accessibilityLabel="Email"
-                value={props.signInEmail}
-                onChangeText={props.onChangeSignInEmail}
-                placeholder="you@example.com"
-                placeholderTextColor={C.textMuted}
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={st.settingsInput}
-              />
-            </AuthField>
-            <AuthField label="Password">
-              <TextInput
-                accessibilityLabel="Password"
-                value={props.signInPassword}
-                onChangeText={props.onChangeSignInPassword}
-                placeholder="Password"
-                placeholderTextColor={C.textMuted}
-                secureTextEntry
-                textContentType="password"
-                autoComplete="current-password"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={st.settingsInput}
-              />
-            </AuthField>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => props.onForgotPassword(props.signInEmail)}
-              style={st.authInlineButton}
-            >
-              <Text style={st.authTextButtonLabel}>Forgot password?</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={props.onSignIn}
-              style={[st.settingsButton, st.settingsButtonPrimary]}
-              disabled={props.loading}
-            >
-              <Text style={st.settingsButtonPrimaryText}>{props.loading ? "Signing in..." : "Sign In"}</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <AuthField label="Name">
-              <TextInput
-                accessibilityLabel="Name"
-                value={props.signUpName}
-                onChangeText={props.onChangeSignUpName}
-                placeholder="Your name"
-                placeholderTextColor={C.textMuted}
-                textContentType="name"
-                autoComplete="name"
-                autoCapitalize="words"
-                autoCorrect={false}
-                style={st.settingsInput}
-              />
-            </AuthField>
-            <AuthField label="Email">
-              <TextInput
-                accessibilityLabel="Email"
-                value={props.signUpEmail}
-                onChangeText={props.onChangeSignUpEmail}
-                placeholder="you@example.com"
-                placeholderTextColor={C.textMuted}
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                autoComplete="email"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={st.settingsInput}
-              />
-            </AuthField>
-            <AuthField label="Password">
-              <TextInput
-                accessibilityLabel="Password, minimum 8 characters"
-                value={props.signUpPassword}
-                onChangeText={props.onChangeSignUpPassword}
-                placeholder="At least 8 characters"
-                placeholderTextColor={C.textMuted}
-                secureTextEntry
-                textContentType="newPassword"
-                autoComplete="new-password"
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={st.settingsInput}
-              />
-            </AuthField>
-            <Pressable
-              accessibilityRole="button"
-              onPress={props.onSignUp}
-              style={[st.settingsButton, st.settingsButtonPrimary]}
-              disabled={props.loading}
-            >
-              <Text style={st.settingsButtonPrimaryText}>{props.loading ? "Creating account..." : "Create Account"}</Text>
-            </Pressable>
-            <Text style={st.authFinePrint}>By creating an account, you agree to PocketCart's</Text>
-            <View style={st.authLegalRow}>
-              <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.app/terms")} style={st.authLegalLink}>
-                <Text style={st.authLegalLinkText}>Terms of Service</Text>
-              </Pressable>
-              <Text style={st.authFinePrint}>and</Text>
-              <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.app/privacy")} style={st.authLegalLink}>
-                <Text style={st.authLegalLinkText}>Privacy Policy</Text>
-              </Pressable>
-            </View>
-          </>
-        )}
-      </View>
-
-      <View style={st.authSwitchRow}>
-        <Text style={st.authSwitchCopy}>{isSignIn ? "New to PocketCart?" : "Already have an account?"}</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => props.onChangeMode(isSignIn ? "signUp" : "signIn")}
-          style={st.authTextButton}
-        >
-          <Text style={st.authTextButtonLabel}>{isSignIn ? "Create an account" : "Sign in instead"}</Text>
+  return <View style={s.content}>
+    <View style={s.intro}>
+      <Text accessibilityRole="header" style={s.title}>{signIn ? "Welcome back" : "Join PocketCart"}</Text>
+      <Text style={s.description}>{signIn ? "Your next grocery run starts here." : "A little planning. More everyday savings."}</Text>
+    </View>
+    {props.message ? <View style={st.settingsMessage} accessibilityRole="alert"><Text style={st.settingsMessageText}>{props.message}</Text></View> : null}
+    {emailForm ? <>
+      <AccountEmailForm {...props} />
+      <Pressable accessibilityRole="button" disabled={busy} style={st.authTextButton}
+        onPress={() => { Keyboard.dismiss(); setEmailForm(false); props.onClearMessage(); }}>
+        <Text style={st.authTextButtonLabel}>Other sign-in options</Text>
+      </Pressable>
+    </> : <View style={s.options}>
+      <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setEmailForm(true); props.onClearMessage(); }}
+        style={({ pressed }) => [s.email, pressed && s.pressed, busy && s.disabled]}>
+        <AppIcon name="mail" color={C.white} size={21} />
+        <Text style={s.emailText}>Continue with email</Text>
+      </Pressable>
+      {appleAvailable ? <View pointerEvents={busy ? "none" : "auto"} style={busy ? s.disabled : undefined}>
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+          cornerRadius={14} onPress={() => { if (!busy) props.onSignInWithApple(); }} style={s.apple} />
+      </View> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Continue with Google" disabled={busy}
+        onPress={props.onSignInWithGoogle} style={({ pressed }) => [s.google, pressed && s.pressed, busy && s.disabled]}>
+        <Text style={st.authGoogleMark}>G</Text><Text style={s.googleText}>Continue with Google</Text>
+      </Pressable>
+      {props.socialLoading ? <Text accessibilityLiveRegion="polite" style={st.authSocialStatus}>
+        Connecting to {props.socialLoading === "apple" ? "Apple" : "Google"}…
+      </Text> : null}
+    </View>}
+    {!signIn ? <View style={s.legal}>
+      <Text style={st.authFinePrint}>By continuing, you agree to PocketCart's</Text>
+      <View style={s.legalLinks}>
+        <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.app/terms")} style={st.authLegalLink}>
+          <Text style={st.authLegalLinkText}>Terms of Service</Text>
+        </Pressable>
+        <Text style={st.authFinePrint}>and</Text>
+        <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://pocketcart.app/privacy")} style={st.authLegalLink}>
+          <Text style={st.authLegalLinkText}>Privacy Policy</Text>
         </Pressable>
       </View>
-    </View>
-  );
+    </View> : null}
+    <Pressable accessibilityRole="button" accessibilityLabel={signIn ? "Create an account" : "Sign in instead"} disabled={busy}
+      style={s.switchButton} onPress={() => {
+        Keyboard.dismiss(); setEmailForm(false); props.onChangeMode(signIn ? "signUp" : "signIn");
+      }}>
+      <Text style={s.switchCopy}>{signIn ? "New to PocketCart? " : "Already have an account? "}
+        <Text style={s.switchLabel}>{signIn ? "Sign up" : "Sign in"}</Text>
+      </Text>
+    </Pressable>
+  </View>;
 }
 
-function AuthField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={st.authField}>
-      <Text style={st.authFieldLabel}>{label}</Text>
-      {children}
-    </View>
-  );
-}
+const s = StyleSheet.create({
+  content: { gap: 20 },
+  intro: { gap: 8, alignItems: "center", paddingBottom: 4 },
+  title: { color: C.text, fontFamily: F.extraBold, fontSize: 26, lineHeight: 33, textAlign: "center", letterSpacing: -0.5 },
+  description: { color: C.textSoft, fontFamily: F.regular, fontSize: 14, lineHeight: 21, textAlign: "center" },
+  options: { gap: 12 },
+  email: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", minHeight: 52, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 14, backgroundColor: C.primaryDeep },
+  emailText: { color: C.white, fontFamily: F.bold, fontSize: 16, flexShrink: 1 },
+  apple: { width: "100%", height: 52 },
+  google: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", minHeight: 52, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: "#DDE5DF", backgroundColor: C.white },
+  googleText: { color: C.text, fontFamily: F.bold, fontSize: 16, flexShrink: 1 },
+  pressed: { opacity: 0.8 },
+  disabled: { opacity: 0.5 },
+  legal: { alignItems: "center", gap: 0 },
+  legalLinks: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 5 },
+  switchButton: { minHeight: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+  switchCopy: { color: C.textSoft, fontFamily: F.regular, fontSize: 14, textAlign: "center", lineHeight: 22 },
+  switchLabel: { color: C.primaryDeep, fontFamily: F.extraBold },
+});

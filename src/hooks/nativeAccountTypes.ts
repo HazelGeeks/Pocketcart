@@ -1,5 +1,6 @@
 export type NativeAccountRoute =
   | "settings"
+  | "guestSettings"
   | "auth"
   | "verify"
   | "personalize"

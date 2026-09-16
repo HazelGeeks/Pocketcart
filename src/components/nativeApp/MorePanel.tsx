@@ -47,7 +47,7 @@ type MorePanelProps = {
 export function MorePanel(props: MorePanelProps) {
   return (
     <View style={st.settingsPage}>
-      <SettingsProfileCard {...props} />
+      {props.profile ? <SettingsProfileCard {...props} /> : null}
 
       {props.message ? (
         <View style={st.settingsMessage} accessibilityRole="alert">
@@ -55,8 +55,11 @@ export function MorePanel(props: MorePanelProps) {
         </View>
       ) : null}
 
-      <MyAccountSection {...props} />
-      <FamilyPanel onSignIn={props.onOpenSignIn} onSignUp={props.onOpenSignUp} />
+      {props.profile ? <MyAccountSection {...props} /> : null}
+      <SettingsSection label="Features">
+        <SettingsLinkRow label="Map" value="Find nearby stores" icon="map" onPress={props.onOpenMap} />
+      </SettingsSection>
+      {props.profile ? <FamilyPanel onSignIn={props.onOpenSignIn} onSignUp={props.onOpenSignUp} /> : null}
       <PreferencesSection {...props} />
       <SupportSection />
       <AccountSection {...props} />
@@ -87,8 +90,6 @@ function MyAccountSection(props: MorePanelProps) {
       <SettingsLinkRow label="Shopping profile" value={props.preferences.completed ? "Your interests and favorite stores" : "Personalize your deals"} icon="filter" onPress={props.onEditPreferences} />
       <View style={st.settingsDivider} />
       <SettingsLinkRow label="Pocketcart Plus" value="Subscription & purchases" icon="sparkles" onPress={props.onOpenSubscription} />
-      <View style={st.settingsDivider} />
-      <SettingsLinkRow label="Map" value="Find nearby stores" icon="map" onPress={props.onOpenMap} />
     </SettingsSection>
   );
 }

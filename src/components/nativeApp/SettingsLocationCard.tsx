@@ -31,9 +31,6 @@ export function SettingsLocationCard({
     <View style={st.settingsLocationBlock}>
       <View style={st.settingsLocationTopRow}>
         <View style={st.settingsLocationIdentity}>
-          <View style={st.settingsLocationIcon} accessibilityElementsHidden>
-            <AppIcon name="location" color={C.primaryDeep} size={20} strokeWidth={2} />
-          </View>
           <View style={st.settingsRowCopy}>
             <Text style={st.settingsRowTitle}>Shopping area</Text>
             <Text style={st.settingsLocationStatus} numberOfLines={1}>{locationLabel}</Text>
