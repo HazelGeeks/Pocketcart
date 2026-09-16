@@ -19,7 +19,7 @@ function useLayout() {
 /* ═══════════════════════════════════════════════════════════════ */
 
 const LAST_UPDATED = "September 16, 2026";
-const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
+const SUPPORT_URL = "https://pocketcart.app/support";
 
 const SECTIONS = [
   {

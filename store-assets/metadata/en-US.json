@@ -21,11 +21,11 @@
     "android": "Shopping"
   },
   "fullDescription": "Make everyday grocery shopping easier with Pocket Cart.\n\nCOMPARE GROCERY PRICES\nBrowse available deals from supported Canadian stores, compare product prices, and review price history before you shop. Coverage and prices vary by store and date; check the retailer for final pricing and availability.\n\nPLAN YOUR CART\nKeep products and quantities together in a simple shopping cart. Mark items as purchased and organize your next grocery trip.\n\nWATCH FOR DEALS\nSave up to five products for sale alerts on a free account, set target prices, and choose your favourite stores. Notifications are optional.\n\nKEEP TRACK OF FOOD AT HOME\nOrganize your fridge and freezer by storage location, track quantities and best-before dates, and set optional expiry reminders. Food storage and expiry reminders are free and unlimited.\n\nSHARE WITH YOUR HOUSEHOLD\nInvite family members to a shared cart and food inventory so everyone can help keep shopping and food records up to date.\n\nFIND NEARBY STORES\nExplore supported stores on the map. Location permission is optional; you can also search by city or postal code.\n\nPocket Cart is free to download. An account is needed for synced and shared features. You can delete your account in the app. Optional support through Ko-fi does not unlock app features.",
-  "supportUrl": "https://pocketcart.hazelgeeks.workers.dev/support",
-  "marketingUrl": "https://pocketcart.hazelgeeks.workers.dev",
-  "privacyPolicyUrl": "https://pocketcart.hazelgeeks.workers.dev/privacy",
-  "termsUrl": "https://pocketcart.hazelgeeks.workers.dev/terms",
-  "accountDeletionUrl": "https://pocketcart.hazelgeeks.workers.dev/delete-account",
+  "supportUrl": "https://pocketcart.app/support",
+  "marketingUrl": "https://pocketcart.app",
+  "privacyPolicyUrl": "https://pocketcart.app/privacy",
+  "termsUrl": "https://pocketcart.app/terms",
+  "accountDeletionUrl": "https://pocketcart.app/delete-account",
   "reviewNotes": "PocketCart is a free grocery planning app for supported Canadian stores. Browse available products and store prices without granting location permission. Account features include a synced Cart, up to five monitored products for sale alerts, a fridge/freezer inventory, and optional family sharing. Location, camera and notification permissions are optional. Delete Account is available in Account > Settings. The Ko-fi link opens an external browser and does not unlock digital content or app features. The review sign-in credentials will be provided before submission.",
   "dataSafetyBaseline": {
     "dataSold": false,

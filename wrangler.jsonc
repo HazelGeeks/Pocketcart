@@ -1,7 +1,13 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pocketcart",
+  "account_id": "8aac1c15f7a44b8a902ba9e98f517a3e",
   "compatibility_date": "2026-09-03",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "pocketcart.app", "custom_domain": true },
+    { "pattern": "www.pocketcart.app", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"

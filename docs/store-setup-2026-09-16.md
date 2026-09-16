@@ -48,8 +48,9 @@ App: PocketCart: Grocery Savings — Apple ID `6809854257`.
 - Confirm the Canada storefront treatment of the external Ko-fi support link before
   review. The current link grants no digital benefits, but this does not establish
   App Review approval for the payment flow.
-- The custom domain `pocketcart.app` did not resolve during the release audit;
-  the live workers.dev URLs are used in metadata.
+- Resolved after the initial audit: `pocketcart.app` and `www.pocketcart.app` now
+  serve the live site over HTTPS. Store URLs and auth configuration use the new
+  domain; see [domain setup](domain-setup-2026-09-16.md).
 
 ## Deployment evidence
 

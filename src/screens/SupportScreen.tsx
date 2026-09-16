@@ -11,9 +11,9 @@ import useLayout from "../hooks/useLayout";
 import { POCKETCART_SUPPORT_URL } from "../constants/support";
 import { appPalette as P } from "../shared/design/palette";
 
-const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
-const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
-const DELETION_URL = "https://pocketcart.hazelgeeks.workers.dev/delete-account";
+const PRIVACY_URL = "https://pocketcart.app/privacy";
+const TERMS_URL = "https://pocketcart.app/terms";
+const DELETION_URL = "https://pocketcart.app/delete-account";
 
 const SUPPORT_SECTIONS = [
   {

@@ -40,8 +40,8 @@ confirmation of Apple's accuracy and compliance declaration.
 - RevenueCat purchases are disabled in the current production environment.
   Reassess the disclosure before enabling purchases or introducing telemetry.
 
-Privacy policy: https://pocketcart.hazelgeeks.workers.dev/privacy
+Privacy policy: https://pocketcart.app/privacy
 
-Privacy choices / deletion: https://pocketcart.hazelgeeks.workers.dev/delete-account
+Privacy choices / deletion: https://pocketcart.app/delete-account
 
 Reference: https://developer.apple.com/app-store/app-privacy-details/

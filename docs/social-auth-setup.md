@@ -10,6 +10,13 @@ No provider secret belongs in the Expo app or in an `EXPO_PUBLIC_*` environment 
 2. Add `pocketcart://auth/callback` to **Redirect URLs**.
 3. Keep `EXPO_PUBLIC_AUTH_REDIRECT_URL=pocketcart://auth/callback` in the local and EAS build environments.
 
+For the production website, **Site URL** is `https://pocketcart.app`.
+The exact web redirect URLs are `https://pocketcart.app/`,
+`https://www.pocketcart.app/`, and `https://pocketcart.hazelgeeks.workers.dev/`.
+Keep the existing native callback and local-development entries. Web email
+confirmation and password-reset requests explicitly return to their current web
+origin; native requests retain the configured app deep link.
+
 Supabase automatically links identities that return the same verified email address. Test this with a non-production account before launch.
 
 ## Sign in with Apple

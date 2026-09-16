@@ -7,7 +7,11 @@ import {
 } from "./supabaseClient";
 import { parseAuthCallbackUrl } from "../utils/authCallback";
 
-const authRedirectUrl = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
+// Web email flows return to the web origin even when the shared build environment
+// contains the native app's deep link. Native clients retain their app callback.
+const authRedirectUrl = typeof window !== "undefined" && typeof document !== "undefined"
+  ? `${window.location.origin}/`
+  : process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim() ?? "";
 
 export type UserProfile = {
   id: string;

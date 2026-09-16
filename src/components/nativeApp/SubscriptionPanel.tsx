@@ -52,7 +52,7 @@ export function SubscriptionPanel({ billing, signedIn, onSignIn }: Props) {
     </> : null}
     <View style={{ flexDirection: "row", gap: 20 }}>
       {([['Terms', 'terms'], ['Privacy', 'privacy']] as const).map(([label, path]) => <Pressable key={path} accessibilityRole="link"
-        onPress={() => void Linking.openURL(`https://pocketcart.hazelgeeks.workers.dev/${path}`)} style={st.shoppingAddButton}>
+        onPress={() => void Linking.openURL(`https://pocketcart.app/${path}`)} style={st.shoppingAddButton}>
         <Text style={st.shoppingFootnote}>{label}</Text>
       </Pressable>)}
     </View>

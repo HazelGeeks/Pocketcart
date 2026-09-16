@@ -10,9 +10,9 @@ import { FamilyPanel } from "./FamilyPanel";
 import { SettingsProfileCard } from "./SettingsProfileCard";
 import { SupportPocketCart } from "./SupportPocketCart";
 
-const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
-const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
-const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
+const PRIVACY_URL = "https://pocketcart.app/privacy";
+const TERMS_URL = "https://pocketcart.app/terms";
+const SUPPORT_URL = "https://pocketcart.app/support";
 
 type MorePanelProps = {
   billing: ReturnType<typeof useBilling>;
