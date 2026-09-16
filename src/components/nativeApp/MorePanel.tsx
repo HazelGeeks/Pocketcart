@@ -8,6 +8,7 @@ import { SettingsLinkRow, SettingsSection } from "./SettingsMenu";
 import { SettingsLocationCard } from "./SettingsLocationCard";
 import { FamilyPanel } from "./FamilyPanel";
 import { SettingsProfileCard } from "./SettingsProfileCard";
+import { SupportPocketCart } from "./SupportPocketCart";
 
 const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
 const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
@@ -162,6 +163,8 @@ function SupportSection() {
   return (
     <>
       <SettingsSection label="Support">
+        <SupportPocketCart />
+        <View style={st.settingsDivider} />
         <SettingsLinkRow label="Help & Support" value="Questions, issues, and feedback" onPress={() => openExternalUrl(SUPPORT_URL)} />
       </SettingsSection>
       <SettingsSection label="Our policies">

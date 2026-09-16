@@ -1,5 +1,6 @@
 import {
   Platform,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,23 +8,23 @@ import {
   View,
 } from "react-native";
 import useLayout from "../hooks/useLayout";
+import { POCKETCART_SUPPORT_URL } from "../constants/support";
 import { appPalette as P } from "../shared/design/palette";
 
-const SUPPORT_URL = "https://pocketcart.hazelgeeks.workers.dev/support";
 const PRIVACY_URL = "https://pocketcart.hazelgeeks.workers.dev/privacy";
 const TERMS_URL = "https://pocketcart.hazelgeeks.workers.dev/terms";
 const DELETION_URL = "https://pocketcart.hazelgeeks.workers.dev/delete-account";
 
 const SUPPORT_SECTIONS = [
   {
-    title: "Store Review & User Support",
+    title: "App Help",
     body:
-      "This public support page gives store reviewers and users the current account, privacy, terms, and deletion resources for PocketCart. When a store console asks for a support URL, use this page.",
+      "Looking for help with Pocket Cart? Find account access, privacy, and account deletion guidance below. You never need to make a contribution to use these resources.",
   },
   {
     title: "Account Access",
     body:
-      "If you cannot sign in, create a fresh account from More in the app or retry with the email address used for sign up. Password handling is managed through Supabase Auth; PocketCart does not store plaintext passwords.",
+      "Sign in with the same email address or sign-in method you used to create your account. If you signed up by email, check your inbox and spam folder for the verification email before trying again.",
   },
   {
     title: "Account Deletion",
@@ -75,29 +76,44 @@ export default function SupportScreen({
             { paddingHorizontal: pad, maxWidth: isLg ? 880 : 720 },
           ]}
         >
-          <Text style={st.eyebrow}>SUPPORT</Text>
-          <Text style={st.title}>PocketCart Support</Text>
+          <Text style={st.eyebrow}>MADE FOR EVERYDAY SHOPPING</Text>
+          <Text accessibilityRole="header" style={st.title}>❤️ Support Pocket Cart</Text>
           <Text style={st.intro}>
-            Use this page for app support, store review access, privacy
-            questions, and account deletion guidance.
+            A little support goes a long way. Help us maintain Pocket Cart and
+            make everyday grocery shopping easier.
           </Text>
 
-          <View style={st.card}>
-            <Text style={st.cardTitle}>Support URL</Text>
+          <View style={[st.card, st.supportCard]}>
+            <Text accessibilityRole="header" style={st.cardTitle}>Thank you for being here.</Text>
             <Text style={st.cardBody}>
-              This is the public support resource used for App Store and Google
-              Play submission until the custom PocketCart domain is live.
+              Your support would help cover running costs, maintain grocery
+              information, and improve the app you use each week.
             </Text>
-            <Text style={st.urlValue}>{SUPPORT_URL}</Text>
+            <Text
+              accessibilityRole="link"
+              {...(Platform.OS === "web" ? { href: POCKETCART_SUPPORT_URL } : {})}
+              onPress={Platform.OS !== "web" ? () => { void Linking.openURL(POCKETCART_SUPPORT_URL); } : undefined}
+              style={st.supportLink}
+            >
+              ❤️ Support Pocket Cart on Ko-fi →
+            </Text>
+            <Text style={st.cardBody}>
+              Visit our Ko-fi page to support Pocket Cart. Sharing the app with
+              a friend is also a lovely way to help.
+            </Text>
+            <Text style={st.cardBody}>
+              Support is optional and separate from Pocketcart Plus. It does not
+              unlock subscription features.
+            </Text>
           </View>
 
           {SUPPORT_SECTIONS.map((section) => (
             <View key={section.title} style={st.card}>
-              <Text style={st.cardTitle}>{section.title}</Text>
+              <Text accessibilityRole="header" style={st.cardTitle}>{section.title}</Text>
               <Text style={st.cardBody}>{section.body}</Text>
-              {section.url ? <Text style={st.urlValue}>{section.url}</Text> : null}
+              {section.url ? <Text accessibilityRole="link" {...(Platform.OS === "web" ? { href: section.url } : {})} style={st.urlValue} onPress={Platform.OS !== "web" ? () => { void Linking.openURL(section.url); } : undefined}>{section.title === "Account Deletion" ? "Account deletion guidance →" : "Privacy policy →"}</Text> : null}
               {section.secondaryUrl ? (
-                <Text style={st.urlValue}>{section.secondaryUrl}</Text>
+                <Text accessibilityRole="link" {...(Platform.OS === "web" ? { href: section.secondaryUrl } : {})} style={st.urlValue} onPress={Platform.OS !== "web" ? () => { void Linking.openURL(section.secondaryUrl); } : undefined}>Terms of service →</Text>
               ) : null}
             </View>
           ))}
@@ -179,6 +195,8 @@ const st = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
   },
+  supportCard: { backgroundColor: P.brickFaint, padding: 24, gap: 16 },
+  supportLink: { alignSelf: "flex-start", backgroundColor: P.brickDark, color: P.white, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 14, fontSize: 16, fontWeight: "700" },
   cardBody: {
     color: P.textSoft,
     fontSize: 14,
