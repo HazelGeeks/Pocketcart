@@ -3,6 +3,21 @@
 Screenshots should be real device or simulator captures from the production app
 build. Do not use the web admin dashboard or synthetic mockups for store review.
 
+## Captured iPhone set — September 16, 2026 (UTC)
+
+`ios-6.9/01-discover.jpg`, `02-price-details.jpg`, and `03-stores.jpg` are actual
+Release-app captures from iPhone 17 Pro Max / iOS 26.5, made with Xcode 27 Device Hub.
+They show the production catalog, product price detail, and supported-store list.
+The user was signed out, with optional location and notifications skipped.
+
+The files are 1320 × 2868 JPEGs without alpha, converted from the original Device
+Hub PNG captures without changing layout or content. No synthetic UI, overlay text,
+or fabricated data was added. Capture source: `610bd59`, version 1.0.0 (10).
+
+The simulator build used the existing app deployment target of iOS 15.1 to override
+older Pods' deployment targets rejected by Xcode 27, and `ARCHS=arm64` with
+`ONLY_ACTIVE_ARCH=YES`. Those command-line overrides did not change the project.
+
 ## iOS
 
 Capture at least these screens from a release or TestFlight build:

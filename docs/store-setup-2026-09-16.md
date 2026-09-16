@@ -9,7 +9,10 @@ App: PocketCart: Grocery Savings — Apple ID `6809854257`.
 - Free download with Canada as the base territory; Canada is the only available
   country. Automatic availability in future territories is off.
 - Manual release after review approval; the version has not been submitted.
-- Version 1.0 has TestFlight build 1.0.0 (9) attached.
+- Version 1.0 has TestFlight build 1.0.0 (10) attached and saved.
+- Three real iPhone Release screenshots (1320 × 2868) are uploaded and rendered
+  in the 6.9-inch slot: Discover, Product Details, and Stores. The 6.5-inch slot
+  automatically uses the 6.9-inch set. Files: `store-assets/screenshots/ios-6.9/`.
 - Age questionnaire: 13+ for Canada (12+ on operating systems before version 26).
   Food Scan has general nutrition guidance; cooking-wine references are infrequent.
 - Third-party content rights: owner confirmed necessary usage rights and legal basis.
@@ -29,20 +32,43 @@ App: PocketCart: Grocery Savings — Apple ID `6809854257`.
 - The updated `delete-account` Edge Function is deployed. An unauthenticated
   production request returns HTTP 401. Mocked crypto, provider, deletion and native
   reauthorization tests passed as part of the 386-test release gate.
+- A non-user token-exchange probe against Apple's official endpoint returned
+  `invalid_grant` for the deliberately invalid authorization code, rather than
+  `invalid_client`; this checks the client credential without deleting any account.
 - Apple first sign-in, Hide My Email, session restoration, and deletion still need
   real-device validation.
 
 ## Remaining submission gates
 
-- Real iPhone screenshots. The owner accepted the Xcode license; Xcode 27 uses
-  Device Hub in place of Simulator. A local Release simulator build is in progress.
 - Reviewer sign-in credentials and review contact phone/email.
-- Build and test the updated native binary, including real-device Apple revocation.
+- Test the updated native binary, including real-device Apple revocation.
+- In the iOS 26.5 simulator, the selected PriceSmart map marker appeared as an
+  empty circle while the store list logo loaded. Check marker rendering on the
+  physical device; the uploaded set uses the store list screenshot.
 - Confirm the Canada storefront treatment of the external Ko-fi support link before
   review. The current link grants no digital benefits, but this does not establish
   App Review approval for the payment flow.
 - The custom domain `pocketcart.app` did not resolve during the release audit;
   the live workers.dev URLs are used in metadata.
+
+## Deployment evidence
+
+- Source change `4a2d449846df1f055bfe84e4ab620274056ac3dc`; build-number sync
+  `610bd591566bea9eacf3bd783c305d23708518af`. Both passed Mobile Release Check.
+- EAS iOS production build `23d5b0f6-6c7d-40cd-a5f6-0916a83fec50` completed;
+  submission `a49470c8-3e70-4006-8757-9f879c7929f8` completed.
+- Apple processed build `72fb5a35-34b2-4b97-ac31-d3387f5d7793`, version 1.0.0 (10),
+  and attached it to the existing internal group with one tester. Test instructions
+  for Apple sign-in, cancellation, session restoration and deletion were saved.
+- The deployed web JavaScript contains the updated privacy text and Ko-fi link;
+  `/privacy` responds HTTP 200. The automated Cloudflare build produces a different
+  bundle hash from the local environment, so content was verified in the active asset.
+- `audit:ci` passed with the five documented policy-allowed transitive findings;
+  this is not a claim of zero dependency vulnerabilities.
+- Xcode 27 local Release simulator build succeeded. Device Hub captures were
+  visually inspected, converted to JPEG without alpha, and uploaded. The app
+  showed 335 currently priced groceries and 30 supported store locations. These
+  are point-in-time catalog figures, not completeness guarantees.
 
 ## Operating capacity
 
