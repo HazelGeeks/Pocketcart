@@ -1,3 +1,10 @@
+export const CART_PRODUCT_LIMIT = 10;
+export const CART_LIMIT_MESSAGE = "Cart holds up to 10 products. Remove an item before adding another.";
+
+export function canAddCartProduct(items: ShoppingListItem[], productId: string): boolean {
+  return items.some(item => item.productId === productId) || items.length < CART_PRODUCT_LIMIT;
+}
+
 export type ShoppingListItem = {
   productId: string;
   name: string;
@@ -47,6 +54,7 @@ export function addShoppingListProduct(
     );
   }
 
+  if (!canAddCartProduct(items, product.id)) return items;
   return [...items, {
     productId: product.id,
     name: product.name,

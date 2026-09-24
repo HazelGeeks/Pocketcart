@@ -21,6 +21,7 @@ type Props = {
   storeOptions: string[];
   onOpenMap: () => void;
   onOpenScan: () => void;
+  onOpenReceipts: () => void;
 };
 
 export function NativeAccountTab({
@@ -30,6 +31,7 @@ export function NativeAccountTab({
   storeOptions,
   onOpenMap,
   onOpenScan,
+  onOpenReceipts,
 }: Props) {
   const route = account.displayRoute;
   if (route === "settings" && !account.profile) {
@@ -72,6 +74,7 @@ export function NativeAccountTab({
         onEditPreferences={() => account.setAccountRoute("personalize")}
         onOpenMap={onOpenMap}
         onOpenScan={onOpenScan}
+        onOpenReceipts={onOpenReceipts}
         onEditProfile={() => {
           account.setMoreMessage(null);
           account.setAccountRoute("editProfile");

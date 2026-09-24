@@ -7,8 +7,8 @@ import { st } from "../../screens/nativeAppStyles";
 import { AppSheet } from "./AppSheet";
 import { CartProductThumbnail } from "./CartProductThumbnail";
 
-export function AlertManager({ items, activeIds, unlimited, removingId, onRemove, onOpenProduct }: {
-  items: WatchlistItem[]; activeIds: string[]; unlimited: boolean; removingId: string | null;
+export function AlertManager({ items, removingId, onRemove, onOpenProduct }: {
+  items: WatchlistItem[]; removingId: string | null;
   onRemove: (id: string) => void; onOpenProduct: (id: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -21,12 +21,13 @@ export function AlertManager({ items, activeIds, unlimited, removingId, onRemove
       .then(({ data }) => { if (active) setProducts(data); }).catch(() => {});
     return () => { active = false; };
   }, [open, key]);
+  if (items.length === 0 && !open) return null;
   return <>
-    <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={[st.shoppingAddButton, { alignSelf: "flex-start" }]}>
-      <Text style={st.shoppingRefreshText}>Manage alerts · {unlimited ? activeIds.length : `${activeIds.length}/5`}</Text>
-    </Pressable>
+    {items.length > 0 ? <Pressable accessibilityRole="button" onPress={() => setOpen(true)} style={[st.shoppingAddButton, { alignSelf: "flex-start" }]}>
+      <Text style={st.shoppingRefreshText}>Manage alerts</Text>
+    </Pressable> : null}
     <AppSheet title="Product alerts" visible={open} onClose={() => setOpen(false)}>
-      <Text style={st.shoppingFootnote}>General: 5 products · Plus: unlimited.</Text>
+      <Text style={st.shoppingFootnote}>Product alerts are free. No subscription required.</Text>
       {!items.length ? <Text style={st.shoppingBodyText}>Enable alerts from a product's details.</Text> : null}
       {items.map(item => {
         const product = products.find(value => value.id === item.product_id);
@@ -35,7 +36,6 @@ export function AlertManager({ items, activeIds, unlimited, removingId, onRemove
           <CartProductThumbnail uri={product?.thumbnail_url} name={name} category={product?.category ?? undefined} />
           <Pressable accessibilityRole="button" disabled={!item.product_id} onPress={() => { if (item.product_id) { setOpen(false); onOpenProduct(item.product_id); } }} style={{ flex: 1 }}>
             <Text style={st.shoppingProductName}>{name}</Text>
-            {!activeIds.includes(item.id) ? <Text style={st.shoppingFootnote}>Paused · General plan limit</Text> : null}
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`Remove alert for ${name}`} disabled={Boolean(removingId)} onPress={() => onRemove(item.id)} style={st.shoppingAddButton}>
             <Text style={st.shoppingRefreshText}>{removingId === item.id ? "Removing…" : "Remove"}</Text>

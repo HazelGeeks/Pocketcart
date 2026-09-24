@@ -30,5 +30,15 @@ await db.query('insert into public.watchlist_items(user_id,product_id,name,store
 await assert.rejects(db.query('insert into public.watchlist_items(user_id,product_id,name,store) values($1,$2,$3,$4)', [user, product(8), 'Legacy sixth', 'Store']), /5 products/);
 await db.exec('reset role');
 assert.equal((await db.query('select count(*)::int as count from public.watchlist_items')).rows[0].count, 5);
+await db.exec(await fs.readFile('supabase/migrations/20260924010000_free_product_alerts.sql', 'utf8'));
+await db.exec('set role service_role');
+for (let i = 1; i <= 12; i++) await save(i, false);
+await save(1, false);
+assert.equal((await db.query('select count(*)::int as count from public.watchlist_items')).rows[0].count, 12);
+await db.exec('reset role; set role authenticated');
+await assert.rejects(save(13, true), /permission denied/);
+await db.query('insert into public.watchlist_items(user_id,product_id,name,store) values($1,$2,$3,$4)', [user, product(13), 'Free legacy alert', 'Store']);
+await db.exec('reset role');
+assert.equal((await db.query('select count(*)::int as count from public.watchlist_items')).rows[0].count, 13);
 await db.close();
-console.log('Watchlist database quota, permissions, updates and downgrade checks passed.');
+console.log('Legacy quota transition, free alerts beyond ten, permissions and duplicate update checks passed.');

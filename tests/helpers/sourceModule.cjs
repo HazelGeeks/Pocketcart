@@ -9,6 +9,7 @@ exports.sourceModule = function sourceModule(path, dependencies) {
       esModuleInterop: true, jsx: ts.JsxEmit.React },
   }).outputText, {
     exports,
+    React: dependencies.react,
     require(name) {
       if (Object.hasOwn(dependencies, name)) return dependencies[name];
       throw Error(`Unexpected dependency: ${name}`);

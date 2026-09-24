@@ -31,7 +31,6 @@ export const catalogStyles = StyleSheet.create({
     justifyContent: "space-between",
   },
   homeProductRow: {
-    minHeight: 126,
     borderBottomWidth: 1,
     borderBottomColor: C.line,
     paddingVertical: 14,
@@ -53,6 +52,7 @@ export const catalogStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  homeProductThumbCompact: { height: 68 },
   homeProductMain: {
     flex: 1,
     minWidth: 0,

@@ -45,7 +45,7 @@ export function NativeListTabs({ horizontalPad, onOpenProduct, onOpenFlyerStore,
   return (
     <View>
       <SaleAlertsPanel onOpenProduct={onOpenProduct} onOpenFlyerStore={onOpenFlyerStore}
-        monitoredItems={alerts.monitoredItems} activeIds={alerts.activeIds} unlimited={alerts.unlimited}
+        monitoredItems={alerts.monitoredItems}
         removingId={alerts.removingId} onRemoveProduct={alerts.removeMonitoredProduct}
         alerts={alerts.saleAlerts}
         loading={alerts.alertsLoading}

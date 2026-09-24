@@ -41,7 +41,6 @@ export const TABS: Array<{ id: NativeTabId; label: string }> = [
   { id: "home", label: "Home" },
   { id: "shopping", label: "Cart" },
   { id: "freezer", label: "Freezer" },
-  { id: "receipts", label: "Receipts" },
   { id: "more", label: "Account" },
 ];
 

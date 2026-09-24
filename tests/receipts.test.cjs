@@ -132,12 +132,12 @@ test("duplicate warning requires store, purchase date, currency and paid total m
   assert.equal(r.isPossibleDuplicate(values, { ...values, total_cents: 1131 }), false);
 });
 
-test("Scan has an Account back destination and Receipts remains a root tab", () => {
+test("Scan and Receipts have Account back destinations", () => {
   const { hasNativeBackDestination } = require("../.tmp-tests/utils/nativeBackNavigation.js");
   const { TABS } = require("../.tmp-tests/screens/nativeAppData.js");
   assert.equal(hasNativeBackDestination("scan", "catalog", "settings"), true);
-  assert.equal(hasNativeBackDestination("receipts", "catalog", "settings"), false);
-  assert.deepEqual(TABS.map(tab => tab.id), ["home", "shopping", "freezer", "receipts", "more"]);
+  assert.equal(hasNativeBackDestination("receipts", "catalog", "settings"), true);
+  assert.deepEqual(TABS.map(tab => tab.id), ["home", "shopping", "freezer", "more"]);
 });
 
 test("receipt display keys retain duplicate lines and survive unrelated reordering", () => {

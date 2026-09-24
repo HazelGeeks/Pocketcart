@@ -87,6 +87,7 @@ export function HomeProductList({
             : effectiveDelta < 0
               ? st.homeDeltaDown
               : st.homeDeltaUp;
+        const hasTrend = Boolean(trendLabel && previous !== null);
         const storeName = product.preferred_store_name ?? product.best_store_name;
         const retailerName = storeName ? retailerNameFromStoreDisplayName(storeName) : null;
         const inList = shoppingProductIds.has(product.id);
@@ -104,11 +105,11 @@ export function HomeProductList({
             {product.thumbnail_url ? (
               <Image
                 source={{ uri: product.thumbnail_url }}
-                style={st.homeProductThumb}
-                resizeMode="cover"
+                style={[st.homeProductThumb, !hasTrend && st.homeProductThumbCompact]}
+                resizeMode="contain"
               />
             ) : (
-              <View style={st.homeProductThumbPlaceholder}>
+              <View style={[st.homeProductThumbPlaceholder, !hasTrend && st.homeProductThumbCompact]}>
                 <CategoryPlaceholderIcon variant={categoryToIconVariant(product.category)} />
               </View>
             )}
@@ -130,7 +131,7 @@ export function HomeProductList({
               <Text style={st.homeStoreLine} numberOfLines={1}>
                 {retailerName ?? "Retailer not linked yet"}
               </Text>
-              {trendLabel && previous !== null ? (
+              {hasTrend && previous !== null ? (
                 <Text style={st.homeTrendLine} numberOfLines={1}>
                   <Text style={[st.homeDeltaText, trendStyle]}>{trendLabel}</Text>
                   <Text style={st.itemMeta}> Last {money.format(previous)}</Text>

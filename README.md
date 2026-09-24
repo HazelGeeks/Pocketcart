@@ -38,7 +38,7 @@ rebuilds require the Xcode toolchain and installed iOS Pods.
 ## Current app structure
 
 - `App.native.tsx` and `src/screens/NativeAppScreen.native.tsx`: native entrypoint
-  and navigation. Bottom tabs are **Home · Cart · Freezer · Receipts · Account**.
+  and navigation. Bottom tabs are **Home · Cart · Freezer · Account**.
 - `App.tsx`: web routing, landing sections, legal/support pages, and admin entry.
   `src/screens/NativeAppScreen.tsx` is the web variant of the app shell.
 - `src/components/nativeApp/`: native UI. Map and Scan are under Account → Features;
@@ -61,8 +61,9 @@ server-side pagination. Product photos and placeholders retain a white image fra
 Cart preserves guest items locally and synchronizes authenticated personal or
 family inventory. Freezer supports named storage and date reminders. Receipts are
 personal authenticated records, including private photos and optional extraction;
-they do not share the family inventory scope. Free product alerts are limited to
-five products; Cart and Freezer do not use that quota.
+they do not share the family inventory scope. Product alerts are free with no product-count limit. Cart permits adding up to ten different products (quantities up to
+99 each); existing larger saved lists are retained. Freezer does not use the alert quota.
+Receipts is available as a preview under Account → Features.
 
 ## Backend configuration
 
@@ -73,7 +74,7 @@ provider secrets belong only in server/CI secret storage.
 - [Social authentication](docs/social-auth-setup.md): email callbacks, Apple/Google,
   and account deletion.
 - [Family sharing](docs/family-sharing.md): scoped inventory and migration order.
-- [Billing](docs/billing-setup.md): RevenueCat and the sale-alert quota.
+- [Billing](docs/billing-setup.md): Free product alerts and existing subscription management.
 - [Receipts](docs/receipts-implementation.md): private records/photos and extraction.
 
 Web admin is available at `/admin`. Database writes require membership in

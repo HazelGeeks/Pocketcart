@@ -182,12 +182,12 @@ async function watchlistRequest<T>(body: Record<string, unknown>): Promise<Servi
     const { data, error } = await supabase.functions.invoke<T & { error?: string }>("watchlist-access", { body });
     if (error) {
       const detail = await error.context?.json?.().catch(() => null);
-      return { data: null, error: detail?.error ?? "Could not check your alert plan. Please try again." };
+      return { data: null, error: detail?.error ?? "Could not load product alerts. Please try again." };
     }
     return { data, error: data?.error ?? null };
-  } catch { return { data: null, error: "Could not check your alert plan. Please try again." }; }
+  } catch { return { data: null, error: "Could not load product alerts. Please try again." }; }
 }
-export async function getWatchlistAccess(): Promise<ServiceResult<{ items: WatchlistItem[]; activeIds: string[]; isPlus: boolean } | null>> {
+export async function getWatchlistAccess(): Promise<ServiceResult<{ items: WatchlistItem[]; activeIds: string[]; unlimited: boolean; isPlus?: boolean } | null>> {
   const auth = await getAuthedUserId();
   if (auth.error) return { data: null, error: auth.error };
   return watchlistRequest({ action: "status" });

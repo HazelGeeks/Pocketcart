@@ -25,7 +25,7 @@ jobs:
         run: |
           npx --yes supabase functions deploy watchlist-access --project-ref "$SUPABASE_PROJECT_ID"
           npx --yes supabase functions deploy billing-status --project-ref "$SUPABASE_PROJECT_ID"
-      - name: Deploy quota-aware alert delivery
+      - name: Deploy free product alert delivery
         run: |
           npx --yes supabase functions deploy sync-sale-alerts --project-ref "$SUPABASE_PROJECT_ID"
           npx --yes supabase functions deploy send-sale-alert-push --project-ref "$SUPABASE_PROJECT_ID"

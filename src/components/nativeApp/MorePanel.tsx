@@ -36,6 +36,7 @@ type MorePanelProps = {
   onEditPreferences: () => void;
   onOpenMap: () => void;
   onOpenScan: () => void;
+  onOpenReceipts: () => void;
   onOpenSubscription: () => void;
   onEditProfile: () => void;
   onSignOut: () => void;
@@ -60,6 +61,8 @@ export function MorePanel(props: MorePanelProps) {
         <SettingsLinkRow label="Map" value="Find nearby stores" icon="map" onPress={props.onOpenMap} />
         <View style={st.settingsDivider} />
         <SettingsLinkRow label="Scan" value="Food & ingredient scanner" icon="scan" onPress={props.onOpenScan} />
+        <View style={st.settingsDivider} />
+        <SettingsLinkRow label="Receipts" value="Preview · Purchase records" icon="receipt" onPress={props.onOpenReceipts} />
       </SettingsSection>
       {props.profile ? <FamilyPanel onSignIn={props.onOpenSignIn} onSignUp={props.onOpenSignUp} /> : null}
       <PreferencesSection {...props} />

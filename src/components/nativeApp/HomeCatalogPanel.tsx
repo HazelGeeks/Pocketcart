@@ -37,15 +37,9 @@ type Props = {
 
 export function HomeCatalogPanel(props: Props) {
   const resetKey = `${props.category}|${props.query}|${props.sortMode}|${props.onSaleOnly}|${props.storeFilterIds?.join(",") ?? ""}`;
-  const showPhotoDiscovery =
-    props.products.length > 0 &&
-    !props.query.trim() &&
-    props.category === "All" &&
-    props.onSaleOnly &&
-    !props.storeFilterName;
   return (
     <View style={st.sectionStack}>
-      {showPhotoDiscovery ? <HomePhotoBanner productCount={props.products.length} /> : null}
+      <HomePhotoBanner />
       <HomeCatalogControls
         key={props.profileId ?? "guest"}
         profileId={props.profileId}

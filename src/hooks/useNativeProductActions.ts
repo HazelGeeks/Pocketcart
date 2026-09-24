@@ -1,3 +1,4 @@
+import { canAddCartProduct, CART_LIMIT_MESSAGE } from "../utils/shoppingListState";
 import React from "react";
 import type useNativeAccount from "./useNativeAccount";
 import type useNativeCatalog from "./useNativeCatalog";
@@ -63,6 +64,7 @@ export default function useNativeProductActions({
 
   const addProductToShoppingList = React.useCallback(
     (product: MarketProduct) => {
+      if (!canAddCartProduct(shopping.items, product.id)) { shell.showToast(CART_LIMIT_MESSAGE); return; }
       const alreadyAdded = shopping.productIds.has(product.id);
       shopping.addProduct(product);
       shell.showToast(

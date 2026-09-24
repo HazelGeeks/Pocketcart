@@ -21,8 +21,8 @@ export function CartSummary(props: Props) {
           <Text style={st.shoppingFootnote}>{props.listLoading ? "Loading…" : `${props.pendingCount} to buy`}</Text>
         </View>
         <View style={styles.estimate}>
-          <Text style={styles.total}>{props.listLoading || props.loading ? "…" : props.pendingCount === 0 ? "All set" : props.total === null ? "—" : money.format(props.total)}</Text>
-          <Text style={st.shoppingFootnote}>{props.loading ? "Updating…" : props.pendingCount === 0 ? "" : props.total === null ? "No estimate" : props.unpricedCount > 0 ? `Subtotal · ${props.unpricedCount} unpriced` : "Estimated"}</Text>
+          <Text style={[styles.total, props.total === null && styles.unavailable]}>{props.listLoading || props.loading ? "…" : props.pendingCount === 0 ? "All set" : props.total === null ? "No current prices" : money.format(props.total)}</Text>
+          <Text style={st.shoppingFootnote}>{props.loading ? "Updating…" : props.pendingCount === 0 ? "" : props.total === null ? "Estimate unavailable" : props.unpricedCount > 0 ? `Subtotal · ${props.unpricedCount} unpriced` : "Estimated"}</Text>
         </View>
       </View>
     </View>
@@ -34,5 +34,6 @@ const styles = StyleSheet.create({
   summary: { flexDirection: "row", alignItems: "center", gap: 10 },
   title: { flex: 1, minWidth: 0, gap: 2 },
   estimate: { alignItems: "flex-end", flexShrink: 1 },
+  unavailable: { fontSize: 16 },
   total: { fontSize: 22, fontWeight: "700", color: C.text },
 });

@@ -114,8 +114,8 @@ The repository includes these release and verification workflows:
 
 - `Family Sharing Backend Release`: applies the scoped family migrations and
   verifies disposable-account flows.
-- `Alert and Billing Backend Release`: deploys the quota and billing backend
-  without enabling sales.
+- `Alert and Billing Backend Release`: deploys free, unlimited product alerts and existing-subscription management
+  without enabling new subscription purchases.
 - `Named Freezer Storage Backend Release`: applies and verifies the named-storage
   schema changes.
 
@@ -481,8 +481,8 @@ revisit this section before shipping another build.
 ## Reviewer Pass Criteria
 
 - App launches without a white screen on a clean install.
-- Home, Cart, Freezer, Receipts, and Account tabs are usable. Product detail,
-  Notifications, and Account → Features → Map / Scan also work.
+- Home, Cart, Freezer, and Account tabs are usable. Product detail,
+  Notifications, and Account → Features → Receipts / Map / Scan also work.
 - Sign up, sign in, and sign out work against production Supabase.
 - Account deletion is visible under Account → Account actions → Delete Account.
 - Signed-in account deletion removes the current Supabase Auth user.

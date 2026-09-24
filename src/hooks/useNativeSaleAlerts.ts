@@ -28,7 +28,6 @@ export default function useNativeSaleAlerts({
   const [alertsMarkingRead, setAlertsMarkingRead] = React.useState(false);
   const [monitoredItems, setMonitoredItems] = React.useState<WatchlistItem[]>([]);
   const [activeIds, setActiveIds] = React.useState<string[]>([]);
-  const [unlimited, setUnlimited] = React.useState(false);
   const [removingId, setRemovingId] = React.useState<string | null>(null);
   const generation = React.useRef(0);
 
@@ -98,7 +97,7 @@ export default function useNativeSaleAlerts({
         setAlertsMessage(null);
       }
       if (!error && data) {
-        setMonitoredItems(data.items); setActiveIds(data.activeIds); setUnlimited(data.isPlus);
+        setMonitoredItems(data.items); setActiveIds(data.activeIds);
         await loadSaleAlerts(data.items.filter(item => data.activeIds.includes(item.id)), true);
       }
     },
@@ -133,7 +132,7 @@ export default function useNativeSaleAlerts({
   const clearWatchlist = React.useCallback(() => {
     generation.current++; setAlertsLoading(false);
     setSaleAlerts([]);
-    setMonitoredItems([]); setActiveIds([]); setUnlimited(false);
+    setMonitoredItems([]); setActiveIds([]);
   }, []);
 
   const removeMonitoredProduct = async (id: string) => {
@@ -152,7 +151,7 @@ export default function useNativeSaleAlerts({
   );
 
   return {
-    monitoredItems, activeIds, unlimited, removingId, removeMonitoredProduct,
+    monitoredItems, activeIds, removingId, removeMonitoredProduct,
     alertsLoading,
     alertsMarkingRead,
     alertsMessage,

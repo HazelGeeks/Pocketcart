@@ -1,3 +1,4 @@
+import { CART_PRODUCT_LIMIT, CART_LIMIT_MESSAGE } from "../utils/shoppingListState";
 import React from "react";
 import { AppState } from "react-native";
 import { randomUUID } from "expo-crypto";
@@ -45,6 +46,7 @@ export default function useFamilyCart(familyId: string | null, userId: string | 
       let removed: ShoppingListItem[] = [];
       const items = await mutateFamilyCart(() => readFamilyCart(scope.split("/")[1]), (revision, next) => writeFamilyCart(scope.split("/")[1], revision, next), before => {
         const next = fn(before);
+        if (next.length > CART_PRODUCT_LIMIT && next.length > before.length) throw new Error(CART_LIMIT_MESSAGE);
         removed = before.filter(item => !next.some(value => value.productId === item.productId));
         return next;
       }, () => current.current === scope);
@@ -62,8 +64,10 @@ export default function useFamilyCart(familyId: string | null, userId: string | 
     syncMessage: saving ? "Saving to your family Cart…" : syncMessage,
     reload,
     importItems: (items: ShoppingListItem[]) => mutate(currentItems => restoreShoppingListItems(currentItems, items.map(({ freezerItemId: _stored, ...item }) => item))),
-    addProduct: (product: MarketProduct) => mutate(items => addShoppingListProduct(items, { id: product.id, name: productDisplayName(product), unit: product.unit, category: product.category })),
-    addCustomItem: (name: string) => { const text = name.trim().slice(0,120); const id = `custom:${randomUUID()}`; if (text) mutate(items => addShoppingListProduct(items, { id, name: text, unit: null, category: "Other items" })); },
+    addProduct: (product: MarketProduct) => mutate(items => {
+      if (items.length >= CART_PRODUCT_LIMIT && !items.some(item => item.productId === product.id)) throw new Error(CART_LIMIT_MESSAGE);
+      return addShoppingListProduct(items, { id: product.id, name: productDisplayName(product), unit: product.unit, category: product.category }); }),
+    addCustomItem: (name: string) => { const text = name.trim().slice(0,120); const id = `custom:${randomUUID()}`; if (text) mutate(items => { if (items.length >= CART_PRODUCT_LIMIT) throw new Error(CART_LIMIT_MESSAGE); return addShoppingListProduct(items, { id, name: text, unit: null, category: "Other items" }); }); },
     changeQuantity: (id: string, delta: number) => mutate(items => changeShoppingListQuantity(items, id, delta)),
     toggleCompleted: (id: string) => { const completed = !snapshot.items.find(item => item.productId === id)?.completed; mutate(items => setFamilyItemCompleted(items, id, completed)); },
     markStored: (id: string, freezerId: string) => mutate(items => markShoppingItemStored(items, id, freezerId)),

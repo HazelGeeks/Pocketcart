@@ -9,6 +9,7 @@ import {
 } from "../services/shoppingList";
 import {
   addShoppingListProduct,
+  canAddCartProduct, CART_LIMIT_MESSAGE,
   changeShoppingListQuantity,
   mergeShoppingListItemSources,
   mergeShoppingListItems,
@@ -191,6 +192,7 @@ export default function usePersonalShoppingList(profileId: string | null) {
   }, [guestKey, items, key, loadedKey, profileId, remoteReadyKey, syncReadyKey]);
 
   const addProduct = React.useCallback((product: MarketProduct) => {
+    if (!canAddCartProduct(itemsRef.current, product.id)) { setLocalMessage(CART_LIMIT_MESSAGE); return; }
     mutateItems((current) => addShoppingListProduct(current, {
       id: product.id,
       name: productDisplayName(product),
@@ -207,6 +209,7 @@ export default function usePersonalShoppingList(profileId: string | null) {
     const trimmed = name.trim().slice(0, 120);
     if (!trimmed) return;
     const id = `custom:${randomUUID()}`;
+    if (!canAddCartProduct(itemsRef.current, id)) { setLocalMessage(CART_LIMIT_MESSAGE); return; }
     mutateItems((current) => addShoppingListProduct(current, { id, name: trimmed, unit: null, category: "Other items" }));
   }, [mutateItems]);
 

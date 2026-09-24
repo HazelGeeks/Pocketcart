@@ -25,8 +25,7 @@ test("default catalog keeps loaded content visible during background refresh", (
   const catalog = read("src/components/nativeApp/HomeCatalogPanel.tsx");
 
   assert.match(catalog, /props\.loading && props\.products\.length === 0/);
-  assert.match(catalog, /props\.products\.length > 0/);
-  assert.match(catalog, /props\.category === "All"/);
+  assert.doesNotMatch(catalog, /showPhotoDiscovery/);
   assert.match(catalog, /props\.onSaleOnly/);
   assert.match(catalog, /<HomePhotoBanner/);
   assert.doesNotMatch(catalog, /HomePhotoPicks/);
@@ -127,7 +126,7 @@ test("home header uses one notification action instead of a live-price status pi
   assert.match(screen, /unreadAlertCount=\{alerts\.unreadAlertCount\}/);
 });
 
-test("Receipts occupies the bottom tab while Food Scan remains in Account Features", () => {
+test("Receipts and Food Scan are available from Account Features", () => {
   const tabData = read("src/screens/nativeAppData.ts");
   const scanner = read("src/components/nativeApp/FoodScanPanel.tsx");
   const scanMode = read("src/components/nativeApp/FoodScanModeSelector.tsx");
@@ -139,7 +138,8 @@ test("Receipts occupies the bottom tab while Food Scan remains in Account Featur
   const functionSource = read("supabase/functions/food-scan/index.ts");
   const catalog = read("src/hooks/useNativeCatalog.ts");
 
-  assert.match(tabData, /\{ id: "receipts", label: "Receipts" \}/);
+  assert.doesNotMatch(tabData, /\{ id: "receipts", label: "Receipts" \}/);
+  assert.match(read("src/components/nativeApp/MorePanel.tsx"), /label="Receipts"[^\n]*onPress=\{props.onOpenReceipts\}/);
   assert.doesNotMatch(tabData, /\{ id: "scan", label: "Scan" \}/);
   assert.match(read("src/components/nativeApp/MorePanel.tsx"), /label="Scan"[^\n]*onPress=\{props.onOpenScan\}/);
   assert.doesNotMatch(tabData, /\{ id: "alerts", label: "Alerts" \}/);

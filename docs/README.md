@@ -10,7 +10,7 @@ settings, or live deployments.
 | --- | --- | --- |
 | [Mobile store release](mobile-store-release.md) | Local/cloud builds, credentials, submission, release checks | `package.json`, `eas.json`, `.github/workflows/` |
 | [Family sharing](family-sharing.md) | Invitations, shared Cart/Freezer, synchronization and backend rollout | `src/contexts/FamilyContext.tsx`, `src/hooks/useFamilyCart.ts` |
-| [Billing setup](billing-setup.md) | Monthly Plus, five-product free alert limit, server verification | `src/services/billingClient.ts`, `supabase/functions/watchlist-access/` |
+| [Billing setup](billing-setup.md) | Free product alerts, backend rollout, existing subscription management | `src/services/billingClient.ts`, `supabase/functions/watchlist-access/` |
 | [Social authentication](social-auth-setup.md) | Apple/Google sign-in and account deletion | `src/services/nativeSocialAuth.ts`, `supabase/functions/delete-account/` |
 | [Receipts](receipts-implementation.md) | Private account records/photos, extraction and validation | `src/services/receipts.ts`, `supabase/functions/receipt-scan/` |
 

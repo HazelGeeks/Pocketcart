@@ -99,3 +99,15 @@ test('failed remote hydration preserves local operation without overwriting unkn
   assert.match(list.syncMessage, /Couldn't sync/);
   harness.unmount();
 });
+
+test('Cart accepts ten products, preserves quantity changes and rejects an eleventh', () => {
+  let items = [];
+  for (let i = 0; i < 10; i++) items = addShoppingListProduct(items, { id: String(i), name: `Item ${i}`, unit: null });
+  assert.equal(items.length, 10);
+  assert.equal(addShoppingListProduct(items, { id: 'extra', name: 'Extra', unit: null }), items);
+  const updated = addShoppingListProduct(items, { id: '0', name: 'Item 0', unit: null });
+  assert.equal(updated.length, 10);
+  assert.equal(updated[0].quantity, 2);
+  // Reading an older list must never silently delete data above the new limit.
+  assert.equal(normalizeShoppingListItems([...items, { ...items[0], productId: 'legacy' }]).length, 11);
+});

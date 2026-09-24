@@ -26,6 +26,7 @@ export function hasNativeBackDestination(
     activeTab === "alerts" ||
     activeTab === "map" ||
     activeTab === "scan" ||
+    activeTab === "receipts" ||
     (activeTab === "more" && accountRoute !== "settings")
   );
 }

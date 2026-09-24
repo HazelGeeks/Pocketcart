@@ -11,8 +11,6 @@ type SaleAlertsPanelProps = {
   onOpenFlyerStore: (id: string) => void;
   onOpenProduct: (id: string) => void;
   monitoredItems: WatchlistItem[];
-  activeIds: string[];
-  unlimited: boolean;
   removingId: string | null;
   onRemoveProduct: (id: string) => void;
   alerts: SaleAlert[];
@@ -24,7 +22,7 @@ type SaleAlertsPanelProps = {
 };
 
 export function SaleAlertsPanel({
-  onOpenProduct, onOpenFlyerStore, monitoredItems, activeIds, unlimited, removingId, onRemoveProduct,
+  onOpenProduct, onOpenFlyerStore, monitoredItems, removingId, onRemoveProduct,
   alerts,
   loading,
   markingRead,
@@ -34,7 +32,7 @@ export function SaleAlertsPanel({
 }: SaleAlertsPanelProps) {
   return (
     <View style={st.alertActivity}>
-      <AlertManager items={monitoredItems} activeIds={activeIds} unlimited={unlimited} removingId={removingId} onRemove={onRemoveProduct} onOpenProduct={onOpenProduct} />
+      <AlertManager items={monitoredItems} removingId={removingId} onRemove={onRemoveProduct} onOpenProduct={onOpenProduct} />
       <View style={st.alertActivityHeader}>
         <Text accessibilityRole="header" style={st.alertActivityHeading}>
           Activity

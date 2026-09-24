@@ -60,7 +60,7 @@ export default function useNativeBackNavigation({
     account.accountRoute,
   );
   const navigateBack = React.useCallback(() => {
-    if (shell.activeTab === "map" || shell.activeTab === "scan") {
+    if (shell.activeTab === "map" || shell.activeTab === "scan" || shell.activeTab === "receipts") {
       account.setAccountRoute("settings");
       shell.openMore();
       return true;

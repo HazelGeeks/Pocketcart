@@ -184,7 +184,7 @@ function NativeAppContent() {
         onBack={
           shell.activeTab === "home" && catalog.route === "detail"
             ? () => catalog.setRoute("catalog")
-            : shell.activeTab === "map" || shell.activeTab === "scan"
+            : shell.activeTab === "map" || shell.activeTab === "scan" || shell.activeTab === "receipts"
             ? () => navigation.selectTab("more")
             : shell.activeTab === "alerts"
             ? shell.closeAlerts
@@ -263,6 +263,7 @@ function NativeAppContent() {
               account={account}
               onOpenMap={() => navigation.selectTab("map")}
               onOpenScan={() => navigation.selectTab("scan")}
+              onOpenReceipts={() => navigation.selectTab("receipts")}
               onboarding={onboarding}
               permissions={permissions}
               storeOptions={map.personalizationStoreOptions}

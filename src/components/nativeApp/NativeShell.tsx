@@ -147,7 +147,7 @@ export function NativeBottomTabs({
     >
       <View style={st.tabRow}>
         {TABS.map((tab) => {
-          const active = tab.id === activeTab;
+          const active = tab.id === activeTab || (tab.id === "more" && ["map", "scan", "receipts"].includes(activeTab));
           return (
             <Pressable
               key={tab.id}

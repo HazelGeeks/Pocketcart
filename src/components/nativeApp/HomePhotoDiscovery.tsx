@@ -3,7 +3,7 @@ import { st } from "../../screens/nativeAppStyles";
 
 const groceryPhoto = require("../../../assets/photos/fresh-grocery-basket.jpg");
 
-export function HomePhotoBanner({ productCount }: { productCount: number }) {
+export function HomePhotoBanner() {
   return (
     <ImageBackground
       source={groceryPhoto}
@@ -19,7 +19,7 @@ export function HomePhotoBanner({ productCount }: { productCount: number }) {
         </View>
         <Text style={st.homePhotoBannerTitle}>Start with today&apos;s price.</Text>
         <Text style={st.homePhotoBannerBody}>
-          Compare {productCount} currently priced groceries before you make your list.
+          Compare grocery prices before you make your list.
         </Text>
       </View>
     </ImageBackground>
