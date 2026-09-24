@@ -74,7 +74,7 @@ export default function useAdminProductImageUpload({
       setNotice("Image file picker is currently available on web admin. On native app, paste image URL.");
       return;
     }
-    const doc = (globalThis as { document?: any }).document;
+    const doc = (globalThis as { document?: Document }).document;
     if (!doc || typeof doc.createElement !== "function") {
       setNotice("Image picker is not available in this environment.");
       return;

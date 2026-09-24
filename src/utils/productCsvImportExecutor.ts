@@ -146,6 +146,11 @@ export async function executeProductCsvImport(params: {
   );
   const total = createRows.length + reviewRows.length + priceJobs.length;
   let completed = 0;
+  const reportForRow = (rowNumber: number) => {
+    const report = reportByRow.get(rowNumber);
+    if (!report) throw new Error(`Missing import report for row ${rowNumber}.`);
+    return report;
+  };
   let createdProducts = 0;
   let importedPrices = 0;
   let failedPrices = 0;
@@ -156,7 +161,7 @@ export async function executeProductCsvImport(params: {
 
   progress("products");
   await runWithConcurrency(createRows, 4, async (row) => {
-    const report = reportByRow.get(row.rowNumber)!;
+    const report = reportForRow(row.rowNumber);
     try {
       const product = await params.mutations.createProduct.mutateAsync({
         koreanName: row.input.koreanName,
@@ -183,7 +188,7 @@ export async function executeProductCsvImport(params: {
   params.preview.rows
     .filter((row) => row.productAction === "reuse_planned")
     .forEach((row) => {
-      const report = reportByRow.get(row.rowNumber)!;
+      const report = reportForRow(row.rowNumber);
       report.productResult = productIdByKey.has(row.productKey)
         ? "Created product reused"
         : "Create failed on an earlier row";
@@ -192,7 +197,7 @@ export async function executeProductCsvImport(params: {
 
   progress("reviews");
   await runWithConcurrency(reviewRows, 4, async (row) => {
-    const report = reportByRow.get(row.rowNumber)!;
+    const report = reportForRow(row.rowNumber);
     try {
       await params.mutations.createReview.mutateAsync({
         rowNumber: row.rowNumber,
@@ -213,7 +218,7 @@ export async function executeProductCsvImport(params: {
 
   progress("prices");
   await runWithConcurrency(priceJobs, 8, async ({ row, storeId }) => {
-    const report = reportByRow.get(row.rowNumber)!;
+    const report = reportForRow(row.rowNumber);
     const productId = row.productId ?? productIdByKey.get(row.productKey);
     if (!productId || report.status === "skipped") {
       failedPrices += 1;

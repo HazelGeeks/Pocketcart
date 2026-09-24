@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import {
@@ -23,7 +24,7 @@ type Props = {
   hours: string;
   storeType: string;
   isActive: boolean;
-  styles: any;
+  styles: AdminStyles;
   onBrandChange: (value: string) => void;
   onNameChange: (value: string) => void;
   onLatitudeChange: (value: string) => void;

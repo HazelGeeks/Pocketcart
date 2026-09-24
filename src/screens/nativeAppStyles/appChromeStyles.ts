@@ -40,17 +40,6 @@ export const appChromeStyles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
-  mapCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: C.line,
-    overflow: "hidden",
-    backgroundColor: C.white,
-  },
-  mapView: {
-    width: "100%",
-    height: 260,
-  },
   storeActionRow: {
     marginTop: 6,
     alignSelf: "stretch",
@@ -64,11 +53,6 @@ export const appChromeStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.white,
-  },
-  resultMeta: {
-    color: C.textMuted,
-    fontSize: 12,
-    fontFamily: F.bold,
   },
   formInput: {
     height: 44,
@@ -99,12 +83,6 @@ export const appChromeStyles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: F.bold,
   },
-  tagRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 4,
-  },
   tag: {
     borderRadius: 999,
     backgroundColor: C.primaryGhost,
@@ -127,10 +105,6 @@ export const appChromeStyles = StyleSheet.create({
     backgroundColor: C.primary,
     borderColor: C.primary,
   },
-  authBtnDanger: {
-    backgroundColor: "#A83939",
-    borderColor: "#A83939",
-  },
   authBtnSecondary: {
     backgroundColor: C.white,
     borderColor: C.line,
@@ -143,12 +117,6 @@ export const appChromeStyles = StyleSheet.create({
   },
   authBtnSecondaryText: {
     color: C.text,
-    fontSize: 13,
-    fontWeight: "700",
-    fontFamily: F.bold,
-  },
-  authBtnDangerText: {
-    color: C.white,
     fontSize: 13,
     fontWeight: "700",
     fontFamily: F.bold,

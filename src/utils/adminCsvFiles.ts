@@ -11,7 +11,7 @@ function csvCell(value: string): string {
 
 export function downloadCsvFile(prefix: string, csv: string): string | null {
   if (Platform.OS !== "web") return "CSV export is currently available on web admin.";
-  const doc = (globalThis as { document?: any }).document;
+  const doc = (globalThis as { document?: Document }).document;
   const urlApi = (globalThis as { URL?: typeof URL }).URL;
   if (!doc?.createElement || !urlApi?.createObjectURL) {
     return "CSV export is not available in this browser.";
@@ -33,8 +33,8 @@ export function productImportTemplateCsv(): string {
     ["", "Organic Eggs", "유기농 달걀", "Dairy", "12 ct", "", "Safeway", "", "", "6.99", "2026-06-28", "2026-07-04"],
     ["", "Bananas", "바나나", "Produce", "1 lb", "", "", "", "", "", "", ""],
   ];
-  return ["\uFEFF" + header.map(csvCell).join(","), ...rows.map((row) => row.map(csvCell).join(","))]
-    .join("\r\n") + "\r\n";
+  return `${[`\uFEFF${header.map(csvCell).join(",")}`, ...rows.map((row) => row.map(csvCell).join(","))]
+    .join("\r\n")}\r\n`;
 }
 
 export function productsToCsv(
@@ -65,7 +65,7 @@ export function productsToCsv(
       product.created_at,
     ].map(csvCell).join(",");
   });
-  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+  return `${[`\uFEFF${header.map(csvCell).join(",")}`, ...rows].join("\r\n")}\r\n`;
 }
 
 export function storesToCsv(stores: AdminStore[]): string {
@@ -89,5 +89,5 @@ export function storesToCsv(stores: AdminStore[]): string {
     store.is_active ? "true" : "false",
     store.created_at,
   ].map(csvCell).join(","));
-  return ["\uFEFF" + header.map(csvCell).join(","), ...rows].join("\r\n") + "\r\n";
+  return `${[`\uFEFF${header.map(csvCell).join(",")}`, ...rows].join("\r\n")}\r\n`;
 }

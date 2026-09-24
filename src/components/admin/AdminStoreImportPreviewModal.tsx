@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import type { StoreImportPreviewRow } from "../../utils/adminValidation";
 
@@ -5,7 +6,7 @@ type Props = {
   visible: boolean;
   rows: StoreImportPreviewRow[];
   submitting: boolean;
-  styles: any;
+  styles: AdminStyles;
   onClose: () => void;
   onConfirm: () => void;
 };

@@ -48,7 +48,7 @@ export default function useAdminFlyerImport({
   const recognizeFlyerSources = React.useCallback(async (sources: Array<Blob | string>) => {
     const tesseract = await import("tesseract.js");
     const worker = await tesseract.createWorker("eng", 1, {
-      logger: (message: any) => {
+      logger: (message) => {
         if (!message?.status) return;
         const progress = typeof message.progress === "number" ? ` ${Math.round(message.progress * 100)}%` : "";
         reportProgress(`${message.status}${progress}`);
@@ -76,11 +76,12 @@ export default function useAdminFlyerImport({
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const loadingTask = pdfjs.getDocument({
+    const options = {
       data: bytes,
       isEvalSupported: false,
       useWorkerFetch: false,
-    } as any);
+    };
+    const loadingTask = pdfjs.getDocument(options);
     const pdf = await loadingTask.promise;
 
     try {
@@ -91,7 +92,8 @@ export default function useAdminFlyerImport({
         const page = await pdf.getPage(pageNumber);
         const textContent = await page.getTextContent();
         const grouped = new Map<number, string[]>();
-        (textContent.items as any[]).forEach((item) => {
+        textContent.items.forEach((item) => {
+          if (!("str" in item)) return;
           const value = String(item?.str ?? "").trim();
           if (!value) return;
           const y = Math.round(Number(item?.transform?.[5] ?? 0));
@@ -126,11 +128,12 @@ export default function useAdminFlyerImport({
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const loadingTask = pdfjs.getDocument({
+    const options = {
       data: bytes,
       isEvalSupported: false,
       useWorkerFetch: false,
-    } as any);
+    };
+    const loadingTask = pdfjs.getDocument(options);
     const pdf = await loadingTask.promise;
 
     try {
@@ -147,7 +150,7 @@ export default function useAdminFlyerImport({
         }
         canvas.width = Math.ceil(viewport.width);
         canvas.height = Math.ceil(viewport.height);
-        await page.render({ canvasContext: context, viewport } as any).promise;
+        await page.render({ canvas, canvasContext: context, viewport }).promise;
         images.push(canvas.toDataURL("image/png"));
         page.cleanup();
       }
@@ -210,7 +213,7 @@ export default function useAdminFlyerImport({
       setNotice("Flyer import is currently available on web admin.");
       return;
     }
-    const doc = (globalThis as { document?: any }).document;
+    const doc = (globalThis as { document?: Document }).document;
     if (!doc || typeof doc.createElement !== "function") {
       setNotice("File picker is not available in this environment.");
       return;

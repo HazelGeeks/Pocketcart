@@ -1,7 +1,8 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Pressable, Text, View } from "react-native";
 
 type AdminStatusPanelsProps = {
-  styles: Record<string, any>;
+  styles: AdminStyles;
 };
 
 export function AdminSupabaseSetupNotice({ styles: st }: AdminStatusPanelsProps) {

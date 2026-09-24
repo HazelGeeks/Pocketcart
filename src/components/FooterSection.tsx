@@ -18,6 +18,11 @@ export default function FooterSection({ navigate }: { navigate: (r: Route) => vo
     "delete-account": "delete-account",
   };
 
+  const navigateLink = (id: string) => {
+    const route = LINK_ROUTES[id];
+    if (route) navigate(route);
+  };
+
   const utilityIds = new Set(["support", "delete-account"]);
   const linkGroups = copy.footer.groups.map((group) => ({
     ...group,
@@ -46,7 +51,7 @@ export default function FooterSection({ navigate }: { navigate: (r: Route) => vo
             <WebLink
               key={link.id}
               href={`/${LINK_ROUTES[link.id]}`}
-              onPress={() => navigate(LINK_ROUTES[link.id]!)}
+              onPress={() => navigateLink(link.id)}
             >
               <View style={s.footerCompactLinkHit}>
                 <Text style={s.footerCompactLink}>{link.label}</Text>
@@ -83,7 +88,7 @@ export default function FooterSection({ navigate }: { navigate: (r: Route) => vo
                   <WebLink
                     key={link.id}
                     href={`/${LINK_ROUTES[link.id]}`}
-                    onPress={() => navigate(LINK_ROUTES[link.id]!)}
+                    onPress={() => navigateLink(link.id)}
                   >
                     <Text style={s.footerLink}>{link.label}</Text>
                   </WebLink>
@@ -110,7 +115,7 @@ export default function FooterSection({ navigate }: { navigate: (r: Route) => vo
                 {idx > 0 ? <Text style={s.footerUtilitySep}>·</Text> : null}
                 <WebLink
                   href={`/${LINK_ROUTES[link.id]}`}
-                  onPress={() => navigate(LINK_ROUTES[link.id]!)}
+                  onPress={() => navigateLink(link.id)}
                 >
                   <Text style={s.footerUtilityLink}>{link.label}</Text>
                 </WebLink>

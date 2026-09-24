@@ -1,5 +1,8 @@
 # PocketCart Mobile Store Release Checklist
 
+> Maintained guide · checked against repository code on 2026-09-24.
+> External account settings and deployed service status require separate verification.
+
 This document tracks the required steps for iOS App Store and Google Play
 submission. Keep secrets in Apple, Google, Expo, Supabase, or CI settings. Do
 not commit certificates, service account JSON files, keystores, or API keys.
@@ -11,10 +14,11 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - App scheme: `pocketcart`
 - EAS project: linked through `expo.extra.eas.projectId` in `app.json`
 - EAS build runtime: Node.js `22.22.3` through the shared `base` profile
-- Release version: `1.0.0`
-- iOS build number: `1`
-- Android versionCode: starts at `1`; EAS production builds auto-increment store
-  build numbers.
+- Version/build sources: `app.json`, `ios/PocketCart/Info.plist`, and
+  `android/app/build.gradle`. Read these before each release rather than copying
+  a build number from documentation.
+- EAS uses local version sources. `production` auto-increments build numbers;
+  `production-local` preserves them for local retries.
 - Android target SDK baseline: React Native/Expo target `36`
 - iOS device target: iPhone only for the first store release
 - iOS export compliance: no non-exempt encryption declared in `Info.plist`
@@ -34,7 +38,10 @@ care about: iOS bundle ID, build number, privacy manifest, location purpose
 string, Android package, versionCode, target SDK baseline, deep link, maps API
 metadata, and release signing behavior.
 
-Expected checks:
+The local gate checks source/configuration and builds the web bundle. It does
+not prove the following external checks; verify them separately before release:
+
+Release checklist:
 
 - TypeScript compile succeeds.
 - Test suite succeeds.
@@ -44,8 +51,9 @@ Expected checks:
 - Native app handles `pocketcart://auth/callback` email verification links and
   stores the Supabase session.
 - Supabase Edge Functions `delete-account`, `delete-account-request`,
-  `back-office-flyer`, `send-sale-alert-push`, and `sync-sale-alerts` are
-  deployed.
+  `back-office-flyer`, `food-scan`, `receipt-scan`, `billing-status`,
+  `watchlist-access`, `admin-flyer-notification`, `send-sale-alert-push`, and
+  `sync-sale-alerts` are deployed for the enabled features.
 - `database/schema.sql` includes the required profile, watchlist, product price,
   sale alert, push token, storage, and account deletion request schema.
 - Supabase automatically provides `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions;
@@ -75,12 +83,13 @@ The doctor checks repository release settings plus external readiness:
 
 ## GitHub Actions Release Automation
 
-The repository includes seven release and verification workflows:
+The repository includes these release and verification workflows:
 
 - `Mobile Release Check`: runs `npm run release:native:check` and
-  `npm run audit:ci` on PRs and `main`. This fails on every new high/critical
-  advisory while temporarily tracking the Expo SDK 55 / React Native 0.83
-  `brace-expansion` advisory until the next compatible SDK upgrade.
+  `npm run audit:ci` on PRs and `main`. The policy in
+  `scripts/check-npm-audit.mjs` rejects unapproved high/critical findings and
+  documents scoped transitive exceptions. A passing gate does not mean zero
+  vulnerabilities.
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
   It runs `npm run release:native:check` first and waits for native artifact
   completion. Production builds fail before starting if required EAS production
@@ -102,6 +111,16 @@ The repository includes seven release and verification workflows:
   transactional product-merge, price-history, and My stores migrations together
   with their indexes, RLS policies, and PostgREST schema refresh through the
   authenticated Supabase Management API.
+
+- `Family Sharing Backend Release`: applies the scoped family migrations and
+  verifies disposable-account flows.
+- `Alert and Billing Backend Release`: deploys the quota and billing backend
+  without enabling sales.
+- `Named Freezer Storage Backend Release`: applies and verifies the named-storage
+  schema changes.
+
+The general schema workflow does not deploy every newer feature migration. Check
+the relevant feature guide and workflow before changing production data.
 
 Required GitHub repository secrets:
 
@@ -159,7 +178,33 @@ without Apple signing:
 npm run build:ios:simulator
 ```
 
-## EAS Build
+## Local iOS build
+
+For a local build, use a Mac with Xcode, CocoaPods, Fastlane, and access to the
+production signing credentials. This uses local compilation rather than the EAS
+cloud build queue; it still requires Expo/Apple authentication and network access.
+
+1. Run the release checks above.
+2. For a new upload, increment `expo.ios.buildNumber` in `app.json` and
+   `CFBundleVersion` in `ios/PocketCart/Info.plist` together. Keep the same number
+   when retrying a failed local build that was not uploaded.
+3. Supply the production environment locally, including any secret EAS values
+   unavailable to local builds. Keep secret values and files out of Git.
+4. Build and submit the exact artifact:
+
+```bash
+npm run build:ios:local -- --output /tmp/pocketcart.ipa
+npx eas-cli submit --platform ios --profile production --path /tmp/pocketcart.ipa
+```
+
+`production-local` extends `production` with `autoIncrement: false`. The
+`npm run submit:ios` command and the `EAS Store Submit` workflow use `--latest`,
+which selects a cloud artifact; do not use them for a locally built IPA.
+
+Verify upload, Apple processing, TestFlight group assignment, and tester notes
+separately. Successful compilation or upload alone does not make a beta available.
+
+## EAS cloud build
 
 Initialize EAS once per Expo account/project if it has not been initialized:
 
@@ -263,7 +308,7 @@ iOS:
 - Distribution certificate and provisioning profile managed by EAS or Apple.
 - App privacy questionnaire completed from the app's actual data practices.
 - Review notes include a demo account or a fully usable demo path.
-- Account deletion is available in the app from More > Account deletion.
+- Account deletion is available in the app from Account → Account actions → Delete Account.
 - Export compliance answer matches `ITSAppUsesNonExemptEncryption=false` unless
   a future release adds custom or non-exempt encryption.
 
@@ -337,26 +382,28 @@ Review notes:
 ```text
 PocketCart helps users compare grocery prices, save products to a watchlist,
 view nearby stores on a map, and review in-app price alerts. Account creation is
-available in More. Account deletion is available in More > Account deletion and
-at https://pocketcart.hazelgeeks.workers.dev/delete-account.
+available in Account. Account deletion is available in Account → Account actions → Delete Account and
+at https://pocketcart.app/delete-account.
 ```
 
 Required URLs:
 
-- Support: `https://pocketcart.hazelgeeks.workers.dev/support`
-- Marketing: `https://pocketcart.hazelgeeks.workers.dev`
-- Privacy Policy: `https://pocketcart.hazelgeeks.workers.dev/privacy`
-- Terms: `https://pocketcart.hazelgeeks.workers.dev/terms`
-- Account deletion: `https://pocketcart.hazelgeeks.workers.dev/delete-account`
+- Support: `https://pocketcart.app/support`
+- Marketing: `https://pocketcart.app`
+- Privacy Policy: `https://pocketcart.app/privacy`
+- Terms: `https://pocketcart.app/terms`
+- Account deletion: `https://pocketcart.app/delete-account`
 
-The custom `pocketcart.app` domain should not be used in store metadata until
-DNS is live. If a branded support email is required later, configure DNS and MX
-records first, then update the policies and listing metadata in the same PR.
+Canonical domains are configured in `wrangler.jsonc`. The older workers.dev
+host remains a compatibility origin. Verify live HTTPS with the store-assets
+live check; repository configuration alone does not prove DNS or deployment status.
 
 ## Supabase Functions
 
-Apply the latest `database/schema.sql` before deploying account or sale alert
-functions. The web deletion request form writes to
+Review `database/schema.sql` and the applied migration history before deploying
+functions. Do not replay the full schema against an existing production database:
+select the required migrations and verify prerequisites and backups. The web
+deletion request form writes to
 `public.account_deletion_requests`.
 
 For the account-deletion request migration included in this repository, run
@@ -409,7 +456,10 @@ Confirm this against the production build before submission:
 - Account data: name and email, used for account management.
 - Authentication data: managed by Supabase Auth.
 - User content/preferences: watchlist items, target prices, in-app alert
-  preferences, private My Freezer inventory, and app preferences.
+  preferences, personal/family Cart and Freezer inventory, and app preferences.
+- Receipts: authenticated purchase records and private receipt photos, with
+  optional photo extraction after confirmation. See `store-assets/app-privacy.md`
+  and the [Receipts guide](receipts-implementation.md).
 - Support/account deletion request data: account email, platform, request
   details, and technical request metadata submitted through `/support` or
   `/delete-account`.
@@ -431,9 +481,10 @@ revisit this section before shipping another build.
 ## Reviewer Pass Criteria
 
 - App launches without a white screen on a clean install.
-- Home, Product Detail, Watchlist, Map, Alert, and More tabs are usable.
+- Home, Cart, Freezer, Receipts, and Account tabs are usable. Product detail,
+  Notifications, and Account → Features → Map / Scan also work.
 - Sign up, sign in, and sign out work against production Supabase.
-- Account deletion path is visible from More.
+- Account deletion is visible under Account → Account actions → Delete Account.
 - Signed-in account deletion removes the current Supabase Auth user.
 - Web account deletion request form accepts an account email and creates an
   `account_deletion_requests` row.

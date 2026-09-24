@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import {
   Platform,
@@ -174,7 +175,7 @@ function storeLeafletMapSrcDoc(
 type StoreMapPanelProps = {
   stores: AdminStore[];
   selectedStore: AdminStore | null;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onOpenMap: (store: AdminStore) => void;
 };
 

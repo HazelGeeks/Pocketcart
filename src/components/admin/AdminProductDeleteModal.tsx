@@ -1,10 +1,11 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Modal, Pressable, Text, View } from "react-native";
 import type { ProductDeleteConfirmation } from "../../utils/productDeleteConfirmation";
 
 type Props = {
   confirmation: ProductDeleteConfirmation | null;
   deleting: boolean;
-  styles: any;
+  styles: AdminStyles;
   onClose: () => void;
   onConfirm: () => void;
 };
@@ -38,7 +39,7 @@ export default function AdminProductDeleteModal({
                   : "1 product to delete"}
               </Text>
               {confirmation.visibleNames.map((name, index) => (
-                <Text key={`${name}-${index}`} style={st.productDeleteName} numberOfLines={1}>
+                <Text key={confirmation.ids[index]} style={st.productDeleteName} numberOfLines={1}>
                   {name}
                 </Text>
               ))}

@@ -1,3 +1,4 @@
+import { webViewStyle } from "../../shared/design/webViewStyle";
 import { Platform } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 
@@ -12,7 +13,7 @@ export const adminSidebarStyles = {
     backgroundColor: "#ffffff",
     padding: 14,
     gap: 14,
-    ...(Platform.OS === "web" ? ({ height: "100vh", alignSelf: "stretch" } as any) : {}),
+    ...(Platform.OS === "web" ? (webViewStyle({ height: "100vh", alignSelf: "stretch" })) : {}),
   },
   sidebarMobile: {
     width: "100%",
@@ -159,8 +160,8 @@ export const adminSidebarStyles = {
     alignItems: "center",
     justifyContent: "center",
     ...(Platform.OS === "web"
-      ? ({ position: "fixed", left: 12, bottom: 12, zIndex: 40, boxShadow: "0 8px 20px rgba(24,34,52,0.18)" } as any)
-      : ({ position: "absolute", left: 12, bottom: 12 } as any)),
+      ? (webViewStyle({ position: "fixed", left: 12, bottom: 12, zIndex: 40, boxShadow: "0 8px 20px rgba(24,34,52,0.18)" }))
+      : (webViewStyle({ position: "absolute", left: 12, bottom: 12 }))),
   },
   sidebarCollapsedToggleIcon: {
     color: C.primaryDeep,

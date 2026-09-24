@@ -79,15 +79,17 @@ export function prepareProductPriceSets(params: {
     };
   }
 
-  const normalizedSets = activeSets.map((item) => {
+  const normalizedSets: Array<(typeof activeSets)[number] & {
+    periodStartIso: string;
+    periodEndIso: string;
+  }> = [];
+  for (const item of activeSets) {
     const periodStartIso = dateOnlyToIso(item.periodStartDate, false);
     const periodEndIso = dateOnlyToIso(item.periodEndDate, true);
-    return { ...item, periodStartIso, periodEndIso };
-  });
-
-  const invalidDateSet = normalizedSets.find((item) => !item.periodStartIso || !item.periodEndIso);
-  if (invalidDateSet) {
-    return { ok: false, error: `Set ${invalidDateSet.row}: invalid sale period dates.` };
+    if (!periodStartIso || !periodEndIso) {
+      return { ok: false, error: `Set ${item.row}: invalid sale period dates.` };
+    }
+    normalizedSets.push({ ...item, periodStartIso, periodEndIso });
   }
 
   const reversedDateSet = normalizedSets.find(
@@ -103,11 +105,12 @@ export function prepareProductPriceSets(params: {
   const storeBrandLabel = (store: AdminStore) => store.brand?.trim() || "Other";
   const expandedSets: ActiveStorePriceSet[] = [];
   for (const item of normalizedSets) {
+    const { periodStartIso, periodEndIso } = item;
     if (item.storeId) {
       expandedSets.push({
         ...item,
-        periodStartIso: item.periodStartIso!,
-        periodEndIso: item.periodEndIso!,
+        periodStartIso,
+        periodEndIso,
       });
       continue;
     }
@@ -125,8 +128,8 @@ export function prepareProductPriceSets(params: {
         ...item,
         persistedPriceId: index === 0 ? item.persistedPriceId : undefined,
         storeId: store.id,
-        periodStartIso: item.periodStartIso!,
-        periodEndIso: item.periodEndIso!,
+        periodStartIso,
+        periodEndIso,
       });
     });
   }

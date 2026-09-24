@@ -1,9 +1,10 @@
 .pc-marketing { --pc-ink: #143c2c; --pc-green: #28694a; --pc-lime: #d5eea7; --pc-muted: #68776b; color: var(--pc-ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .pc-marketing *, .pc-marketing *::before, .pc-marketing *::after { box-sizing: border-box; }
-.pc-marketing h1, .pc-marketing h2, .pc-marketing h3, .pc-marketing h4, .pc-marketing p { margin: 0; }
-.pc-marketing a { color: inherit; text-decoration: none; }
+/* Keep element resets below component classes in the cascade. */
+.pc-marketing :where(h1, h2, h3, h4, p) { margin: 0; }
+.pc-marketing :where(a) { color: inherit; text-decoration: none; }
 .pc-marketing a:focus-visible, .pc-marketing button:focus-visible { outline: 3px solid #5c9940; outline-offset: 5px; }
-.pc-marketing button { font: inherit; }
+.pc-marketing :where(button) { font: inherit; }
 .pc-container { width: min(1180px, calc(100% - 96px)); margin-inline: auto; }
 .pc-hero { background: #f5f6ef; padding: 66px 0 54px; overflow: hidden; }
 .pc-hero-grid { display: grid; grid-template-columns: 1fr 1.08fr; gap: 40px; align-items: center; }
@@ -11,10 +12,9 @@
 .pc-hero .pc-eyebrow { display: flex; gap: 9px; align-items: center; max-width: 400px; }
 .pc-dot { flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: #56804c; }
 .pc-hero h1 { font-size: clamp(44px, 5.1vw, 72px); line-height: 1.03; letter-spacing: -3.6px; font-weight: 600; margin: 27px 0 25px; }
-.pc-hero h1 > span { color: #518254; }
 .pc-lead { max-width: 425px; font-size: 17px; line-height: 1.7; color: #536254; }
 .pc-actions { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 32px; }
-.pc-button { display: inline-flex; align-items: center; gap: 25px; background: #193f2d; color: white !important; padding: 17px 23px; border-radius: 9px; font-size: 14px; font-weight: 600; transition: background .2s, transform .2s; }
+.pc-button { display: inline-flex; align-items: center; gap: 25px; background: #193f2d; color: white; padding: 17px 23px; border-radius: 9px; font-size: 14px; font-weight: 600; }
 .pc-button:hover { background: #28694a; transform: translateY(-2px); }
 .pc-text-link { display: inline-flex; gap: 16px; padding-block: 13px; font-size: 13px; border-bottom: 1px solid #abb8a7; }
 .pc-hero-footnote { display: flex; flex-wrap: wrap; gap: 9px 18px; font-size: 10px; color: #697868; margin-top: 30px; }
@@ -43,7 +43,7 @@
 .pc-price-block div > span { font-size: 9px; color: #7b8377; }
 .pc-price-note { background: #edf6df; color: #456c2b; font-size: 10px; padding: 8px 10px; margin: 10px 0 14px; border-radius: 6px; }
 .pc-price-note > span { font-size: 15px; margin-right: 5px; }
-.pc-preview-add { width: 100%; padding: 12px; display: flex; justify-content: center; align-items: center; gap: 10px; color: white; background: #244e35; border-radius: 8px; border: 0; font-size: 11px !important; cursor: pointer; }
+.pc-preview-add { width: 100%; padding: 12px; display: flex; justify-content: center; align-items: center; gap: 10px; color: white; background: #244e35; border-radius: 8px; border: 0; font-size: 11px; cursor: pointer; }
 .pc-preview-add[aria-pressed="true"] { background: #41672b; }
 .pc-preview-bottom { display: flex; justify-content: space-between; gap: 10px; font-size: 6px; letter-spacing: .7px; margin-top: 20px; color: #677365; }
 .pc-floating-note { position: absolute; right: -12px; bottom: -2px; display: flex; gap: 13px; align-items: center; padding: 17px 21px; max-width: 315px; background: #e5edda; border: 1px solid #d5dfc6; border-radius: 12px; box-shadow: 0 10px 25px #142e190a; }
@@ -96,12 +96,12 @@
 .pc-steps p { font-size: 13px; line-height: 1.7; color: #64725d; min-height: 65px; }
 .pc-step-example { display: flex; align-items: center; gap: 12px; padding: 15px; margin-top: 20px; background: #fff; border: 1px solid #e5eadd; border-radius: 8px; font-size: 12px; }
 .pc-step-example > svg { flex-shrink: 0; }
-.pc-small-note { font-size: 10px; color: #707d67; margin-top: 18px !important; }
+.pc-small-note { font-size: 10px; color: #707d67; margin-top: 18px; }
 .pc-download { background: #183d2b; color: #f1f3e7; padding: 50px 0; scroll-margin-top: 80px; }
 .pc-download-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 65px; align-items: center; }
 .pc-download .pc-eyebrow { color: #c7de9f; }
 .pc-download h2 { max-width: 500px; }
-.pc-download-description { font-size: 14px; line-height: 1.7; color: #becebb; margin-top: 16px !important; max-width: 460px; }
+.pc-download-description { font-size: 14px; line-height: 1.7; color: #becebb; margin-top: 16px; max-width: 460px; }
 .pc-platforms { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0 18px; }
 .pc-platforms > span { border: 1px solid #779363; border-radius: 8px; padding: 12px 18px; font-size: 13px; }
 .pc-platforms small { display: block; margin-top: 4px; color: #bcccaf; font-size: 10px; }
@@ -152,8 +152,8 @@
   .pc-download-grid { grid-template-columns: 1fr; gap: 30px; }
   .pc-download-photo { height: 200px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .pc-marketing *, .pc-marketing *::before, .pc-marketing *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .pc-button { transition: background .2s, transform .2s; }
 }
 
 .pc-preview-disclosure { position: absolute; top: -5px; left: 0; right: 0; text-align: right; font-size: 9px; color: #677365; letter-spacing: .6px; }
@@ -161,3 +161,6 @@
 @media (max-width: 380px) {
   .pc-store-row small { display: none; }
 }
+
+/* Specific heading accents and link states follow the component rules. */
+.pc-hero h1 > span { color: #518254; }

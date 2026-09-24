@@ -1,3 +1,5 @@
+import useScopedState from "../../hooks/useScopedState";
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import {
   ActivityIndicator, Platform, Pressable, ScrollView, Text, TextInput, View,
@@ -22,14 +24,14 @@ import AdminUserDirectoryRow from "./AdminUserDirectoryRow";
 type Props = {
   users: AdminDirectoryUser[];
   loading: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
 };
 
 function SummaryCard({ label, value, hint, styles: st }: {
   label: string;
   value: number;
   hint: string;
-  styles: Record<string, any>;
+  styles: AdminStyles;
 }) {
   return (
     <View style={st.statCard}>
@@ -46,7 +48,7 @@ export default function AdminUsersPanel({ users, loading, styles: st }: Props) {
   const [roleFilter, setRoleFilter] = React.useState<AdminUserRoleFilter>("all");
   const [profileFilter, setProfileFilter] = React.useState<AdminUserProfileFilter>("all");
   const [pageSize, setPageSize] = React.useState<AdminProductPageSize>(20);
-  const [requestedPage, setRequestedPage] = React.useState(1);
+  const [requestedPage, setRequestedPage] = useScopedState(JSON.stringify([profileFilter, roleFilter, searchQuery]), 1);
   const summary = React.useMemo(() => summarizeAdminDirectoryUsers(users), [users]);
   const filteredUsers = React.useMemo(
     () => filterAdminDirectoryUsers(users, searchQuery, roleFilter, profileFilter),
@@ -63,10 +65,9 @@ export default function AdminUsersPanel({ users, loading, styles: st }: Props) {
     [filteredUsers, pagination.endIndex, pagination.startIndex],
   );
 
-  React.useEffect(() => setRequestedPage(1), [profileFilter, roleFilter, searchQuery]);
   React.useEffect(() => {
     if (requestedPage !== pagination.page) setRequestedPage(pagination.page);
-  }, [pagination.page, requestedPage]);
+  }, [pagination.page, requestedPage, setRequestedPage]);
 
   const paginationProps = {
     page: pagination.page,

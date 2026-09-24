@@ -146,7 +146,7 @@ export async function addWatchlistItem(params: {
     return { data: null, error: userError ?? "Please sign in first." };
   }
 
-  const result = await watchlistRequest({ action: "add", item: params });
+  const result = await watchlistRequest<{ data: WatchlistItem | WatchlistItem[] }>({ action: "add", item: params });
   const saved = result.data?.data;
   return { data: (Array.isArray(saved) ? saved[0] : saved) ?? null, error: result.error };
 
@@ -176,10 +176,10 @@ export async function removeWatchlistItem(
   };
 }
 
-async function watchlistRequest(body: Record<string, unknown>): Promise<ServiceResult<any>> {
+async function watchlistRequest<T>(body: Record<string, unknown>): Promise<ServiceResult<T | null>> {
   if (!supabase) return missingEnvResult(null);
   try {
-    const { data, error } = await supabase.functions.invoke("watchlist-access", { body });
+    const { data, error } = await supabase.functions.invoke<T & { error?: string }>("watchlist-access", { body });
     if (error) {
       const detail = await error.context?.json?.().catch(() => null);
       return { data: null, error: detail?.error ?? "Could not check your alert plan. Please try again." };

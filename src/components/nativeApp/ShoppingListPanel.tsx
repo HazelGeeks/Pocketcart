@@ -1,4 +1,4 @@
-import React from "react";
+import useScopedState from "../../hooks/useScopedState";
 import { useFamily } from "../../contexts/FamilyContext";
 import { ShoppingFreezerSheet } from "./ShoppingFreezerSheet";
 import { Alert, Pressable, Text, View } from "react-native";
@@ -34,10 +34,11 @@ type ShoppingListPanelProps = {
 
 export function ShoppingListPanel(props: ShoppingListPanelProps) {
   const family = useFamily();
+  const scope = JSON.stringify([props.userId, family.family?.id]);
   const { items, listLoading, loading, recommendation } = props;
-  const [transferItem, setTransferItem] = React.useState<ShoppingListItem | null>(null);
-  const [transferMessage, setTransferMessage] = React.useState<string | null>(null);
-  React.useEffect(() => { setTransferItem(null); setTransferMessage(null); }, [props.userId, family.family?.id]);
+  const [transferItem, setTransferItem] = useScopedState<ShoppingListItem | null>(scope, null);
+  const [transferMessage, setTransferMessage] = useScopedState<string | null>(scope, null);
+
   const addToFreezer = (item: ShoppingListItem) => {
     if (!props.userId) {
       Alert.alert("Sign in to use My Freezer", "Your shopping list will stay here.", [

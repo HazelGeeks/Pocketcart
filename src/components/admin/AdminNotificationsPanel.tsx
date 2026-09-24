@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import type { AdminStore } from "../../services/adminBackoffice";
 import {
@@ -32,7 +32,7 @@ export default function AdminNotificationsPanel({ stores }: { stores: AdminStore
   const formIssue = notificationFormIssue(retailers.includes(selectedRetailer), date);
   const testReady = !formIssue && !busy;
   const ready = testReady && !!audience && !audienceError && !loading;
-  async function refresh() {
+  const refresh = useCallback(async () => {
     if (mounted.current) {
       setLoading(true);
       setConfirm(false);
@@ -56,7 +56,7 @@ export default function AdminNotificationsPanel({ stores }: { stores: AdminStore
     } finally {
       if (mounted.current) setLoading(false);
     }
-  }
+  }, []);
   useEffect(() => {
     mounted.current = true;
     void refresh().catch((error) => {
@@ -65,7 +65,7 @@ export default function AdminNotificationsPanel({ stores }: { stores: AdminStore
     return () => {
       mounted.current = false;
     };
-  }, []);
+  }, [refresh]);
   async function send(test: boolean, campaignId?: string) {
     if (lock.current) return;
     lock.current = true;

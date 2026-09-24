@@ -1,4 +1,4 @@
-export const adminPaginationStyles: Record<string, any> = {
+export const adminPaginationStyles = {
   productPaginationBar: {
     minHeight: 48,
     borderRadius: 10,
@@ -71,4 +71,4 @@ export const adminPaginationStyles: Record<string, any> = {
     fontWeight: "800",
     textAlign: "center",
   },
-};
+} as const;

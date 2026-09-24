@@ -1,3 +1,4 @@
+import useScopedState from "../../hooks/useScopedState";
 import React from "react";
 import useFreezerProductImages from "../../hooks/useFreezerProductImages";
 import type { ShoppingListItem } from "../../utils/shoppingListState";
@@ -25,17 +26,16 @@ import { MyFreezerItemForm } from "./MyFreezerItemForm";
 
 export function MyFreezerPanel({ userId, cartItems = [] }: { userId: string; cartItems?: ShoppingListItem[] }) {
   const family = useFamily();
+  const scope = JSON.stringify([userId, family.family?.id]);
   const freezer = useMyFreezer(userId);
   const storage = useFreezerStorage(userId);
   const imageItems = useFreezerProductImages(freezer.items, cartItems);
   const [category, setCategory] = React.useState<FreezerCategory>("all");
-  const [storageOpen, setStorageOpen] = React.useState(false);
+  const [storageOpen, setStorageOpen] = useScopedState(scope, false);
   const [editingStorage, setEditingStorage] = React.useState<FreezerStorageUnit | null>(null);
-  const [formOpen, setFormOpen] = React.useState(false);
-  const [editingItem, setEditingItem] = React.useState<MyFreezerItem | null>(null);
+  const [formOpen, setFormOpen] = useScopedState(scope, false);
+  const [editingItem, setEditingItem] = useScopedState<MyFreezerItem | null>(scope, null);
   const [draft, setDraft] = React.useState<FreezerItemDraft>(emptyFreezerItemDraft);
-
-  React.useEffect(() => { setFormOpen(false); setEditingItem(null); setStorageOpen(false); }, [family.family?.id]);
 
   const openAdd = () => {
     setEditingItem(null);

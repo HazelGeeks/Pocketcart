@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import type {
   ProductCsvImportProgress,
@@ -9,7 +10,7 @@ type Props = {
   preview: ProductCsvImportPreview | null;
   report: ProductCsvImportReport | null;
   progress: ProductCsvImportProgress | null;
-  styles: any;
+  styles: AdminStyles;
   onClosePreview: () => void;
   onCloseReport: () => void;
   onConfirm: () => void;
@@ -17,7 +18,7 @@ type Props = {
   onDownloadReport: () => void;
 };
 
-function Stat({ label, value, styles: st }: { label: string; value: number; styles: any }) {
+function Stat({ label, value, styles: st }: { label: string; value: number; styles: AdminStyles }) {
   return (
     <View style={st.productMetaChip}>
       <Text style={st.productMetaChipText}>{label} {value}</Text>
@@ -25,7 +26,7 @@ function Stat({ label, value, styles: st }: { label: string; value: number; styl
   );
 }
 
-function PreviewBody({ preview, styles: st }: { preview: ProductCsvImportPreview; styles: any }) {
+function PreviewBody({ preview, styles: st }: { preview: ProductCsvImportPreview; styles: AdminStyles }) {
   const { summary } = preview;
   return (
     <>
@@ -73,7 +74,7 @@ function PreviewBody({ preview, styles: st }: { preview: ProductCsvImportPreview
   );
 }
 
-function ReportBody({ report, styles: st }: { report: ProductCsvImportReport; styles: any }) {
+function ReportBody({ report, styles: st }: { report: ProductCsvImportReport; styles: AdminStyles }) {
   return (
     <>
       <View style={st.productChipRow}>

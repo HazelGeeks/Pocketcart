@@ -1,3 +1,5 @@
+import useScopedState from "../../hooks/useScopedState";
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import useAdminProductSelection from "../../hooks/useAdminProductSelection";
@@ -39,7 +41,7 @@ type Props = {
   productSortOptions: SortOption[];
   productActiveFilterCount: number;
   productPriceStats: Map<string, ProductPriceStats>;
-  styles: any;
+  styles: AdminStyles;
   onImportProductsCsv: () => void;
   onDownloadProductCsvTemplate: () => void;
   onExportProductsCsv: (selectedProducts: AdminProduct[]) => void;
@@ -93,7 +95,7 @@ export default function AdminProductsPanel({
   onMergeProducts,
 }: Props) {
   const [pageSize, setPageSize] = React.useState<AdminProductPageSize>(20);
-  const [requestedPage, setRequestedPage] = React.useState(1);
+  const [requestedPage, setRequestedPage] = useScopedState(JSON.stringify([productBrandFilter, productCategoryFilter, productOnSaleOnly, productSaleDateFilter, productSearchQuery, productSort]), 1);
   const [mergeCandidates, setMergeCandidates] = React.useState<AdminProduct[]>([]);
   const [merging, setMerging] = React.useState(false);
   const pagination = React.useMemo(
@@ -150,24 +152,13 @@ export default function AdminProductsPanel({
   );
 
   React.useEffect(() => {
-    setRequestedPage(1);
-  }, [
-    productBrandFilter,
-    productCategoryFilter,
-    productOnSaleOnly,
-    productSaleDateFilter,
-    productSearchQuery,
-    productSort,
-  ]);
-
-  React.useEffect(() => {
     if (requestedPage !== pagination.page) setRequestedPage(pagination.page);
-  }, [pagination.page, requestedPage]);
+  }, [pagination.page, requestedPage, setRequestedPage]);
 
   const handlePageSizeChange = React.useCallback((nextPageSize: AdminProductPageSize) => {
     setPageSize(nextPageSize);
     setRequestedPage(1);
-  }, []);
+  }, [setRequestedPage]);
 
   return (
     <View style={st.productAdminStack}>

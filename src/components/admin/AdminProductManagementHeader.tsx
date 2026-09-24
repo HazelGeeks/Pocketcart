@@ -1,10 +1,11 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 
 type Props = {
   selectedProductCount: number;
   submitting: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onImportProductsCsv: () => void;
   onDownloadProductCsvTemplate: () => void;
   onExportProductsCsv: () => void;

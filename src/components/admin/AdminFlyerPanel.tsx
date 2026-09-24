@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { flyerCategory } from "../../utils/flyerCategory";
 import { flyerProductIssues } from "../../utils/flyerProductReview";
 import {
@@ -19,7 +20,7 @@ type AdminFlyerPanelProps = {
   processing: boolean;
   progress: string;
   selectedCount: number;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onPickFile: () => void;
   onAddRow: () => void;
   onRemoveSelected: () => void;

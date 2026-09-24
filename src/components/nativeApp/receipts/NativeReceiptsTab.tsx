@@ -1,3 +1,4 @@
+import useScopedState from "../../../hooks/useScopedState";
 import React from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import useReceipts from "../../../hooks/useReceipts";
@@ -52,10 +53,8 @@ function ReceiptsAccount({ userId }: { userId: string }) {
       !search ||
       `${r.store_name} ${r.items.map((i) => i.name).join(" ")}`.toLowerCase().includes(search),
   );
-  const [visibleCount, setVisibleCount] = React.useState(30);
-  React.useEffect(() => {
-    setVisibleCount(30);
-  }, [period, anchor, query]);
+  const [visibleCount, setVisibleCount] = useScopedState(JSON.stringify([period, anchor, query]), 30);
+
   const changed = () => {
     setEditor(null);
     setDetail(null);

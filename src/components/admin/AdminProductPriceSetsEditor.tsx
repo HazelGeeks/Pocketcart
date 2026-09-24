@@ -1,3 +1,5 @@
+import type { StyleProp, ViewStyle } from "react-native";
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import type { AdminStore } from "../../services/adminBackoffice";
@@ -14,7 +16,7 @@ type Props = {
   submitting: boolean;
   sets: StorePriceSetInput[];
   stores: AdminStore[];
-  styles: any;
+  styles: AdminStyles;
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (
@@ -203,7 +205,7 @@ export default function AdminProductPriceSetsEditor({
   );
 }
 
-function TableHeader({ label, styles }: { label: string; styles: any }) {
+function TableHeader({ label, styles }: { label: string; styles: StyleProp<ViewStyle> }) {
   return (
     <View style={styles}>
       <Text style={{ color: "#53617a", fontSize: 11, fontWeight: "800" }}>{label}</Text>
@@ -221,7 +223,7 @@ function SaleDateInput({
   index: number;
   kind: "start" | "end";
   value: string;
-  styles: any;
+  styles: AdminStyles;
   onChange: (value: string) => void;
 }) {
   return Platform.OS === "web" ? (

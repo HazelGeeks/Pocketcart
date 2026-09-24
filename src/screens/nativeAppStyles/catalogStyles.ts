@@ -3,70 +3,6 @@ import { marketingPalette as C, semanticPalette } from "../../shared/design/pale
 import { F } from "./fonts";
 
 export const catalogStyles = StyleSheet.create({
-  dealSectionCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    padding: 12,
-    gap: 10,
-    marginTop: 2,
-  },
-  dealFeedList: {
-    gap: 8,
-  },
-  dealFeedGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  dealFeedItem: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.bg,
-    padding: 10,
-    gap: 10,
-    flexDirection: "row",
-    alignItems: "stretch",
-  },
-  dealFeedItemActive: {
-    borderColor: C.primary,
-    backgroundColor: C.primaryGhost,
-  },
-  dealFeedThumb: {
-    width: 74,
-    height: 74,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.bg,
-  },
-  dealFeedThumbPlaceholder: {
-    width: 74,
-    height: 74,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.primaryGhost,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dealFeedMain: {
-    flex: 1,
-    gap: 3,
-  },
-  dealFeedAction: {
-    justifyContent: "flex-end",
-    minWidth: 66,
-    alignItems: "center",
-  },
-  dealSectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-  },
   inlinePill: {
     minHeight: 44,
     paddingHorizontal: 10,
@@ -78,22 +14,11 @@ export const catalogStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  inlinePillDisabled: {
-    borderColor: C.line,
-    backgroundColor: C.bg,
-  },
   inlinePillText: {
     color: C.primaryDeep,
     fontSize: 11,
     fontWeight: "800",
     fontFamily: F.bold,
-  },
-  inlinePillTextDisabled: {
-    color: C.textMuted,
-  },
-  dealSectionScroll: {
-    gap: 10,
-    paddingRight: 6,
   },
   homeProductList: {
     gap: 0,
@@ -208,40 +133,6 @@ export const catalogStyles = StyleSheet.create({
   },
   homeListBtnTextActive: {
     color: C.text,
-  },
-  dealCard: {
-    width: "48.5%",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.bg,
-    overflow: "hidden",
-  },
-  dealCardActive: {
-    borderColor: C.primary,
-  },
-  dealCardImage: {
-    width: "100%",
-    height: 112,
-    backgroundColor: C.primaryPale,
-  },
-  dealCardImagePlaceholder: {
-    width: "100%",
-    height: 112,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.primaryPale,
-  },
-  dealCardBody: {
-    padding: 10,
-    gap: 4,
-  },
-  dealCardBottomRow: {
-    marginTop: 4,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
   },
   dealPrice: {
     color: C.text,

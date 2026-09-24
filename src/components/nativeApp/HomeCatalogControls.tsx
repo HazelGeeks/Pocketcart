@@ -8,7 +8,7 @@ import { HomeSearchSheet } from "./HomeSearchSheet";
 import { AppIcon } from "../icons/AppIcon";
 import { CategoryFilterTile } from "./CategoryFilterTile";
 import { HomeCatalogFilterSheet } from "./HomeCatalogFilterSheet";
-import { type HomeSortMode } from "./homeCatalogUtils";
+import type { HomeSortMode } from "./homeCatalogUtils";
 
 type Props = {
   storeFilterIds: string[] | null;

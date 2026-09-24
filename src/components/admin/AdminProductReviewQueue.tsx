@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 import type {
@@ -12,7 +13,7 @@ type Props = {
   reviews: AdminProductIdentityReview[];
   loading: boolean;
   resolvingReviewId: string | null;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onManageProducts: () => void;
   onResolveReview: (reviewId: string) => void;
   onAssignReview: (review: AdminProductIdentityReview, targetProductId: string) => void;

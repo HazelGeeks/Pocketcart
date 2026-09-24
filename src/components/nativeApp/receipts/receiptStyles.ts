@@ -85,6 +85,5 @@ export const rs = StyleSheet.create({
   search: { borderRadius: 14, backgroundColor: C.white, padding: 14, fontSize: 16, color: C.text },
   modal: { flex: 1, backgroundColor: C.bg },
   modalContent: { padding: 20, gap: 16, paddingBottom: 40 },
-  barTrack: { height: 8, borderRadius: 4, backgroundColor: C.primaryGhost, overflow: "hidden" },
   bar: { height: 8, borderRadius: 4, backgroundColor: C.primary },
 });

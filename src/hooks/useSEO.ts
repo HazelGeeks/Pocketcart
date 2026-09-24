@@ -31,19 +31,11 @@ const ROUTE_PATHS: Record<Route, string> = {
  * Only runs on web — no-op on native.
  */
 export default function useSEO(config: SEOConfig) {
+  const { title, description, canonical, ogTitle, ogDescription, ogImage, noindex } = config;
+  const structuredDataJson = JSON.stringify(config.structuredData ?? null);
+
   useEffect(() => {
     if (Platform.OS !== "web") return;
-
-    const {
-      title,
-      description,
-      canonical,
-      ogTitle,
-      ogDescription,
-      ogImage,
-      noindex,
-      structuredData,
-    } = config;
 
     // Title
     document.title = title;
@@ -106,6 +98,7 @@ export default function useSEO(config: SEOConfig) {
         node.remove();
       });
 
+    const structuredData: SEOConfig["structuredData"] = JSON.parse(structuredDataJson);
     const entries = Array.isArray(structuredData)
       ? structuredData
       : structuredData
@@ -120,14 +113,14 @@ export default function useSEO(config: SEOConfig) {
       document.head.appendChild(script);
     });
   }, [
-    config.title,
-    config.description,
-    config.canonical,
-    config.ogTitle,
-    config.ogDescription,
-    config.ogImage,
-    config.noindex,
-    JSON.stringify(config.structuredData ?? null),
+    title,
+    description,
+    canonical,
+    ogTitle,
+    ogDescription,
+    ogImage,
+    noindex,
+    structuredDataJson,
   ]);
 }
 

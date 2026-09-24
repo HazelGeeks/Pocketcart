@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Modal, Pressable, Text, View } from "react-native";
 import type { AdminStore } from "../../services/adminBackoffice";
 import type { StorePriceStats } from "../../utils/adminScreenHelpers";
@@ -6,7 +7,7 @@ type Props = {
   store: AdminStore | null;
   priceStats: Map<string, StorePriceStats>;
   submitting: boolean;
-  styles: any;
+  styles: AdminStyles;
   onClose: () => void;
   onConfirm: () => void;
 };

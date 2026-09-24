@@ -52,45 +52,6 @@ export const adminFormListStyles = {
     justifyContent: "center",
     backgroundColor: "#f3f6fb",
   },
-  filterInputInline: {
-    width: 96,
-  },
-  storeFormInputWide: {
-    minWidth: 220,
-    flexGrow: 1,
-  },
-  storeFormInputSmall: {
-    minWidth: 130,
-    flexGrow: 1,
-  },
-  productFilterInlineGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  productFilterInlineLabel: {
-    color: "#42526f",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  choiceRowNoWrap: {
-    flexDirection: "row",
-    flexWrap: "nowrap",
-    alignItems: "center",
-    gap: 6,
-  },
-  listRow: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e2e7f0",
-    backgroundColor: "#fafbfd",
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
   productCheckboxHitArea: {
     minWidth: 32,
     minHeight: 32,
@@ -174,27 +135,6 @@ export const adminFormListStyles = {
     fontSize: 11,
     fontWeight: "700",
   },
-  technicalDetails: {
-    alignItems: "flex-start",
-    gap: 7,
-    marginTop: 4,
-    width: "100%",
-  },
-  technicalDetailsToggle: {
-    minHeight: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#d8dee8",
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-  technicalDetailsToggleText: {
-    color: "#40506e",
-    fontSize: 12,
-    fontWeight: "700",
-  },
   technicalDetailsPanel: {
     width: "100%",
     borderRadius: 10,
@@ -241,18 +181,6 @@ export const adminFormListStyles = {
     fontSize: 12,
     fontWeight: "800",
   },
-  listRight: {
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  listThumb: {
-    width: 54,
-    height: 54,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#dce4ef",
-    backgroundColor: "#eef2f8",
-  },
   listTitle: {
     color: "#2f3748",
     fontSize: 14,
@@ -263,11 +191,6 @@ export const adminFormListStyles = {
     fontSize: 12,
     fontWeight: "700",
     textAlign: "right",
-  },
-  listPrice: {
-    color: C.primaryDeep,
-    fontSize: 13,
-    fontWeight: "800",
   },
   inlineRow: {
     marginTop: 6,

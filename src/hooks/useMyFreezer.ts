@@ -64,9 +64,10 @@ export default function useMyFreezer(userId: string) {
       setMessage(result.error ?? "My Freezer item could not be saved.");
       return false;
     }
+    const savedItem = result.data;
     setItems((current) => sortItems([
       ...current.filter((item) => item.id !== result.data?.id),
-      result.data!,
+      savedItem,
     ]));
     const reminderWarning = await refreshFreezerReminders(userId);
     setMessage(reminderWarning ? `Item saved. ${reminderWarning}` : (itemId ? "Item updated." : "Item added to My Freezer."));
@@ -96,7 +97,7 @@ export default function useMyFreezer(userId: string) {
       if (currentScope.current === scope) setMessage("Could not confirm removal. Refresh My Freezer before trying again.");
       return false;
     } finally { setDeletingId(null); }
-  }, [userId, scope, family.ready, family.family?.id]);
+  }, [userId, scope, family.ready]);
 
   return { deletingId, items: family.ready && loadedScope === scope ? items : [], load: () => load(), loading, message, remove, save, saving, setMessage };
 }

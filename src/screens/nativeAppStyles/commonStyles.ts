@@ -41,12 +41,6 @@ export const commonStyles = StyleSheet.create({
     fontFamily: F.extraBold,
     overflow: "hidden",
   },
-  dealHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
   dealFilterRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -57,56 +51,11 @@ export const commonStyles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
-  summaryPanel: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-  },
-  summaryRow: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  summaryRowWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  summaryCard: {
-    minWidth: 108,
-    flex: 1,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 3,
-  },
-  summaryRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: C.line,
-  },
   summaryLabel: {
     color: C.textSoft,
     fontSize: 14,
     fontWeight: "700",
     fontFamily: F.bold,
-  },
-  summaryValue: {
-    color: C.primaryDeep,
-    fontSize: 20,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-  },
-  summaryValueSmall: {
-    color: C.text,
-    fontSize: 14,
   },
   rowCard: {
     borderRadius: 14,
@@ -116,20 +65,6 @@ export const commonStyles = StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  rowCardActive: {
-    borderColor: C.primary,
-    backgroundColor: C.primaryGhost,
-  },
-  productRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  productMain: {
-    flex: 1,
-    gap: 4,
-  },
   productThumb: {
     width: 72,
     height: 72,
@@ -138,55 +73,5 @@ export const commonStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.bg,
-  },
-  productThumbImage: {
-    width: "100%",
-    height: "100%",
-  },
-  productThumbPlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: C.primaryGhost,
-  },
-  productThumbPlaceholderText: {
-    color: C.primaryDeep,
-    fontSize: 12,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-    letterSpacing: 0.6,
-  },
-  productActionRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 4,
-  },
-  productActionBtn: {
-    minHeight: 44,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  productActionPrimary: {
-    backgroundColor: C.primary,
-    borderColor: C.primary,
-  },
-  productActionSecondary: {
-    backgroundColor: C.white,
-    borderColor: C.line,
-  },
-  productActionPrimaryText: {
-    color: C.white,
-    fontSize: 12,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-  },
-  productActionSecondaryText: {
-    color: C.text,
-    fontSize: 12,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
   },
 });

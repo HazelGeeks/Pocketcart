@@ -1,5 +1,9 @@
 # PocketCart production domain — September 16, 2026 (UTC)
 
+> Historical record. Statements, test counts, source line numbers, and external
+> service status describe the recorded work, not the current deployment.
+> See the [documentation index](../README.md) for maintained guides.
+
 Canonical website: `https://pocketcart.app`.
 
 ## Hosting

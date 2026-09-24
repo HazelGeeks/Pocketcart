@@ -1,3 +1,4 @@
+import { webViewStyle } from "../shared/design/webViewStyle";
 import { Platform } from "react-native";
 import P from "../constants/palette";
 
@@ -7,7 +8,7 @@ export const navStyles = {
     borderBottomWidth: 1,
     borderBottomColor: P.line,
     paddingVertical: 12,
-    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(20px)" } as any) : {}),
+    ...(Platform.OS === "web" ? (webViewStyle({ backdropFilter: "blur(20px)" })) : {}),
   },
   navInner: {
     maxWidth: 1280,
@@ -68,7 +69,7 @@ export const navStyles = {
   navLangOptionActive: {
     backgroundColor: P.primaryGhost,
     ...(Platform.OS === "web"
-      ? ({ boxShadow: "0 1px 3px rgba(30,46,12,0.08)" } as any)
+      ? (webViewStyle({ boxShadow: "0 1px 3px rgba(30,46,12,0.08)" }))
       : {}),
   },
   navLangOptionPressed: {
@@ -93,41 +94,5 @@ export const navStyles = {
     color: P.white,
     fontSize: 14,
     fontWeight: "700",
-  },
-  navDownloadWrap: {
-    position: "relative",
-  },
-  navDownloadMenu: {
-    position: "absolute",
-    top: 48,
-    right: 0,
-    minWidth: 210,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: P.line,
-    backgroundColor: P.white,
-    padding: 6,
-    gap: 6,
-    zIndex: 180,
-    ...(Platform.OS === "web"
-      ? ({ boxShadow: "0 12px 32px rgba(30,46,12,0.16)" } as any)
-      : {}),
-  },
-  navDownloadMenuWeb: {
-    top: 44,
-  },
-  navDownloadItem: {
-    width: "100%",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: P.line,
-    backgroundColor: P.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  navDownloadItemText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: P.text,
   },
 } as const;

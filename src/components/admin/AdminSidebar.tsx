@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type { AdminMenuKey } from "../../state/adminStore";
@@ -15,7 +16,7 @@ type AdminSidebarProps = {
   authUserLabel: string;
   authLoading: boolean;
   productReviewCount: number;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onSelectMenu: (value: AdminMenuKey) => void;
   onSignOut: () => void;
   onCollapse: () => void;

@@ -1,3 +1,4 @@
+import { webViewStyle } from "../../shared/design/webViewStyle";
 import { Platform } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 
@@ -5,7 +6,7 @@ export const adminLayoutStyles = {
   root: {
     flex: 1,
     backgroundColor: "#f3f4f7",
-    ...(Platform.OS === "web" ? ({ minHeight: "100vh", height: "100vh", width: "100%" } as any) : {}),
+    ...(Platform.OS === "web" ? (webViewStyle({ minHeight: "100vh", height: "100vh", width: "100%" })) : {}),
   },
   workspace: {
     flex: 1,
@@ -76,7 +77,7 @@ export const adminLayoutStyles = {
     padding: 24,
     gap: 14,
     maxWidth: 460,
-    ...(Platform.OS === "web" ? ({ boxShadow: "0 14px 36px rgba(34, 44, 66, 0.08)" } as any) : {}),
+    ...(Platform.OS === "web" ? (webViewStyle({ boxShadow: "0 14px 36px rgba(34, 44, 66, 0.08)" })) : {}),
   },
   authStage: {
     flexGrow: 1,

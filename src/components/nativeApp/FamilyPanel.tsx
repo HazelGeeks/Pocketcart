@@ -1,3 +1,4 @@
+import useScopedState from "../../hooks/useScopedState";
 import React from "react";
 import { AppSheet } from "./AppSheet";
 import { Alert, Pressable, Share, Text, TextInput, View } from "react-native";
@@ -8,23 +9,23 @@ import { st } from "../../screens/nativeAppStyles";
 import { SettingsSection } from "./SettingsMenu";
 export function FamilyPanel({ onSignIn, onSignUp }: { onSignIn: () => void; onSignUp: () => void }) {
   const family = useFamily();
+  const scope = JSON.stringify([family.userId, family.family?.id]);
   const [expanded, setExpanded] = React.useState(false);
   const [name, setName] = React.useState("My family");
   const [link, setLink] = React.useState("");
-  const [inviteUrl, setInviteUrl] = React.useState<string | null>(null);
-  const [members, setMembers] = React.useState<FamilyMember[]>([]);
+  const [inviteUrl, setInviteUrl] = useScopedState<string | null>(scope, null);
+  const [members, setMembers] = useScopedState<FamilyMember[]>(scope, []);
   const [busy, setBusy] = React.useState(false);
-  const [message, setMessage] = React.useState<string | null>(null);
+  const [message, setMessage] = useScopedState<string | null>(scope, null);
   const running = React.useRef(false);
-  const scope = `${family.userId}:${family.family?.id ?? ""}`;
   const activeScope = React.useRef(scope); activeScope.current = scope;
   React.useEffect(() => { if (family.pendingInvite) setExpanded(true); }, [family.pendingInvite]);
-  React.useEffect(() => { setInviteUrl(null); setMembers([]); setMessage(null); }, [scope]);
+
   React.useEffect(() => {
     let active = true;
     if (family.family && expanded) void listFamilyMembers().then(data => { if (active) setMembers(data); }).catch(() => { if (active) setMessage("Could not load family members. Try reopening Family."); });
     return () => { active = false; };
-  }, [family.family, expanded]);
+  }, [family.family, expanded, setMembers, setMessage]);
   const run = async (work: () => Promise<void>) => {
     if (running.current) return;
     running.current = true; setBusy(true); setMessage(null);

@@ -1,5 +1,9 @@
 # Home·Cart 기준 UI/UX 점검
 
+> Historical record. Statements, test counts, source line numbers, and external
+> service status describe the recorded work, not the current deployment.
+> See the [documentation index](../README.md) for maintained guides.
+
 ## 범위와 근거
 
 - iPhone 17 / iOS 26.5 시뮬레이터에서 현재 로그인 상태로 직접 이동하고 접근성 트리와 화면을 확인했다.

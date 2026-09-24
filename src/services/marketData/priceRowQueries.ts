@@ -6,6 +6,11 @@ import {
 } from "./priceDataHelpers";
 import type { PriceRow } from "./types";
 
+function priceClient() {
+  if (!supabase) throw new Error("Price data requires a configured Supabase client.");
+  return supabase;
+}
+
 type FetchPriceRowsParams = {
   productId?: string;
   storeIds?: string[];
@@ -23,7 +28,7 @@ export async function fetchPriceRows({
   storeIds,
   ascending,
 }: FetchPriceRowsParams) {
-  const client = supabase!;
+  const client = priceClient();
 
   async function fetchRows(selectClause: string, orderByValidFrom: boolean) {
     return collectPagedRows<PriceRow, QueryError>(async (from, to) => {
@@ -64,7 +69,7 @@ export async function fetchPriceRows({
 }
 
 export async function fetchRecentPriceRows(productIds: string[]) {
-  const client = supabase!;
+  const client = priceClient();
   const normalizedProductIds = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
   if (normalizedProductIds.length === 0) {
     return { data: [] as PriceRow[], error: null as QueryError | null };

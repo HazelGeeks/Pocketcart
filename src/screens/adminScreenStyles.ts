@@ -28,3 +28,5 @@ export const st = StyleSheet.create({
   ...adminStoreListStyles,
   ...adminUserStyles,
 });
+
+export type AdminStyles = typeof st;

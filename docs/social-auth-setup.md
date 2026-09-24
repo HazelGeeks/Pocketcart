@@ -1,8 +1,13 @@
 # PocketCart social authentication setup
 
-The app code supports native Sign in with Apple on iOS and Supabase's browser-based Google OAuth flow on iOS and Android. Email and password authentication continues to work independently.
+> Maintained guide · checked against repository code on 2026-09-24.
+> External account settings and deployed service status require separate verification.
 
-No provider secret belongs in the Expo app or in an `EXPO_PUBLIC_*` environment variable. Provider credentials must only be stored in Apple, Google Cloud, and the Supabase dashboard.
+The app code supports native Sign in with Apple on iOS and Supabase's browser-based Google OAuth
+flow on iOS and Android. Email and password authentication continues to work independently.
+
+No provider secret belongs in the Expo app or in an `EXPO_PUBLIC_*` environment variable. Provider
+credentials must only be stored in Apple, Google Cloud, and the Supabase dashboard.
 
 ## Shared Supabase settings
 
@@ -17,20 +22,23 @@ Keep the existing native callback and local-development entries. Web email
 confirmation and password-reset requests explicitly return to their current web
 origin; native requests retain the configured app deep link.
 
-Supabase automatically links identities that return the same verified email address. Test this with a non-production account before launch.
+Supabase automatically links identities that return the same verified email address. Test this with
+a non-production account before launch.
 
 ## Sign in with Apple
 
 1. In Apple Developer, enable **Sign in with Apple** for the App ID `com.pocketcart.app`.
 2. Confirm that the provisioning profile used by EAS includes the capability.
-3. In **Supabase → Authentication → Providers → Apple**, enable Apple and register `com.pocketcart.app` as a client ID for native sign-in.
+3. In **Supabase → Authentication → Providers → Apple**, enable Apple and register
+  `com.pocketcart.app` as a client ID for native sign-in.
 4. Rebuild the iOS development app after changing the native capability:
 
    ```sh
    npm run ios
    ```
 
-The app saves the name returned by Apple immediately because Apple normally supplies it only on the first authorization.
+The app saves the name returned by Apple immediately because Apple normally supplies it only on the
+first authorization.
 
 Account deletion obtains a fresh Apple authorization code on iOS. The authenticated
 `delete-account` function exchanges it with Apple, checks that Apple's returned
@@ -53,14 +61,17 @@ reauthorization flow. Older clients can still delete their account but cannot se
 the fresh code. Until real-device revocation is verified with the configured key,
 the production store submission must remain blocked.
 
-Reference: https://developer.apple.com/documentation/technotes/tn3194-handling-account-deletions-and-revoking-tokens-for-sign-in-with-apple
+Reference:
+https://developer.apple.com/documentation/technotes/tn3194-handling-account-deletions-and-revoking-tokens-for-sign-in-with-apple
 
 ## Google
 
 1. In Google Cloud Console, configure the OAuth consent screen.
 2. Create a **Web application** OAuth client.
-3. Add the Supabase callback URL shown in the Google provider panel, normally `https://<project-ref>.supabase.co/auth/v1/callback`, as an authorized redirect URI.
-4. Copy that Web Client ID and secret into **Supabase → Authentication → Providers → Google** and enable the provider.
+3. Add the Supabase callback URL shown in the Google provider panel, normally
+  `https://<project-ref>.supabase.co/auth/v1/callback`, as an authorized redirect URI.
+4. Copy that Web Client ID and secret into **Supabase → Authentication → Providers → Google** and
+  enable the provider.
 5. Do not put the Google client secret in `.env` or `app.json`.
 
 ## Release checks

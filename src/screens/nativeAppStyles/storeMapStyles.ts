@@ -42,13 +42,6 @@ export const storeMapStyles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: C.bg,
   },
-  storeMapClearText: {
-    marginTop: -2,
-    color: C.textMuted,
-    fontSize: 24,
-    lineHeight: 26,
-    fontFamily: F.regular,
-  },
   storeMapLocationButton: {
     width: 58,
     height: 58,

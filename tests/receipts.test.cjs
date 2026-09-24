@@ -139,3 +139,15 @@ test("Scan has an Account back destination and Receipts remains a root tab", () 
   assert.equal(hasNativeBackDestination("receipts", "catalog", "settings"), false);
   assert.deepEqual(TABS.map(tab => tab.id), ["home", "shopping", "freezer", "receipts", "more"]);
 });
+
+test("receipt display keys retain duplicate lines and survive unrelated reordering", () => {
+  const milk = values.items[0];
+  const otherMilk = { ...milk, quantity: 1, lineTotalCents: 500 };
+  const apple = { name: "Apple", quantity: 1, unitPriceCents: 100, lineTotalCents: 100 };
+  const rows = r.receiptDisplayItems([milk, { ...milk }, otherMilk, apple]);
+  assert.equal(new Set(rows.map(row => row.key)).size, 4);
+  assert.equal(rows[0].item, milk);
+  const moved = r.receiptDisplayItems([apple, milk, { ...milk }, otherMilk]);
+  assert.equal(rows[3].key, moved[0].key);
+  assert.deepEqual(rows.slice(0, 3).map(row => row.key), moved.slice(1).map(row => row.key));
+});

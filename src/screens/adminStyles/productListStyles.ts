@@ -1,7 +1,8 @@
+import { webViewStyle } from "../../shared/design/webViewStyle";
 import { Platform } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 
-export const adminProductListStyles: Record<string, any> = {
+export const adminProductListStyles = {
   productHeaderStack: {
     position: "relative",
     zIndex: 20,
@@ -18,14 +19,14 @@ export const adminProductListStyles: Record<string, any> = {
     padding: 6,
     gap: 2,
     ...(Platform.OS === "web"
-      ? ({
+      ? (webViewStyle({
           position: "absolute",
           top: "100%",
           right: 0,
           zIndex: 30,
           marginTop: 8,
           boxShadow: "0 10px 24px rgba(36, 48, 72, 0.12)",
-        } as any)
+        }))
       : {}),
   },
   productListTable: {
@@ -241,4 +242,4 @@ export const adminProductListStyles: Record<string, any> = {
     paddingVertical: 10,
     backgroundColor: "#fafbfd",
   },
-};
+} as const;

@@ -145,7 +145,7 @@ export default function Navbar({
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      style={{ position: "sticky", top: 0, zIndex: 100 } as any}
+      style={{ position: "sticky", top: 0, zIndex: 100 }}
     >
       {navContent}
     </motion.div>

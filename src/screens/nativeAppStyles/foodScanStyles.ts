@@ -155,12 +155,6 @@ export const foodScanStyles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  foodScanActionSecondaryText: {
-    color: C.text,
-    fontSize: 14,
-    fontWeight: "800",
-    fontFamily: F.extraBold,
-  },
   foodScanPermissionCard: {
     borderRadius: 18,
     borderWidth: 1,

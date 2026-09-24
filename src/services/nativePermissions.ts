@@ -17,18 +17,19 @@ const fallbackMessage = {
   locationDenied: "Location access was denied. Use postal code instead.",
 };
 
-function getNavigator(): any {
-  return (globalThis as any).navigator;
+function getNavigator(): Navigator | undefined {
+  return (globalThis as { navigator?: Navigator }).navigator;
 }
 
-function getPermissionsApi(): any {
+function getPermissionsApi(): Permissions | undefined {
   const navigator = getNavigator();
   return navigator?.permissions;
 }
 
-function readPositionErrorMessage(error: any): string {
-  const code = (error?.code as string | number) ?? "";
-  const message = String(error?.message ?? "");
+function readPositionErrorMessage(error: unknown): string {
+  const detail = error && typeof error === "object" ? error : {};
+  const code = "code" in detail ? detail.code : "";
+  const message = String("message" in detail ? detail.message ?? "" : "");
 
   if (code === 1 || /permission/i.test(message)) {
     return fallbackMessage.locationDenied;

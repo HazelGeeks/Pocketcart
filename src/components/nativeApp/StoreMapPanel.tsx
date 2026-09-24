@@ -80,9 +80,10 @@ export function StoreMapPanel(props: StoreMapPanelProps) {
       : getStoreScopeMessage(distanceScope, stores.length);
   const showScopeNotice = !favoriteFilterActive && distanceScope !== "nearby";
 
+  const { latitude, latitudeDelta, longitude, longitudeDelta } = region;
   React.useEffect(() => {
-    setVisibleRegion(region);
-  }, [region.latitude, region.latitudeDelta, region.longitude, region.longitudeDelta]);
+    setVisibleRegion({ latitude, latitudeDelta, longitude, longitudeDelta });
+  }, [latitude, latitudeDelta, longitude, longitudeDelta]);
 
   const controls = (overlay: boolean) => (
     <StoreMapControls

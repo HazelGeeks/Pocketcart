@@ -40,7 +40,11 @@ export default function useNativeBottomBarVisibility({
     [bottomInset, translateY],
   );
 
+  const resetContext = React.useRef<{ activeTab: NativeTabId; screenKey: string; updateHidden: typeof updateHidden } | null>(null);
   React.useEffect(() => {
+    const previous = resetContext.current;
+    if (previous?.activeTab === activeTab && previous.screenKey === screenKey && previous.updateHidden === updateHidden) return;
+    resetContext.current = { activeTab, screenKey, updateHidden };
     scrollStateRef.current = INITIAL_BOTTOM_BAR_SCROLL_STATE;
     updateHidden(false);
   }, [activeTab, screenKey, updateHidden]);

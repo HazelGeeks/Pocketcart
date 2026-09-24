@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Platform, Pressable, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
@@ -22,7 +23,7 @@ type AdminProductFiltersProps = {
   filteredCount: number;
   totalCount: number;
   activeFilterCount: number;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onSearchChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   onRetailerChange: (value: string) => void;

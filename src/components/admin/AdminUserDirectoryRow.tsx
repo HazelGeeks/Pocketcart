@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type { AdminDirectoryUser } from "../../services/adminBackoffice";
@@ -17,7 +18,7 @@ function formatDateTime(value: string | null): string {
 function LabelValue({ label, value, styles: st }: {
   label: string;
   value: string;
-  styles: Record<string, any>;
+  styles: AdminStyles;
 }) {
   return (
     <View style={st.userDirectoryLabelValue}>
@@ -34,7 +35,7 @@ export default function AdminUserDirectoryRow({
 }: {
   user: AdminDirectoryUser;
   compact: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
 }) {
   const [detailsExpanded, setDetailsExpanded] = React.useState(false);
 

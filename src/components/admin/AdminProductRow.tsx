@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
@@ -19,7 +20,7 @@ type Props = {
   deleting: boolean;
   bulkDeleting: boolean;
   submitting: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;

@@ -34,10 +34,6 @@ export const adminDataStyles = {
   emptyStateAction: {
     minHeight: 44,
   },
-  dataCardWide: {
-    minWidth: 520,
-    flex: 2,
-  },
   dataCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -149,12 +145,6 @@ export const adminDataStyles = {
     alignItems: "center",
     gap: 8,
   },
-  formRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    alignItems: "center",
-  },
   input: {
     minHeight: 40,
     borderRadius: 10,
@@ -164,13 +154,5 @@ export const adminDataStyles = {
     color: C.text,
     paddingHorizontal: 12,
     fontSize: 13,
-  },
-  inputGrow: {
-    flexGrow: 1,
-    minWidth: 220,
-  },
-  inputNarrow: {
-    minWidth: 150,
-    flexGrow: 1,
   },
 } as const;

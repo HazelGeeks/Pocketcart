@@ -34,11 +34,11 @@ export default function useNativeStoreMap({
   const location = useMapLocationSearch();
   const { selected, setSelected, cancel, search } = location;
   const favoriteStoreIdSet = React.useMemo(() => new Set(favoriteStoreIds), [favoriteStoreIds]);
+  const { locationMode, locationLatitude, locationLongitude } = onboardingState;
   const userLocation = React.useMemo(() => {
-    const { locationMode, locationLatitude, locationLongitude } = onboardingState;
     return locationMode === "share" && locationLatitude !== null && locationLongitude !== null
       ? { latitude: locationLatitude, longitude: locationLongitude } : null;
-  }, [onboardingState.locationMode, onboardingState.locationLatitude, onboardingState.locationLongitude]);
+  }, [locationMode, locationLatitude, locationLongitude]);
   const origin = selected ?? userLocation;
   // Fetch the catalogue once per map visit, not on every keystroke.
   React.useEffect(() => {
@@ -65,12 +65,16 @@ export default function useNativeStoreMap({
   [stores, selected, query, favoriteFilterActive, favoriteStoreIdSet, origin]);
   const activeStore = filteredStores.find((store) => store.id === focusedStoreId) ?? filteredStores[0];
   const distanceScope = getStoreDistanceScope(filteredStores, Boolean(origin));
+  const storeLatitude = activeStore?.latitude;
+  const storeLongitude = activeStore?.longitude;
   const region = React.useMemo<Region>(() => {
     const center = focusMode === "search" && selected ? selected
       : focusMode === "user" && userLocation && distanceScope !== "outside" ? userLocation
-      : activeStore ?? origin ?? DEFAULT_REGION;
+      : storeLatitude !== undefined && storeLongitude !== undefined
+        ? { latitude: storeLatitude, longitude: storeLongitude }
+        : origin ?? DEFAULT_REGION;
     return { latitude: center.latitude, longitude: center.longitude, latitudeDelta: 0.045, longitudeDelta: 0.045 };
-  }, [distanceScope, focusMode, selected, userLocation, activeStore?.latitude, activeStore?.longitude, origin]);
+  }, [distanceScope, focusMode, selected, userLocation, storeLatitude, storeLongitude, origin]);
 
   React.useEffect(() => {
     mapRef.current?.animateToRegion(region, 220);

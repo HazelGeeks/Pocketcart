@@ -9,7 +9,9 @@ export default function useFlyerNotificationNavigation(
   showToast: (message: string) => void,
 ) {
   const generation = useRef(0);
+  const owner = useRef(userId);
   useEffect(() => {
+    owner.current = userId;
     generation.current++;
     return () => {
       generation.current++;
@@ -17,7 +19,7 @@ export default function useFlyerNotificationNavigation(
   }, [userId]);
   const openFlyer = useCallback(
     async (alertId: string) => {
-      if (!supabase || !userId) return;
+      if (!supabase || !userId || owner.current !== userId) return;
       const current = generation.current;
       try {
         const { data, error } = await supabase.rpc("flyer_notification_destination", { p_alert_id: alertId });
@@ -36,6 +38,7 @@ export default function useFlyerNotificationNavigation(
   );
   useEffect(() => {
     if (Platform.OS === "web" || !userId || !supabase) return;
+    const client = supabase;
     let alive = true;
     let lastId = "";
     const open = async (response: Notifications.NotificationResponse | null) => {
@@ -48,7 +51,7 @@ export default function useFlyerNotificationNavigation(
         return;
       lastId = payload.alertId;
       try {
-        const result = await supabase!
+        const result = await client
           .from("sale_alerts")
           .select("alert_key")
           .eq("id", payload.alertId)

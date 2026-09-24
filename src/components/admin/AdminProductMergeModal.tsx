@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Modal, Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
 import { productDisplayName } from "../../utils/productNames";
@@ -5,7 +6,7 @@ import { productDisplayName } from "../../utils/productNames";
 type Props = {
   products: AdminProduct[];
   merging: boolean;
-  styles: any;
+  styles: AdminStyles;
   onClose: () => void;
   onMerge: (targetProductId: string) => void;
 };

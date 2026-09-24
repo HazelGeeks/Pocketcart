@@ -41,7 +41,7 @@ export function NativeAppOnboarding({
         <Text style={st.sectionSub}>
           Step 1 / 2 · Location setup
         </Text>
-        {!!message ? <Text style={st.itemMeta}>{message}</Text> : null}
+        {message ? <Text style={st.itemMeta}>{message}</Text> : null}
         <Text style={st.onboardingTitle}>We can find best deals nearby</Text>
         <Text style={st.onboardingMeta}>
           Tap Share current location to open the system permission prompt, or continue with postal code.
@@ -94,7 +94,7 @@ export function NativeAppOnboarding({
         <Text style={st.sectionSub}>
           Step 2 / 2 · Price alerts
         </Text>
-        {!!message ? <Text style={st.itemMeta}>{message}</Text> : null}
+        {message ? <Text style={st.itemMeta}>{message}</Text> : null}
         <Text style={st.onboardingTitle}>Don&apos;t miss price drops</Text>
         <Text style={st.onboardingMeta}>
           Enable notifications for products you choose to monitor.

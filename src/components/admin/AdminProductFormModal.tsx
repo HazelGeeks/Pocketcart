@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import {
   ActivityIndicator,
@@ -29,7 +30,7 @@ type Props = {
   storePriceSets: StorePriceSetInput[];
   categoryOptions: string[];
   storeOptions: AdminStore[];
-  styles: any;
+  styles: AdminStyles;
   onKoreanNameChange: (value: string) => void;
   onEnglishNameChange: (value: string) => void;
   onUnitChange: (value: string) => void;

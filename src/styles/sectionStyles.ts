@@ -1,19 +1,6 @@
 import P from "../constants/palette";
 
 export const sectionStyles = {
-  featWrap: {
-    backgroundColor: P.white,
-    paddingTop: 112,
-    paddingBottom: 120,
-    overflow: "hidden",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(7,31,18,0.08)",
-  },
-  sectionInner: {
-    alignSelf: "center",
-    width: "100%",
-    gap: 12,
-  },
   sectionEyebrow: {
     fontSize: 13,
     fontWeight: "800",
@@ -32,90 +19,6 @@ export const sectionStyles = {
     lineHeight: 26,
     color: P.textSoft,
     marginBottom: 8,
-  },
-  featGrid: {
-    gap: 14,
-    marginTop: 34,
-  },
-  featCard: {
-    backgroundColor: "#F4F7F5",
-    borderRadius: 20,
-    padding: 28,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: "rgba(7,31,18,0.08)",
-    minHeight: 236,
-  },
-  featCardFeatured: {
-    backgroundColor: P.dark,
-    borderColor: P.dark,
-  },
-  featCardTopline: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-  },
-  featIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "rgba(15,122,66,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  featIconWrapFeatured: { backgroundColor: "rgba(207,243,107,0.1)" },
-  featIndex: { fontSize: 12, fontWeight: "800", color: P.textMuted, letterSpacing: 1 },
-  featIndexFeatured: { color: "rgba(255,255,255,0.5)" },
-  featIcon: {
-    fontSize: 22,
-    color: P.primaryDeep,
-  },
-  featTitle: {
-    marginTop: 12,
-    fontSize: 23,
-    fontWeight: "800",
-    color: P.text,
-    letterSpacing: -0.4,
-  },
-  featTitleFeatured: { color: P.white },
-  featBody: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: P.textSoft,
-  },
-  featBodyFeatured: { color: "rgba(255,255,255,0.68)" },
-
-  /* ── How It Works ── */
-  howWrap: {
-    backgroundColor: "#E9F0EB",
-    paddingTop: 112,
-    paddingBottom: 112,
-    overflow: "hidden",
-  },
-  howEditorial: { gap: 56 },
-  howIntro: { gap: 14 },
-  howRule: { width: 64, height: 4, borderRadius: 2, backgroundColor: P.primary, marginTop: 14 },
-  workflowList: { borderTopWidth: 1, borderTopColor: "rgba(7,31,18,0.18)" },
-  workflowRow: {
-    flexDirection: "row",
-    gap: 22,
-    paddingVertical: 26,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(7,31,18,0.18)",
-  },
-  workflowNum: { width: 32, fontSize: 12, fontWeight: "800", letterSpacing: 1, color: P.primary },
-  workflowCopy: { flex: 1, gap: 7 },
-  workflowTitle: { fontSize: 22, fontWeight: "800", color: P.text, letterSpacing: -0.4 },
-  workflowBody: { maxWidth: 520, fontSize: 15, lineHeight: 24, color: P.textSoft },
-  /* Stats row */
-  statRow: {
-    gap: 1,
-    marginTop: 72,
-    backgroundColor: "rgba(7,31,18,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(7,31,18,0.14)",
-    borderRadius: 18,
-    overflow: "hidden",
   },
   statCard: {
     backgroundColor: "#F7FAF8",
@@ -172,21 +75,6 @@ export const sectionStyles = {
     lineHeight: 24,
     color: P.textSoft,
   },
-
-  /* ── CTA section ── */
-  ctaWrap: {
-    backgroundColor: P.dark,
-    paddingTop: 112,
-    paddingBottom: 112,
-    overflow: "hidden",
-    minHeight: 440,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-  },
-  ctaInner: {
-    alignItems: "center",
-    gap: 18,
-  },
   ctaEyebrow: {
     fontSize: 13,
     fontWeight: "800",
@@ -200,11 +88,5 @@ export const sectionStyles = {
     color: P.white,
     textAlign: "center",
     letterSpacing: -1.2,
-  },
-  ctaSub: {
-    fontSize: 17,
-    lineHeight: 26,
-    color: "rgba(255,255,255,0.65)",
-    textAlign: "center",
   },
 } as const;

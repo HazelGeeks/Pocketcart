@@ -2,7 +2,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { shoppingHookHarness } = require('./helpers/shoppingHookHarness.cjs');
 const { normalizeShoppingListItems, addShoppingListProduct, toggleShoppingListItem, restoreShoppingListItems } = require('../.tmp-tests/utils/shoppingListState.js');
-const { groupShoppingList } = require('../.tmp-tests/utils/shoppingListGroups.js');
 const { buildShoppingRecommendation } = require('../.tmp-tests/utils/shoppingOptimizer.js');
 const milk = { productId: 'milk', name: 'Milk', unit: '1 L', quantity: 2, category: 'Dairy' };
 function memoryStorage() {
@@ -45,19 +44,6 @@ test('completed items leave the remaining estimate and re-add reopens instead of
   const reopened = addShoppingListProduct(checked, { id: 'milk', name: 'Milk', unit: '1 L' });
   assert.equal(reopened[0].completed, false);
   assert.equal(reopened[0].quantity, 2);
-});
-
-test('grouping excludes purchased items and keeps distinct store branches separate', () => {
-  const bread = { ...milk, productId: 'bread', category: 'Bakery' };
-  const custom = { ...milk, productId: 'custom:x', category: undefined };
-  const items = [milk, bread, custom, { ...milk, productId: 'done', completed: true }];
-  const plan = { stops: [
-    { storeId: 'a', storeName: 'Walmart', storeArea: 'North', items: [milk] },
-    { storeId: 'b', storeName: 'Walmart', storeArea: 'South', items: [bread] },
-  ] };
-  assert.deepEqual(groupShoppingList(items, 'category', null).map((g) => g.label), ['Dairy', 'Bakery', 'Other items']);
-  assert.deepEqual(groupShoppingList(items, 'store', plan).map((g) => g.label), ['Walmart · North', 'Walmart · South', 'No recommended store']);
-  assert.equal(groupShoppingList(items, 'list', null)[0].items.length, 3);
 });
 
 test('hook undo and account changes do not restore one account items into another', async () => {

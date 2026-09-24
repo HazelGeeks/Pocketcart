@@ -121,16 +121,23 @@ export default function useNativeCatalog({
     const requestId = productsRequestIdRef.current + 1;
     productsRequestIdRef.current = requestId;
     setLoading(true);
-    const { data, error } = await listProducts({
-      search: debouncedQuery,
-      preferredStoreIds: storeFilterIds ?? favoriteStoreIds,
-      onSaleOnly,
-    });
-    if (productsRequestIdRef.current !== requestId) return;
-    setProducts(data);
-    setProductsOwner(profileId);
-    setLoading(false);
-    setMessage(error ?? null);
+    try {
+      const { data, error } = await listProducts({
+        search: debouncedQuery,
+        preferredStoreIds: storeFilterIds ?? favoriteStoreIds,
+        onSaleOnly,
+      });
+      if (productsRequestIdRef.current !== requestId) return;
+      setProducts(data);
+      setProductsOwner(profileId);
+      setMessage(error ?? null);
+    } catch {
+      if (productsRequestIdRef.current === requestId) {
+        setMessage("Products couldn't be loaded. Please try again.");
+      }
+    } finally {
+      if (productsRequestIdRef.current === requestId) setLoading(false);
+    }
   }, [debouncedQuery, favoriteStoreIds, onSaleOnly, profileId, storeFilterIds, storeFilter.ready]);
 
   const loadProductPriceDetails = React.useCallback(async (productId: string) => {
@@ -145,13 +152,25 @@ export default function useNativeCatalog({
     }
     setHistoryLoading(true);
     setStorePricesLoading(true);
-    const { data, error } = await listProductPriceDetails(productId);
-    if (priceDetailsRequestIdRef.current !== requestId) return;
-    setPriceHistory(data.history);
-    setStorePrices(data.storePrices);
-    setHistoryLoading(false);
-    setStorePricesLoading(false);
-    setHistoryMessage(error ?? null);
+    setPriceHistory([]);
+    setStorePrices([]);
+    setHistoryMessage(null);
+    try {
+      const { data, error } = await listProductPriceDetails(productId);
+      if (priceDetailsRequestIdRef.current !== requestId) return;
+      setPriceHistory(data.history);
+      setStorePrices(data.storePrices);
+      setHistoryMessage(error ?? null);
+    } catch {
+      if (priceDetailsRequestIdRef.current === requestId) {
+        setHistoryMessage("Prices couldn't be loaded. Please reopen this product to retry.");
+      }
+    } finally {
+      if (priceDetailsRequestIdRef.current === requestId) {
+        setHistoryLoading(false);
+        setStorePricesLoading(false);
+      }
+    }
   }, []);
 
   React.useEffect(() => {
@@ -189,6 +208,7 @@ export default function useNativeCatalog({
   React.useEffect(() => {
     if (activeTab !== "home" || route !== "detail" || !selectedProductId) return;
     void loadProductPriceDetails(selectedProductId);
+    return () => { priceDetailsRequestIdRef.current += 1; };
   }, [activeTab, loadProductPriceDetails, route, selectedProductId]);
 
   const setRetailerFilter = React.useCallback(

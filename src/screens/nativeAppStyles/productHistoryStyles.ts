@@ -3,7 +3,6 @@ import { marketingPalette as C, semanticPalette } from "../../shared/design/pale
 import { F } from "./fonts";
 
 export const productHistoryStyles = StyleSheet.create({
-  dealText: { color: C.primaryDeep, fontSize: 13, fontFamily: F.extraBold },
   bestStoreRow: { backgroundColor: C.primaryGhost },
   storeChartCard: { borderRadius: 12, backgroundColor: C.primaryGhost, padding: 12, gap: 10 },
   storeChartRow: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -72,16 +71,6 @@ export const productHistoryStyles = StyleSheet.create({
   periodStoreMain: { flex: 1, minWidth: 0, gap: 2 },
   periodStoreName: { color: C.textSoft, fontSize: 12, fontFamily: F.bold },
   historyTitle: { color: C.text, fontSize: 14, fontFamily: F.extraBold, marginTop: 4 },
-  historyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line,
-    paddingHorizontal: 4,
-    paddingVertical: 11,
-  },
   storeCompareRow: {
     gap: 10,
     borderBottomWidth: 1,
@@ -97,33 +86,12 @@ export const productHistoryStyles = StyleSheet.create({
   },
   storeCompareTitleBlock: { flex: 1, minWidth: 0, gap: 3 },
   storeCompareName: { color: C.text, fontSize: 15, fontFamily: F.extraBold },
-  storeCompareBranchText: { color: C.textSoft, fontSize: 12, fontFamily: F.bold },
   storeComparePriceBlock: { alignItems: "flex-end", gap: 3 },
   storeCompareLowest: { color: C.primaryDeep, fontSize: 12, fontFamily: F.extraBold },
   storeCompareMetaRow: { borderTopWidth: 1, borderTopColor: C.line, paddingTop: 8, gap: 3 },
   storeCompareTrendText: { color: C.primaryDeep, fontSize: 12, fontFamily: F.extraBold },
   historyLabel: { color: C.textMuted, fontSize: 12, fontFamily: F.bold },
   historyPrice: { color: C.text, fontSize: 13, fontFamily: F.bold },
-  historyDiff: { fontSize: 12, fontFamily: F.bold },
   historyDiffUp: { color: semanticPalette.priceIncrease },
   historyDiffDown: { color: C.primaryDeep },
-  watchRowTop: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  watchRowMain: { flex: 1, gap: 4 },
-  removeBtn: {
-    minHeight: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#D9A0A0",
-    backgroundColor: "#FFF0F0",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-  },
-  removeBtnDisabled: { opacity: 0.6 },
-  removeBtnText: { color: "#A83939", fontSize: 12, fontFamily: F.bold },
 });

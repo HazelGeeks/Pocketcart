@@ -32,7 +32,6 @@ const {
 } = require("../.tmp-tests/utils/profilePreferenceNormalization.js");
 const { isNewlyCreatedUser } = require("../.tmp-tests/utils/socialAuth.js");
 const { normalizeStoredOnboardingState } = require("../.tmp-tests/utils/nativeOnboardingState.js");
-const { settleLatestListResults } = require("../.tmp-tests/utils/asyncRequestResults.js");
 const { formatAlertActivityTime } = require("../.tmp-tests/utils/alertActivity.js");
 const { isPushRegistrationReady } = require("../.tmp-tests/utils/pushRegistrationState.js");
 
@@ -387,33 +386,6 @@ test("onboarding normalization rejects corrupt modes and coordinates", () => {
       alertsEnabled: false,
     },
   );
-});
-
-test("latest list result settlement ignores stale async responses", () => {
-  const stale = settleLatestListResults(3, 4, [{ data: [{ id: "old" }], error: null }]);
-
-  assert.equal(stale, null);
-});
-
-test("latest list result settlement merges data and deduplicates useful errors", () => {
-  const settled = settleLatestListResults(4, 4, [
-    { data: [{ id: "a" }], error: "Network unavailable" },
-    { data: [{ id: "b" }, { id: "c" }], error: " Network unavailable " },
-    { data: [], error: "Price service timed out" },
-    { data: [{ id: "d" }], error: null },
-  ]);
-
-  assert.deepEqual(settled, {
-    data: [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }],
-    message: "Network unavailable Price service timed out",
-  });
-});
-
-test("latest list result settlement clears an old error after a clean response", () => {
-  assert.deepEqual(settleLatestListResults(5, 5, [{ data: [{ id: "fresh" }], error: null }]), {
-    data: [{ id: "fresh" }],
-    message: null,
-  });
 });
 
 test("push alerts require permission, a persisted registration, and a token", () => {

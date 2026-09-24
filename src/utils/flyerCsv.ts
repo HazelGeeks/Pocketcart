@@ -42,7 +42,7 @@ export function buildFlyerCsv(rows: FlyerRow[]): string {
   const body = rows.map((row) =>
     FLYER_CSV_COLUMNS.map((column) => csvCell(String(row[column.key] ?? ""))).join(","),
   );
-  return ["\uFEFF" + header, ...body].join("\r\n") + "\r\n";
+  return `${[`\uFEFF${header}`, ...body].join("\r\n")}\r\n`;
 }
 
 export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
@@ -63,5 +63,5 @@ export function flyerRowsToProductCsv(rows: FlyerRow[]): string {
     };
     return PRODUCT_TEMPLATE_COLUMNS.map((key) => csvCell(values[key])).join(",");
   });
-  return ["\uFEFF" + PRODUCT_TEMPLATE_COLUMNS.join(","), ...body].join("\r\n") + "\r\n";
+  return `${[`\uFEFF${PRODUCT_TEMPLATE_COLUMNS.join(",")}`, ...body].join("\r\n")}\r\n`;
 }

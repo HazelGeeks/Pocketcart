@@ -1,3 +1,4 @@
+import { webViewStyle } from "../shared/design/webViewStyle";
 import {
   Platform,
   Pressable,
@@ -163,7 +164,7 @@ export default function PrivacyScreen({
             st.topBar,
             { paddingHorizontal: pad },
             Platform.OS === "web" &&
-              ({ position: "sticky", top: 0, zIndex: 50 } as any),
+              (webViewStyle({ position: "sticky", top: 0, zIndex: 50 })),
           ]}
         >
           <Pressable onPress={onBack} style={st.backBtn}>
@@ -225,7 +226,7 @@ const st = StyleSheet.create({
     flex: 1,
     backgroundColor: P.bg,
     ...(Platform.OS === "web"
-      ? ({ minHeight: "100vh", width: "100%" } as any)
+      ? (webViewStyle({ minHeight: "100vh", width: "100%" }))
       : {}),
   },
   scroll: { flex: 1 },
@@ -235,7 +236,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: P.line,
     paddingVertical: 14,
-    ...(Platform.OS === "web" ? ({ backdropFilter: "blur(16px)" } as any) : {}),
+    ...(Platform.OS === "web" ? (webViewStyle({ backdropFilter: "blur(16px)" })) : {}),
   },
   backBtn: {
     flexDirection: "row",

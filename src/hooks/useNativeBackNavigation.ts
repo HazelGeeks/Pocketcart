@@ -1,3 +1,4 @@
+import useScopedState from "./useScopedState";
 import React from "react";
 import {
   Animated,
@@ -38,25 +39,20 @@ export default function useNativeBackNavigation({
   width,
 }: Options) {
   const backTranslateX = React.useRef(new Animated.Value(0)).current;
-  const [forwardProduct, setForwardProduct] = React.useState<MarketProduct | null>(null);
+  const [forwardProduct, setForwardProduct] = useScopedState<MarketProduct | null>(JSON.stringify([shell.activeTab, catalog.query, catalog.category, catalog.onSaleOnly, catalog.sortMode, catalog.storeFilterName, account.profile?.id]), null);
   const gestureDirection = React.useRef<"back" | "forward">("back");
   const animating = React.useRef(false);
   const canNavigateForward = shell.activeTab === "home" && catalog.route === "catalog" && Boolean(forwardProduct);
 
-  // A different navigation context starts a new history branch.
-  React.useEffect(() => {
-    setForwardProduct(null);
-  }, [shell.activeTab, catalog.query, catalog.category, catalog.onSaleOnly, catalog.sortMode, catalog.storeFilterName, account.profile?.id]);
-
   React.useEffect(() => {
     if (catalog.route === "detail") setForwardProduct(null);
-  }, [catalog.route]);
+  }, [catalog.route, setForwardProduct]);
 
   const navigateForward = React.useCallback(() => {
     if (!canNavigateForward || !forwardProduct) return;
     catalog.openProduct(forwardProduct);
     setForwardProduct(null);
-  }, [canNavigateForward, catalog.openProduct, forwardProduct]);
+  }, [canNavigateForward, catalog.openProduct, forwardProduct, setForwardProduct]);
 
   const canNavigateBack = hasNativeBackDestination(
     shell.activeTab,
@@ -93,6 +89,7 @@ export default function useNativeBackNavigation({
     catalog.setRoute,
     shell.activeTab,
     shell.closeAlerts,
+    setForwardProduct,
   ]);
 
   const resetBackPosition = React.useCallback(() => {

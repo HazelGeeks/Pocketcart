@@ -1,4 +1,4 @@
-import React from "react";
+import useScopedState from "../../hooks/useScopedState";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline } from "react-native-svg";
 import { money, type PriceChart } from "../../screens/nativeAppData";
@@ -16,11 +16,7 @@ export function ProductPriceTrendSection({
   historyLoading,
 }: ProductPriceTrendSectionProps) {
   const lowestStoresByPeriod = chart ? [...chart.points].reverse() : [];
-  const [expandedPeriod, setExpandedPeriod] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    setExpandedPeriod(null);
-  }, [chart?.points.at(-1)?.id]);
+  const [expandedPeriod, setExpandedPeriod] = useScopedState<string | null>(chart?.points.at(-1)?.id ?? "", null);
 
   return (
     <View style={st.productTrendCard}>
@@ -68,7 +64,7 @@ export function ProductPriceTrendSection({
               ) : null}
               {chart.points.map((point, index) => (
                 <Circle
-                  key={`${point.observed_at}-${index}`}
+                  key={point.id}
                   cx={point.x}
                   cy={point.y}
                   r={3.7}

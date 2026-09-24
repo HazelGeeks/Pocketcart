@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -9,7 +10,7 @@ export type AdminTechnicalDetailItem = {
 
 type Props = {
   items: AdminTechnicalDetailItem[];
-  styles: Record<string, any>;
+  styles: AdminStyles;
 };
 
 type CopyState = {

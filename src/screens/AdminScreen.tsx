@@ -57,7 +57,7 @@ export default function AdminScreen({ onBack }: { onBack: () => void }) {
                 accessibilityHint="Opens the admin navigation"
                 onPress={() => adminUi.setSidebarCollapsed(false)}
                 style={st.sidebarCollapsedToggle}
-                {...({ title: "Expand sidebar" } as any)}
+                {...{ title: "Expand sidebar" }}
               >
                 <Text style={st.sidebarCollapsedToggleIcon}>›</Text>
               </Pressable>

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { deleteReceipt, receiptError, receiptPhotoUrl } from "../../../services/receipts";
-import { receiptMoney, type Receipt } from "../../../utils/receipts";
+import { receiptDisplayItems, receiptMoney, type Receipt } from "../../../utils/receipts";
 import { AppIcon } from "../../icons/AppIcon";
 import { ReceiptButton } from "./ReceiptControls";
 import { rs } from "./receiptStyles";
@@ -32,25 +32,26 @@ export function ReceiptDetail({
   const [url, setUrl] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [photoError, setPhotoError] = React.useState(false);
-  const [retry, setRetry] = React.useState(0);
+  const photoGeneration = React.useRef(0);
   const [busy, setBusy] = React.useState(false);
   const deleting = React.useRef(false);
-  React.useEffect(() => {
-    let current = true;
+  const loadPhoto = React.useCallback(() => {
+    const request = ++photoGeneration.current;
     setUrl(null);
     setPhotoError(false);
     if (receipt.photo_path)
       void receiptPhotoUrl(userId, receipt.photo_path)
         .then((next) => {
-          if (current) setUrl(next);
+          if (request === photoGeneration.current) setUrl(next);
         })
         .catch(() => {
-          if (current) setPhotoError(true);
+          if (request === photoGeneration.current) setPhotoError(true);
         });
-    return () => {
-      current = false;
-    };
-  }, [userId, receipt.photo_path, retry]);
+  }, [userId, receipt.photo_path]);
+  React.useEffect(() => {
+    loadPhoto();
+    return () => { photoGeneration.current++; };
+  }, [loadPhoto]);
   const remove = async () => {
     if (deleting.current) return;
     deleting.current = true;
@@ -104,7 +105,7 @@ export function ReceiptDetail({
               <ReceiptButton
                 secondary
                 label="Retry receipt photo"
-                onPress={() => setRetry((r) => r + 1)}
+                onPress={loadPhoto}
               />
             ) : url ? (
               <Image
@@ -120,8 +121,8 @@ export function ReceiptDetail({
           ) : null}
           <View style={rs.card}>
             <Text style={rs.title}>Purchased items</Text>
-            {receipt.items.map((item, i) => (
-              <View key={`${i}-${item.name}`} style={rs.stack}>
+            {receiptDisplayItems(receipt.items).map(({ item, key }) => (
+              <View key={key} style={rs.stack}>
                 <View style={rs.between}>
                   <View style={rs.flex}>
                     <Text style={rs.text}>{item.name}</Text>

@@ -139,3 +139,14 @@ export function isPossibleDuplicate(a: ReceiptValues, b: ReceiptValues) {
     a.total_cents === b.total_cents
   );
 }
+
+/** Display-only identity: distinguish equal names and repeated identical receipt lines. */
+export function receiptDisplayItems(items: ReceiptItem[]): { key: string; item: ReceiptItem }[] {
+  const occurrences = new Map<string, number>();
+  return items.map((item) => {
+    const signature = JSON.stringify([item.name, item.quantity, item.unitPriceCents, item.lineTotalCents]);
+    const occurrence = occurrences.get(signature) ?? 0;
+    occurrences.set(signature, occurrence + 1);
+    return { key: `${signature}:${occurrence}`, item };
+  });
+}

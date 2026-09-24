@@ -37,7 +37,7 @@ export default function useNativeSaleAlerts({
       if (createdAlerts.length === 0) return;
       if (alertsEnabled) {
         void sendSaleAlertPushNotifications(createdAlerts);
-        const notification = (globalThis as { Notification?: any }).Notification;
+        const notification = (globalThis as { Notification?: typeof Notification }).Notification;
         if (Platform.OS === "web" && notification && notification.permission === "granted") {
           createdAlerts.slice(0, 3).forEach((alert) => {
             try {

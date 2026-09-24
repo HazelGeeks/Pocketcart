@@ -6,17 +6,19 @@ import { refreshFreezerReminders, setFreezerReminderUser } from "../services/fre
 
 export default function useFreezerReminders(userId: string | null, openFreezer: () => void) {
   const family = useFamily();
+  const scope = React.useMemo(() => ({ userId, familyId: family.family?.id, ready: family.ready }), [userId, family.family?.id, family.ready]);
   React.useEffect(() => {
+    const { userId: reminderUserId, ready } = scope;
     if (Platform.OS === "web") return;
-    void setFreezerReminderUser(userId);
-    if (family.ready) void refreshFreezerReminders(userId);
+    void setFreezerReminderUser(reminderUserId);
+    if (ready) void refreshFreezerReminders(reminderUserId);
     const resume = AppState.addEventListener("change", (state) => {
-      if (state === "active") void refreshFreezerReminders(userId);
+      if (state === "active") void refreshFreezerReminders(reminderUserId);
     });
     let alive = true;
     const open = (response: Notifications.NotificationResponse | null) => {
       const data = response?.notification.request.content.data;
-      if (alive && userId && data?.kind === "freezer-expiry" && data.userId === userId) {
+      if (alive && reminderUserId && data?.kind === "freezer-expiry" && data.userId === reminderUserId) {
         openFreezer();
         void Notifications.clearLastNotificationResponseAsync();
       }
@@ -24,5 +26,5 @@ export default function useFreezerReminders(userId: string | null, openFreezer: 
     const response = Notifications.addNotificationResponseReceivedListener(open);
     void Notifications.getLastNotificationResponseAsync().then(open).catch(() => {});
     return () => { alive = false; resume.remove(); response.remove(); };
-  }, [userId, openFreezer, family.family?.id, family.ready]);
+  }, [scope, openFreezer]);
 }

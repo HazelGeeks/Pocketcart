@@ -1,235 +1,140 @@
-# PocketCart (React Native Scaffold)
+# PocketCart
 
-TypeScript-first scaffold for a shopping helper app where users can
-compare prices, track products, and estimate savings.
+PocketCart is an Expo / React Native grocery app with a web landing site and
+administration interface. It supports price comparison, Cart, Freezer, personal
+Receipts, family inventory sharing, and product sale alerts.
 
-Current language support:
+The website supports English and French. Native shopping screens currently use
+English copy; website locale support does not imply complete native localization.
 
-- English (`en`)
-- French (`fr`)
+See the [documentation index](docs/README.md) for maintained setup guides and
+historical release records.
 
-## Run
+## Development
+
+Use Node 22 (`.nvmrc`). Copy `.env.example` to `.env` and configure the required
+public client values without committing credentials.
 
 ```bash
 nvm use
 npm install
 npm run web
-npm run verify
 ```
 
-Web-first development:
+| Command | Purpose |
+| --- | --- |
+| `npm run web` | Start the Expo web development server |
+| `npm run dev` / `npm run dev:ios` | Launch the booted iPhone simulator with the development client |
+| `npm run ios` | Rebuild and install the current iOS simulator app |
+| `npm run dev:client` | Start Metro for an installed development client |
+| `npm start` | Start Expo |
+| `npm run android` | Build and launch Android |
+| `npm run dev:worker` | Export web and serve through the local Workers runtime |
 
-- `npm run web`: start web app on `http://localhost:8081`
-- `npm run dev:worker`: export the web app and serve it with the local Workers runtime
+The iOS launcher supports Simulator and Xcode 27 Device Hub. It rebuilds when the
+client is missing or lacks embedded simulator Keychain entitlements. Native
+rebuilds require the Xcode toolchain and installed iOS Pods.
 
-Native development:
+## Current app structure
 
-- `npm start`: start Expo for native targets
-- `npm run dev:client`: start Metro for an installed development build
-- `npm run dev`: alias for `npm run dev:ios`
-- `npm run dev:ios`: use the currently booted iPhone simulator; install the
-  PocketCart development build automatically when it is missing or lacks the
-  embedded simulator Keychain entitlements required by Expo Notifications.
-  Supports Simulator and Xcode 27 Device Hub; rebuilding requires installed iOS Pods.
-- `npm run ios`: rebuild and install PocketCart on the currently booted iPhone
-  simulator
-- `npm run android`
+- `App.native.tsx` and `src/screens/NativeAppScreen.native.tsx`: native entrypoint
+  and navigation. Bottom tabs are **Home · Cart · Freezer · Receipts · Account**.
+- `App.tsx`: web routing, landing sections, legal/support pages, and admin entry.
+  `src/screens/NativeAppScreen.tsx` is the web variant of the app shell.
+- `src/components/nativeApp/`: native UI. Map and Scan are under Account → Features;
+  Notifications opens from the header. Account deletion is under Account →
+  Account actions → Delete Account.
+- `src/hooks/`: data loading, account-scoped state, synchronization, and UI flows.
+- `src/services/`: Supabase, local persistence, permissions, notifications, billing.
+- `src/services/marketData/`: products, stores, current prices, and price history.
+- `src/shared/design/palette.ts`: shared color tokens.
+- `src/i18n/`: English/French website copy and locale persistence.
+- `supabase/functions/` and `supabase/migrations/`: backend endpoints and migrations.
+- `database/schema.sql`: baseline schema; newer features also require migrations.
+- `scripts/`, `tests/`, `.github/workflows/`: tooling, verification, and release jobs.
 
-For a TestFlight release without an EAS cloud build, run `npm run build:ios:local -- --output /tmp/pocketcart.ipa` on a Mac with Xcode, CocoaPods, and Fastlane installed. Then submit that exact artifact with `npx eas-cli submit --platform ios --profile production --path /tmp/pocketcart.ipa`; do not use `--latest`, which selects a cloud build. Local builds require the production environment variables and signing credentials. Before a new release, increment `expo.ios.buildNumber` in `app.json` and `CFBundleVersion` in `ios/PocketCart/Info.plist`, then commit them. The `production-local` profile preserves that version for local retries.
+Home provides search suggestions/recent searches, category selection, and a filter
+modal with a store checklist persisted separately for each account and guests.
+The list progressively reveals loaded products on scroll; this is distinct from
+server-side pagination. Product photos and placeholders retain a white image frame.
 
-Recommended Node runtime:
+Cart preserves guest items locally and synchronizes authenticated personal or
+family inventory. Freezer supports named storage and date reminders. Receipts are
+personal authenticated records, including private photos and optional extraction;
+they do not share the family inventory scope. Free product alerts are limited to
+five products; Cart and Freezer do not use that quota.
 
-- Node 22 LTS (`.nvmrc` included)
+## Backend configuration
 
-## Quality Gates
+Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` for the target
+backend. Public Expo values are compiled into the client; service-role keys and
+provider secrets belong only in server/CI secret storage.
 
-- `npm run typecheck`: TypeScript compile checks
-- `npm run lint`: Biome static analysis
-- `npm run format`: format supported source files with Biome
-- `npm run test`: route smoke tests
-- `npm run build:web`: Expo static web export
-- `npm run deploy:worker:dry-run`: validate the Workers Static Assets bundle
-- `npm run deploy:worker`: export and deploy the site to Cloudflare Workers
-- `npm run verify`: full pre-release gate (`typecheck + lint + test + build:web`)
-- `npm run release:native:check`: pre-store gate for iOS/Android release work
-- `npm run audit:ci`: fail on new high/critical dependency advisories
-- `npm run release:native:doctor`: external EAS/Supabase/key readiness check
-- `npm run build:ios` / `npm run build:android`: EAS production builds
-- `npm run submit:ios` / `npm run submit:android`: EAS store submissions
+- [Social authentication](docs/social-auth-setup.md): email callbacks, Apple/Google,
+  and account deletion.
+- [Family sharing](docs/family-sharing.md): scoped inventory and migration order.
+- [Billing](docs/billing-setup.md): RevenueCat and the sale-alert quota.
+- [Receipts](docs/receipts-implementation.md): private records/photos and extraction.
 
-## Mobile Release / Deployment
+Web admin is available at `/admin`. Database writes require membership in
+`public.admin_users`; the optional public admin email list is only a UI guard.
+Product imports use reviewed identity matching and route ambiguous matches for
+review. Flyer extraction uses `back-office-flyer` and server-side authorization.
 
-Detailed release notes live in `docs/mobile-store-release.md`. Use this README
-section as the quick command path for store deployment.
+`Sale Alert Sync` runs every six hours and can be triggered manually after price
+imports. Deployment and real-device push delivery need separate verification.
+Do not replay `database/schema.sql` against production as a routine setup step;
+review applied migrations and deploy only the intended changes.
 
-Preflight before every mobile release:
+## Quality checks
 
 ```bash
-npm run release:native:check
-npm run release:store-assets:live-check
+npm run verify
+npm run release:native:config-check
+npm run release:store-assets:check
 npm run audit:ci
 ```
 
-Print missing GitHub/EAS/Supabase setup values without exposing secrets:
+`verify` runs typecheck, Biome lint, the full automated test suite, and web export.
+`release:native:check` combines `verify` with native configuration and store asset
+checks. The audit policy rejects unapproved high/critical findings; passing does
+not mean zero vulnerabilities. Simulator/device interaction, production schema,
+and store readiness are separate checks.
+
+## Web deployment
+
+The canonical site is configured as `https://pocketcart.app`; `www.pocketcart.app`
+and the legacy `pocketcart.hazelgeeks.workers.dev` host are also configured in
+`wrangler.jsonc`. Live availability must be checked separately.
 
 ```bash
-npm run release:native:setup-guide
-npm run release:native:doctor
+npm run deploy:worker:dry-run
+npm run deploy:worker
 ```
 
-Android production build:
+Workers Builds variables named `EXPO_PUBLIC_*` are compiled into the exported
+bundle, separately from Worker runtime secrets. Optional website analytics uses
+`EXPO_PUBLIC_GA_MEASUREMENT_ID`. Deep links use the Workers SPA fallback.
+The navbar download action scrolls to the website download section.
+
+## Native release
+
+Follow the [mobile release guide](docs/mobile-store-release.md) for preflight,
+credentials, environment setup, and Apple/Google checks.
+
+For a local iOS build, prepare Xcode, CocoaPods, Fastlane, signing credentials,
+and production environment values. Increment the iOS build number in `app.json`
+and `ios/PocketCart/Info.plist` together for each new upload.
 
 ```bash
-npx eas-cli build --platform android --profile production --non-interactive --no-wait
-npx eas-cli build:list --platform android --limit 3
+npm run build:ios:local -- --output /tmp/pocketcart.ipa
+npx eas-cli submit --platform ios --profile production --path /tmp/pocketcart.ipa
 ```
 
-Android submission options:
+The `production-local` profile preserves the build number for retries. The cloud
+commands `npm run build:ios` and `npm run build:android` use the production profile
+with automatic incrementing. `npm run submit:ios` / `npm run submit:android` select
+the latest **cloud** artifact and must not be used to identify a local IPA.
 
-- Manual first release path: download the latest `.aab` from EAS and upload it
-  to Google Play Console > Internal testing. This does not require a Google
-  Play service account.
-- Automated path: create/configure a Google Play service account, connect it in
-  EAS credentials, then submit with:
-
-```bash
-npx eas-cli credentials --platform android
-npx eas-cli submit --platform android --profile production --latest
-```
-
-When `npx eas-cli credentials --platform android` asks which build profile to
-configure, select `production` for store release work.
-
-iOS release requirements:
-
-- An active paid Apple Developer Program membership is required.
-- App Store Connect must have an app record for bundle ID `com.pocketcart.app`.
-- The first iOS credential setup must be interactive because Apple login/2FA
-  and distribution certificate validation cannot be completed by CI alone.
-
-```bash
-npx eas-cli credentials:configure-build --platform ios --profile production
-npx eas-cli build --platform ios --profile production --non-interactive --no-wait
-npx eas-cli submit --platform ios --profile production --latest
-```
-
-Store submission still requires real screenshots captured from a release,
-TestFlight, or Google Play internal testing build. Keep Apple credentials,
-Google service account JSON files, Android keystores, and API keys out of git.
-
-## Structure
-
-- `App.tsx`: route shell + section composition
-- `src/screens/NativeAppScreen.tsx`: native app shell
-  (Home / Watchlist / Map / Alert / More)
-- `src/services/supabaseClient.ts`: Supabase client bootstrap
-- `src/services/userProfile.ts`: sign-up and profile read/write helpers
-- `src/screens/DeleteAccountScreen.tsx`: external account deletion page
-  (`/delete-account`)
-- `src/sections/*`: landing page sections
-- `src/components/*`: shared UI blocks
-- `src/i18n/siteI18n.tsx`: locale provider + persistence
-- `src/i18n/siteCopy.ts`: EN/FR copy dictionary for the SPA
-- `src/screens/BlogScreen.tsx`: blog route
-- `src/screens/PrivacyScreen.tsx`: privacy route
-- `src/screens/TermsScreen.tsx`: terms route
-
-## Notes
-
-- Google Analytics 4:
-  - Create a web data stream in GA4 and set
-    `EXPO_PUBLIC_GA_MEASUREMENT_ID` in your local env and deployment env.
-  - Example: copy `.env.example` to `.env` and replace the placeholder value.
-- Supabase (for native `More` / `Watchlist` / `Home` / `Map` data):
-  - Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env`
-  - Optional admin UI guard: `EXPO_PUBLIC_ADMIN_EMAILS=email1@example.com,email2@example.com`
-  - Schema source: `database/schema.sql`
-  - Required tables and RLS policies:
-    - `profiles`
-    - `profile_preferences`
-    - `watchlist_items`
-    - `shopping_list_items`
-    - `freezer_items`
-    - `products`
-    - `stores`
-    - `product_prices`
-    - `sale_alerts`
-    - `user_push_tokens`
-    - `push_delivery_tickets`
-  - Keep schema/policy SQL out of README and manage it in Supabase Dashboard or migration files.
-  - Push sale alerts:
-    - Native builds use Expo Push Notifications through `expo-notifications`.
-    - Deploy `send-sale-alert-push` and `sync-sale-alerts` Supabase Edge Functions.
-    - Set `PUSH_FUNCTION_SECRET` as a Supabase function secret.
-    - `.github/workflows/sale-alert-sync.yml` calls `sync-sale-alerts` every six
-      hours. It can also be run manually after a price import so watched products
-      create and send push alerts while the app is closed.
-    - Expo sends are batched in groups of at most 100. Receipt tickets are stored
-      and checked after the provider handoff so invalid device tokens are disabled
-      instead of being recorded as successful deliveries.
-- Web deploy:
-  - Cloudflare Workers Static Assets configuration lives in `wrangler.jsonc`.
-  - Production URL: `https://pocketcart.hazelgeeks.workers.dev`.
-  - Set `EXPO_PUBLIC_*` values as Workers Builds build variables. They are
-    compiled into the Expo web bundle and are separate from Worker runtime secrets.
-  - Validate the bundle with `npm run deploy:worker:dry-run`.
-  - Deploy from an authenticated workstation with `npm run deploy:worker`.
-  - Deep links use Workers' `single-page-application` fallback rather than the
-    Pages-only `_redirects` file.
-- Mobile store release:
-  - Follow `docs/mobile-store-release.md`
-  - Build profiles are configured in `eas.json`
-  - Keep Apple/Google credentials, Android keystores, service account JSON, and API keys out of git
-- Get the App navigation:
-  - Hover `Get the App` in the top navbar (web) to open direct iOS/Android download links.
-  - Tap `Get the App` on native/mobile to toggle the same two links.
-- Native app shell:
-  - iOS/Android renders a dedicated native app scaffold, separate from the web landing screen.
-  - `Home` compares the lowest price for each complete sale period, shows the
-    winning store, and supports exact store-specific deal views from Map.
-  - `Map` lets guests and signed-in users save `My stores`; saved stores feed
-    Home pricing, shopping alternatives, and foreground/background sale alerts.
-  - Admin product entry and CSV imports use product ID, validated GTIN/UPC/EAN,
-    brand, names, and unit to match products, routing uncertain rows to the
-    Dashboard review queue.
-  - Small same-unit name variations are held for review instead of silently
-    creating another product. Existing exact English-name/unit duplicates are
-    seeded into the review queue by the product identity workflow migration.
-  - `Map` tab is wired to in-app map + store search and pulls from Supabase `stores` (fallback sample data if env is missing).
-  - `More` tab is wired to Supabase sign-up/profile and includes manual admin data entry for products/stores/prices.
-  - `Shopping List` supports one- or two-store price plans, keeps guest items on-device,
-    and syncs signed-in users through Supabase.
-  - `Price Alerts` shows only user-added subscriptions from Supabase and supports remove.
-- Backoffice:
-  - Web admin page is available at `/admin`.
-  - Sign in with Supabase auth, then manage `products`, `stores`, and `product_prices`.
-  - Backoffice writes require the signed-in user UUID in `public.admin_users`.
-    Bootstrap the first admin using the schema source or a tracked migration, not README SQL snippets.
-  - Admins can select duplicate products or choose a review candidate to merge.
-    The transactional merge preserves the chosen product, moves linked prices
-    and user data, consolidates same-period price and watchlist conflicts,
-    normalizes sale-alert keys, and writes an audit log.
-  - Flyer AI extraction uses the `back-office-flyer` Supabase Edge Function with JWT
-    verification enabled. Set `FLYER_ADMIN_EMAILS` as a function secret to restrict
-    extraction to specific signed-in admin emails.
-- Deletion route:
-  - Web: `http://localhost:8081/delete-account`
-  - Use this URL for Google Play "account deletion URL" field
-- Android review hardening:
-  - Blocked `SYSTEM_ALERT_WINDOW`
-  - Blocked `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE`
-- Added release hardening:
-  - Route parser smoke tests for `/`, `/blog`, `/privacy`, `/terms`, `/delete-account`
-  - Scripted release gate via `npm run verify`
-- Web release checklist:
-  - Set `EXPO_PUBLIC_GA_MEASUREMENT_ID`
-  - Run `npm run verify`
-  - Inspect generated `dist/` and deploy
-- Breakpoints requested:
-  - `xs: 480`
-  - `sm: 640`
-  - `md: 768`
-  - `lg: 1024`
-  - `xl: 1280`
-  - `2xl: 1536`
-- Readable line length target is kept across key source files.
+Build success, upload completion, Apple processing, TestFlight group availability,
+and public store release are distinct stages. Keep credentials out of Git.

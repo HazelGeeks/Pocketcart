@@ -1,4 +1,4 @@
-export const adminUserStyles: Record<string, any> = {
+export const adminUserStyles = {
   userDirectoryStack: {
     gap: 12,
   },
@@ -212,4 +212,4 @@ export const adminUserStyles: Record<string, any> = {
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-};
+} as const;

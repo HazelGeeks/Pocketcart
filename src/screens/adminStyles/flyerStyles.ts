@@ -140,71 +140,6 @@ export const adminFlyerStyles = {
   flyerCellSelect: {
     width: 68,
   },
-  flyerCellImage: {
-    width: 152,
-  },
-  flyerImageCell: {
-    width: 152,
-    minHeight: 82,
-    borderRightWidth: 1,
-    borderRightColor: "#dbe1ea",
-    borderTopWidth: 1,
-    borderTopColor: "#e3e8f0",
-    backgroundColor: "#ffffff",
-    padding: 6,
-    gap: 5,
-  },
-  flyerPreviewImage: {
-    width: 138,
-    height: 52,
-    borderRadius: 4,
-    backgroundColor: "#eef2f7",
-  },
-  flyerPreviewEmpty: {
-    width: 138,
-    height: 52,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#d8dee8",
-    backgroundColor: "#f8fafc",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  flyerImageMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 5,
-  },
-  flyerImageStatusText: {
-    flex: 1,
-    color: "#69758a",
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  flyerImageToggle: {
-    minWidth: 58,
-    minHeight: 20,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: "#cdd4df",
-    backgroundColor: "#f3f6fa",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 5,
-  },
-  flyerImageToggleActive: {
-    borderColor: "#8fb7ff",
-    backgroundColor: "#e5f0ff",
-  },
-  flyerImageToggleText: {
-    color: "#69758a",
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  flyerImageToggleTextActive: {
-    color: C.primaryDeep,
-  },
   flyerCellMart: {
     width: 120,
   },
@@ -219,9 +154,6 @@ export const adminFlyerStyles = {
   },
   flyerCellCategory: {
     width: 120,
-  },
-  flyerCellBrand: {
-    width: 130,
   },
   flyerCellPrice: {
     width: 100,

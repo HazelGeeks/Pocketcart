@@ -1,5 +1,9 @@
 # App Store setup — September 16, 2026 (UTC)
 
+> Historical record. Statements, test counts, source line numbers, and external
+> service status describe the recorded work, not the current deployment.
+> See the [documentation index](../README.md) for maintained guides.
+
 App: PocketCart: Grocery Savings — Apple ID `6809854257`.
 
 ## Saved in App Store Connect
@@ -50,7 +54,7 @@ App: PocketCart: Grocery Savings — Apple ID `6809854257`.
   App Review approval for the payment flow.
 - Resolved after the initial audit: `pocketcart.app` and `www.pocketcart.app` now
   serve the live site over HTTPS. Store URLs and auth configuration use the new
-  domain; see [domain setup](domain-setup-2026-09-16.md).
+  domain; see [domain setup](2026-09-16-domain-setup.md).
 
 ## Deployment evidence
 

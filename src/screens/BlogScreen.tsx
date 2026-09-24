@@ -41,7 +41,10 @@ export default function BlogScreen({
       }),
     [locale],
   );
+  const scrolledSlug = useRef<{ slug: typeof currentSlug } | null>(null);
   useEffect(() => {
+    if (scrolledSlug.current?.slug === currentSlug) return;
+    scrolledSlug.current = { slug: currentSlug };
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [currentSlug]);
 

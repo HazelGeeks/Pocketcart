@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Pressable, Text, View } from "react-native";
 import {
   ADMIN_PRODUCT_PAGE_SIZES,
@@ -13,7 +14,7 @@ type Props = {
   totalItems: number;
   compact?: boolean;
   itemLabel?: string;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: AdminProductPageSize) => void;
 };

@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Pressable, Text, View } from "react-native";
 import type {
   AdminProduct,
@@ -26,7 +27,7 @@ type AdminOverviewPanelProps = {
   resolvingReviewId: string | null;
   auditLogs: AdminAuditLog[];
   auditLogsLoading: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onManageProducts: () => void;
   onResolveReview: (reviewId: string) => void;
   onAssignReview: (review: AdminProductIdentityReview, targetProductId: string) => void;

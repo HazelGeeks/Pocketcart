@@ -1,5 +1,9 @@
 # 운영 사전 점검 — 2026-09-08 UTC
 
+> Historical record. Statements, test counts, source line numbers, and external
+> service status describe the recorded work, not the current deployment.
+> See the [documentation index](../README.md) for maintained guides.
+
 대상: `main`, `a680fc0ac8dffcac155ca0c96bbb056e31443d1b`.
 읽기 전용 운영 점검. 앱 배포, DB 변경, 테스트 계정 생성, 알림 발송은 실행하지 않았다.
 

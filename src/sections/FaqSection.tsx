@@ -1,3 +1,4 @@
+import { webViewStyle } from "../shared/design/webViewStyle";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,13 +16,13 @@ export default function FaqSection() {
   return (
     <View
       nativeID="faq"
-      {...(isWeb ? ({ id: "faq" } as any) : {})}
+      {...(isWeb ? { id: "faq" } : {})}
       role="region"
       aria-label="FAQ"
       style={[
         s.faqWrap,
         { paddingHorizontal: pad },
-        isWeb && ({ scrollMarginTop: 96 } as any),
+        isWeb && webViewStyle({ scrollMarginTop: 96 }),
       ]}
     >
       <View style={[s.faqInner, isMd && { flexDirection: "row" }]}>
@@ -53,7 +54,7 @@ export default function FaqSection() {
                 <View style={s.faqItem}>
                   <Pressable
                     {...(isWeb
-                      ? ({ id: questionId, "aria-controls": answerId } as any)
+                      ? { id: questionId, "aria-controls": answerId }
                       : {})}
                     accessibilityRole="button"
                     accessibilityState={{ expanded: open }}

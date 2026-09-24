@@ -128,7 +128,10 @@ export async function registerPushTokenForCurrentUser(): Promise<PushRegistratio
     };
   }
 
-  const { error } = await supabase!
+  if (!supabase) {
+    return { granted: true, registered: false, token, message: "Push registration requires a configured account service." };
+  }
+  const { error } = await supabase
     .from("user_push_tokens")
     .upsert(
       {

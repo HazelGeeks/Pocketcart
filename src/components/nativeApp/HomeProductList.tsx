@@ -60,7 +60,7 @@ export function HomeProductList({
     previousResetKey.current = resetKey;
     setVisibleCount(HOME_PRODUCT_BATCH_SIZE);
     lastLoadMoreSignalRef.current = loadMoreSignal;
-  }, [resetKey]);
+  }, [resetKey, loadMoreSignal]);
   React.useEffect(() => {
     if (loadMoreSignal === lastLoadMoreSignalRef.current) return;
     lastLoadMoreSignalRef.current = loadMoreSignal;

@@ -3,16 +3,6 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const settingsStyles = StyleSheet.create({
-  settingsProfileIdentity: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  settingsProfileCopy: {
-    minWidth: 0,
-    flex: 1,
-    gap: 2,
-  },
   settingsGroup: {
     borderTopWidth: 1,
     borderTopColor: C.line,
@@ -99,12 +89,6 @@ export const settingsStyles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  settingsRowValue: {
-    maxWidth: "48%",
-    color: C.textMuted,
-    fontSize: 12,
-    fontFamily: F.semibold,
-  },
   settingsHelp: {
     color: C.textSoft,
     fontSize: 12,
@@ -175,12 +159,6 @@ export const settingsStyles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  settingsChevron: {
-    color: C.textMuted,
-    fontSize: 24,
-    lineHeight: 26,
-    fontFamily: F.regular,
-  },
   settingsDangerText: {
     color: "#A83939",
   },
@@ -209,13 +187,5 @@ export const settingsStyles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: C.line,
-  },
-  settingsSummaryValue: {
-    flex: 1,
-    color: C.text,
-    fontSize: 13,
-    lineHeight: 17,
-    textAlign: "right",
-    fontFamily: F.semibold,
   },
 });

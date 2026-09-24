@@ -1,7 +1,8 @@
+import { webViewStyle } from "../../shared/design/webViewStyle";
 import { Platform } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 
-export const adminStoreListStyles: Record<string, any> = {
+export const adminStoreListStyles = {
   storeListTable: {
     width: "100%",
     borderRadius: 12,
@@ -146,7 +147,7 @@ export const adminStoreListStyles: Record<string, any> = {
     justifyContent: "flex-end",
     alignItems: "center",
     gap: 6,
-    ...(Platform.OS === "web" ? ({ display: "inline-flex" } as any) : {}),
+    ...(Platform.OS === "web" ? (webViewStyle({ display: "inline-flex" })) : {}),
   },
   storeActionBtn: {
     minHeight: 32,
@@ -159,4 +160,4 @@ export const adminStoreListStyles: Record<string, any> = {
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-};
+} as const;

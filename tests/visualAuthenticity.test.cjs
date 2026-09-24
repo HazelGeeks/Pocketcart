@@ -193,13 +193,11 @@ test("shopping uses list dividers and reserves tint for the recommended plan", (
   assert.match(row, /disabled=\{item.quantity <= 1\}/);
   assert.match(row, /disabled=\{item.quantity >= 99\}/);
   assert.match(panel, /Clear Cart\?/);
-  assert.match(read("src/components/nativeApp/ShoppingRecommendationPanel.tsx"), /accessibilityState=\{\{ expanded: showComparison \}\}/);
   assert.match(styles, /shoppingItemsCard:[^}]*borderTopWidth: 1/);
   assert.match(styles, /shoppingItemRow:[^}]*borderBottomWidth: 1/);
   assert.doesNotMatch(styles, /shoppingItemsCard:[^}]*borderRadius/);
   assert.match(styles, /shoppingRecommendationCard:[^}]*backgroundColor: C\.primaryGhost/);
   assert.doesNotMatch(styles, /shoppingRecommendationCard:[^}]*borderWidth/);
-  assert.match(styles, /shoppingCompareCard:[^}]*borderBottomWidth: 1/);
 });
 
 test("account uses a profile header and open divider menu groups", () => {

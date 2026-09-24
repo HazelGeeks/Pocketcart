@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Pressable, Text, View } from "react-native";
 import type { AdminMenuKey } from "../../state/adminStore";
 import WebLink from "../WebLink";
@@ -11,7 +12,7 @@ type SectionMenuItem = {
 type AdminHeaderProps = {
   hasAdminAccess: boolean;
   refreshing: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onBack: () => void;
   onRefresh: () => void;
 };
@@ -19,7 +20,7 @@ type AdminHeaderProps = {
 type AdminMobileMenuProps = {
   activeMenu: AdminMenuKey;
   sectionMenu: SectionMenuItem[];
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onSelectMenu: (menu: AdminMenuKey) => void;
 };
 

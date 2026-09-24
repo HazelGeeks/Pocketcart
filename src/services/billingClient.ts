@@ -23,10 +23,10 @@ async function authenticated(userId: string) {
   if (error || data.user?.id !== userId || desiredUser !== userId) throw new Error("Your account changed. Please try again.");
 }
 async function identified(userId: string) {
-  if (!billingConfigured) throw new Error("Subscriptions are not available yet.");
+  if (!billingConfigured || !publicKey) throw new Error("Subscriptions are not available yet.");
   await authenticated(userId);
   const client = await sdk();
-  if (!(await client.isConfigured())) client.configure({ apiKey: publicKey!, appUserID: userId });
+  if (!(await client.isConfigured())) client.configure({ apiKey: publicKey, appUserID: userId });
   else if ((await client.getAppUserID()) !== userId) await client.logIn(userId);
   await authenticated(userId);
   return client;

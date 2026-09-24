@@ -48,7 +48,7 @@ export default function useBilling(userId: string | null) {
       if (state === "active" && !operating.current) void refresh();
     });
     return () => { alive = false; generation.current++; subscription.remove(); removeUpdates(); };
-  }, [refresh]);
+  }, [refresh, userId]);
 
   const execute = async (action: "purchase" | "restore" | "manage", packageId?: string) => {
     if (!userId || operating.current || loading) return;

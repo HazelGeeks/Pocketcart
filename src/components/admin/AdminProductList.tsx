@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Pressable, Text, View } from "react-native";
 import useLayout from "../../hooks/useLayout";
 import type { AdminProduct } from "../../services/adminBackoffice";
@@ -14,7 +15,7 @@ type AdminProductListProps = {
   selectedProductIds: Set<string>;
   allVisibleSelected: boolean;
   selectedVisibleCount: number;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onAddProduct: () => void;
   onImportProductsCsv: () => void;
   onToggleAllVisible: () => void;

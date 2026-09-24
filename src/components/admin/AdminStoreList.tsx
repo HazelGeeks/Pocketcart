@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import useLayout from "../../hooks/useLayout";
@@ -12,7 +13,7 @@ type AdminStoreListProps = {
   priceStats: Map<string, StorePriceStats>;
   deletingKey: string | null;
   submitting: boolean;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onSelectStore: (storeId: string) => void;
   onOpenMap: (store: AdminStore) => void;
   onEditStore: (store: AdminStore) => void;

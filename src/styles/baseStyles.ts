@@ -1,3 +1,4 @@
+import { webViewStyle } from "../shared/design/webViewStyle";
 import { Platform } from "react-native";
 import P from "../constants/palette";
 
@@ -6,7 +7,7 @@ export const baseStyles = {
     flex: 1,
     backgroundColor: P.bg,
     ...(Platform.OS === "web"
-      ? ({ minHeight: "100vh", width: "100%" } as any)
+      ? (webViewStyle({ minHeight: "100vh", width: "100%" }))
       : {}),
   },
   scroll: { flex: 1 },

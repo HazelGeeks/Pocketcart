@@ -112,21 +112,6 @@ export const productDetailStyles = StyleSheet.create({
   productHeroSecondaryAction: {
     minWidth: 120,
   },
-  watchlistCtaBtn: {
-    minHeight: 48,
-    borderRadius: 13,
-    backgroundColor: C.primary,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  watchlistCtaText: {
-    color: C.white,
-    fontSize: 14,
-    fontFamily: F.extraBold,
-  },
   watchlistSecondaryBtn: {
     minHeight: 48,
     borderRadius: 13,
@@ -139,12 +124,6 @@ export const productDetailStyles = StyleSheet.create({
     color: C.text,
     fontSize: 13,
     fontFamily: F.extraBold,
-  },
-  watchlistCtaHelp: {
-    color: C.textSoft,
-    fontSize: 12,
-    lineHeight: 17,
-    fontFamily: F.regular,
   },
   productTrendCard: {
     paddingVertical: 20,
@@ -166,23 +145,5 @@ export const productDetailStyles = StyleSheet.create({
     gap: 10,
     borderBottomWidth: 1,
     borderBottomColor: C.line,
-  },
-  productInfoList: {
-    borderTopWidth: 1,
-    borderTopColor: C.line,
-  },
-  productInfoRow: {
-    minHeight: 52,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: C.line,
-  },
-  productInfoValue: {
-    flex: 1,
-    textAlign: "right",
   },
 });

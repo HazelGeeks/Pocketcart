@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { Pressable, Text, View } from "react-native";
 import type { AdminAuditLog, AdminStore } from "../../services/adminBackoffice";
 import { storeMapUrl, toDateOnlyLabel, type StorePriceStats } from "../../utils/adminScreenHelpers";
@@ -20,7 +21,7 @@ type Props = {
   storeActiveFilterCount: number;
   deletingKey: string | null;
   submitting: boolean;
-  styles: any;
+  styles: AdminStyles;
   onOpenAddStore: () => void;
   onImportStoresCsv: () => void;
   onExportStoresCsv: () => void;

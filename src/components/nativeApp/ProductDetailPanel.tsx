@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, View } from "react-native";
-import { type PriceChart } from "../../screens/nativeAppData";
+import type { PriceChart } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import type { MarketProduct, MarketStorePrice } from "../../services/marketData";
 import { ProductDetailHero } from "./ProductDetailHero";

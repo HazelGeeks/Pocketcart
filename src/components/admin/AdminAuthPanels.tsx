@@ -1,10 +1,11 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { marketingPalette as C } from "../../shared/design/palette";
 import WebLink from "../WebLink";
 
 type AdminAuthPanelsProps = {
-  styles: Record<string, any>;
+  styles: AdminStyles;
 };
 
 type AdminSignInPanelProps = AdminAuthPanelsProps & {

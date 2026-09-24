@@ -27,11 +27,6 @@ export const personalizationStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
   },
-  flowHeroIconText: {
-    color: C.primaryDeep,
-    fontSize: 24,
-    fontFamily: F.extraBold,
-  },
   surveyCard: {
     gap: 16,
     borderRadius: 18,

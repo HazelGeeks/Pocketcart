@@ -38,7 +38,7 @@ export function importStoresCsv({
     });
   }
 
-  const doc = (globalThis as { document?: any }).document;
+  const doc = (globalThis as { document?: Document }).document;
   if (!doc || typeof doc.createElement !== "function") {
     return Promise.resolve({
       ok: false,

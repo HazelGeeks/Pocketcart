@@ -87,8 +87,8 @@ export function buildSaleAlertCandidates(params: {
         previousPrice !== null;
       const title = hasDrop ? "Sale started" : "Watched item is on sale";
       const productName = productDisplayName(product);
-      const body = hasDrop
-        ? `${productName} is now $${currentPrice.toFixed(2)} at ${storeName}, down from $${previousPrice!.toFixed(2)}.`
+      const body = hasDrop && previousPrice !== null
+        ? `${productName} is now $${currentPrice.toFixed(2)} at ${storeName}, down from $${previousPrice.toFixed(2)}.`
         : `${productName} is currently on sale for $${currentPrice.toFixed(2)} at ${storeName}.`;
 
       return {

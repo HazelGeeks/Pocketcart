@@ -14,7 +14,7 @@ export function productCsvImportReportToCsv(report: ProductCsvImportReport): str
       .map(csvCell)
       .join(","),
   );
-  return ["\uFEFF" + header.join(","), ...rows].join("\r\n") + "\r\n";
+  return `${[`\uFEFF${header.join(",")}`, ...rows].join("\r\n")}\r\n`;
 }
 
 export function productCsvReviewRowsToCsv(preview: ProductCsvImportPreview): string {
@@ -30,5 +30,5 @@ export function productCsvReviewRowsToCsv(preview: ProductCsvImportPreview): str
       row.message ?? "",
       row.candidateProductIds.join(" | "),
     ].map(csvCell).join(","));
-  return ["\uFEFF" + header.join(","), ...rows].join("\r\n") + "\r\n";
+  return `${[`\uFEFF${header.join(",")}`, ...rows].join("\r\n")}\r\n`;
 }

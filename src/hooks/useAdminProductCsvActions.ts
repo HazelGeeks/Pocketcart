@@ -116,7 +116,7 @@ export default function useAdminProductCsvActions(params: Params) {
       params.setNotice("Product CSV import is currently available on web admin.");
       return;
     }
-    const doc = (globalThis as { document?: any }).document;
+    const doc = (globalThis as { document?: Document }).document;
     if (!doc?.createElement) {
       params.setNotice("Product CSV import is not available in this browser.");
       return;

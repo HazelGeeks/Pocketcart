@@ -12,16 +12,19 @@ export function HomeStoreFilterChecklist({ value, onChange }: Props) {
   const [retailers, setRetailers] = React.useState<CatalogRetailer[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [retry, setRetry] = React.useState(0);
-  React.useEffect(() => {
-    let active = true;
+  const generation = React.useRef(0);
+  const loadStores = React.useCallback(() => {
+    const request = ++generation.current;
     setLoading(true);
     setError(false);
     void listStores().then(({ data, error: failure }) => {
-      if (active) { setRetailers(groupCatalogRetailers(data)); setError(Boolean(failure)); setLoading(false); }
-    }).catch(() => { if (active) { setError(true); setLoading(false); } });
-    return () => { active = false; };
-  }, [retry]);
+      if (request === generation.current) { setRetailers(groupCatalogRetailers(data)); setError(Boolean(failure)); setLoading(false); }
+    }).catch(() => { if (request === generation.current) { setError(true); setLoading(false); } });
+  }, []);
+  React.useEffect(() => {
+    loadStores();
+    return () => { generation.current++; };
+  }, [loadStores]);
   const row = (label: string, checked: boolean, onPress: () => void, mixed = false) => (
     <Pressable key={label} accessibilityRole="checkbox" accessibilityLabel={label}
       accessibilityState={{ checked: mixed ? "mixed" : checked }} onPress={onPress} style={st.homeSortOption}>
@@ -36,7 +39,7 @@ export function HomeStoreFilterChecklist({ value, onChange }: Props) {
     <Text style={[st.homeFilterToggleHelp, { paddingHorizontal: 10, marginBottom: 8 }]}>Choose one or more stores. Your selection is saved on this device for your account.</Text>
     {row("All stores", !value, () => onChange(null))}
     {loading ? <Text style={st.itemMeta}>Loading stores...</Text> : error ?
-      <Pressable accessibilityRole="button" onPress={() => setRetry((n) => n + 1)} style={st.homeSortOption}>
+      <Pressable accessibilityRole="button" onPress={loadStores} style={st.homeSortOption}>
         <Text style={st.homeSortOptionText}>Couldn't load stores. Tap to retry.</Text>
       </Pressable> : retailers.length === 0 ? <Text style={st.itemMeta}>No stores available yet.</Text> :
       retailers.map((retailer) => {

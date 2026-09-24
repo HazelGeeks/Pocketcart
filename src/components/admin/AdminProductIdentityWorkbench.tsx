@@ -1,3 +1,4 @@
+import type { AdminStyles } from "../../screens/adminScreenStyles";
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import type { AdminProduct } from "../../services/adminBackoffice";
@@ -13,7 +14,7 @@ type Props = {
   priceStats: Map<string, ProductPriceStats>;
   loading: boolean;
   error: string | null;
-  styles: Record<string, any>;
+  styles: AdminStyles;
   onReviewGroup: (group: ProductDuplicateGroup) => void;
 };
 

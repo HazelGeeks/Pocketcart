@@ -1,6 +1,5 @@
 import { accountSettingsStyles } from "./accountSettingsStyles";
 import { appChromeStyles } from "./appChromeStyles";
-import { catalogPriceStyles } from "./catalogPriceStyles";
 import { catalogStyles } from "./catalogStyles";
 import { categoryFilterStyles } from "./categoryFilterStyles";
 import { commonStyles } from "./commonStyles";
@@ -29,7 +28,6 @@ export const st = {
   ...appChromeStyles,
   ...catalogStyles,
   ...categoryFilterStyles,
-  ...catalogPriceStyles,
   ...homeControlStyles,
   ...homePhotoStyles,
   ...headerActionStyles,
