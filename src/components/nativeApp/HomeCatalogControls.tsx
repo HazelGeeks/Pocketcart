@@ -1,12 +1,23 @@
+import type { CatalogStoreFilter } from "../../services/catalogStoreFilters";
 import React from "react";
-import { Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, Text, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
+import type { MarketProduct } from "../../services/marketData";
+import { HomeSearchSheet } from "./HomeSearchSheet";
 import { AppIcon } from "../icons/AppIcon";
 import { CategoryFilterTile } from "./CategoryFilterTile";
-import { type HomeSortMode, SORT_OPTIONS } from "./homeCatalogUtils";
+import { HomeCatalogFilterSheet } from "./HomeCatalogFilterSheet";
+import { type HomeSortMode } from "./homeCatalogUtils";
 
 type Props = {
+  storeFilterIds: string[] | null;
+  storeFilterReady: boolean;
+  onApplyStoreFilter: (value: CatalogStoreFilter) => void;
+  profileId: string | null;
+  products: MarketProduct[];
+  favoriteStoreIds: string[];
+  onSelectRetailer: (ids: string[], name: string) => void;
   query: string;
   category: string;
   categories: string[];
@@ -21,6 +32,7 @@ type Props = {
 };
 
 export function HomeCatalogControls({
+  profileId, products, favoriteStoreIds, onSelectRetailer, storeFilterIds, storeFilterReady, onApplyStoreFilter,
   query,
   category,
   categories,
@@ -33,13 +45,22 @@ export function HomeCatalogControls({
   onChangeOnSaleOnly,
   onChangeSort,
 }: Props) {
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const [filterOpen, setFilterOpen] = React.useState(false);
 
   return (
     <>
+      {searchOpen ? <HomeSearchSheet key={profileId ?? "guest"} query={query} profileId={profileId} products={products} favoriteStoreIds={favoriteStoreIds}
+        onClose={() => setSearchOpen(false)}
+        onSearch={(value) => {
+          setSearchOpen(false);
+          onChangeCategory("All");
+          onChangeQuery(value);
+        }}
+        onStore={(ids, name) => { setSearchOpen(false); onSelectRetailer(ids, name); }} /> : null}
       {storeFilterName ? (
         <View style={st.dealFilterRow}>
-          <Text style={st.sectionSub}>Showing deals for {storeFilterName}</Text>
+          <Text style={st.sectionSub}>Stores: {storeFilterName}</Text>
           <Pressable accessibilityRole="button" onPress={onClearStoreFilter} style={st.inlinePill}>
             <Text style={st.inlinePillText}>Clear</Text>
           </Pressable>
@@ -47,72 +68,33 @@ export function HomeCatalogControls({
       ) : null}
       <View style={st.dealSearchRow}>
         <View style={st.homeSearchToolbar}>
-          <View style={st.searchCard}>
-            <TextInput
-              value={query}
-              onChangeText={onChangeQuery}
-              placeholder="Search products"
-              placeholderTextColor={C.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              style={st.searchInput}
-            />
-          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Search products and stores"
+            onPress={() => setSearchOpen(true)} style={st.searchCard}>
+            <Text numberOfLines={1} style={[st.searchInput, { paddingVertical: 10, color: query ? C.text : C.textMuted }]}>
+              {query || "Search products and stores"}
+            </Text>
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Sort and filter products"
+            disabled={!storeFilterReady}
             accessibilityState={{ expanded: filterOpen }}
-            onPress={() => setFilterOpen((current) => !current)}
-            style={[st.homeFilterButton, filterOpen && st.homeFilterButtonActive]}
+            onPress={() => { Keyboard.dismiss(); setFilterOpen(true); }}
+            style={[st.homeFilterButton, (filterOpen || storeFilterIds) && st.homeFilterButtonActive]}
           >
             <AppIcon name="filter" color={C.primaryDeep} size={21} strokeWidth={2.2} />
           </Pressable>
         </View>
         {filterOpen ? (
-          <View style={st.homeSortMenu}>
-            <Text style={st.homeSortMenuTitle}>Filters</Text>
-            <View style={st.homeFilterToggleRow}>
-              <View style={st.homeFilterToggleCopy}>
-                <Text style={st.homeSortOptionText}>On sale</Text>
-                <Text style={st.homeFilterToggleHelp}>Show only products with an active sale</Text>
-              </View>
-              <Switch
-                accessibilityLabel="Show only products currently on sale"
-                value={onSaleOnly}
-                onValueChange={onChangeOnSaleOnly}
-                trackColor={{ false: C.line, true: C.primary }}
-                thumbColor={C.white}
-              />
-            </View>
-            <Text style={st.homeSortMenuTitle}>Sort by</Text>
-            {SORT_OPTIONS.map((option, index) => {
-              const active = sortMode === option.value;
-              return (
-                <Pressable
-                  key={option.value}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  onPress={() => {
-                    onChangeSort(option.value);
-                    setFilterOpen(false);
-                  }}
-                  style={[
-                    st.homeSortOption,
-                    index > 0 && st.homeSortOptionDivider,
-                    active && st.homeSortOptionActive,
-                  ]}
-                >
-                  <Text style={[st.homeSortOptionText, active && st.homeSortOptionTextActive]}>
-                    {option.label}
-                  </Text>
-                  {active ? (
-                    <AppIcon name="check" color={C.primaryDeep} size={18} strokeWidth={2.4} />
-                  ) : null}
-                </Pressable>
-              );
-            })}
-          </View>
+          <HomeCatalogFilterSheet key={profileId ?? "guest"}
+            storeFilter={storeFilterIds ? { ids: storeFilterIds, name: storeFilterName ?? "Selected stores" } : null} onSaleOnly={onSaleOnly} sortMode={sortMode}
+            onClose={() => setFilterOpen(false)}
+            onApply={(nextOnSaleOnly, nextSortMode, nextStores) => {
+              onApplyStoreFilter(nextStores);
+              setFilterOpen(false);
+              onChangeOnSaleOnly(nextOnSaleOnly);
+              onChangeSort(nextSortMode);
+            }} />
         ) : null}
         {categories.length > 0 ? (
           <ScrollView

@@ -50,6 +50,18 @@ target 'PocketCart' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
+    # Xcode 27 rejects legacy deployment targets in dependency resource bundles.
+    # Keep every Pod at least at the app's minimum supported iOS version.
+    minimum_ios = Gem::Version.new(podfile_properties['ios.deploymentTarget'] || '15.1')
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        current_ios = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if current_ios && Gem::Version.new(current_ios) < minimum_ios
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = minimum_ios.to_s
+        end
+      end
+    end
+
     # This is necessary for Xcode 14, because it signs resource bundles by default
     # when building for devices.
     installer.target_installation_results.pod_target_installation_results

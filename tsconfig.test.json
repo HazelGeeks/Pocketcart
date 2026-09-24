@@ -11,7 +11,11 @@
     "allowImportingTsExtensions": false
   },
   "include": [
+    "src/services/catalogStoreFilters.ts",
+    "src/utils/catalogRetailers.ts",
     "src/utils/calendarDays.ts",
+    "src/utils/catalogSearch.ts",
+    "src/services/recentCatalogSearches.ts",
     "src/utils/receipts.ts",
     "src/utils/receiptDraft.ts",
     "src/utils/notificationRetailers.ts",

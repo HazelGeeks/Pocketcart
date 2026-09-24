@@ -1,3 +1,4 @@
+import type { CatalogStoreFilter } from "../../services/catalogStoreFilters";
 import { Text, View } from "react-native";
 import { st } from "../../screens/nativeAppStyles";
 import type { MarketProduct } from "../../services/marketData";
@@ -7,6 +8,11 @@ import { HomeProductList } from "./HomeProductList";
 import type { HomeSortMode } from "./homeCatalogUtils";
 
 type Props = {
+  storeFilterIds: string[] | null;
+  storeFilterReady: boolean;
+  onApplyStoreFilter: (value: CatalogStoreFilter) => void;
+  profileId: string | null;
+  onSelectRetailer: (ids: string[], name: string) => void;
   query: string;
   category: string;
   categories: string[];
@@ -30,7 +36,7 @@ type Props = {
 };
 
 export function HomeCatalogPanel(props: Props) {
-  const resetKey = `${props.category}|${props.query}|${props.sortMode}|${props.onSaleOnly}|${props.storeFilterName ?? ""}`;
+  const resetKey = `${props.category}|${props.query}|${props.sortMode}|${props.onSaleOnly}|${props.storeFilterIds?.join(",") ?? ""}`;
   const showPhotoDiscovery =
     props.products.length > 0 &&
     !props.query.trim() &&
@@ -41,6 +47,14 @@ export function HomeCatalogPanel(props: Props) {
     <View style={st.sectionStack}>
       {showPhotoDiscovery ? <HomePhotoBanner productCount={props.products.length} /> : null}
       <HomeCatalogControls
+        key={props.profileId ?? "guest"}
+        profileId={props.profileId}
+        storeFilterIds={props.storeFilterIds}
+        storeFilterReady={props.storeFilterReady}
+        onApplyStoreFilter={props.onApplyStoreFilter}
+        products={props.products}
+        favoriteStoreIds={props.favoriteStoreIds}
+        onSelectRetailer={props.onSelectRetailer}
         query={props.query}
         category={props.category}
         categories={props.categories}
@@ -71,7 +85,7 @@ export function HomeCatalogPanel(props: Props) {
         <View style={st.rowCard}>
           <Text style={st.itemMeta}>
             {props.storeFilterName && props.onSaleOnly
-              ? "No current sales at this store yet."
+              ? "No current sales at the selected stores yet."
               : props.onSaleOnly
                 ? "No current sales right now. Check back after the next weekly update."
                 : "No products match your search or filters."}

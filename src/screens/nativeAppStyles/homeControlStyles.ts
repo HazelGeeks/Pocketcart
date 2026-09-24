@@ -3,6 +3,12 @@ import { marketingPalette as C } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const homeControlStyles = StyleSheet.create({
+  homeStoreCheckbox: {
+    width: 22, height: 22, borderRadius: 5, borderWidth: 1,
+    borderColor: C.textMuted, alignItems: "center", justifyContent: "center",
+    backgroundColor: C.white,
+  },
+  homeStoreCheckboxChecked: { backgroundColor: C.primary, borderColor: C.primary },
   searchCard: {
     flex: 1,
     borderRadius: 13,
@@ -35,18 +41,6 @@ export const homeControlStyles = StyleSheet.create({
   },
   homeFilterButtonActive: {
     backgroundColor: C.primaryPale,
-  },
-  homeSortMenu: {
-    overflow: "hidden",
-    borderRadius: 12,
-    backgroundColor: C.white,
-    paddingHorizontal: 6,
-    paddingVertical: 5,
-    shadowColor: "#10251a",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
   },
   homeSortMenuTitle: {
     color: C.textMuted,

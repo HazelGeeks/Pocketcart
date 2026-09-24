@@ -1,4 +1,5 @@
 import React from "react";
+import { useCatalogStoreFilter } from "./useCatalogStoreFilter";
 import {
   buildPreviousPriceRows,
   buildPriceChart,
@@ -12,6 +13,7 @@ import {
 } from "../services/marketData";
 
 type UseNativeCatalogOptions = {
+  profileId: string | null;
   activeTab: NativeTabId;
   favoriteStoreIds: string[];
   horizontalPad: number;
@@ -21,6 +23,7 @@ type UseNativeCatalogOptions = {
 };
 
 export default function useNativeCatalog({
+  profileId,
   activeTab,
   favoriteStoreIds,
   horizontalPad,
@@ -35,6 +38,7 @@ export default function useNativeCatalog({
   const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [category, setCategory] = React.useState("All");
   const [products, setProducts] = React.useState<MarketProduct[]>([]);
+  const [productsOwner, setProductsOwner] = React.useState(profileId);
   const [loading, setLoading] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = React.useState("");
@@ -50,16 +54,18 @@ export default function useNativeCatalog({
   const [historyMessage, setHistoryMessage] = React.useState<string | null>(null);
   const [actionMessage, setActionMessage] = React.useState<string | null>(null);
   const [addSubmitting, setAddSubmitting] = React.useState(false);
-  const [storeFilterIds, setStoreFilterIds] = React.useState<string[] | null>(null);
-  const [storeFilterName, setStoreFilterName] = React.useState<string | null>(null);
+  const storeFilter = useCatalogStoreFilter(profileId, showToast);
+  const storeFilterIds = storeFilter.value?.ids ?? null;
+  const storeFilterName = storeFilter.value?.name ?? null;
   const productsRequestIdRef = React.useRef(0);
   const priceDetailsRequestIdRef = React.useRef(0);
   const pendingProductOpenRef = React.useRef(false);
 
   const scopedProducts = React.useMemo(() => {
+    if (!storeFilter.ready || productsOwner !== profileId) return [];
     if (!storeFilterIds) return products;
     return products.filter((product) => storeFilterIds.includes(product.preferred_store_id ?? ""));
-  }, [products, storeFilterIds]);
+  }, [products, productsOwner, profileId, storeFilterIds, storeFilter.ready]);
 
   const categories = React.useMemo(
     () => [...new Set(scopedProducts.map((product) => product.category).filter(Boolean))]
@@ -111,6 +117,7 @@ export default function useNativeCatalog({
   const previousPriceRows = React.useMemo(() => buildPreviousPriceRows(chart), [chart]);
 
   const loadProducts = React.useCallback(async () => {
+    if (!storeFilter.ready) return;
     const requestId = productsRequestIdRef.current + 1;
     productsRequestIdRef.current = requestId;
     setLoading(true);
@@ -121,9 +128,10 @@ export default function useNativeCatalog({
     });
     if (productsRequestIdRef.current !== requestId) return;
     setProducts(data);
+    setProductsOwner(profileId);
     setLoading(false);
     setMessage(error ?? null);
-  }, [debouncedQuery, favoriteStoreIds, onSaleOnly, storeFilterIds]);
+  }, [debouncedQuery, favoriteStoreIds, onSaleOnly, profileId, storeFilterIds, storeFilter.ready]);
 
   const loadProductPriceDetails = React.useCallback(async (productId: string) => {
     const requestId = priceDetailsRequestIdRef.current + 1;
@@ -155,6 +163,7 @@ export default function useNativeCatalog({
   React.useEffect(() => {
     if (activeTab !== "home") return;
     void loadProducts();
+    return () => { productsRequestIdRef.current += 1; };
   }, [activeTab, loadProducts]);
 
   React.useEffect(() => {
@@ -184,14 +193,13 @@ export default function useNativeCatalog({
 
   const setRetailerFilter = React.useCallback(
     (storeIds: string[], storeName: string) => {
-      setStoreFilterIds(storeIds);
-      setStoreFilterName(storeName);
+      storeFilter.change(storeIds.length ? { ids: storeIds, name: storeName } : null);
       setRoute("catalog");
       setSelectedProductId("");
       onOpenHome();
       showToast(`Showing deals at ${storeName}.`);
     },
-    [onOpenHome, showToast],
+    [onOpenHome, showToast, storeFilter.change],
   );
 
   const setStoreFilter = React.useCallback((id: string, name: string) => {
@@ -199,9 +207,8 @@ export default function useNativeCatalog({
   }, [setRetailerFilter]);
 
   const clearStoreFilter = React.useCallback(() => {
-    setStoreFilterIds(null);
-    setStoreFilterName(null);
-  }, []);
+    storeFilter.change(null);
+  }, [storeFilter.change]);
 
   const openProduct = React.useCallback(
     (product: MarketProduct) => {
@@ -224,7 +231,7 @@ export default function useNativeCatalog({
     filteredProducts,
     historyLoading,
     historyMessage,
-    loading,
+    loading: loading || !storeFilter.ready,
     message,
     onSaleOnly,
     openProduct,
@@ -245,6 +252,9 @@ export default function useNativeCatalog({
     setRetailerFilter,
     sortMode,
     storeFilterName,
+    storeFilterIds,
+    storeFilterReady: storeFilter.ready,
+    applyStoreFilter: storeFilter.change,
     storePrices,
     storePricesLoading,
   };

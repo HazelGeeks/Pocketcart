@@ -32,6 +32,15 @@ export function NativeHomeTab({
   if (catalog.route === "catalog") {
     return (
       <HomeCatalogPanel
+        profileId={shopping.profileId}
+        storeFilterIds={catalog.storeFilterIds}
+        storeFilterReady={catalog.storeFilterReady}
+        onApplyStoreFilter={catalog.applyStoreFilter}
+        onSelectRetailer={(ids, name) => {
+          catalog.setQuery("");
+          catalog.setCategory("All");
+          catalog.setRetailerFilter(ids, name);
+        }}
         query={catalog.query}
         category={catalog.category}
         categories={catalog.categories}

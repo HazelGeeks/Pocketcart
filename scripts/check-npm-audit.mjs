@@ -7,6 +7,8 @@ const TEMPORARILY_ALLOWED_ADVISORIES = new Set([
   1124334, // brace-expansion in Expo tooling
   1138808, // image-size ICNS parser used by Metro for trusted build assets
   1138809, // image-size JXL/HEIF parsers used by Metro for trusted build assets
+  1239765, // Reissued GHSA-5p2g-fcmc-qvqq (same JXL/HEIF advisory as 1138809)
+  1239766, // Reissued GHSA-w3rx-r6r6-pgpr (same ICNS advisory as 1138808)
 ]);
 
 const audit = spawnSync("npm", ["audit", "--omit=dev", "--json"], {

@@ -50,6 +50,10 @@
         "simulator": true
       }
     },
+    "production-local": {
+      "extends": "production",
+      "autoIncrement": false
+    },
     "production": {
       "extends": "base",
       "environment": "production",

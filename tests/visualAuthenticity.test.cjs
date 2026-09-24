@@ -54,9 +54,11 @@ test("home sorting moves behind the search filter action", () => {
   assert.doesNotMatch(controls, /Search groceries and compare current sale prices/);
   assert.match(controls, /accessibilityLabel="Sort and filter products"/);
   assert.match(controls, /<AppIcon name="filter"/);
-  assert.match(controls, /homeSortMenu/);
-  assert.match(controls, /Show only products with an active sale/);
-  assert.match(controls, /value=\{onSaleOnly\}/);
+  const filterSheet = read("src/components/nativeApp/HomeCatalogFilterSheet.tsx");
+  assert.match(controls, /<HomeCatalogFilterSheet/);
+  assert.match(filterSheet, /<AppSheet title="Sort & filters"/);
+  assert.match(filterSheet, /Show only products with an active sale/);
+  assert.match(filterSheet, /value=\{draftOnSaleOnly\}/);
   assert.match(catalogHook, /useState\(true\)/);
   assert.match(catalogHook, /onSaleOnly,/);
   assert.match(productsService, /!onSaleOnly \|\| priceSummaries\.data\.has\(product\.id\)/);

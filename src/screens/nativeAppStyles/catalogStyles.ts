@@ -123,6 +123,8 @@ export const catalogStyles = StyleSheet.create({
   homeProductThumbPlaceholder: {
     width: 88,
     height: 88,
+    borderRadius: 12,
+    backgroundColor: C.white,
     alignItems: "center",
     justifyContent: "center",
   },

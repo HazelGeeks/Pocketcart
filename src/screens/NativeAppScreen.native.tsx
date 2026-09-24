@@ -64,6 +64,7 @@ function NativeAppContent() {
   useFamilyNavigation(account, shell.openMore, onboarding.setVisible);
   const favoriteStores = useFavoriteStores(account.profile?.id ?? null, shell.showToast);
   const catalog = useNativeCatalog({
+    profileId: account.profile?.id ?? null,
     activeTab: shell.activeTab,
     favoriteStoreIds: favoriteStores.storeIds,
     horizontalPad: pad,

@@ -26,11 +26,16 @@ Native development:
 
 - `npm start`: start Expo for native targets
 - `npm run dev:client`: start Metro for an installed development build
+- `npm run dev`: alias for `npm run dev:ios`
 - `npm run dev:ios`: use the currently booted iPhone simulator; install the
-  PocketCart development build automatically when it is missing
+  PocketCart development build automatically when it is missing or lacks the
+  embedded simulator Keychain entitlements required by Expo Notifications.
+  Supports Simulator and Xcode 27 Device Hub; rebuilding requires installed iOS Pods.
 - `npm run ios`: rebuild and install PocketCart on the currently booted iPhone
   simulator
 - `npm run android`
+
+For a TestFlight release without an EAS cloud build, run `npm run build:ios:local -- --output /tmp/pocketcart.ipa` on a Mac with Xcode, CocoaPods, and Fastlane installed. Then submit that exact artifact with `npx eas-cli submit --platform ios --profile production --path /tmp/pocketcart.ipa`; do not use `--latest`, which selects a cloud build. Local builds require the production environment variables and signing credentials. Before a new release, increment `expo.ios.buildNumber` in `app.json` and `CFBundleVersion` in `ios/PocketCart/Info.plist`, then commit them. The `production-local` profile preserves that version for local retries.
 
 Recommended Node runtime:
 
