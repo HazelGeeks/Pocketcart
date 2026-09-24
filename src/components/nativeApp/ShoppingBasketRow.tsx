@@ -11,6 +11,7 @@ import { AppIcon } from "../icons/AppIcon";
 import { isCustomShoppingItem } from "../../utils/shoppingListState";
 
 type Props = {
+  horizontalPad: number;
   item: ShoppingListItem;
   plan: ShoppingPlan | null;
   loading: boolean;
@@ -20,13 +21,13 @@ type Props = {
   onAddToFreezer: (item: ShoppingListItem) => void;
 };
 
-export function ShoppingBasketRow({ item, plan, loading, onChangeQuantity, onRemove, onToggleCompleted, onAddToFreezer }: Props) {
+export function ShoppingBasketRow({ horizontalPad, item, plan, loading, onChangeQuantity, onRemove, onToggleCompleted, onAddToFreezer }: Props) {
   const [editing, setEditing] = React.useState(false);
   const stop = plan?.stops.find((candidate) => candidate.items.some((entry) => entry.productId === item.productId));
   const price = stop?.items.find((entry) => entry.productId === item.productId);
   return (
     <CartSwipeRow completed={Boolean(item.completed)} onPurchase={() => onToggleCompleted(item.productId)} onDelete={() => onRemove(item.productId)}>
-    <View style={[st.shoppingItemRow, item.completed && st.shoppingPurchasedRow]}>
+    <View style={[st.shoppingItemRow, { paddingHorizontal: horizontalPad }, item.completed && st.shoppingPurchasedRow]}>
       <View style={st.shoppingBasketHeading}>
         <CartProductThumbnail uri={item.thumbnailUrl} category={item.category} name={item.name} />
         <View style={st.shoppingItemCopy}>

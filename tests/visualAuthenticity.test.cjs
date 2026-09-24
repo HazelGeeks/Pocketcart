@@ -85,9 +85,9 @@ test("home products use a borderless feed with row dividers", () => {
   assert.match(productList, /st\.homeDeltaFlat/);
   assert.match(productList, /st\.homeDeltaUp/);
   assert.match(catalogUtils, /if \(previous === null \|\| deltaPercent === null\) return null/);
-  assert.match(styles, /homeDeltaDown: \{ color: "#2563EB" \}/);
+  assert.match(styles, /homeDeltaDown: \{ color: C\.primaryDeep \}/);
   assert.match(styles, /homeDeltaFlat: \{ color: C\.textMuted \}/);
-  assert.match(styles, /homeDeltaUp: \{ color: "#C2413B" \}/);
+  assert.match(styles, /homeDeltaUp: \{ color: semanticPalette\.priceIncrease \}/);
   assert.match(styles, /homeProductName:[^}]*lineHeight: 20/);
   assert.match(styles, /homeDealInline:[^}]*paddingHorizontal: 5/);
   assert.match(styles, /homeProductRow:[\s\S]*borderBottomWidth: 1/);

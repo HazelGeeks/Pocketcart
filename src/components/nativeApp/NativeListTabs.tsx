@@ -6,6 +6,7 @@ import { SaleAlertsPanel } from "./SaleAlertsPanel";
 import { ShoppingListPanel } from "./ShoppingListPanel";
 
 type Props = {
+  horizontalPad: number;
   onOpenFlyerStore: (id: string) => void;
   onOpenProduct: (id: string) => void;
   activeTab: NativeTabId;
@@ -15,10 +16,11 @@ type Props = {
   shopping: ReturnType<typeof useNativeShoppingPlan>;
 };
 
-export function NativeListTabs({ onOpenProduct, onOpenFlyerStore, activeTab, alerts, onBrowseDeals, shopping, onSignIn }: Props) {
+export function NativeListTabs({ horizontalPad, onOpenProduct, onOpenFlyerStore, activeTab, alerts, onBrowseDeals, shopping, onSignIn }: Props) {
   if (activeTab === "shopping") {
     return (
       <ShoppingListPanel
+        horizontalPad={horizontalPad}
         familyName={shopping.familyName}
         userId={shopping.profileId} onSignIn={onSignIn} onStored={shopping.markStored}
         items={shopping.items}

@@ -1,11 +1,12 @@
 import React from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { AccessibilityInfo, Image, Pressable, Text, View } from "react-native";
 import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import type { MarketProduct } from "../../services/marketData";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
 import { HOME_PRODUCT_BATCH_SIZE, nextVisibleProductCount } from "../../utils/infiniteScroll";
 import { retailerNameFromStoreDisplayName } from "../../utils/retailerPriceDisplay";
+import { HomeProductReveal } from "./HomeProductReveal";
 import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 import {
   displayPriceForProduct,
@@ -37,6 +38,16 @@ export function HomeProductList({
   onAddToShoppingList,
 }: Props) {
   const [visibleCount, setVisibleCount] = React.useState(() => HOME_PRODUCT_BATCH_SIZE * (loadMoreSignal + 1));
+  const initialVisibleCount = React.useRef(visibleCount).current;
+  const [reduceMotion, setReduceMotion] = React.useState(true);
+  React.useEffect(() => {
+    let active = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (active) setReduceMotion(enabled);
+    }).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
+    return () => { active = false; subscription.remove(); };
+  }, []);
   const previousResetKey = React.useRef(resetKey);
   const lastLoadMoreSignalRef = React.useRef(loadMoreSignal);
   const favoriteStoreIdSet = React.useMemo(() => new Set(favoriteStoreIds), [favoriteStoreIds]);
@@ -63,7 +74,7 @@ export function HomeProductList({
           Showing {Math.min(visibleCount, sortedProducts.length)} of {sortedProducts.length}
         </Text>
       </View>
-      {sortedProducts.slice(0, visibleCount).map((product) => {
+      {sortedProducts.slice(0, visibleCount).map((product, index) => {
         const displayName = product.english_name?.trim() || "Unnamed product";
         const preferred = product.preferred_store_price !== null;
         const effectiveDelta = preferred ? product.preferred_price_delta : product.price_delta;
@@ -83,8 +94,9 @@ export function HomeProductList({
           product.preferred_store_id && favoriteStoreIdSet.has(product.preferred_store_id),
         );
         return (
+          <HomeProductReveal key={product.id} animate={index >= initialVisibleCount} reduceMotion={reduceMotion}
+            delay={(index % HOME_PRODUCT_BATCH_SIZE) * 35}>
           <Pressable
-            key={product.id}
             accessibilityRole="button"
             onPress={() => onSelectProduct(product.id)}
             style={st.homeProductRow}
@@ -143,8 +155,16 @@ export function HomeProductList({
               </Pressable>
             </View>
           </Pressable>
+          </HomeProductReveal>
         );
       })}
+      {visibleCount < sortedProducts.length ? (
+        <View style={st.homeFeedFooter}>
+          <Text style={st.itemMeta}>Scroll for more</Text>
+        </View>
+      ) : sortedProducts.length > HOME_PRODUCT_BATCH_SIZE ? (
+        <View style={st.homeFeedFooter}><Text style={st.itemMeta}>You're all caught up</Text></View>
+      ) : null}
     </View>
   );
 }

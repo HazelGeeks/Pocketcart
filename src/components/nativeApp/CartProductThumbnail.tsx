@@ -23,6 +23,6 @@ export function CartProductThumbnail({ uri, category, name }: Props) {
 }
 
 const styles = StyleSheet.create({
-  frame: { width: 56, height: 56, flexShrink: 0, borderRadius: 12, overflow: "hidden", backgroundColor: C.primaryGhost, alignItems: "center", justifyContent: "center" },
+  frame: { width: 56, height: 56, flexShrink: 0, borderRadius: 12, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   image: { width: 56, height: 56, backgroundColor: C.white },
 });

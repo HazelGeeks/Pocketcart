@@ -18,8 +18,6 @@ export const productDetailStyles = StyleSheet.create({
   productHeroPlaceholder: {
     width: "100%",
     height: 176,
-    borderRadius: 16,
-    backgroundColor: C.primaryPale,
     alignItems: "center",
     justifyContent: "center",
     gap: 8,

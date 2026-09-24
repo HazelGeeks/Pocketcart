@@ -4,7 +4,6 @@ import { money } from "../../screens/nativeAppData";
 import { st } from "../../screens/nativeAppStyles";
 import { marketingPalette as C } from "../../shared/design/palette";
 import { categoryToIconVariant } from "../../utils/categoryIcon";
-import { productDisplayName, productSecondaryName } from "../../utils/productNames";
 import { CategoryPlaceholderIcon } from "./CategoryPlaceholderIcon";
 import { formatSignedPercent } from "./priceDisplay";
 import type { ProductPriceView } from "./productDetailData";
@@ -44,8 +43,7 @@ export function ProductDetailHero({
     storeLine,
     decisionText,
   } = priceView;
-  const displayName = productDisplayName(product);
-  const secondaryName = productSecondaryName(product);
+  const displayName = product.english_name?.trim() || "Unnamed product";
 
   return (
     <View style={st.productHeroCard}>
@@ -70,11 +68,6 @@ export function ProductDetailHero({
             <Text style={st.productHeroName} numberOfLines={2}>
               {displayName}
             </Text>
-            {secondaryName ? (
-              <Text style={st.itemMeta} numberOfLines={1}>
-                {secondaryName}
-              </Text>
-            ) : null}
           </View>
           <Text style={st.productHeroDecision}>
             {hasTrend

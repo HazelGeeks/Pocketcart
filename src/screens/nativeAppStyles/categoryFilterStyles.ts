@@ -21,7 +21,6 @@ export const categoryFilterStyles = StyleSheet.create({
   },
   categoryTileImageFrameActive: {
     borderColor: C.primary,
-    backgroundColor: C.primaryGhost,
   },
   categoryTileImage: {
     width: "100%",

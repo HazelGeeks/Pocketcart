@@ -11,6 +11,7 @@ import { ShoppingListComposer } from "./ShoppingListComposer";
 import { ShoppingListGroups } from "./ShoppingListGroups";
 
 type ShoppingListPanelProps = {
+  horizontalPad: number;
   familyName: string | null;
   userId: string | null;
   onSignIn: () => void;
@@ -80,7 +81,7 @@ export function ShoppingListPanel(props: ShoppingListPanelProps) {
             <Text style={st.shoppingEmptyActionText}>Browse deals</Text>
           </Pressable>
         </View>
-      ) : <ShoppingListGroups onAddToFreezer={addToFreezer} items={items} loading={loading} plan={plan}
+      ) : <ShoppingListGroups horizontalPad={props.horizontalPad} onAddToFreezer={addToFreezer} items={items} loading={loading} plan={plan}
         onChangeQuantity={props.onChangeQuantity} onRemove={props.onRemove} onToggleCompleted={props.onToggleCompleted} />}
       {!listLoading && items.length > 0 ? <Pressable accessibilityRole="button" accessibilityLabel="Clear Cart" onPress={confirmClear} style={[st.shoppingClearBtn, { alignSelf: "center" }]}><Text style={st.shoppingClearText}>Clear</Text></Pressable> : null}
     </View>

@@ -247,7 +247,7 @@ function NativeAppContent() {
               loadMoreSignal={homeLoadMoreSignal}
             />
           ) : null}
-          <NativeListTabs onOpenProduct={openAlertProduct} onOpenFlyerStore={openFlyerStore}
+          <NativeListTabs horizontalPad={pad} onOpenProduct={openAlertProduct} onOpenFlyerStore={openFlyerStore}
             onSignIn={() => { account.openSignIn(); shell.setActiveTab("more"); }}
             activeTab={shell.activeTab}
             alerts={alerts}

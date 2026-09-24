@@ -5,7 +5,6 @@ import type { CategoryIconVariant } from "../../utils/categoryIcon";
 export function CategoryPlaceholderIcon({ variant }: { variant: CategoryIconVariant }) {
   return (
     <Svg width={48} height={48} viewBox="0 0 48 48" fill="none">
-      <Circle cx={24} cy={24} r={21} fill={C.primaryGhost} />
       <CategoryIconGlyph variant={variant} />
     </Svg>
   );

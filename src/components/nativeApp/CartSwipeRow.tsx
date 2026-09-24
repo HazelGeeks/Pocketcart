@@ -43,7 +43,7 @@ export function CartSwipeRow({ children, completed, onPurchase, onDelete }: Prop
           <Text style={styles.label}>Delete</Text>
         </Animated.View>
       </View>
-      <Animated.View {...responder.panHandlers} style={{ backgroundColor: C.white, transform: [{ translateX: offset }] }}>
+      <Animated.View {...responder.panHandlers} style={{ backgroundColor: C.bg, transform: [{ translateX: offset }] }}>
         {children}
       </Animated.View>
     </View>

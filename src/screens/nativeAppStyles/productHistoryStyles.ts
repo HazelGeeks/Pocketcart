@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { marketingPalette as C } from "../../shared/design/palette";
+import { marketingPalette as C, semanticPalette } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const productHistoryStyles = StyleSheet.create({
@@ -105,7 +105,7 @@ export const productHistoryStyles = StyleSheet.create({
   historyLabel: { color: C.textMuted, fontSize: 12, fontFamily: F.bold },
   historyPrice: { color: C.text, fontSize: 13, fontFamily: F.bold },
   historyDiff: { fontSize: 12, fontFamily: F.bold },
-  historyDiffUp: { color: "#A83939" },
+  historyDiffUp: { color: semanticPalette.priceIncrease },
   historyDiffDown: { color: C.primaryDeep },
   watchRowTop: {
     flexDirection: "row",

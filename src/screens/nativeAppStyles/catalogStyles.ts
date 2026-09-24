@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { marketingPalette as C } from "../../shared/design/palette";
+import { marketingPalette as C, semanticPalette } from "../../shared/design/palette";
 import { F } from "./fonts";
 
 export const catalogStyles = StyleSheet.create({
@@ -98,6 +98,7 @@ export const catalogStyles = StyleSheet.create({
   homeProductList: {
     gap: 0,
   },
+  homeFeedFooter: { minHeight: 48, paddingVertical: 16, alignItems: "center", justifyContent: "center" },
   homeResultsRow: {
     minHeight: 28,
     flexDirection: "row",
@@ -117,13 +118,11 @@ export const catalogStyles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 12,
-    backgroundColor: C.primaryPale,
+    backgroundColor: C.white,
   },
   homeProductThumbPlaceholder: {
     width: 88,
     height: 88,
-    borderRadius: 12,
-    backgroundColor: C.primaryPale,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -179,9 +178,9 @@ export const catalogStyles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  homeDeltaDown: { color: "#2563EB" },
+  homeDeltaDown: { color: C.primaryDeep },
   homeDeltaFlat: { color: C.textMuted },
-  homeDeltaUp: { color: "#C2413B" },
+  homeDeltaUp: { color: semanticPalette.priceIncrease },
   homeProductPriceCol: {
     width: 96,
     alignItems: "flex-end",
