@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import React from "react";
-import { ActivityIndicator, Image, Linking, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Linking, Pressable, Text, View } from "react-native";
 import useFoodScanProductLink from "../../hooks/useFoodScanProductLink";
 import { st } from "../../screens/nativeAppStyles";
 import { analyzeFoodPhoto, type FoodScanMode, type FoodScanResult } from "../../services/foodScan";
@@ -140,7 +140,14 @@ export function FoodScanPanel({
               accessibilityLabel="Analyze photo"
               disabled={analyzing}
               onPress={() => {
-                void analyze();
+                Alert.alert(
+                  "Send photo to OpenAI?",
+                  "Your photo and any detected barcode will be sent to OpenAI for food analysis. Avoid including faces, payment details, or other personal information. You can cancel without sending anything.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Send and analyze", onPress: () => { void analyze(); } },
+                  ],
+                );
               }}
               style={[
                 st.foodScanAction,
@@ -156,6 +163,9 @@ export function FoodScanPanel({
               )}
             </Pressable>
           </View>
+          <Text style={st.foodScanFootnote}>
+            Analysis uses OpenAI. Your photo is sent only after you confirm.
+          </Text>
         </>
       ) : !permission ? (
         <View style={st.foodScanStatusCard}>
