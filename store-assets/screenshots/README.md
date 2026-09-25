@@ -1,53 +1,38 @@
-# Store Screenshot Capture Plan
+# Store Screenshots
 
-Screenshots should be real device or simulator captures from the production app
-build. Do not use the web admin dashboard or synthetic mockups for store review.
+Use real device or simulator captures from a release build. Do not use the web
+admin dashboard, synthetic mockups, fabricated data, or overlays.
 
-## Captured iPhone set — September 16, 2026 (UTC)
+## Current iOS submission — September 25, 2026 (UTC)
 
-`ios-6.9/01-discover.jpg`, `02-price-details.jpg`, and `03-stores.jpg` are actual
-Release-app captures from iPhone 17 Pro Max / iOS 26.5, made with Xcode 27 Device Hub.
-They show the production catalog, product price detail, and supported-store list.
-The user was signed out, with optional location and notifications skipped.
+The active set contains two unedited 1320 × 2868 JPEG screenshots:
 
-The files are 1320 × 2868 JPEGs without alpha, converted from the original Device
-Hub PNG captures without changing layout or content. No synthetic UI, overlay text,
-or fabricated data was added. Capture source: `610bd59`, version 1.0.0 (10).
+- `ios-6.9/01-discover.jpg`: Home with the live production catalog.
+- `ios-6.9/02-price-details.jpg`: Product Details with the current price, price
+  change, store, Cart action, sale alert action, and price trend.
 
-The simulator build used the existing app deployment target of iOS 15.1 to override
-older Pods' deployment targets rejected by Xcode 27, and `ARCHS=arm64` with
-`ONLY_ACTIVE_ARCH=YES`. Those command-line overrides did not change the project.
+Both were captured from the Release simulator app built from `a2d6621`, version
+1.0.0 (17), on iPhone 17 Pro Max / iOS 26.5 using
+`simctl io screenshot --type=jpeg`. The app was signed out and optional location
+was skipped. No layout or content was altered after capture.
 
-## iOS
+Both images were uploaded to the English (U.S.) App Store Connect screenshot set
+and reached `COMPLETE`. They replace the previous build 10 screenshots. The old
+Stores screenshot was removed from the active set because it does not represent
+the latest build; its previous contents remain available in Git history.
 
-Capture at least these screens from a release or TestFlight build:
+The simulator build used an iOS 15.1 deployment-target override for older Pods
+and `ARCHS=arm64` with `ONLY_ACTIVE_ARCH=YES`. These command-line overrides did
+not change the project or consume an EAS cloud build.
 
-- Home catalog with price and unit visible
-- Product detail with chart and store price comparison
-- Watchlist with a watched item and target-price state
-- Map with store markers and optional location permission skipped or accepted
-- More account screen showing sign in and account deletion path
+## Future captures
 
-Recommended upload sets:
+Refresh screenshots whenever the visible app changes. Useful additional screens
+include Cart, sale alerts, the store map, and Account. Capture authenticated
+screens only with a dedicated account containing no personal information.
 
-- 6.9-inch iPhone display
-- 6.5-inch iPhone display
-This first release targets iPhone only, so iPad screenshots are not part of the
-default submission package.
+This release targets iPhone. Check App Store Connect's current display-size
+requirements when adding screenshots; iPad is not part of this submission.
 
-## Android
-
-Capture at least these screens from the signed Android App Bundle or an internal
-testing install:
-
-- Home catalog with price and unit visible
-- Product detail with chart and store price comparison
-- Watchlist with a watched item and target-price state
-- Map with store markers and optional location permission skipped or accepted
-- More account screen showing sign in and account deletion path
-
-Recommended upload sets:
-
-- Phone screenshots
-- 7-inch tablet screenshots if Play Console requests them
-- 10-inch tablet screenshots if Play Console requests them
+Android screenshots have not been refreshed for this release. Capture them from
+a signed release or internal-testing install before a Google Play submission.
