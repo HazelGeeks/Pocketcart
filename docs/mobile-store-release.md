@@ -180,6 +180,15 @@ npm run build:ios:simulator
 
 ## Local iOS build
 
+The native app uses a single `UIWindowScene` through `SceneDelegate` in
+`ios/PocketCart/AppDelegate.swift`. Xcode 27 builds require this lifecycle on
+iOS 27. Keep the scene manifest in `app.json` and `Info.plist` synchronized.
+On the current Expo SDK 55, the adapter forwards scene activity and warm links
+to `ExpoAppDelegate` and supplies cold-start links to React Native's launch
+options. When upgrading to Expo's built-in scene support, replace this adapter
+as a unit rather than forwarding the same callbacks twice. Verify cold launch,
+foreground return, cold/warm links and sign-in on a physical device after changes.
+
 For a local build, use a Mac with Xcode, CocoaPods, Fastlane, and access to the
 production signing credentials. This uses local compilation rather than the EAS
 cloud build queue; it still requires Expo/Apple authentication and network access.

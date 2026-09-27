@@ -1,0 +1,12 @@
+{
+  "source": "Console UI: PocketCart-2026-09-24-231936.ips",
+  "app_version": "1.0.0",
+  "build_version": "17",
+  "bundle_id": "com.pocketcart.app",
+  "hardware_model": "iPhone18,1",
+  "os": "iPhone OS 27.0 (24A437)",
+  "beta": true,
+  "timestamp": "2026-09-24 23:19:35.5639 -0700",
+  "exception": "EXC_BREAKPOINT (SIGTRAP)",
+  "top_frame": "___UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption_block_invoke"
+}

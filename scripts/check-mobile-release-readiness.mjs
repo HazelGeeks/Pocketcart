@@ -417,6 +417,19 @@ includes(
   "<string>pocketcart</string>",
   "iOS pocketcart URL scheme is present",
 );
+for (const requiredSceneEntry of [
+  "UIApplicationSceneManifest",
+  "UIWindowSceneSessionRoleApplication",
+  "$(PRODUCT_MODULE_NAME).SceneDelegate",
+]) {
+  includes("ios/PocketCart/Info.plist", requiredSceneEntry,
+    `iOS scene configuration includes ${requiredSceneEntry}`);
+}
+includes(
+  "ios/PocketCart/AppDelegate.swift",
+  "UIWindowSceneDelegate",
+  "iOS implements the scene lifecycle required by the iOS 27 SDK",
+);
 includes(
   "ios/PocketCart/PocketCartDebug.entitlements",
   "<key>aps-environment</key>",
