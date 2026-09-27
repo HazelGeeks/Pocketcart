@@ -36,6 +36,16 @@ const STORE_FLYER_LINKS = [
   { name: "Hannan", url: "https://hannamsm.com/weekly-special/7days" },
   { name: "MarketRibbon", url: "https://marketribbon.ca/" },
   { name: "T&T", url: "https://www.tntsupermarket.com/eng/store-flyer" },
+  {
+    name: "Save On Foods",
+    url: "https://www.saveonfoods.com/sm/planning/rsid/1982/circular",
+  },
+  {
+    name: "Real Canadian Store",
+    url: "https://www.realcanadiansuperstore.ca/en/print-flyer?navid=flyout-L2-Flyer",
+  },
+  { name: "Safeway", url: "https://www.safeway.ca/flyer" },
+  { name: "Walmart", url: "https://www.walmart.ca/en/flyer" },
 ] as const;
 
 export default function AdminFlyerPanel({
