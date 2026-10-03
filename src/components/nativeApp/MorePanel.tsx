@@ -8,7 +8,7 @@ import { SettingsLinkRow, SettingsSection } from "./SettingsMenu";
 import { SettingsLocationCard } from "./SettingsLocationCard";
 import { FamilyPanel } from "./FamilyPanel";
 import { SettingsProfileCard } from "./SettingsProfileCard";
-import { SupportPocketCart } from "./SupportPocketCart";
+import { FOOD_SCAN_ENABLED } from "../../shared/features";
 
 const PRIVACY_URL = "https://pocketcart.app/privacy";
 const TERMS_URL = "https://pocketcart.app/terms";
@@ -60,8 +60,10 @@ export function MorePanel(props: MorePanelProps) {
       <SettingsSection label="Features">
         <SettingsLinkRow label="Map" value="Find nearby stores" icon="map" onPress={props.onOpenMap} />
         <View style={st.settingsDivider} />
-        <SettingsLinkRow label="Scan" value="Food & ingredient scanner" icon="scan" onPress={props.onOpenScan} />
-        <View style={st.settingsDivider} />
+        {FOOD_SCAN_ENABLED ? <>
+          <SettingsLinkRow label="Scan" value="Food & ingredient scanner" icon="scan" onPress={props.onOpenScan} />
+          <View style={st.settingsDivider} />
+        </> : null}
         <SettingsLinkRow label="Receipts" value="Preview · Purchase records" icon="receipt" onPress={props.onOpenReceipts} />
       </SettingsSection>
       {props.profile ? <FamilyPanel onSignIn={props.onOpenSignIn} onSignUp={props.onOpenSignUp} /> : null}
@@ -155,8 +157,6 @@ function SupportSection() {
   return (
     <>
       <SettingsSection label="Support">
-        <SupportPocketCart />
-        <View style={st.settingsDivider} />
         <SettingsLinkRow label="Help & Support" value="Questions, issues, and feedback" onPress={() => openExternalUrl(SUPPORT_URL)} />
       </SettingsSection>
       <SettingsSection label="Our policies">

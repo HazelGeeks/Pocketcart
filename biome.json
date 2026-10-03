@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist", "!!**/.tmp-tests", "!!**/ios", "!!**/android"]
+    "includes": ["**", "!!**/dist", "!!**/.tmp-tests", "!!**/ios", "!!**/android", "!!**/vendor"]
   },
   "formatter": {
     "enabled": true,

@@ -19,7 +19,7 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.pocketcart.app",
-      "buildNumber": "18",
+      "buildNumber": "21",
       "entitlements": {
         "keychain-access-groups": [
           "$(AppIdentifierPrefix)$(CFBundleIdentifier)"
@@ -27,7 +27,7 @@
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "PocketCart uses your camera when you choose to photograph a receipt or scan food or an ingredient label.",
+        "NSCameraUsageDescription": "PocketCart uses your camera when you choose to photograph a receipt. You can enter receipts manually without camera access.",
         "NSLocationWhenInUseUsageDescription": "PocketCart uses your location only when you choose to find nearby stores and deals.",
         "UIApplicationSceneManifest": {
           "UIApplicationSupportsMultipleScenes": false,
@@ -64,7 +64,7 @@
     },
     "web": {
       "favicon": "./assets/icon.png",
-      "name": "PocketCart — Smart Price Comparison & Savings App",
+      "name": "PocketCart \u2014 Smart Price Comparison & Savings App",
       "shortName": "PocketCart",
       "description": "Compare prices, track alerts, and manage your budget in one app.",
       "lang": "en",
@@ -76,7 +76,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow PocketCart to use your camera when you choose to photograph a receipt or scan food or an ingredient label.",
+          "cameraPermission": "PocketCart uses your camera when you choose to photograph a receipt. You can enter receipts manually without camera access.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": true
         }

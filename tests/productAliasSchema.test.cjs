@@ -20,16 +20,16 @@ test("product aliases are seeded, synced, and preserved during reviewed merges",
   assert.match(service, /rpc\("merge_products_with_aliases"/);
 });
 
-test("the schema deployment workflow applies canonical product aliases", () => {
-  const workflow = read(".github/workflows/supabase-schema.yml");
+test("the backend release inventory includes canonical product aliases", () => {
+  const workflow = read("supabase/release.json");
   const releaseCheck = read("scripts/check-mobile-release-readiness.mjs");
   assert.match(workflow, /20260822070000_product_aliases\.sql/);
-  assert.match(releaseCheck, /20260822070000_product_aliases\.sql/);
+  assert.match(releaseCheck, /supabase-release\.mjs/);
 });
 
 test("the reviewed Taiwan Cabbage correction is guarded and deployment-managed", () => {
   const migration = read("supabase/migrations/20260822071000_merge_taiwan_cabbage_duplicates.sql");
-  const workflow = read(".github/workflows/supabase-schema.yml");
+  const workflow = read("supabase/release.json");
   const releaseCheck = read("scripts/check-mobile-release-readiness.mjs");
 
   assert.match(migration, /canonical_product_id constant uuid/);
@@ -37,5 +37,5 @@ test("the reviewed Taiwan Cabbage correction is guarded and deployment-managed",
   assert.match(migration, /merge_products_with_aliases/);
   assert.doesNotMatch(migration, /Flat Cabbage/);
   assert.match(workflow, /20260822071000_merge_taiwan_cabbage_duplicates\.sql/);
-  assert.match(releaseCheck, /20260822071000_merge_taiwan_cabbage_duplicates\.sql/);
+  assert.match(releaseCheck, /supabase-release\.mjs/);
 });

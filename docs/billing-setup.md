@@ -27,8 +27,10 @@ benefits require a separate product decision and verified store configuration.
    The shared eligibility helper now includes all saved products without billing calls.
 3. Release the updated app. UI changes alone do not remove an old production DB quota.
 
-The manual `Alert and Billing Backend Release` workflow uses
-`scripts/deploy-alert-billing.mjs` and the updated disposable-account smoke test.
+The manual `Supabase Backend Release` workflow uses
+`scripts/supabase-release.mjs`; select migration `20260924010000`, the affected
+functions, and the `alerts` smoke test. Follow [backend deployment](backend-deployment.md)
+to verify prerequisites and adopt existing migration history before applying SQL.
 It must not replay the obsolete five-product migration as the final policy.
 `billing-status` remains for managing existing subscriptions, not alert eligibility.
 

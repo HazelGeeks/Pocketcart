@@ -19,7 +19,7 @@ function useLayout() {
 
 /* ═══════════════════════════════════════════════════════════════ */
 
-const LAST_UPDATED = "August 21, 2026";
+const LAST_UPDATED = "October 3, 2026";
 const SUPPORT_URL = "https://pocketcart.app/support";
 
 const SECTIONS = [
@@ -55,11 +55,11 @@ We reserve the right to suspend or terminate your account if any information pro
 • Create and manage product watchlists with customizable price alerts.
 • Track spending and visualize potential savings through budget planning tools.
 • View in-app alerts when tracked products reach desired price points.
-• Capture food or ingredient-label images for automated visual analysis and general guidance.
+• Save private purchase records with optional receipt photos and receipt-detail extraction for your review.
 
 The Service is provided on an "as-is" and "as-available" basis. We do not guarantee that product pricing information will always be accurate, complete, or up-to-date, as prices are sourced from third-party retailers and may change without notice.
 
-Food Scan results are automated estimates and are not medical, dietary, allergy, or food-safety advice. The feature cannot detect bacteria, toxins, contamination, internal spoilage, or guarantee that an item is safe to consume. Always inspect labels directly and use appropriate food-safety practices.`,
+Food Scan is temporarily unavailable; new food-analysis captures and requests are paused. Earlier Food Scan results are automated estimates and are not medical, dietary, allergy, or food-safety advice. The feature cannot detect bacteria, toxins, contamination, internal spoilage, or guarantee that an item is safe to consume. Always inspect labels directly and use appropriate food-safety practices.`,
   },
   {
     title: "5. Acceptable Use",

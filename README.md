@@ -9,6 +9,10 @@ English copy; website locale support does not imply complete native localization
 
 See the [documentation index](docs/README.md) for maintained setup guides and
 historical release records.
+For feature entrypoints and directory responsibilities, use the
+[code map](docs/code-map.md).
+For Supabase deployment and existing migration history, use the
+[backend deployment guide](docs/backend-deployment.md).
 
 ## Development
 
@@ -98,8 +102,10 @@ npm run audit:ci
 
 `verify` runs typecheck, Biome lint, the full automated test suite, and web export.
 `release:native:check` combines `verify` with native configuration and store asset
-checks. The audit policy rejects unapproved high/critical findings; passing does
-not mean zero vulnerabilities. Simulator/device interaction, production schema,
+checks. The audit policy checks development dependencies too and rejects every
+high/critical finding without exemptions. Source-controlled build-tool forks also
+undergo file integrity checks; see [dependency security](docs/dependency-security.md).
+Simulator/device interaction, production schema,
 and store readiness are separate checks.
 
 ## Web deployment
@@ -129,13 +135,15 @@ and `ios/PocketCart/Info.plist` together for each new upload.
 
 ```bash
 npm run build:ios:local -- --output /tmp/pocketcart.ipa
-npx eas-cli submit --platform ios --profile production --path /tmp/pocketcart.ipa
+npm run submit:ios -- --path /tmp/pocketcart.ipa
 ```
 
 The `production-local` profile preserves the build number for retries. The cloud
 commands `npm run build:ios` and `npm run build:android` use the production profile
-with automatic incrementing. `npm run submit:ios` / `npm run submit:android` select
-the latest **cloud** artifact and must not be used to identify a local IPA.
+with automatic incrementing. `npm run submit:ios` / `npm run submit:android` require
+an explicit `--id <REVIEWED_BUILD_UUID>` or `--path <ARTIFACT>`; no latest artifact
+is selected automatically. `npm run eas -- <command>` uses the CLI version in
+`eas.json`. Development/preview profiles use this common EAS entrypoint.
 
 Build success, upload completion, Apple processing, TestFlight group availability,
 and public store release are distinct stages. Keep credentials out of Git.

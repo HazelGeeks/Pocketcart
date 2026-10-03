@@ -44,7 +44,7 @@ export function NativeAppOnboarding({
         {message ? <Text style={st.itemMeta}>{message}</Text> : null}
         <Text style={st.onboardingTitle}>We can find best deals nearby</Text>
         <Text style={st.onboardingMeta}>
-          Tap Share current location to open the system permission prompt, or continue with postal code.
+          Continue to choose location access in the system prompt for nearby stores, or use a postal code. Location access is optional.
         </Text>
 
           <TextInput
@@ -64,7 +64,7 @@ export function NativeAppOnboarding({
             disabled={requesting}
           >
             <Text style={st.authBtnPrimaryText}>
-              {requesting ? "Checking location..." : "Share current location"}
+              {requesting ? "Checking location..." : "Continue"}
             </Text>
           </Pressable>
           <Pressable
@@ -97,7 +97,7 @@ export function NativeAppOnboarding({
         {message ? <Text style={st.itemMeta}>{message}</Text> : null}
         <Text style={st.onboardingTitle}>Don&apos;t miss price drops</Text>
         <Text style={st.onboardingMeta}>
-          Enable notifications for products you choose to monitor.
+          Choose whether to receive price alerts. With alerts on, Continue opens the system notification prompt.
         </Text>
 
         <Pressable
@@ -117,7 +117,7 @@ export function NativeAppOnboarding({
           disabled={requesting}
         >
           <Text style={st.authBtnPrimaryText}>
-            {requesting ? "Saving..." : alertsEnabled ? "Allow Notifications" : "Continue"}
+            {requesting ? "Saving..." : "Continue"}
           </Text>
         </Pressable>
       </View>

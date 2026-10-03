@@ -158,9 +158,8 @@ const SEO_CONFIGS: Record<Locale, Record<Route, SEOConfig>> = {
       noindex: false,
     },
     support: {
-      title: "Support Pocket Cart",
+      title: "Help & Support - Pocket Cart",
       description:
-        "Support Pocket Cart and help make grocery shopping easier. " +
         "Find app help, privacy information, and account deletion guidance.",
       canonical: `${BASE_URL}/support`,
       noindex: false,

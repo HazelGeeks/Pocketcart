@@ -135,7 +135,7 @@ test("Receipts and Food Scan are available from Account Features", () => {
   const scanProductLink = read("src/components/nativeApp/FoodScanProductLinkCard.tsx");
   const scanStyles = read("src/screens/nativeAppStyles/foodScanStyles.ts");
   const screen = read("src/screens/NativeAppScreen.native.tsx");
-  const functionSource = read("supabase/functions/food-scan/index.ts");
+  const functionSource = read("supabase/functions/food-scan/analysis.ts");
   const catalog = read("src/hooks/useNativeCatalog.ts");
 
   assert.doesNotMatch(tabData, /\{ id: "receipts", label: "Receipts" \}/);

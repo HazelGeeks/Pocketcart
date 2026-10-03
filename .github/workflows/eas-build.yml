@@ -30,6 +30,8 @@ jobs:
   eas-build:
     name: EAS ${{ inputs.platform }} ${{ inputs.profile }} build
     runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     timeout-minutes: 120
 
     steps:
@@ -39,7 +41,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Validate GitHub secrets
@@ -48,22 +50,16 @@ jobs:
         run: |
           test -n "$EXPO_TOKEN" || { echo "Missing GitHub secret: EXPO_TOKEN"; exit 1; }
 
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
       - name: Install dependencies
         run: npm ci
 
       - name: Run release checks
-        run: npm run release:native:check
+        run: npm run release:native:check && npm run audit:ci
 
       - name: Validate EAS production environment
         if: ${{ inputs.profile == 'production' || inputs.profile == 'preview' || inputs.profile == 'preview-simulator' }}
         run: |
-          npx eas-cli env:list production --format long > /tmp/pocketcart-eas-env.txt
+          node scripts/eas-cli.mjs env:list production --format long > /tmp/pocketcart-eas-env.txt
           grep -q "EXPO_PUBLIC_SUPABASE_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
           grep -q "EXPO_PUBLIC_SUPABASE_ANON_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_ANON_KEY"; exit 1; }
           grep -q "EXPO_PUBLIC_AUTH_REDIRECT_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_AUTH_REDIRECT_URL"; exit 1; }
@@ -71,15 +67,15 @@ jobs:
       - name: Validate Android EAS production environment
         if: ${{ (inputs.profile == 'production' || inputs.profile == 'preview' || inputs.profile == 'preview-simulator') && (inputs.platform == 'android' || inputs.platform == 'all') }}
         run: |
-          npx eas-cli env:list production --format long > /tmp/pocketcart-eas-android-env.txt
+          node scripts/eas-cli.mjs env:list production --format long > /tmp/pocketcart-eas-android-env.txt
           grep -q "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY" /tmp/pocketcart-eas-android-env.txt || { echo "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"; exit 1; }
           grep -q "GOOGLE_SERVICES_JSON" /tmp/pocketcart-eas-android-env.txt || { echo "Missing EAS production env: GOOGLE_SERVICES_JSON"; exit 1; }
 
       - name: Validate EAS development Firebase configuration
         if: ${{ inputs.profile == 'development' && (inputs.platform == 'android' || inputs.platform == 'all') }}
         run: |
-          npx eas-cli env:list development --format long > /tmp/pocketcart-eas-development-env.txt
+          node scripts/eas-cli.mjs env:list development --format long > /tmp/pocketcart-eas-development-env.txt
           grep -q "GOOGLE_SERVICES_JSON" /tmp/pocketcart-eas-development-env.txt || { echo "Missing EAS development env: GOOGLE_SERVICES_JSON"; exit 1; }
 
       - name: Build native artifacts
-        run: npx eas-cli build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive
+        run: node scripts/eas-cli.mjs build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive

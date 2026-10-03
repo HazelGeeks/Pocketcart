@@ -1,0 +1,28 @@
+{
+  "upstream": {
+    "name": "node-forge",
+    "version": "1.4.0",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/digitalbazaar/forge"
+    },
+    "resolved": "https://registry.npmjs.org/node-forge/-/node-forge-1.4.0.tgz",
+    "integrity": "sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ=="
+  },
+  "patches": [
+    {
+      "package": "node-forge",
+      "version": "1.4.0",
+      "file": "lib/rsa.js",
+      "beforeSha256": "fd4740238145ec26470eb3f06a627c72039538ce1307dbdce40521f94dfd0a50",
+      "afterSha256": "c9b1e3799e230528b6d6815c1f6cd3c6058b9d45975264b55d995abb976589af",
+      "replacements": [
+        {
+          "before": "            obj.value.length !== 2) {",
+          "after": "            obj.value.length !== 2 ||\n            obj.value[0].value.length !==\n              (('parameters' in capture) ? 2 : 1)) {"
+        }
+      ]
+    }
+  ],
+  "scope": "Node build tooling only; no unpatched prebuilt browser bundles are included."
+}

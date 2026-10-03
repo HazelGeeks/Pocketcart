@@ -1,17 +1,12 @@
 import { spawnSync } from "node:child_process";
+import { checkSecurityPatches } from "./apply-security-patches.mjs";
+import { checkVendoredSecurity } from "./check-vendored-security.mjs";
 
-// Expo SDK 55 / React Native 0.83 still resolve build tooling through packages
-// with no patched compatible release. Keep exceptions scoped to exact advisory
-// IDs; runtime dependencies and every new high/critical advisory still fail CI.
-const TEMPORARILY_ALLOWED_ADVISORIES = new Set([
-  1124334, // brace-expansion in Expo tooling
-  1138808, // image-size ICNS parser used by Metro for trusted build assets
-  1138809, // image-size JXL/HEIF parsers used by Metro for trusted build assets
-  1239765, // Reissued GHSA-5p2g-fcmc-qvqq (same JXL/HEIF advisory as 1138809)
-  1239766, // Reissued GHSA-w3rx-r6r6-pgpr (same ICNS advisory as 1138808)
-]);
+// Local backports are defense in depth, not an exemption from registry findings.
+console.log(`Verified ${checkSecurityPatches()} dependency security patches before audit.`);
+console.log(`Verified ${checkVendoredSecurity()} patched fork files before audit.`);
 
-const audit = spawnSync("npm", ["audit", "--omit=dev", "--json"], {
+const audit = spawnSync("npm", ["audit", "--json"], {
   encoding: "utf8",
   maxBuffer: 20 * 1024 * 1024,
 });
@@ -25,7 +20,9 @@ try {
 }
 
 if (!report.vulnerabilities || typeof report.vulnerabilities !== "object") {
-  console.error(report.message || audit.stderr || "npm audit did not return a vulnerability report.");
+  console.error(
+    report.message || audit.stderr || "npm audit did not return a vulnerability report.",
+  );
   process.exit(1);
 }
 
@@ -62,15 +59,10 @@ function advisoryIdsFor(packageName) {
 }
 
 const blocked = [];
-const allowed = [];
 for (const [packageName, record] of Object.entries(vulnerabilities)) {
   if (!["high", "critical"].includes(record.severity)) continue;
   const advisoryIds = advisoryIdsFor(packageName);
-  const isAllowed =
-    record.severity !== "critical" &&
-    advisoryIds.size > 0 &&
-    [...advisoryIds].every((id) => TEMPORARILY_ALLOWED_ADVISORIES.has(id));
-  (isAllowed ? allowed : blocked).push({
+  blocked.push({
     packageName,
     severity: record.severity,
     advisoryIds: [...advisoryIds],
@@ -78,7 +70,7 @@ for (const [packageName, record] of Object.entries(vulnerabilities)) {
 }
 
 if (blocked.length > 0) {
-  console.error("Unapproved high/critical npm audit findings:");
+  console.error("Unresolved high/critical npm audit findings (no exceptions):");
   for (const finding of blocked) {
     console.error(
       `- ${finding.packageName} (${finding.severity}; advisories: ${
@@ -89,10 +81,4 @@ if (blocked.length > 0) {
   process.exit(1);
 }
 
-if (allowed.length > 0) {
-  console.warn(
-    `Temporarily allowing ${allowed.length} transitive build-tool finding(s) ` +
-      "tied only to exact Expo SDK 55 / React Native 0.83 advisory exceptions.",
-  );
-}
-console.log("npm audit policy check passed; no unapproved high or critical advisories.");
+console.log("npm audit policy check passed; zero high or critical advisories.");

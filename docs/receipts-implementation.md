@@ -1,10 +1,11 @@
 # Receipts implementation and release
 
-> Maintained guide · checked against repository code on 2026-09-24.
+> Maintained guide · checked against repository code on 2026-10-03.
 > External account settings and deployed service status require separate verification.
 
-The native bottom bar is Home · Cart · Freezer · Account. Receipts is a preview feature under Account → Features. Food Scan is
-available in Account → Features alongside Map and returns to Account on Back.
+The native bottom bar is Home · Cart · Freezer · Account. Receipts is a preview
+feature under Account → Features alongside Map and returns to Account on Back.
+Food Scan is temporarily paused and hidden from this menu.
 
 ## Behavior
 

@@ -174,10 +174,11 @@ export function FoodScanPanel({
         </View>
       ) : !permission.granted ? (
         <View style={st.foodScanPermissionCard}>
-          <Text style={st.itemName}>Camera permission needed</Text>
+          <Text style={st.itemName}>Photograph food or a label</Text>
           <Text style={st.itemMeta}>
-            PocketCart only uses the photo you capture for this analysis. The photo is not added to
-            your library.
+            {permission.canAskAgain
+              ? "Continue to choose camera access in the system prompt. Photos you capture are not added to your library."
+              : "Camera access is off. You can change it in App Settings to photograph food or a label."}
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -188,7 +189,7 @@ export function FoodScanPanel({
             style={[st.foodScanAction, st.foodScanActionPrimary, st.foodScanActionFullWidth]}
           >
             <Text style={st.foodScanActionPrimaryText}>
-              {permission.canAskAgain ? "Allow camera" : "Open App Settings"}
+              {permission.canAskAgain ? "Continue" : "Open App Settings"}
             </Text>
           </Pressable>
         </View>

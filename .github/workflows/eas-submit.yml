@@ -18,6 +18,10 @@ on:
         type: choice
         options:
           - production
+      build_id:
+        description: Exact reviewed EAS build UUID to submit
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -26,6 +30,8 @@ jobs:
   eas-submit:
     name: EAS ${{ inputs.platform }} ${{ inputs.profile }} submit
     runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     timeout-minutes: 30
 
     steps:
@@ -35,7 +41,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Validate GitHub secrets
@@ -44,21 +50,23 @@ jobs:
         run: |
           test -n "$EXPO_TOKEN" || { echo "Missing GitHub secret: EXPO_TOKEN"; exit 1; }
 
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Validate exact submission target
+        env:
+          STORE_PLATFORM: ${{ inputs.platform }}
+          EAS_BUILD_ID: ${{ inputs.build_id }}
+        run: >-
+          node --input-type=module -e 'import {submissionArgs} from "./scripts/submit-store.mjs";
+          submissionArgs([process.env.STORE_PLATFORM, "--id", process.env.EAS_BUILD_ID]);'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Run release checks
-        run: npm run release:native:config-check && npm run release:store-assets:live-check
+        run: npm run release:native:check && npm run audit:ci && npm run release:store-assets:live-check
 
       - name: Validate EAS production environment
         run: |
-          npx eas-cli env:list production --format long > /tmp/pocketcart-eas-env.txt
+          node scripts/eas-cli.mjs env:list production --format long > /tmp/pocketcart-eas-env.txt
           grep -q "EXPO_PUBLIC_SUPABASE_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_URL"; exit 1; }
           grep -q "EXPO_PUBLIC_SUPABASE_ANON_KEY" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_SUPABASE_ANON_KEY"; exit 1; }
           grep -q "EXPO_PUBLIC_AUTH_REDIRECT_URL" /tmp/pocketcart-eas-env.txt || { echo "Missing EAS production env: EXPO_PUBLIC_AUTH_REDIRECT_URL"; exit 1; }
@@ -66,8 +74,11 @@ jobs:
       - name: Validate Android EAS production environment
         if: ${{ inputs.platform == 'android' }}
         run: |
-          npx eas-cli env:list production --format long > /tmp/pocketcart-eas-android-env.txt
+          node scripts/eas-cli.mjs env:list production --format long > /tmp/pocketcart-eas-android-env.txt
           grep -q "POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY" /tmp/pocketcart-eas-android-env.txt || { echo "Missing EAS production env: POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY"; exit 1; }
 
-      - name: Submit latest native artifact
-        run: npx eas-cli submit --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --latest --non-interactive
+      - name: Submit exact reviewed native artifact
+        env:
+          STORE_PLATFORM: ${{ inputs.platform }}
+          EAS_BUILD_ID: ${{ inputs.build_id }}
+        run: node scripts/submit-store.mjs "$STORE_PLATFORM" --id "$EAS_BUILD_ID" --non-interactive

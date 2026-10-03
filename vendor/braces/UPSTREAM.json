@@ -1,0 +1,76 @@
+{
+  "upstream": {
+    "name": "braces",
+    "version": "3.0.3",
+    "repository": "micromatch/braces",
+    "resolved": "https://registry.npmjs.org/braces/-/braces-3.0.3.tgz",
+    "integrity": "sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA=="
+  },
+  "patches": [
+    {
+      "package": "braces",
+      "version": "3.0.3",
+      "file": "lib/compile.js",
+      "beforeSha256": "dc98f22eee3d511785d92a00758d5f0d48efed5f5813bdecc2de430c529b5c9f",
+      "afterSha256": "198244d9d9c4967a4d9956db51e0259edc9d9f9538c2257b3ff7282f7eebc641",
+      "replacements": [
+        {
+          "before": "const walk = (node, parent = {}) => {",
+          "after": "const walk = (node, parent = {}, depth = 0) => {\n    if (depth > 128) throw new RangeError('Brace nesting exceeds security limit (128)');"
+        },
+        {
+          "before": "walk(child, node);",
+          "after": "walk(child, node, depth + 1);"
+        }
+      ]
+    },
+    {
+      "package": "braces",
+      "version": "3.0.3",
+      "file": "lib/expand.js",
+      "beforeSha256": "41ccc196ebfa7b7781a634e721eb744e4e7bcb54cba427a7e3d6806a1b9e58f7",
+      "afterSha256": "a370369eda03b59d8c6593c2cca77d9cfb01786c46463ad9b5946c400c00ded8",
+      "replacements": [
+        {
+          "before": "const walk = (node, parent = {}) => {",
+          "after": "const walk = (node, parent = {}, depth = 0) => {\n    if (depth > 128) throw new RangeError('Brace nesting exceeds security limit (128)');"
+        },
+        {
+          "before": "walk(child, node);",
+          "after": "walk(child, node, depth + 1);"
+        }
+      ]
+    },
+    {
+      "package": "braces",
+      "version": "3.0.3",
+      "file": "lib/stringify.js",
+      "beforeSha256": "379f22d77bfa1478341ccd49c5e4267464aabcbba03558bab332aac23fc6f23a",
+      "afterSha256": "c63080a758d7328cd1a4635e6b58b9e1a9f272d980973479b5255ae66ca75e7a",
+      "replacements": [
+        {
+          "before": "const stringify = (node, parent = {}) => {",
+          "after": "const stringify = (node, parent = {}, depth = 0) => {\n    if (depth > 128) throw new RangeError('Brace nesting exceeds security limit (128)');"
+        },
+        {
+          "before": "stringify(child);",
+          "after": "stringify(child, {}, depth + 1);"
+        }
+      ]
+    },
+    {
+      "package": "braces",
+      "version": "3.0.3",
+      "file": "lib/parse.js",
+      "beforeSha256": "e572166565f15fa6ad9865ae49d678218e32aabfd1b3720f6d0d43d39800d310",
+      "afterSha256": "4eae357b97780120473f7518f9d8788e6203b9858a912b0dacb26fdd871dc274",
+      "replacements": [
+        {
+          "before": "      stack.push(block);",
+          "after": "      if (stack.length >= 128) throw new RangeError('Brace nesting exceeds security limit (128)');\n      stack.push(block);"
+        }
+      ]
+    }
+  ],
+  "scope": "Node build tooling only; no unpatched prebuilt browser bundles are included."
+}

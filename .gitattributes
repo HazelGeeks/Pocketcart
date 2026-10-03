@@ -1,0 +1,2 @@
+# Preserve the original trailing blank lines in vendored sources and licenses.
+vendor/** whitespace=-blank-at-eof

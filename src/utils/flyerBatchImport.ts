@@ -1,4 +1,5 @@
 import type { FlyerRow } from "../state/adminStore";
+import { flyerProductIssues } from "./flyerProductReview";
 
 export async function extractFlyerBatch<T extends { name: string }>(
   files: T[],
@@ -22,6 +23,7 @@ export async function extractFlyerBatch<T extends { name: string }>(
       }
       const rows = result.rows.map((row) => ({
         ...row,
+        selected: row.selected && flyerProductIssues(row).length === 0,
         memo: [`Source: ${file.name}`, row.memo].filter(Boolean).join(" · "),
       }));
       callbacks.onRows(rows);

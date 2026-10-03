@@ -1,18 +1,25 @@
 # Documentation
 
-Maintained guides were checked against repository code on **2026-09-24**.
-This review did not recheck production data, external credentials, store console
-settings, or live deployments.
+Start with the [code map](code-map.md) to find feature owners and the
+[documentation rules](documentation-rules.md) before adding or reorganizing files.
+Each guide records its own code verification date. Code verification does not
+confirm current production data, credentials, store settings or deployment state.
 
 ## Maintained guides
 
 | Guide | Purpose | Primary source |
 | --- | --- | --- |
+| [Code map](code-map.md) | Feature entrypoints, hooks, services and directory responsibilities | `App.tsx`, `App.native.tsx`, `src/` |
+| [Documentation rules](documentation-rules.md) | Placement, filenames, verification evidence and safe cleanup | This documentation directory |
+| [Operations guide](operations-guide.md) | Backend/store responsibilities, deployment gaps and maintenance priorities | `supabase/`, `store-assets/`, `.github/workflows/` |
+| [Backend deployment](backend-deployment.md) | Unified Supabase release, explicit SQL selection and migration history adoption | `supabase/release.json`, `scripts/supabase-release.mjs` |
 | [Mobile store release](mobile-store-release.md) | Local/cloud builds, credentials, submission, release checks | `package.json`, `eas.json`, `.github/workflows/` |
+| [App Review readiness](app-review-readiness.md) | Camera permission and donation rejection fixes, live website gap and resubmission checks | Permission screens, SupportScreen, store-assets |
 | [Family sharing](family-sharing.md) | Invitations, shared Cart/Freezer, synchronization and backend rollout | `src/contexts/FamilyContext.tsx`, `src/hooks/useFamilyCart.ts` |
 | [Billing setup](billing-setup.md) | Free product alerts, backend rollout, existing subscription management | `src/services/billingClient.ts`, `supabase/functions/watchlist-access/` |
 | [Social authentication](social-auth-setup.md) | Apple/Google sign-in and account deletion | `src/services/nativeSocialAuth.ts`, `supabase/functions/delete-account/` |
 | [Receipts](receipts-implementation.md) | Private account records/photos, extraction and validation | `src/services/receipts.ts`, `supabase/functions/receipt-scan/` |
+| [Dependency security](dependency-security.md) | Patched dependency versions, reproducible backports and audit policy | `scripts/apply-security-patches.mjs`, `scripts/check-npm-audit.mjs` |
 
 For development commands and current app structure, start with the
 [project README](../README.md). Store submission copy and privacy answers live in
@@ -21,26 +28,12 @@ For development commands and current app structure, start with the
 
 ## Historical records
 
-These preserve observations and verification from a specific date. Old test
-counts, build numbers, navigation labels, source line numbers, and service states
-are historical evidence, not current operating instructions.
-
-- [2026-09-24 lint cleanup](archive/2026-09-24-lint-cleanup.md)
-- [2026-09-24 final code review](archive/2026-09-24-code-review.md)
-- [2026-09-24 code cleanup](archive/2026-09-24-code-cleanup.md)
-- [2026-09-16 Receipts release](archive/2026-09-16-receipts-release.md)
-- [2026-09-16 domain setup](archive/2026-09-16-domain-setup.md)
-- [2026-09-16 App Store setup](archive/2026-09-16-store-setup.md)
-- [2026-09-12 UI/UX review](archive/2026-09-12-ui-ux-review.md)
-- [2026-09-08 production preflight](archive/2026-09-08-production-preflight.md)
+The [archive index](archive/README.md) lists dated observations, release evidence
+and superseded plans. Old test counts, build numbers and service states are
+historical evidence, not current operating instructions.
 
 ## Naming and maintenance
 
-- Maintained guides: lowercase `kebab-case.md`, without dates in filenames.
-- Historical records: `archive/YYYY-MM-DD-topic.md`, using the original record date.
-- `README.md` is the conventional exception for a directory index.
-- Use one descriptive H1, short sections, and relative Markdown links.
-- After renaming a document, update inbound links and any script references.
-- Record code verification dates separately from live deployment checks.
-- Read changing versions, build numbers, and policy exceptions from their source
-  files instead of duplicating them in maintained instructions.
+Follow [documentation-rules.md](documentation-rules.md). Keep this index focused
+on current guides and the archive index focused on historical records.
+[AGENTS.md](AGENTS.md) directs agents working in this directory to the same rules.

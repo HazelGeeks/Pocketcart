@@ -44,8 +44,10 @@ delivery guarantee while a device is offline.
 
 1. Run the existing prerequisite migrations (profiles/My Freezer), then apply **only**
   `supabase/migrations/20260914010000_family_sharing.sql` followed by
-  `20260914020000_family_function_privileges.sql`. The Family Sharing Backend Release workflow
-  applies these with a base-schema checksum guard and exercises disposable accounts. Do not replay
+  `20260914020000_family_function_privileges.sql`. The Supabase Backend Release workflow
+  applies these as an explicit selection with migration hash tracking and transactional access checks.
+  Select the `family` smoke test to exercise disposable accounts. Follow [backend deployment](backend-deployment.md)
+  when adopting existing migration history. Do not replay
   unrelated historical migrations.
 2. Deploy the web export containing `family.html` to the existing PocketCart web origin.
 3. Build and submit the updated native app. Its `pocketcart` URL scheme already exists. This

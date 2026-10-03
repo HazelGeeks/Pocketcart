@@ -1,4 +1,5 @@
 import { supabaseAnonKey, supabaseUrl } from "./supabaseClient";
+import { FOOD_SCAN_ENABLED } from "../shared/features";
 
 export type FoodScanMode = "fresh" | "label";
 
@@ -30,7 +31,7 @@ const defaultEndpoint = supabaseUrl.trim()
   : "";
 const endpoint = explicitEndpoint || defaultEndpoint;
 
-export const hasFoodScanEndpoint = Boolean(endpoint && supabaseAnonKey.trim());
+export const hasFoodScanEndpoint = FOOD_SCAN_ENABLED && Boolean(endpoint && supabaseAnonKey.trim());
 
 function normalizeTextArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -82,6 +83,7 @@ export async function analyzeFoodPhoto(params: {
   mimeType: "image/jpeg" | "image/png";
   mode: FoodScanMode;
 }): Promise<FoodScanResult> {
+  if (!FOOD_SCAN_ENABLED) throw new Error("Food Scan is temporarily unavailable.");
   if (!hasFoodScanEndpoint) {
     throw new Error("Food Scan is not connected yet. Configure Supabase and deploy the food-scan function.");
   }

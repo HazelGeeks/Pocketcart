@@ -42,6 +42,7 @@ exports.navigationHookHarness = function navigationHookHarness() {
         require(name) {
           if (name === "react") return react;
           if (name === "react-native") return native;
+          if (name === "../shared/features") return require("../../.tmp-tests/shared/features.js");
           if (name === "./useScopedState")
             return require("./sourceModule.cjs").sourceModule("src/hooks/useScopedState.ts", { react });
           if (name.includes("nativeBackNavigation"))

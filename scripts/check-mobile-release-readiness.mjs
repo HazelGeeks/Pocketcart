@@ -15,10 +15,10 @@ const requiredFiles = [
   ".github/workflows/mobile-release-check.yml",
   ".github/workflows/eas-build.yml",
   ".github/workflows/eas-submit.yml",
-  ".github/workflows/supabase-functions.yml",
+  ".github/workflows/supabase-release.yml",
+  "supabase/release.json",
   ".github/workflows/sale-alert-sync.yml",
   ".github/workflows/live-user-flow.yml",
-  ".github/workflows/supabase-schema.yml",
   "database/schema.sql",
   "docs/mobile-store-release.md",
   "src/components/nativeApp/NativeAccountTab.tsx",
@@ -195,7 +195,7 @@ function readGithubSecretNames() {
 }
 
 function readEasProductionEnvNames() {
-  const output = commandOutput("npx", ["eas-cli", "env:list", "production", "--format", "long"]);
+  const output = commandOutput(process.execPath, ["scripts/eas-cli.mjs", "env:list", "production", "--format", "long"]);
   if (!output) return null;
 
   return new Set(output.match(/\b[A-Z][A-Z0-9_]{2,}\b/g) ?? []);
@@ -212,6 +212,22 @@ for (const file of requiredFiles) {
 const pkg = readJson("package.json");
 const app = readJson("app.json").expo;
 const eas = readJson("eas.json");
+const lock = readJson("package-lock.json");
+for (const section of ["dependencies", "devDependencies"]) {
+  const requested = pkg[section] ?? {};
+  const recorded = lock.packages?.[""]?.[section] ?? {};
+  const invalid = Object.entries(requested).some(([name, version]) =>
+    !(/^(?:\d+\.\d+\.\d+|file:vendor\/packages\/[\w.-]+\.tgz)$/.test(version)) || recorded[name] !== version);
+  if (invalid || Object.keys(requested).length !== Object.keys(recorded).length) {
+    fail(`${section} must use exact reviewed versions and match the root lockfile`);
+  } else pass(`${section} uses exact reviewed versions matching the root lockfile`);
+}
+if (eas.cli?.version === pkg.devDependencies?.["eas-cli"] && /^\d+\.\d+\.\d+$/.test(eas.cli?.version ?? "")) {
+  pass("EAS CLI constraint matches the exact installed-tool dependency");
+} else fail("EAS CLI version must match its exact devDependency");
+if (read(".nvmrc").trim() === eas.build?.base?.node) {
+  pass("Local/CI Node version matches EAS build runtime");
+} else fail(".nvmrc must match the EAS base Node version");
 const nativeBuildProfiles = [
   "development",
   "development-device",
@@ -407,6 +423,40 @@ includes(
   "NSLocationWhenInUseUsageDescription",
   "iOS location permission usage description is present",
 );
+const cameraPurpose = app.ios?.infoPlist?.NSCameraUsageDescription;
+const cameraPlugin = app.plugins?.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-camera");
+const nativeCameraPurpose = readFileSync("ios/PocketCart/Info.plist", "utf8")
+  .match(/<key>NSCameraUsageDescription<\/key>\s*<string>([^<]+)<\/string>/)?.[1];
+if (cameraPurpose && cameraPlugin?.[1]?.cameraPermission === cameraPurpose && nativeCameraPurpose === cameraPurpose) {
+  pass("Camera purpose text matches Expo config, camera plugin and native Info.plist");
+} else {
+  fail("Camera purpose text must match Expo config, camera plugin and native Info.plist");
+}
+const permissionSurfaces = [
+  "src/components/nativeApp/receipts/ReceiptCamera.tsx",
+  "src/components/nativeApp/FoodScanPanel.tsx",
+  "src/components/nativeApp/NativeAppOnboarding.tsx",
+];
+for (const file of permissionSurfaces) {
+  const source = readFileSync(file, "utf8");
+  if (/"(?:Allow|Enable|Grant)\s+(?:camera|notifications?|location)(?:\s+access)?"/i.test(source)) {
+    fail(`Permission pre-prompt must use a neutral Continue/Next action: ${file}`);
+  } else {
+    pass(`Permission pre-prompt avoids consent-implying action labels: ${file}`);
+  }
+}
+for (const file of [
+  "src/components/nativeApp/MorePanel.tsx",
+  "src/screens/SupportScreen.tsx",
+  "src/screens/PrivacyScreen.tsx",
+  "store-assets/metadata/en-US.json",
+]) {
+  if (/ko-fi|buymeacoffee|patreon|paypal|SupportPocketCart|POCKETCART_SUPPORT_URL/i.test(readFileSync(file, "utf8"))) {
+    fail(`External donation route must be removed from the app and linked support/listing surfaces: ${file}`);
+  } else {
+    pass(`No removed external donation route in ${file}`);
+  }
+}
 includes(
   "ios/PocketCart/Info.plist",
   "ITSAppUsesNonExemptEncryption",
@@ -840,12 +890,12 @@ includes(
 );
 includes(
   "docs/mobile-store-release.md",
-  "npx eas-cli credentials:configure-build --platform ios --profile production",
+  "npm run eas -- credentials:configure-build --platform ios --profile production",
   "Mobile store release checklist documents iOS build credential configuration",
 );
 includes(
   "docs/mobile-store-release.md",
-  "npx eas-cli credentials --platform ios",
+  "npm run eas -- credentials --platform ios",
   "Mobile store release checklist documents iOS EAS credential setup",
 );
 includes(
@@ -855,7 +905,7 @@ includes(
 );
 includes(
   "docs/mobile-store-release.md",
-  "npx eas-cli credentials --platform android",
+  "npm run eas -- credentials --platform android",
   "Mobile store release checklist documents Android EAS credential setup",
 );
 includes(
@@ -910,7 +960,7 @@ includes(
 );
 includes(
   ".github/workflows/eas-build.yml",
-  "eas-cli build",
+  "scripts/eas-cli.mjs build",
   "EAS build workflow can create native artifacts",
 );
 includes(
@@ -925,8 +975,8 @@ if (read(".github/workflows/eas-build.yml").includes("--no-wait")) {
 }
 includes(
   ".github/workflows/eas-submit.yml",
-  "eas-cli submit",
-  "EAS submit workflow can submit latest native artifacts",
+  "scripts/submit-store.mjs",
+  "EAS submit workflow uses the validated store submission entrypoint",
 );
 if (eas.submit?.production) {
   pass("EAS submit workflow has a matching production submit profile");
@@ -940,8 +990,8 @@ includes(
 );
 includes(
   ".github/workflows/eas-submit.yml",
-  "--latest --non-interactive",
-  "EAS submit workflow runs non-interactively against the latest artifact",
+  "--id \"$EAS_BUILD_ID\" --non-interactive",
+  "EAS submit workflow runs non-interactively against an explicit artifact",
 );
 includes(
   ".github/workflows/eas-submit.yml",
@@ -959,27 +1009,27 @@ includes(
   "EAS submit workflow does not require Android-only settings for iOS submission",
 );
 includes(
-  ".github/workflows/supabase-functions.yml",
-  "supabase functions deploy delete-account",
-  "Supabase workflow deploys the account deletion function",
+  "supabase/release.json",
+  "delete-account",
+  "Supabase release inventory includes the account deletion function",
 );
 includes(
-  ".github/workflows/supabase-functions.yml",
-  "supabase functions deploy delete-account-request",
-  "Supabase workflow deploys the account deletion request function",
+  "supabase/release.json",
+  "delete-account-request",
+  "Supabase release inventory includes the account deletion request function",
 );
 includes(
-  ".github/workflows/supabase-functions.yml",
-  "supabase functions deploy send-sale-alert-push",
-  "Supabase workflow deploys the sale alert push function",
+  "supabase/release.json",
+  "send-sale-alert-push",
+  "Supabase release inventory includes the sale alert push function",
 );
 includes(
-  ".github/workflows/supabase-functions.yml",
-  "supabase functions deploy sync-sale-alerts",
-  "Supabase workflow deploys the sale alert sync function",
+  "supabase/release.json",
+  "sync-sale-alerts",
+  "Supabase release inventory includes the sale alert sync function",
 );
 includes(
-  ".github/workflows/supabase-functions.yml",
+  ".github/workflows/supabase-release.yml",
   "PUSH_FUNCTION_SECRET",
   "Supabase workflow sets the push function secret",
 );
@@ -1043,111 +1093,12 @@ includes(
   "/rest/v1/shopping_list_items",
   "Live E2E workflow verifies shopping list account sync",
 );
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "/database/query",
-  "Supabase schema workflow applies the account deletion migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260714162000_profile_preferences.sql",
-  "Supabase schema workflow applies the profile preferences migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260715043000_shopping_list_items.sql",
-  "Supabase schema workflow applies the shopping list migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260715130000_push_delivery_tickets.sql",
-  "Supabase schema workflow applies the push delivery receipt migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724050000_admin_user_directory.sql",
-  "Supabase schema workflow applies the admin user directory migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724060000_product_identity.sql",
-  "Supabase schema workflow applies the product identity migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724070000_product_identity_reviews.sql",
-  "Supabase schema workflow applies the identity review queue migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724080000_user_favorite_stores.sql",
-  "Supabase schema workflow applies the My stores migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724090000_product_identity_and_sale_period_guards.sql",
-  "Supabase schema workflow applies sale period and GTIN guards",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724100000_product_price_summary_rpc.sql",
-  "Supabase schema workflow applies the product price summary RPC",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724110000_product_identity_workflow.sql",
-  "Supabase schema workflow applies the product identity workflow",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260724120000_product_merge_watchlist_guard.sql",
-  "Supabase schema workflow applies the product merge watchlist guard",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260803093000_admin_audit_logs.sql",
-  "Supabase schema workflow applies the admin audit logs migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260805120000_english_first_product_names.sql",
-  "Supabase schema workflow applies the English-first product names migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260805233000_correct_swapped_product_names.sql",
-  "Supabase schema workflow applies the product language correction migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260822070000_product_aliases.sql",
-  "Supabase schema workflow applies the canonical product alias migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260822071000_merge_taiwan_cabbage_duplicates.sql",
-  "Supabase schema workflow applies the reviewed Taiwan Cabbage correction",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260822170000_my_freezer_items.sql",
-  "Supabase schema workflow applies the My Freezer migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260822173000_normalize_product_categories.sql",
-  "Supabase schema workflow applies the product category normalization migration",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260822200000_security_hardening.sql",
-  "Supabase schema workflow applies database security hardening",
-);
-includes(
-  ".github/workflows/supabase-schema.yml",
-  "20260822201000_query_optimization.sql",
-  "Supabase schema workflow applies database query optimization",
-);
+try {
+  execFileSync(process.execPath, ["scripts/supabase-release.mjs", "plan"], { stdio: "pipe" });
+  pass("Supabase release inventory covers every configured function and migration");
+} catch {
+  fail("Supabase release inventory is invalid. Run npm run backend:plan for details.");
+}
 includes(
   ".gitignore",
   "google-services.json",
@@ -1203,17 +1154,17 @@ includes(
 );
 includes(
   "scripts/print-mobile-release-setup-guide.mjs",
-  "npx eas-cli credentials:configure-build --platform ios --profile production",
+  "npm run eas -- credentials:configure-build --platform ios --profile production",
   "Mobile release setup guide prints iOS build credential configuration command",
 );
 includes(
   "scripts/print-mobile-release-setup-guide.mjs",
-  "npx eas-cli credentials --platform ios",
+  "npm run eas -- credentials --platform ios",
   "Mobile release setup guide prints iOS credential setup command",
 );
 includes(
   "scripts/print-mobile-release-setup-guide.mjs",
-  "npx eas-cli credentials --platform android",
+  "npm run eas -- credentials --platform android",
   "Mobile release setup guide prints Android credential setup command",
 );
 includes(
@@ -1234,7 +1185,7 @@ const filesToScan = [
   ".github/workflows/eas-build.yml",
   ".github/workflows/eas-submit.yml",
   ".github/workflows/mobile-release-check.yml",
-  ".github/workflows/supabase-functions.yml",
+  ".github/workflows/supabase-release.yml",
   "app.config.js",
   "app.json",
   "eas.json",
@@ -1262,11 +1213,11 @@ if (checkExternal) {
   if (
     process.env.EXPO_TOKEN ||
     githubSecretNames?.has("EXPO_TOKEN") ||
-    commandOk("npx", ["eas-cli", "whoami"])
+    commandOk(process.execPath, ["scripts/eas-cli.mjs", "whoami"])
   ) {
     pass("Expo authentication is available through EXPO_TOKEN, GitHub secret, or EAS CLI login");
   } else {
-    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npx eas-cli login");
+    fail("Expo authentication is missing. Set EXPO_TOKEN for CI or run: npm run eas -- login");
   }
 
   if (
@@ -1324,7 +1275,7 @@ if (checkExternal) {
     "GOOGLE_SERVICES_JSON",
   ];
   if (!easProductionEnvNames) {
-    fail("Unable to verify EAS production environment variables. Run: npx eas-cli login");
+    fail("Unable to verify EAS production environment variables. Run: npm run eas -- login");
   }
   for (const envName of requiredEasPublicEnv) {
     if (process.env[envName]?.trim() || easProductionEnvNames?.has(envName)) {

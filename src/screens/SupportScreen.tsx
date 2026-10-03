@@ -9,7 +9,6 @@ import {
   View,
 } from "react-native";
 import useLayout from "../hooks/useLayout";
-import { POCKETCART_SUPPORT_URL } from "../constants/support";
 import { appPalette as P } from "../shared/design/palette";
 
 const PRIVACY_URL = "https://pocketcart.app/privacy";
@@ -20,7 +19,7 @@ const SUPPORT_SECTIONS = [
   {
     title: "App Help",
     body:
-      "Looking for help with Pocket Cart? Find account access, privacy, and account deletion guidance below. You never need to make a contribution to use these resources.",
+      "Find account access, privacy, and account deletion guidance below. Camera and location permissions are optional; receipts support manual entry and the map supports city or postal-code search.",
   },
   {
     title: "Account Access",
@@ -30,7 +29,7 @@ const SUPPORT_SECTIONS = [
   {
     title: "Account Deletion",
     body:
-      "You can delete your account in the app from More > Account deletion. If you cannot access the app, use the external deletion page below for account deletion instructions.",
+      "You can delete your account in the app from Account > Account actions > Delete Account. If you cannot access the app, use the deletion page below for account deletion instructions.",
     url: DELETION_URL,
   },
   {
@@ -78,35 +77,10 @@ export default function SupportScreen({
           ]}
         >
           <Text style={st.eyebrow}>MADE FOR EVERYDAY SHOPPING</Text>
-          <Text accessibilityRole="header" style={st.title}>❤️ Support Pocket Cart</Text>
+          <Text accessibilityRole="header" style={st.title}>Pocket Cart Help & Support</Text>
           <Text style={st.intro}>
-            A little support goes a long way. Help us maintain Pocket Cart and
-            make everyday grocery shopping easier.
+            Find help with your account, privacy choices, and Pocket Cart.
           </Text>
-
-          <View style={[st.card, st.supportCard]}>
-            <Text accessibilityRole="header" style={st.cardTitle}>Thank you for being here.</Text>
-            <Text style={st.cardBody}>
-              Your support would help cover running costs, maintain grocery
-              information, and improve the app you use each week.
-            </Text>
-            <Text
-              accessibilityRole="link"
-              {...(Platform.OS === "web" ? { href: POCKETCART_SUPPORT_URL } : {})}
-              onPress={Platform.OS !== "web" ? () => { void Linking.openURL(POCKETCART_SUPPORT_URL); } : undefined}
-              style={st.supportLink}
-            >
-              ❤️ Support Pocket Cart on Ko-fi →
-            </Text>
-            <Text style={st.cardBody}>
-              Visit our Ko-fi page to support Pocket Cart. Sharing the app with
-              a friend is also a lovely way to help.
-            </Text>
-            <Text style={st.cardBody}>
-              Support is optional and separate from Pocketcart Plus. It does not
-              unlock subscription features.
-            </Text>
-          </View>
 
           {SUPPORT_SECTIONS.map((section) => (
             <View key={section.title} style={st.card}>
@@ -196,8 +170,6 @@ const st = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
   },
-  supportCard: { backgroundColor: P.brickFaint, padding: 24, gap: 16 },
-  supportLink: { alignSelf: "flex-start", backgroundColor: P.brickDark, color: P.white, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 14, fontSize: 16, fontWeight: "700" },
   cardBody: {
     color: P.textSoft,
     fontSize: 14,

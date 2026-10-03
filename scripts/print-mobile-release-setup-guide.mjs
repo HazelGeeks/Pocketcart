@@ -57,8 +57,8 @@ function readDotEnvKeys(path) {
 }
 
 function readEasEnvNames() {
-  const output = commandOutput("npx", [
-    "eas-cli",
+  const output = commandOutput(process.execPath, [
+    "scripts/eas-cli.mjs",
     "env:list",
     "production",
     "--format",
@@ -83,7 +83,7 @@ const envLocalKeys = readDotEnvKeys(".env.local");
 const githubSecretNames = parseNamedJsonItems(
   commandOutput("gh", ["secret", "list", "--json", "name"]),
 );
-const easWhoami = commandOutput("npx", ["eas-cli", "whoami"]);
+const easWhoami = commandOutput(process.execPath, ["scripts/eas-cli.mjs", "whoami"]);
 const easEnvNames = readEasEnvNames();
 
 console.log("PocketCart mobile release setup guide");
@@ -108,13 +108,13 @@ for (const name of githubSecrets) {
 
 console.log("\nNext commands for EAS production env:");
 if (!easWhoami) {
-  console.log("npx eas-cli login");
+  console.log("npm run eas -- login");
 }
 for (const name of easProductionEnv) {
   if (!easEnvNames?.has(name)) {
     if (name === "GOOGLE_SERVICES_JSON") {
       console.log(
-        "npx eas-cli env:set --name GOOGLE_SERVICES_JSON --value ./google-services.json " +
+        "npm run eas -- env:set --name GOOGLE_SERVICES_JSON --value ./google-services.json " +
           "--type file --visibility secret --environment development " +
           "--environment preview --environment production --non-interactive",
       );
@@ -126,7 +126,7 @@ for (const name of easProductionEnv) {
         ? "sensitive"
         : "plaintext";
     console.log(
-      `npx eas-cli env:create production --name ${name} --visibility ${visibility}`,
+      `npm run eas -- env:create production --name ${name} --visibility ${visibility}`,
     );
   }
 }
@@ -135,10 +135,10 @@ console.log("\nAfter setup:");
 console.log("npm run release:native:doctor");
 
 console.log("\nBefore first store submission:");
-console.log("npx eas-cli credentials:configure-build --platform ios --profile production");
-console.log("npx eas-cli credentials:configure-build --platform android --profile production");
-console.log("npx eas-cli credentials --platform ios");
-console.log("npx eas-cli credentials --platform android");
+console.log("npm run eas -- credentials:configure-build --platform ios --profile production");
+console.log("npm run eas -- credentials:configure-build --platform android --profile production");
+console.log("npm run eas -- credentials --platform ios");
+console.log("npm run eas -- credentials --platform android");
 console.log(
   "If iOS non-interactive builds report an unvalidated Distribution Certificate, rerun the iOS configure-build command and complete Apple login/2FA.",
 );

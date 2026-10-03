@@ -1,0 +1,29 @@
+[
+  {
+    "package": "metro",
+    "version": "0.83.7",
+    "file": "src/Assets.js",
+    "beforeSha256": "5614658f2f2e892736637a084b0425d2317d4d975ca468cea48d9ff21b83b34d",
+    "afterSha256": "bdec99ea3cd52b3310aa777906840e6f5185d96807d981db1d1592f8ca606893",
+    "replacements": [
+      {
+        "before": "  const isImageInput = assetInfo.files[0].includes(\".zip/\")\n    ? _fs.default.readFileSync(assetInfo.files[0])\n    : assetInfo.files[0];",
+        "after": "  const isImageInput = isImage\n    ? _fs.default.readFileSync(assetInfo.files[0])\n    : null;"
+      }
+    ]
+  },
+  {
+    "package": "eas-cli",
+    "version": "24.10.0",
+    "file": "build/commandUtils/new/projectFiles.js",
+    "reason": "Use the named merge export of the security-fixed ts-deepmerge 8 while preserving EAS 24 project generation behavior.",
+    "beforeSha256": "b61e6791d125d548662d8bd142adde7f2966d58f5bbcdc43346e710d2e02740d",
+    "afterSha256": "c0136ce7150aca6cd602c0a0decff7a0c50e06b9e7ebbc27f4e5f8e1cf21963e",
+    "replacements": [
+      {
+        "before": "const ts_deepmerge_1 = tslib_1.__importDefault(require(\"ts-deepmerge\"));",
+        "after": "const ts_deepmerge_1 = { default: require(\"ts-deepmerge\").merge };"
+      }
+    ]
+  }
+]

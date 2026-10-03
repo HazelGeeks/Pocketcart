@@ -247,12 +247,11 @@ export const enSiteCopy: SiteCopy = {
           "for Google Play account-based apps.",
         inAppTitle: "Delete inside the app",
         inAppBody:
-          "Open the More tab in the iOS or Android app, then choose " +
-          "Account deletion to request deletion from your account settings.",
+          "Open Account > Account actions > Delete Account in the iOS or Android app.",
         webTitle: "Delete through web request",
         webBody:
-          "If you cannot access the app, use the PocketCart support page " +
-          "and include your account email address in the request details.",
+          "If you cannot access the app, submit the deletion request form below " +
+          "using your PocketCart account email address.",
         urlLabel: "Deletion URL",
         retainedTitle: "Data retained after deletion",
         retainedBody:
@@ -260,8 +259,8 @@ export const enSiteCopy: SiteCopy = {
           "unless retention is required for security, fraud prevention, or law.",
         supportTitle: "Support",
         supportBody:
-          "If deletion fails, open https://pocketcart.app/support " +
-          "and include your account email and platform (iOS or Android).",
+          "If deletion fails, use the deletion request form above and describe the issue " +
+          "in Optional details. The support page provides account guidance.",
       },
       items: {
         title: "Tracking Items",

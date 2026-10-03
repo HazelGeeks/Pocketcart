@@ -1,4 +1,5 @@
 import useNativeAlertProduct from "../hooks/useNativeAlertProduct";
+import { FOOD_SCAN_ENABLED } from "../shared/features";
 import React from "react";
 import { FamilyProvider } from "../contexts/FamilyContext";
 import useFamilyNavigation from "../hooks/useFamilyNavigation";
@@ -256,7 +257,7 @@ function NativeAppContent() {
             shopping={shopping}
           />
           {shell.activeTab === "freezer" ? <NativeFreezerTab cartItems={shopping.items} userId={account.profile?.id ?? null} onSignIn={() => { account.openSignIn(); shell.openMore(); }} /> : null}
-          {shell.activeTab === "scan" ? <FoodScanPanel onOpenProduct={catalog.openProduct} /> : null}
+          {FOOD_SCAN_ENABLED && shell.activeTab === "scan" ? <FoodScanPanel onOpenProduct={catalog.openProduct} /> : null}
           {shell.activeTab === "receipts" ? <NativeReceiptsTab key={account.profile?.id ?? "guest"} userId={account.profile?.id ?? null} onSignIn={() => { account.openSignIn(); shell.openMore(); }} /> : null}
           {shell.activeTab === "more" ? (
             <NativeAccountTab

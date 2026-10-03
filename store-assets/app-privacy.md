@@ -59,3 +59,12 @@ Evidence: `src/services/receipts.ts`, `supabase/migrations/20260916010000_receip
 `supabase/functions/receipt-scan/index.ts`. Photo reading is optional, explicitly
 confirmed, and sent to OpenAI with `store: false`; that flag is not a zero-retention
 claim. Account deletion removes Storage objects before deleting the user.
+
+## October 3 local code delta — not yet a new store publication
+
+Food Scan is temporarily disabled in the app and on its hosted endpoint. The
+historical Food Scan evidence above describes the September 16 release. Receipt
+photos remain account-linked, so keep Photos or Videos → Linked to identity → Yes.
+The app and linked support-page source no longer contain external donation links.
+The revised website, native build and corresponding App Store Connect answers
+still require deployment/verification; local edits do not update those services.

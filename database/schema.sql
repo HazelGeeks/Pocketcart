@@ -1,5 +1,6 @@
--- PocketCart Supabase schema source of truth
--- Keep SQL changes in this file (not in README).
+-- PocketCart core schema reference; later features are in supabase/migrations/.
+-- Add versioned SQL changes there; do not replay this file against production.
+-- Deployment and existing-history adoption: docs/backend-deployment.md.
 
 create extension if not exists pgcrypto;
 

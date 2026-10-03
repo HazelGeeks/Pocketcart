@@ -11,6 +11,7 @@
     "allowImportingTsExtensions": false
   },
   "include": [
+    "src/shared/features.ts",
     "src/services/catalogStoreFilters.ts",
     "src/utils/catalogRetailers.ts",
     "src/utils/calendarDays.ts",

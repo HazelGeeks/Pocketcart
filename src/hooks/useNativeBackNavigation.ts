@@ -1,4 +1,5 @@
 import useScopedState from "./useScopedState";
+import { FOOD_SCAN_ENABLED } from "../shared/features";
 import React from "react";
 import {
   Animated,
@@ -155,6 +156,7 @@ export default function useNativeBackNavigation({
 
   const selectTab = React.useCallback(
     (tabId: NativeTabId) => {
+      if (tabId === "scan" && !FOOD_SCAN_ENABLED) return;
       if (tabId === "map" && map.userLocation) map.setFocusMode("user");
       if (tabId === "more") {
         account.setAccountRoute("settings");

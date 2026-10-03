@@ -245,12 +245,11 @@ export const frSiteCopy: SiteCopy = {
           "requise pour Google Play.",
         inAppTitle: "Supprimer dans l application",
         inAppBody:
-          "Ouvrez l onglet More dans l application iOS ou Android, " +
-          "puis choisissez Account deletion dans les reglages du compte.",
+          "Dans l application iOS ou Android, ouvrez Account > Account actions > Delete Account.",
         webTitle: "Supprimer via demande web",
         webBody:
-          "Si vous ne pouvez pas ouvrir l application, utilisez " +
-          "la page d assistance PocketCart avec votre e-mail de compte.",
+          "Si vous ne pouvez pas ouvrir l application, remplissez le formulaire ci-dessous " +
+          "avec l adresse e-mail de votre compte PocketCart.",
         urlLabel: "URL de suppression",
         retainedTitle: "Donnees conservees apres suppression",
         retainedBody:
@@ -258,8 +257,8 @@ export const frSiteCopy: SiteCopy = {
           "supprimes sauf conservation requise pour securite, fraude ou loi.",
         supportTitle: "Assistance",
         supportBody:
-          "Si la suppression echoue, ouvrez https://pocketcart.app/support " +
-          "avec votre e-mail de compte et la plateforme.",
+          "Si la suppression echoue, utilisez le formulaire ci-dessus et decrivez le probleme " +
+          "dans Optional details. La page d assistance fournit des instructions pour le compte.",
       },
       items: {
         title: "Articles suivis",

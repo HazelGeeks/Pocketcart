@@ -1,6 +1,6 @@
-import React from "react";
-import { ActivityIndicator, Linking, Text, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import React from "react";
+import { ActivityIndicator, AppState, Linking, Text, View } from "react-native";
 import type { ReceiptPhoto } from "../../../utils/receiptDraft";
 import { ReceiptButton } from "./ReceiptControls";
 import { rs } from "./receiptStyles";
@@ -11,11 +11,21 @@ export function ReceiptCamera({
   onCapture: (photo: ReceiptPhoto) => void;
   onCancel: () => void;
 }) {
-  const [permission, requestPermission] = useCameraPermissions();
+  const [permission, requestPermission, getPermission] = useCameraPermissions();
   const camera = React.useRef<CameraView>(null);
   const [ready, setReady] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void getPermission().catch(() =>
+          setError("Could not check camera access. Please try again."),
+        );
+      }
+    });
+    return () => subscription.remove();
+  }, [getPermission]);
   const capture = async () => {
     if (!ready || !camera.current || busy) return;
     setBusy(true);
@@ -60,9 +70,13 @@ export function ReceiptCamera({
         </View>
       ) : (
         <View style={rs.card}>
-          <Text style={rs.text}>Allow camera access to photograph a receipt.</Text>
+          <Text style={rs.text}>
+            {permission.canAskAgain
+              ? "The camera lets you photograph a receipt. Continue to choose camera access in the system prompt. You can also enter a receipt manually."
+              : "Camera access is off. You can change it in App Settings to photograph a receipt, or enter a receipt manually."}
+          </Text>
           <ReceiptButton
-            label={permission.canAskAgain ? "Allow camera" : "Open App Settings"}
+            label={permission.canAskAgain ? "Continue" : "Open App Settings"}
             onPress={() => {
               void (permission.canAskAgain ? requestPermission() : Linking.openSettings()).catch(
                 () => setError("Could not open camera permissions. Please try again."),

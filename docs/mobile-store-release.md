@@ -1,7 +1,11 @@
 # PocketCart Mobile Store Release Checklist
 
-> Maintained guide · checked against repository code on 2026-09-24.
+> Maintained guide · checked against repository code on 2026-10-03.
 > External account settings and deployed service status require separate verification.
+
+For the camera permission and external donation rejection, complete
+[App Review readiness](app-review-readiness.md) with the revised native build and
+deployed support website before resubmitting.
 
 This document tracks the required steps for iOS App Store and Google Play
 submission. Keep secrets in Apple, Google, Expo, Supabase, or CI settings. Do
@@ -14,6 +18,8 @@ not commit certificates, service account JSON files, keystores, or API keys.
 - App scheme: `pocketcart`
 - EAS project: linked through `expo.extra.eas.projectId` in `app.json`
 - EAS build runtime: Node.js `22.22.3` through the shared `base` profile
+- Local and CI Node version: `.nvmrc`; match the EAS `base` profile when updating.
+- EAS CLI: exact version in `eas.json`; `npm run eas -- <command>` and CI use it.
 - Version/build sources: `app.json`, `ios/PocketCart/Info.plist`, and
   `android/app/build.gradle`. Read these before each release rather than copying
   a build number from documentation.
@@ -87,40 +93,29 @@ The repository includes these release and verification workflows:
 
 - `Mobile Release Check`: runs `npm run release:native:check` and
   `npm run audit:ci` on PRs and `main`. The policy in
-  `scripts/check-npm-audit.mjs` rejects unapproved high/critical findings and
-  documents scoped transitive exceptions. A passing gate does not mean zero
-  vulnerabilities.
+  `scripts/check-npm-audit.mjs` rejects all high/critical findings, including
+  development dependencies, without advisory exceptions. It also verifies the
+  maintained security forks and Metro compatibility patch. Lower-severity
+  findings should still be reviewed in the full audit output.
 - `EAS Native Build`: manually starts iOS, Android, or all-platform EAS builds.
-  It runs `npm run release:native:check` first and waits for native artifact
+  It runs `npm run release:native:check` and `npm run audit:ci` first and waits for native artifact
   completion. Production builds fail before starting if required EAS production
   environment variables are missing. Android Maps and Firebase variables are
   checked only when the requested artifact includes Android, so they do not
   block an iOS-only build.
-- `EAS Store Submit`: manually submits the latest iOS or Android EAS artifact
+- `EAS Store Submit`: manually submits an explicitly reviewed EAS build UUID
   after store records and credentials are ready. It verifies the live legal,
   support, account deletion URLs, and shared EAS production environment before
-  submission. The Android Maps key is required only for Android submission.
-- `Supabase Functions Deploy`: manually deploys the account and back-office
-  functions and sets the sale-alert trigger secret.
+  submission. It also runs the full release checks and audit. The Android Maps key
+  is required only for Android submission. Supply the required `build_id` input.
+- `Supabase Backend Release`: one manual path for read-only plans, explicitly selected
+  SQL changes, reviewed existing-history registration, and all or selected functions.
+  It runs local checks and dependency audit before deployment and supports optional
+  disposable-account smoke tests. See [backend deployment](backend-deployment.md).
 - `Sale Alert Sync`: runs every six hours and can also be started manually to
   create and send eligible watchlist price alerts.
-- `Live User Flow E2E`: manually creates a disposable confirmed user, verifies
-  login, profile, live data, watchlist, alert generation, public deletion
-  request, authenticated deletion, cascade cleanup, and rejected re-login.
-- `Supabase Schema Deploy`: manually applies account, product identity/review,
-  transactional product-merge, price-history, and My stores migrations together
-  with their indexes, RLS policies, and PostgREST schema refresh through the
-  authenticated Supabase Management API.
-
-- `Family Sharing Backend Release`: applies the scoped family migrations and
-  verifies disposable-account flows.
-- `Alert and Billing Backend Release`: deploys free, unlimited product alerts and existing-subscription management
-  without enabling new subscription purchases.
-- `Named Freezer Storage Backend Release`: applies and verifies the named-storage
-  schema changes.
-
-The general schema workflow does not deploy every newer feature migration. Check
-the relevant feature guide and workflow before changing production data.
+- `Live User Flow E2E`: manually creates a disposable confirmed user and verifies
+  authentication, profile, live catalog, watchlist, alerts and account deletion.
 
 Required GitHub repository secrets:
 
@@ -165,8 +160,8 @@ The `preview` profile also uses these production client variables but produces
 internally distributed test artifacts (iOS ad hoc build and Android APK):
 
 ```bash
-npm run build:ios:internal
-npm run build:android:internal
+npm run eas -- build --platform ios --profile preview
+npm run eas -- build --platform android --profile preview
 ```
 
 The iOS `preview` profile installs on registered physical devices and therefore
@@ -175,7 +170,7 @@ currently booted iOS simulator, create a standalone internal test artifact
 without Apple signing:
 
 ```bash
-npm run build:ios:simulator
+npm run eas -- build --platform ios --profile preview-simulator
 ```
 
 ## Local iOS build
@@ -203,24 +198,63 @@ cloud build queue; it still requires Expo/Apple authentication and network acces
 
 ```bash
 npm run build:ios:local -- --output /tmp/pocketcart.ipa
-npx eas-cli submit --platform ios --profile production --path /tmp/pocketcart.ipa
+npm run submit:ios -- --path /tmp/pocketcart.ipa
 ```
 
 `production-local` extends `production` with `autoIncrement: false`. The
-`npm run submit:ios` command and the `EAS Store Submit` workflow use `--latest`,
-which selects a cloud artifact; do not use them for a locally built IPA.
+`npm run submit:ios -- --id <REVIEWED_BUILD_UUID>` and the `EAS Store Submit`
+workflow use an explicit cloud artifact. For a locally built IPA, use the `--path`
+command above. Submission wrappers reject `--latest` and missing/ambiguous targets.
 
 Verify upload, Apple processing, TestFlight group assignment, and tester notes
 separately. Successful compilation or upload alone does not make a beta available.
+
+### Connected physical-device QA
+
+For a paired iPhone with Developer Mode enabled, Xcode can build and install a
+development-signed Release app without an EAS internal-distribution profile.
+Authenticate the existing Apple account in Xcode Settings > Accounts first.
+Use the local environment intended for the test, run the release gate, and keep
+the version sources synchronized. Replace `DEVICE_ID` with the connected device
+identifier; never store a personal device identifier in this guide.
+
+```bash
+xcrun devicectl list devices
+xcodebuild -workspace ios/PocketCart.xcworkspace -scheme PocketCart \
+  -configuration Release -destination 'id=DEVICE_ID' \
+  -derivedDataPath /tmp/pocketcart-physical-qa-build -jobs 4 \
+  -allowProvisioningUpdates -allowProvisioningDeviceRegistration build
+codesign --verify --deep --strict \
+  /tmp/pocketcart-physical-qa-build/Build/Products/Release-iphoneos/PocketCart.app
+xcrun devicectl device install app --device DEVICE_ID \
+  /tmp/pocketcart-physical-qa-build/Build/Products/Release-iphoneos/PocketCart.app
+xcrun devicectl device info apps --device DEVICE_ID
+```
+
+Install as an update to preserve existing app data; do not uninstall to reset
+permissions. Unlock the phone for Device Hub screen sharing. Record the observed
+device/OS, installed version, source and compiled-bundle hashes, tested flows and
+untested cases in the [physical QA ledger](../store-assets/app-review/physical-device-qa.md).
+Development signing and physical QA do not verify a store-signed artifact,
+TestFlight processing, or the selected App Store submission.
+
+Keep a small simulator set: a current Pro for development and Pro Max for large
+screen layouts/screenshots. Add a previous supported OS only when verifying
+compatibility. Use `xcrun simctl list devices` and `xcrun simctl runtime list`
+before cleanup; delete explicitly selected, shut-down simulators rather than
+`all`. Simulator deletion removes its installed apps/test data and affects every
+project using that simulator. Unused runtime removal should follow a
+`xcrun simctl runtime delete <RUNTIME_ID> --dry-run`; Xcode Components can
+download a runtime again when needed. Physical devices are separate and are not
+simulator cleanup targets. Use one active physical screen-control tool at a time.
 
 ## EAS cloud build
 
 Initialize EAS once per Expo account/project if it has not been initialized:
 
 ```bash
-npm install --global eas-cli
-eas login
-eas init
+npm run eas -- login
+npm run eas -- init
 ```
 
 `eas init` or project linking writes `expo.extra.eas.projectId` to `app.json`.
@@ -241,12 +275,12 @@ production environment variables. The production build profile uses the EAS
 Minimum EAS environment setup:
 
 ```bash
-npx eas-cli env:set production --name EXPO_PUBLIC_SUPABASE_URL --visibility plaintext
-npx eas-cli env:set production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --visibility sensitive
-npx eas-cli env:set production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --visibility plaintext
-npx eas-cli env:set production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --visibility plaintext
-npx eas-cli env:set production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --visibility sensitive
-npx eas-cli env:set --name GOOGLE_SERVICES_JSON --value ./google-services.json --type file --visibility secret --environment development --environment preview --environment production --non-interactive
+npm run eas -- env:set production --name EXPO_PUBLIC_SUPABASE_URL --visibility plaintext
+npm run eas -- env:set production --name EXPO_PUBLIC_SUPABASE_ANON_KEY --visibility sensitive
+npm run eas -- env:set production --name EXPO_PUBLIC_AUTH_REDIRECT_URL --visibility plaintext
+npm run eas -- env:set production --name EXPO_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET --visibility plaintext
+npm run eas -- env:set production --name POCKETCART_GOOGLE_MAPS_ANDROID_API_KEY --visibility sensitive
+npm run eas -- env:set --name GOOGLE_SERVICES_JSON --value ./google-services.json --type file --visibility secret --environment development --environment preview --environment production --non-interactive
 ```
 
 `google-services.json` and `android/app/google-services.json` stay out of Git and
@@ -266,8 +300,8 @@ npm run release:native:setup-guide
 Submit after store records and credentials are ready:
 
 ```bash
-npm run submit:ios
-npm run submit:android
+npm run submit:ios -- --id <REVIEWED_IOS_BUILD_UUID>
+npm run submit:android -- --id <REVIEWED_ANDROID_BUILD_UUID>
 ```
 
 Or use GitHub Actions > `EAS Store Submit` after the corresponding EAS build
@@ -277,10 +311,10 @@ Before the first store submission, configure EAS credentials interactively from
 the account that owns the Expo project:
 
 ```bash
-npx eas-cli credentials:configure-build --platform ios --profile production
-npx eas-cli credentials:configure-build --platform android --profile production
-npx eas-cli credentials --platform ios
-npx eas-cli credentials --platform android
+npm run eas -- credentials:configure-build --platform ios --profile production
+npm run eas -- credentials:configure-build --platform android --profile production
+npm run eas -- credentials --platform ios
+npm run eas -- credentials --platform android
 ```
 
 Use these menus to confirm:
@@ -416,26 +450,25 @@ deletion request form writes to
 `public.account_deletion_requests`.
 
 For the account-deletion request migration included in this repository, run
-GitHub Actions > `Supabase Schema Deploy`, then run `Live User Flow E2E` to
+GitHub Actions > `Supabase Backend Release` with the reviewed migration version
+selected explicitly (see [backend deployment](backend-deployment.md)), then run `Live User Flow E2E` to
 verify the live schema and both deletion endpoints.
 
 Deploy account deletion functions before store review:
 
 ```bash
-supabase functions deploy delete-account
-supabase functions deploy delete-account-request
+npm run backend:release -- deploy-functions --functions=delete-account,delete-account-request
 ```
 
 Supabase injects its project URL, anon key, and service-role key into Edge
 Functions automatically. The CLI rejects custom secret names that start with
 `SUPABASE_`, so no separate service-role secret setup is required.
 
-Deploy sale alert push functions before relying on production notifications:
+Provide `PUSH_FUNCTION_SECRET` through the environment or GitHub secrets, then
+deploy sale alert push functions before relying on production notifications:
 
 ```bash
-supabase secrets set PUSH_FUNCTION_SECRET=<long-random-secret>
-supabase functions deploy send-sale-alert-push
-supabase functions deploy sync-sale-alerts
+npm run backend:release -- deploy-functions --functions=send-sale-alert-push,sync-sale-alerts
 ```
 
 The `Sale Alert Sync` GitHub Actions workflow calls the sync endpoint every six
@@ -448,7 +481,7 @@ curl -X POST \
   -H "x-push-secret: <long-random-secret>"
 ```
 
-Use GitHub Actions > `Supabase Functions Deploy` to deploy the functions after
+Use GitHub Actions > `Supabase Backend Release` with `deploy-functions` to deploy the functions after
 setting the required repository secrets.
 
 The native app calls `https://YOUR_PROJECT_REF.supabase.co/functions/v1/delete-account`
