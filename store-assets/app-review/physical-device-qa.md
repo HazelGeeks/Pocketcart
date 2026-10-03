@@ -4,7 +4,7 @@ This ledger separates dated observations from the exact binary tested. A previou
 
 ## October 3, 2026 — current QA
 
-Status: Core navigation/persistence checks completed on build 19; owner-confirmed preview and local photo capture passed on final build 21 with screen sharing off. Remaining coverage is listed below. Physical iPhone 17 Pro, iOS 27.0.1 (24A446), Developer Mode enabled. Local Release 1.0.0 (21) is development-signed, installed as an update and launched. This is not a TestFlight or App Store submission. The owner reports that TestFlight still shows build 18.
+Status: Core navigation/persistence checks completed on build 19; owner-confirmed preview and local photo capture passed on development-signed build 21 with screen sharing off. Remaining coverage is listed below. Physical iPhone 17 Pro, iOS 27.0.1 (24A446), Developer Mode enabled. Local Release 1.0.0 (21) is development-signed, installed as an update and launched. Before publication, the owner reported TestFlight build 18. The later distribution-signed build 21 is recorded separately below.
 
 ### Exact artifact and local checks
 
@@ -47,11 +47,21 @@ Device Hub forwarded alphabetic hardware-keyboard input as Option-key variants d
 - Final entry: `/_expo/static/js/web/AppEntry-1d1156084966ffd95dad52f1e4e3faa5.js`, SHA-256 `1d1156084966ffd95dad52f1e4e3faa5be1e49e842ae3ed247501f874196d067`. Fresh live download contains zero `ko-fi.com` occurrences and the revised service/deletion guidance; support/privacy/terms/delete-account all returned HTTP 200. Live support renders account/permission/privacy/deletion guidance without a donation card. Privacy, Terms and deletion pages were opened in the browser; Terms and deletion guidance were verified after final deployment. No deletion request was submitted.
 - Support screenshot: [qa-2026-10-03-support.jpg](qa-2026-10-03-support.jpg). This shows the deployed website, not a physical app or submission screenshot.
 
+### TestFlight publication — October 3, 2026
+
+- The owner authorized committing/pushing all current changes and TestFlight deployment. Main commits: `0fa6fffe725caba75032d3470b2aab3dd1e901ed` (security, cleanup, App Review fixes and existing Flyer changes) and `a3e425a25fac54dc032f373296099027ce468122` (npm 10/11 diff override compatibility). The production IPA was compiled locally from the second commit; project source was not uploaded to EAS cloud build.
+- Initial GitHub CI failed under npm 10.9.8 with a missing nested `diff@4.0.4`. The global secure `diff@8.0.4` override fixed resolution while retaining zero audit findings. An isolated npm 10.9.8 clean install/audit and the ts-node incremental REPL compatibility test passed. Local native release checks: 463 tests, typecheck, lint, web export, native/store checks PASS. GitHub run `37158725967` and Cloudflare build `4cac128e-0855-4445-a641-25052cb6ec2f` for `a3e425a` both succeeded. Staged whitespace and secret checks passed before both commits; remote SHA matched.
+- Local EAS `production-local` build produced App Store distribution-signed 1.0.0 (21), bundle `com.pocketcart.app`, team `AU7PKKMSB8`. Strict deep signature verification passed with system keychain access. Entitlement `get-task-allow` is false; profile has no registered-device list. Scene manifest and the neutral receipt camera purpose are present.
+- IPA SHA-256: `24b58e73420b6e986fce563fee0dd76258802d7c388cf121fb2b635bf8aed2e0`; executable: `03f0b1d1905275bc84d24969bbe742ba94dffaedd0f4076ba39bad4be3ef352d`; Hermes bundle: `4cb26e6690c4eb864c759e3db9545ce083b32e9dce384098b34b4ecf906836c2`. These are distinct from the earlier development-signed artifacts.
+- EAS submission `4a1e48e6-af22-4db8-9e91-3a6f17390b5c` uploaded the IPA and Apple completed processing, but EAS marked the job errored when Fastlane tried to manually assign the existing all-builds internal group (`Builds cannot be assigned to this internal group`). No duplicate upload or build-number change was attempted. Apple independently confirms build ID `5e575bc5-9ecc-439d-819a-ca1e15aca993`, uploaded October 3 at 15:43:09 America/Vancouver, `VALID`, internal `IN_BETA_TESTING`, external `READY_FOR_BETA_SUBMISSION`, and existing `Group` (`b198790b-d0ba-4297-bf71-3bbf55d702fb`) assignment.
+- EAS rejected simultaneous `--what-to-test` on the current plan (Enterprise-only changelog). Saved en-US beta notes directly through the official Apple SDK after upload, then read them back. Notes cover security updates, neutral camera guidance, removed donations, paused Food Scan, core regression targets, screen sharing off for camera checks, and disposable-account deletion only. No App Store Review Notes, selected review build, external beta review submission or App Store resubmission was changed.
+- Post-push live store URL checks passed (support, marketing, privacy, terms and deletion all HTTP 200). Real-device installation of the distribution-signed TestFlight build is not established by the earlier development-signed QA.
+
 ### Remaining boundaries
 
 First-use camera system prompt is not physically tested because the existing permission was already granted. New registration, social sign-in, disposable account deletion, remote push delivery, family invites, denied location/manual Map search, optional OpenAI extraction and photo-storage cleanup remain unverified in this session. No full continuous recording was captured. General support contact routing, content rights, exact submission screenshots and App Store metadata remain release gates.
 
-No Git commit/push, TestFlight upload, App Store Notes edit or review resubmission was performed. Do not report the development-signed binary as beta-ready or App Store-approved.
+Git publication and internal TestFlight availability are now verified as recorded above. App Store Notes edits, review build selection and resubmission remain undone. Do not report internal beta availability as App Store approval or relabel the development-signed device tests as production IPA tests.
 
 ## September 25, 2026 — historical QA
 

@@ -2,8 +2,8 @@
 
 사용자가 전달한 카메라 권한 안내와 외부 후원 결제 반려 사유를 코드·연결된 웹
 페이지·스토어 자료와 대조한 결과입니다. 코드 및 공개 지원 페이지 확인일:
-2026-10-03. App Store Connect의 현재 제출 상태·선택한 빌드는 이번에 조회하지
-않았습니다. 로컬 수정은 새 바이너리나 운영 웹 배포의 완료 증거가 아닙니다.
+2026-10-03. Apple TestFlight의 1.0.0 (21) 처리 완료·내부 테스트 상태를 조회했습니다.
+App Store 재심사에 선택한 빌드와 제출 상태는 변경하지 않았습니다.
 
 ## 확인한 원인과 수정
 
@@ -37,12 +37,13 @@ Apple의 [권한 안내](https://developer.apple.com/design/human-interface-guid
    `ko-fi.com`이 없는 것을 확인했습니다. 실제 지원 페이지에서도 후원 카드가
    제거됐습니다. 지원·Privacy·Terms·계정 삭제 URL은 HTTP 200입니다. 배포 근거는
    [QA 기록](../store-assets/app-review/physical-device-qa.md)에 남깁니다.
-2. **정확한 제출 빌드**: 2026-10-03에 현재 소스로 개발 서명한 Release 1.0.0 (21)를
-   실기기에 업데이트 설치했습니다. 이 빌드는 TestFlight나 App Store에 제출하지
-   않았습니다. 제출용 빌드를 만들고 빌드 ID·commit·버전을 기록한 뒤 심사에
-   연결합니다. 기존 제출 바이너리나
-   예전 TestFlight 빌드가 이 변경을 포함한다고 설명하지 않습니다. 제출 명령과
-   workflow는 이제 명시한 EAS build ID 또는 실제 artifact 경로를 요구합니다.
+2. **정확한 제출 빌드**: 2026-10-03에 커밋 `a3e425a25fac54dc032f373296099027ce468122`로
+   App Store 배포 서명한 1.0.0 (21)을 로컬에서 빌드하고 TestFlight에 업로드했습니다.
+   Apple build ID는 `5e575bc5-9ecc-439d-819a-ca1e15aca993`이며 `VALID`,
+   `IN_BETA_TESTING`과 기존 내부 `Group` 배정, en-US 테스트 안내 저장을 확인했습니다.
+   외부 테스트 상태는 `READY_FOR_BETA_SUBMISSION`입니다. 실기기 QA의 개발 서명
+   바이너리와 배포 서명 IPA는 별도 아티팩트입니다. 심사 빌드 선택·재제출은 남아 있습니다.
+   제출 명령과 workflow는 명시한 EAS build ID 또는 실제 artifact 경로를 요구합니다.
 3. **실기기 권한·촬영 검사**: Device Hub 화면 공유 중에는 PocketCart와 기본
    카메라 모두 검은 화면이었습니다. 공유를 끈 뒤 사용자가 두 앱의 영상 정상화를
    확인했습니다. 최종 빌드 21에서도 사용자가 직접 영상과 촬영된 사진의 정상
@@ -78,7 +79,9 @@ release 검사에는 사전 안내 버튼 문구, 후원 경로 잔존 여부, �
 개발 서명한 최신 iOS 빌드의 컴파일·서명 검증·실기기 설치와 실행을 확인했습니다.
 실제 기기에서 확인한 동작과 미검증 항목은
 [날짜별 QA 기록](../store-assets/app-review/physical-device-qa.md)을 기준으로 합니다.
-운영 웹 배포와 지원 페이지 확인을 완료했습니다. Git 커밋·푸시, TestFlight 업로드,
-App Store Connect 문안 저장·재심사 제출은 수행하지 않았습니다. 사용자가 현재
-TestFlight에 빌드 18이 표시된다고 확인했으며, 로컬 기기 빌드와 구분합니다. 자세한 명령은
+운영 웹 배포와 지원 페이지 확인을 완료했습니다. 현재 작업을 main에 커밋·푸시하고
+463개 테스트를 포함한 로컬 release 검사, 보안 검사(전체 심각도 0건), GitHub CI와
+Cloudflare 배포 검사를 통과했습니다. TestFlight 빌드 21의 내부 테스트 가능 상태와
+테스트 안내 저장은 확인했습니다. App Store 심사 Notes 수정·빌드 선택·재심사 제출은
+수행하지 않았으며, 사용자의 TestFlight 앱 업데이트·설치는 별도 확인이 필요합니다. 자세한 명령은
 [모바일 배포 가이드](mobile-store-release.md)를 참조합니다.

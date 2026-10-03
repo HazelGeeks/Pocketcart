@@ -14,7 +14,7 @@ confirm current production data, credentials, store settings or deployment state
 | [Operations guide](operations-guide.md) | Backend/store responsibilities, deployment gaps and maintenance priorities | `supabase/`, `store-assets/`, `.github/workflows/` |
 | [Backend deployment](backend-deployment.md) | Unified Supabase release, explicit SQL selection and migration history adoption | `supabase/release.json`, `scripts/supabase-release.mjs` |
 | [Mobile store release](mobile-store-release.md) | Local/cloud builds, credentials, submission, release checks | `package.json`, `eas.json`, `.github/workflows/` |
-| [App Review readiness](app-review-readiness.md) | Camera permission and donation rejection fixes, live website gap and resubmission checks | Permission screens, SupportScreen, store-assets |
+| [App Review readiness](app-review-readiness.md) | Camera permission and donation rejection fixes, deployment evidence and resubmission checks | Permission screens, SupportScreen, store-assets |
 | [Family sharing](family-sharing.md) | Invitations, shared Cart/Freezer, synchronization and backend rollout | `src/contexts/FamilyContext.tsx`, `src/hooks/useFamilyCart.ts` |
 | [Billing setup](billing-setup.md) | Free product alerts, backend rollout, existing subscription management | `src/services/billingClient.ts`, `supabase/functions/watchlist-access/` |
 | [Social authentication](social-auth-setup.md) | Apple/Google sign-in and account deletion | `src/services/nativeSocialAuth.ts`, `supabase/functions/delete-account/` |

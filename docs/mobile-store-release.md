@@ -208,6 +208,17 @@ command above. Submission wrappers reject `--latest` and missing/ambiguous targe
 
 Verify upload, Apple processing, TestFlight group assignment, and tester notes
 separately. Successful compilation or upload alone does not make a beta available.
+On October 3, 2026, EAS rejected simultaneous `--what-to-test` submission on the
+current plan because its changelog option requires Enterprise. If that gate occurs,
+submit the reviewed artifact without that option, then save the beta build's
+"What to Test" in App Store Connect and read it back. Do not edit App Store Review
+Notes or submit for review as part of an internal TestFlight upload.
+For the existing internal `Group`, verify `hasAccessToAllBuilds` before specifying
+`--groups`. On the same date, Apple automatically assigned build 21, while EAS
+reported failure from attempting a redundant manual assignment to this all-builds
+group. Omit manual group assignment in that configuration, and check the exact
+Apple build and group before retrying an upload; a failed EAS job may already have
+uploaded and processed the binary successfully.
 
 ### Connected physical-device QA
 
