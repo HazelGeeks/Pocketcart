@@ -62,8 +62,11 @@ integrity pins the archives. The corresponding readable source is in
 `vendor/braces/` and `vendor/node-forge/`.
 
 The EAS-scoped overrides in `package.json` update its Ajv, Joi, minimatch, tar and
-YAML branches to reviewed fixes. Diff 8 and ts-deepmerge 8 also fix its remaining
-advisories; their EAS call paths were checked. EAS 24 uses ts-deepmerge's former
+YAML branches to reviewed fixes. Diff 8 is pinned globally so both EAS and
+ts-node resolve the same reviewed version under npm 10 and npm 11; an EAS-only
+override caused npm 10 CI to request an absent diff 4 lock entry. The existing
+lock graph is preserved. Incremental ts-node REPL evaluation is regression-tested.
+Diff 8 and ts-deepmerge 8 also fix the remaining advisories; their EAS call paths were checked. EAS 24 uses ts-deepmerge's former
 default export when generating projects, so a version/hash-gated compatibility
 patch selects the upstream 8 `merge` export. The same security-patch installer
 and audit check enforce it. Tests resolve actual inherited EAS profiles and

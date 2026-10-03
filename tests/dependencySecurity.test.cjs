@@ -7,6 +7,19 @@ const { spawnSync } = require("node:child_process");
 const braces = require("braces");
 const forge = require("node-forge");
 
+test("security-fixed diff preserves incremental ts-node REPL evaluation", () => {
+  const tsNode = require("ts-node");
+  const repl = tsNode.createRepl();
+  repl.setService(tsNode.create({
+    ...repl.evalAwarePartialHost,
+    skipProject: true,
+    transpileOnly: true,
+    compilerOptions: { module: "CommonJS", target: "ES2020" },
+  }));
+  repl.evalCode("const pocketcartDiffBase: number = 7;\n");
+  assert.equal(repl.evalCode("pocketcartDiffBase + 1\n"), 8);
+});
+
 test("audit gate rejects backported and transitive high advisories without exceptions", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pocketcart-audit-gate-"));
   try {
