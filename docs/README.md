@@ -10,6 +10,7 @@ confirm current production data, credentials, store settings or deployment state
 | Guide | Purpose | Primary source |
 | --- | --- | --- |
 | [Code map](code-map.md) | Feature entrypoints, hooks, services and directory responsibilities | `App.tsx`, `App.native.tsx`, `src/` |
+| [Web rendering](web-rendering.md) | Static public pages, server-rendered blog, localized SEO, performance and accessibility checks | `src/web/`, `scripts/build-web-server.mjs`, `wrangler.jsonc` |
 | [Documentation rules](documentation-rules.md) | Placement, filenames, verification evidence and safe cleanup | This documentation directory |
 | [Operations guide](operations-guide.md) | Backend/store responsibilities, deployment gaps and maintenance priorities | `supabase/`, `store-assets/`, `.github/workflows/` |
 | [Backend deployment](backend-deployment.md) | Unified Supabase release, explicit SQL selection and migration history adoption | `supabase/release.json`, `scripts/supabase-release.mjs` |

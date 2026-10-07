@@ -1,5 +1,5 @@
 import type React from "react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { ScrollView, StatusBar, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import P, { type Route } from "./src/constants/palette";
 import { isWeb } from "./src/constants/variants";
 import { appPalette } from "./src/shared/design/palette";
 import s from "./src/styles";
-import useSEO, { BASE_URL, getSEOConfig } from "./src/hooks/useSEO";
+import useSEO, { getBlogSEOConfig, getSEOConfig } from "./src/hooks/useSEO";
 import useAnalytics from "./src/hooks/useAnalytics";
 import Navbar, { type SectionId } from "./src/components/Navbar";
 import FooterSection from "./src/components/FooterSection";
@@ -28,7 +28,7 @@ import BlogScreen from "./src/screens/BlogScreen";
 import DeleteAccountScreen from "./src/screens/DeleteAccountScreen";
 import SupportScreen from "./src/screens/SupportScreen";
 import NativeAppScreen from "./src/screens/NativeAppScreen";
-import AdminScreen from "./src/screens/AdminScreen";
+const AdminScreen = lazy(() => import("./src/screens/AdminScreen"));
 import usePublishedBlogPosts from "./src/hooks/usePublishedBlogPosts";
 import { SiteI18nProvider, useSiteI18n } from "./src/i18n/siteI18n";
 import { buildPath, locationToRoute, type RouteState } from "./src/routing/routeState";
@@ -71,6 +71,10 @@ function AppShell() {
   }, []);
 
   const navigate = useCallback((r: Route, nextBlogSlug?: string | null) => {
+    if (isWeb && r !== "admin" && r !== "delete-account") {
+      window.location.assign(`${buildPath(r, nextBlogSlug)}${locale === "fr" ? "?lang=fr" : ""}`);
+      return;
+    }
     setRouteState({ route: r, blogSlug: nextBlogSlug ?? null });
     if (isWeb) {
       const path = buildPath(r, nextBlogSlug);
@@ -80,7 +84,7 @@ function AppShell() {
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       homeScrollRef.current?.scrollTo({ y: 0, animated: false });
     }
-  }, []);
+  }, [locale]);
 
   const scrollToSection = useCallback((id: SectionId) => {
     if (!isWeb) return;
@@ -122,35 +126,7 @@ function AppShell() {
   // Dynamic SEO meta tags per route
   useSEO(
     currentBlogPost
-      ? {
-          title: `${currentBlogPost.title} | PocketCart`,
-          description: currentBlogPost.description,
-          canonical: `${BASE_URL}/blog/${currentBlogPost.slug}`,
-          ogTitle: currentBlogPost.title,
-          ogDescription: currentBlogPost.description,
-          structuredData: {
-            "@context": "https://schema.org",
-            "@type": "BlogPosting",
-            headline: currentBlogPost.title,
-            description: currentBlogPost.description,
-            datePublished: currentBlogPost.publishAt ?? currentBlogPost.publishedAt,
-            dateModified: currentBlogPost.updatedAt ?? currentBlogPost.publishedAt,
-            mainEntityOfPage: `${BASE_URL}/blog/${currentBlogPost.slug}`,
-            author: {
-              "@type": "Organization",
-              name: currentBlogPost.authorName ?? "Pocketcart",
-            },
-            publisher: {
-              "@type": "Organization",
-              name: "PocketCart",
-              logo: {
-                "@type": "ImageObject",
-                url: `${BASE_URL}/icon.png`,
-              },
-            },
-            image: `${BASE_URL}/og-image.png`,
-          },
-        }
+      ? getBlogSEOConfig(currentBlogPost, locale)
       : getSEOConfig(route, locale),
   );
   useAnalytics(locale, buildPath(route, blogSlug));
@@ -205,7 +181,7 @@ function AppShell() {
       />
     );
   } else if (route === "admin") {
-    content = <AdminScreen onBack={goHome} />;
+    content = <Suspense fallback={<div role="status" style={{ padding: 24 }}>Loading admin…</div>}><AdminScreen onBack={goHome} /></Suspense>;
   } else {
     content = (
       <MotionConfig reducedMotion="user">

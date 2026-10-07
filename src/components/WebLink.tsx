@@ -20,7 +20,7 @@ export default function WebLink({
 }: Props) {
   if (Platform.OS === "web") {
     const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (!onPress) return;
+      if (!onPress || target === "_blank" || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       onPress();
     };

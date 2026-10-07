@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!!**/dist", "!!**/.tmp-tests", "!!**/ios", "!!**/android", "!!**/vendor"]
+    "includes": [
+      "**",
+      "!!**/dist",
+      "!!**/.tmp-tests",
+      "!!**/ios",
+      "!!**/android",
+      "!!**/vendor",
+      "!!src/web/worker-configuration.d.ts"
+    ]
   },
   "formatter": {
     "enabled": true,

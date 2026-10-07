@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import type { Locale } from "../i18n/types";
 
-const GA_MEASUREMENT_ID =
-  process.env.EXPO_PUBLIC_GA_MEASUREMENT_ID?.trim() ?? "";
+const configuredId = process.env.EXPO_PUBLIC_GA_MEASUREMENT_ID?.trim() ?? "";
+const GA_MEASUREMENT_ID = /^G-[A-Z0-9]+$/.test(configuredId) && !/X{4,}/.test(configuredId) ? configuredId : "";
 
 declare global {
   interface Window {

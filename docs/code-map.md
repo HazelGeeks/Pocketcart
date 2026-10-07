@@ -8,7 +8,8 @@
 | 관심 영역 | 시작점 | 역할 |
 | --- | --- | --- |
 | 네이티브 앱 | [App.native.tsx](../App.native.tsx) → [NativeAppScreen.native.tsx](../src/screens/NativeAppScreen.native.tsx) | 폰트·Provider, 화면과 탭 연결 |
-| 웹사이트·관리자 | [App.tsx](../App.tsx) → [routeState.ts](../src/routing/routeState.ts) | 웹 라우팅, 법적·지원 페이지, 관리자 진입 |
+| 공개 웹사이트 | [worker.tsx](../src/web/worker.tsx) → [StaticDocument.tsx](../src/web/StaticDocument.tsx), [BlogDocument.tsx](../src/web/BlogDocument.tsx) | 정적 공개 페이지와 서버 렌더링 블로그, 언어별 SEO·sitemap |
+| 관리자·계정 삭제·Expo 웹 개발 | [App.tsx](../App.tsx) → [routeState.ts](../src/routing/routeState.ts) | 클라이언트 라우팅과 관리자 지연 로딩 |
 | 플랫폼 구분 | [NativeAppScreen.tsx](../src/screens/NativeAppScreen.tsx) | 웹에서 쓰는 앱 화면 변형; `.native.tsx`와 함께 확인 |
 | 데이터 연결 | [supabaseClient.ts](../src/services/supabaseClient.ts) | 공개 환경 설정, 인증 세션, 클라이언트 생성 |
 | 검증·명령 | [package.json](../package.json) | 실행·검사·빌드·배포 명령의 원본 |
@@ -36,6 +37,7 @@
 ## 폴더별 책임
 
 - `src/components/`: UI와 상호작용. `nativeApp/`, `admin/`, `marketing/`으로 구분합니다.
+- `src/web/`: 공개 HTML 문서, 서버의 익명 공개 글 조회, sitemap, Cloudflare 요청 처리. [렌더링 안내](web-rendering.md)를 참고합니다.
 - `src/hooks/`: 화면 상태, 계정·가족 범위, 비동기 요청과 취소·재시도 흐름.
 - `src/services/`: API·인증·저장소·네이티브 SDK 경계.
 - `src/utils/`: 계산·정규화·검증 등 UI와 분리한 로직.

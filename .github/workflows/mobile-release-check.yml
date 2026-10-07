@@ -33,6 +33,11 @@ jobs:
 
       - name: Run native release checks
         run: npm run release:native:check
+        env:
+          # Compile-only fixtures: this workflow never deploys these artifacts.
+          EXPO_NO_DOTENV: "1"
+          EXPO_PUBLIC_SUPABASE_URL: https://preview.example.invalid
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_placeholder
 
       - name: Audit high severity dependencies
         run: npm run audit:ci

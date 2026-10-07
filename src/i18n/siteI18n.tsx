@@ -15,14 +15,20 @@ const SiteI18nContext = React.createContext<SiteI18nValue | null>(
 
 export function SiteI18nProvider({
   children,
+  initialLocale,
 }: {
   children: React.ReactNode;
+  initialLocale?: Locale;
 }) {
   const [locale, setLocale] = React.useState<Locale>(() => {
-    if (Platform.OS !== "web") {
+    if (initialLocale) return initialLocale;
+    if (Platform.OS !== "web" || typeof window === "undefined") {
       return "en";
     }
-    const saved = window.localStorage.getItem("pocketcart_locale");
+    const requested = new URLSearchParams(window.location.search).get("lang");
+    if (requested === "en" || requested === "fr") return requested;
+    let saved: string | null = null;
+    try { saved = window.localStorage.getItem("pocketcart_locale"); } catch { /* Storage may be disabled. */ }
     if (saved === "en" || saved === "fr") {
       return saved;
     }
@@ -33,7 +39,11 @@ export function SiteI18nProvider({
 
   React.useEffect(() => {
     if (Platform.OS !== "web") return;
-    window.localStorage.setItem("pocketcart_locale", locale);
+    try { window.localStorage.setItem("pocketcart_locale", locale); } catch { /* Keep language switching available without storage. */ }
+    const url = new URL(window.location.href);
+    if (locale === "fr") url.searchParams.set("lang", "fr");
+    else url.searchParams.delete("lang");
+    window.history.replaceState(window.history.state, "", url);
     document.documentElement.lang = locale;
   }, [locale]);
 

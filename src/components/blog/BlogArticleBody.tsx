@@ -6,7 +6,6 @@ import {
   type BlogNode,
 } from "../../utils/blogContent";
 import type { BlogPost } from "../../data/blogPosts";
-import "./blogArticleBody.css";
 
 function style(attrs: Record<string, unknown> = {}): CSSProperties {
   const result: CSSProperties = {};

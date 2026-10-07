@@ -4,7 +4,7 @@ import { useSiteI18n } from "../../i18n/siteI18n";
 import { marketingCopy } from "./marketingCopy";
 
 const groceryAsset = require("../../../assets/photos/fresh-grocery-basket.jpg");
-const groceries = typeof groceryAsset === "string" ? groceryAsset : groceryAsset.uri;
+export const groceries = typeof groceryAsset === "string" ? groceryAsset : groceryAsset.uri ?? groceryAsset.default;
 
 export function GroceryPhoto({ className = "", alt = "" }: { className?: string; alt?: string }) {
   return <img className={className} src={groceries} alt={alt} width={1200} height={1800} />;
@@ -27,7 +27,7 @@ export default function ProductPreview() {
           <strong>PocketCart</strong>
           <AppIcon name="bell" size={18} color="#174d37" />
         </div>
-        <h3>{c.appTitle}</h3>
+        <p className="pc-preview-title">{c.appTitle}</p>
         <div className="pc-search-preview">
           <AppIcon name="search" size={15} color="#67776d" />
           <span>{c.search}</span>
@@ -38,7 +38,7 @@ export default function ProductPreview() {
           </div>
           <div>
             <span className="pc-mini-label">{c.produce}</span>
-            <h4>{c.product}</h4>
+            <p className="pc-preview-product-name">{c.product}</p>
             <span className="pc-muted">{c.unit}</span>
           </div>
         </div>
@@ -56,6 +56,10 @@ export default function ProductPreview() {
         </div>
         <button
           className="pc-preview-add"
+          data-add-label={c.add}
+          data-remove-label={c.remove}
+          data-add-text={c.add}
+          data-added-text={c.added}
           type="button"
           aria-pressed={added}
           aria-label={added ? c.remove : c.add}

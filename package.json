@@ -22,7 +22,7 @@
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build:web",
     "audit:ci": "node scripts/check-npm-audit.mjs",
     "build": "npm run build:web",
-    "build:web": "expo export --platform web --clear && node scripts/fingerprint-web-entry.mjs",
+    "build:web": "expo export --platform web --clear && node scripts/fingerprint-web-entry.mjs && node scripts/build-web-server.mjs",
     "deploy:worker:dry-run": "npm run build:web && wrangler deploy --dry-run",
     "deploy:worker": "npm run build:web && wrangler deploy",
     "backend:plan": "node scripts/supabase-release.mjs plan",
@@ -92,7 +92,9 @@
     "@types/react": "19.2.15",
     "eas-cli": "24.10.0",
     "typescript": "5.9.3",
-    "wrangler": "4.147.0"
+    "wrangler": "4.147.0",
+    "esbuild": "0.28.1",
+    "dotenv": "16.3.1"
   },
   "overrides": {
     "compression": "1.8.2",

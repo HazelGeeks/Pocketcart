@@ -99,8 +99,10 @@ Review and apply both migrations in order through the backend release guide befo
 deploying the new web build. Images accept JPG, PNG, and WebP up to 5 MB. Draft and
 future scheduled images require admin access; public reads use the database publication
 time. Publication inputs use the browser's local time zone.
-Until that table is installed, the public blog retains its existing bundled articles
-and the admin editor reports the missing setup. Contact support at `hello@pocketcart.app`.
+The deployed blog requires both migrations: backend outages or missing setup return
+an explicit 503 response, and missing/unpublished article URLs return 404. Expo's
+development-only client blog retains its legacy compatibility fallback. Contact support
+at `hello@pocketcart.app`.
 
 `Sale Alert Sync` runs every six hours and can be triggered manually after price
 imports. Deployment and real-device push delivery need separate verification.
@@ -137,8 +139,13 @@ npm run deploy:worker
 
 Workers Builds variables named `EXPO_PUBLIC_*` are compiled into the exported
 bundle, separately from Worker runtime secrets. Optional website analytics uses
-`EXPO_PUBLIC_GA_MEASUREMENT_ID`. Deep links use the Workers SPA fallback.
-The navbar download action scrolls to the website download section.
+`EXPO_PUBLIC_GA_MEASUREMENT_ID` (placeholder IDs are ignored). The build also creates
+localized static HTML for home, support, privacy and terms, and a Worker that renders
+published blog articles and the sitemap on each request. Admin and account deletion
+retain the Expo client application. No additional database migration is needed for
+this rendering change. See [web rendering](docs/web-rendering.md) for routing,
+configuration, caching and verification. The navbar download action scrolls to the
+website download section.
 
 ## Native release
 

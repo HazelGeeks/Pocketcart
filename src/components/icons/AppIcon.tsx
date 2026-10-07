@@ -1,4 +1,5 @@
 import Search from "lucide-react-native/icons/search";
+import { Platform } from "react-native";
 import ChartNoAxesColumn from "lucide-react-native/icons/chart-no-axes-column";
 import Bell from "lucide-react-native/icons/bell";
 import CalendarDays from "lucide-react-native/icons/calendar-days";
@@ -94,5 +95,6 @@ export function AppIcon({
   strokeWidth?: number;
 }) {
   const Icon = ICONS[name];
-  return <Icon color={color} size={size} strokeWidth={strokeWidth} />;
+  const icon = <Icon color={color} size={size} strokeWidth={strokeWidth} />;
+  return Platform.OS === "web" ? <span aria-hidden="true" style={{ display: "inline-flex" }}>{icon}</span> : icon;
 }

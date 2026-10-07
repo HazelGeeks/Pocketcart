@@ -5,12 +5,33 @@
   "compatibility_date": "2026-09-03",
   "workers_dev": true,
   "routes": [
-    { "pattern": "pocketcart.app", "custom_domain": true },
-    { "pattern": "www.pocketcart.app", "custom_domain": true }
+    {
+      "pattern": "pocketcart.app",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.pocketcart.app",
+      "custom_domain": true
+    }
   ],
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "none",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/",
+      "/index.html",
+      "/blog",
+      "/blog/*",
+      "/sitemap.xml",
+      "/admin",
+      "/support",
+      "/privacy",
+      "/terms",
+      "/delete-account",
+      "/rendered/*"
+    ],
+    "html_handling": "none"
   },
   "observability": {
     "logs": {
@@ -24,5 +45,9 @@
       "head_sampling_rate": 1,
       "persist": true
     }
-  }
+  },
+  "main": ".web-server/worker.mjs",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
 }

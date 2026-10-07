@@ -1,0 +1,50 @@
+html { scroll-padding-top: 90px; }
+body.pc-public { margin: 0; color: #143c2c; background: #f5f6ef; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.pc-public *, .pc-public *::before, .pc-public *::after { box-sizing: border-box; }
+:where(.pc-public a) { color: inherit; text-decoration: none; }
+.pc-public a:focus-visible, .pc-public summary:focus-visible { outline: 3px solid #28694a; outline-offset: 4px; }
+.pc-public-header { position: sticky; top: 0; z-index: 100; background: #f5f7f1; border-bottom: 1px solid #cdd9cd; }
+.pc-public-nav { min-height: 66px; max-width: 1280px; padding: 12px 72px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.pc-public-brand { display: inline-flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800; }
+.pc-public-brand img { border-radius: 12px; }
+.pc-public-links, .pc-public-actions { display: flex; align-items: center; gap: 28px; }
+.pc-public-links a { padding-block: 10px; font-size: 15px; font-weight: 600; }
+.pc-public-actions { gap: 10px; }
+.pc-public-language { display: flex; gap: 4px; border: 1px solid #cdd9cd; border-radius: 999px; padding: 3px; background: #ffffffbf; }
+.pc-public-language a { display: grid; place-items: center; min-width: 42px; min-height: 34px; border-radius: 999px; font-size: 13px; font-weight: 800; }
+.pc-public-language a[aria-current] { background: #e9f8ef; color: #124c32; }
+.pc-public-actions .pc-public-cta { background: #0d281a; color: #fff; border-radius: 12px; font-size: 14px; font-weight: 700; padding: 10px 20px; white-space: nowrap; }
+.pc-public-menu { display: none; position: relative; }
+.pc-public-menu summary { cursor: pointer; list-style: none; display: grid; place-items: center; min-height: 44px; min-width: 44px; border: 1px solid #cdd9cd; border-radius: 10px; }
+.pc-public-menu summary::-webkit-details-marker { display: none; }
+.pc-public-menu > div { position: absolute; right: 0; top: calc(100% + 12px); background: #fff; border: 1px solid #cdd9cd; border-radius: 12px; padding: 12px; width: 240px; box-shadow: 0 8px 25px #143c2c18; }
+.pc-public-menu a { display: block; padding: 14px; font-size: 14px; }
+.pc-public-footer { background: #0d281a; color: #d6ded8; padding: 28px 0 22px; }
+.pc-public-footer .pc-public-brand { color: #fff; }
+.pc-public-footer p { font-size: 14px; }
+.pc-public-footer nav { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 20px 0; }
+.pc-public-footer nav a { font-size: 14px; padding-block: 10px; }
+.pc-public-footer small { display: block; padding-top: 14px; border-top: 1px solid #ffffff33; font-size: 12px; }
+.pc-public-footer a:focus-visible { outline-color: #d5eea7; }
+.pc-public-error { min-height: 60vh; padding-block: 60px; }
+.pc-public-text { width: min(820px, calc(100% - 40px)); margin: auto; padding: 48px 0 64px; }
+.pc-public-text h1 { font-size: clamp(34px, 4vw, 44px); line-height: 1.2; margin: 16px 0; }
+.pc-public-text h2 { font-size: 20px; margin: 0 0 12px; }
+.pc-public-text section { margin-top: 28px; }
+.pc-public-text p { font-size: 15px; line-height: 1.7; color: #365944; white-space: pre-wrap; }
+.pc-public-text a { display: inline-block; padding: 10px 0; color: #075e31; text-decoration: underline; margin-right: 20px; }
+.pc-public-support section { border: 1px solid #cad9ce; border-radius: 18px; background: #fff; padding: 20px; }
+.pc-skip-link { position: fixed; z-index: 1000; top: 8px; left: 12px; background: #fff; padding: 14px; border-radius: 8px; transform: translateY(-150%); font-size: 14px; }
+.pc-skip-link:focus { transform: translateY(0); }
+@media (max-width: 1100px) { .pc-public-nav { padding-inline: 36px; gap: 16px; } .pc-public-links { gap: 18px; } }
+@media (max-width: 767px) {
+  .pc-public-nav { padding: 10px 16px; gap: 8px; }
+  .pc-public-links { display: none; }
+  .pc-public-menu { display: block; }
+  .pc-public-brand img { width: 30px; height: 30px; }
+  .pc-public-language a { min-width: 32px; min-height: 36px; }
+  .pc-public-actions .pc-public-cta { padding: 12px; font-size: 12px; }
+  .pc-public-actions { gap: 8px; }
+}
+@media (max-width: 479px) { .pc-public-header .pc-public-brand span { display: none; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

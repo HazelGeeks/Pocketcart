@@ -50,6 +50,7 @@ function service(response, calls = []) {
   return sourceModule("src/services/blog.ts", {
     "../data/blogPosts": legacy,
     "../utils/paginatedQuery": paged,
+    "../utils/blogRows": sourceModule("src/utils/blogRows.ts", {}),
     "../utils/blogEditor": utils,
     "./blogImages": { signBlogImages: async (posts) => posts },
     "./supabaseClient": {
