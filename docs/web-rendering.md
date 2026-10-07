@@ -26,6 +26,13 @@ Canonical, hreflang, Open Graph and JSON-LD arrive in the first HTML response. T
 sitemap contains only current public articles and excludes admin/account deletion.
 If an article has no French version, its French link redirects temporarily to English.
 
+`public/robots.txt` allows page and script/style crawling and points to the canonical
+`https://pocketcart.app/sitemap.xml`. Admin/account deletion stay crawlable so Google
+can read their HTTP noindex headers. There is no static sitemap copy: the Worker
+always generates it from the current public view. Submit this URL in Google Search
+Console and use its sitemap/URL inspection reports to check actual indexing; serving
+valid files alone does not establish submission, crawling or search ranking.
+
 ## Build and deployment
 
 `npm run build:web` exports the Expo client, fingerprints its final entry, then runs

@@ -1,6 +1,8 @@
 # robots.txt — PocketCart
 User-agent: *
 Allow: /
-Disallow: /_expo/
+
+# Keep scripts/styles crawlable so search engines can render pages.
+# Admin and account deletion use HTTP noindex headers, not robots blocking.
 
 Sitemap: https://pocketcart.app/sitemap.xml
