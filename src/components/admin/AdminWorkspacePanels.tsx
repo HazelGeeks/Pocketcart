@@ -8,6 +8,7 @@ import AdminOverviewPanel from "./AdminOverviewPanel";
 import AdminProductsPanel from "./AdminProductsPanel";
 import AdminStoresPanel from "./AdminStoresPanel";
 import AdminUsersPanel from "./AdminUsersPanel";
+import AdminBlogPanel from "./AdminBlogPanel";
 
 type Props = { data: AdminWorkspaceData; actions: AdminWorkspaceActions };
 
@@ -35,12 +36,13 @@ export default function AdminWorkspacePanels({ data, actions }: Props) {
           styles={st}
           onManageProducts={() => adminUi.setActiveMenu("products")}
           onResolveReview={(id) => void actions.handleResolveIdentityReview(id)}
-          onAssignReview={(review, target) =>
-            actions.handleAssignIdentityReview(review, target)
-          }
+          onAssignReview={(review, target) => actions.handleAssignIdentityReview(review, target)}
         />
       ) : null}
-      {adminUi.activeMenu === "notifications" ? <AdminNotificationsPanel stores={backend.stores} /> : null}
+      {adminUi.activeMenu === "notifications" ? (
+        <AdminNotificationsPanel stores={backend.stores} />
+      ) : null}
+      <AdminBlogPanel active={adminUi.activeMenu === "blog"} />
       {adminUi.activeMenu === "users" ? (
         <AdminUsersPanel users={backend.users} loading={backend.loading.users} styles={st} />
       ) : null}

@@ -29,7 +29,7 @@ import DeleteAccountScreen from "./src/screens/DeleteAccountScreen";
 import SupportScreen from "./src/screens/SupportScreen";
 import NativeAppScreen from "./src/screens/NativeAppScreen";
 import AdminScreen from "./src/screens/AdminScreen";
-import { getBlogPost } from "./src/data/blogPosts";
+import usePublishedBlogPosts from "./src/hooks/usePublishedBlogPosts";
 import { SiteI18nProvider, useSiteI18n } from "./src/i18n/siteI18n";
 import { buildPath, locationToRoute, type RouteState } from "./src/routing/routeState";
 
@@ -53,15 +53,14 @@ function AppShell() {
   );
   const route = routeState.route;
   const blogSlug = routeState.blogSlug;
-  const currentBlogPost =
-    getBlogPost(locale, blogSlug) ?? getBlogPost("en", blogSlug);
+  const blogQuery = usePublishedBlogPosts(locale, isWeb && route === "blog");
+  const blogPosts = blogQuery.data ?? [];
+  const currentBlogPost = blogPosts.find((post) => post.slug === blogSlug);
 
   useEffect(() => {
     if (!isWeb) return;
     const syncRoute = () => {
-      setRouteState(
-        locationToRoute(window.location.pathname, window.location.hash),
-      );
+      setRouteState(locationToRoute(window.location.pathname, window.location.hash));
     };
     window.addEventListener("popstate", syncRoute);
     window.addEventListener("hashchange", syncRoute);
@@ -88,7 +87,9 @@ function AppShell() {
     const section = document.getElementById(id);
     if (!section) return;
     section.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
       block: "start",
     });
   }, []);
@@ -116,10 +117,7 @@ function AppShell() {
 
   const goHome = useCallback(() => navigate("home"), [navigate]);
   const goBlogIndex = useCallback(() => navigate("blog"), [navigate]);
-  const openBlogPost = useCallback(
-    (slug: string) => navigate("blog", slug),
-    [navigate],
-  );
+  const openBlogPost = useCallback((slug: string) => navigate("blog", slug), [navigate]);
 
   // Dynamic SEO meta tags per route
   useSEO(
@@ -135,12 +133,12 @@ function AppShell() {
             "@type": "BlogPosting",
             headline: currentBlogPost.title,
             description: currentBlogPost.description,
-            datePublished: currentBlogPost.publishedAt,
-            dateModified: currentBlogPost.publishedAt,
+            datePublished: currentBlogPost.publishAt ?? currentBlogPost.publishedAt,
+            dateModified: currentBlogPost.updatedAt ?? currentBlogPost.publishedAt,
             mainEntityOfPage: `${BASE_URL}/blog/${currentBlogPost.slug}`,
             author: {
               "@type": "Organization",
-              name: "PocketCart",
+              name: currentBlogPost.authorName ?? "Pocketcart",
             },
             publisher: {
               "@type": "Organization",
@@ -157,8 +155,7 @@ function AppShell() {
   );
   useAnalytics(locale, buildPath(route, blogSlug));
 
-  const safeAreaBackground =
-    route === "delete-account" ? appPalette.bg : P.bg;
+  const safeAreaBackground = route === "delete-account" ? appPalette.bg : P.bg;
 
   let content: React.ReactNode = null;
 
@@ -167,6 +164,12 @@ function AppShell() {
   } else if (route === "blog") {
     content = (
       <BlogScreen
+        posts={blogPosts}
+        loading={blogQuery.isLoading}
+        loadError={blogQuery.error ? "Unable to load articles." : null}
+        onRetry={() => {
+          void blogQuery.refetch();
+        }}
         currentSlug={blogSlug}
         onBackHome={goHome}
         onBackToBlog={goBlogIndex}
@@ -215,10 +218,7 @@ function AppShell() {
             contentContainerStyle={s.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Navbar
-              onNavigate={navigate}
-              onNavigateSection={navigateSection}
-            />
+            <Navbar onNavigate={navigate} onNavigateSection={navigateSection} />
             <HeroSection />
             <FeaturesSection />
             <HowItWorksSection />

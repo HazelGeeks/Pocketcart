@@ -1,6 +1,13 @@
 import { create } from "zustand";
 
-export type AdminMenuKey = "overview" | "users" | "products" | "stores" | "flyer" | "notifications";
+export type AdminMenuKey =
+  | "overview"
+  | "users"
+  | "products"
+  | "stores"
+  | "flyer"
+  | "notifications"
+  | "blog";
 
 export type ProductSortKey = "latest" | "oldest" | "name" | "priceLow" | "priceHigh";
 
@@ -118,7 +125,8 @@ export const useAdminStore = create<AdminStoreState>((set) => ({
   setProductOnSaleOnly: (value) => set({ productOnSaleOnly: value }),
   setProductSort: (value) => set({ productSort: value }),
   resetProductFilters: () => set(productFilterDefaults),
-  setFlyerRows: (rows) => set((state) => ({ flyerRows: typeof rows === "function" ? rows(state.flyerRows) : rows })),
+  setFlyerRows: (rows) =>
+    set((state) => ({ flyerRows: typeof rows === "function" ? rows(state.flyerRows) : rows })),
   setFlyerProcessing: (value) => set({ flyerProcessing: value }),
   setFlyerProgress: (value) => set({ flyerProgress: value }),
   updateFlyerRow: (id, field, value) =>

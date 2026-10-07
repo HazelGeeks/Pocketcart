@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { ScrollView, View } from "react-native";
-import { getBlogPost, getBlogPosts, type BlogPost } from "../data/blogPosts";
+import type { BlogPost } from "../data/blogPosts";
+import BlogArticleBody from "../components/blog/BlogArticleBody";
+import { blogDocument, blogHeadings } from "../utils/blogContent";
 import { useSiteI18n } from "../i18n/siteI18n";
 import WebLink from "../components/WebLink";
 import Navbar, { type SectionId } from "../components/Navbar";
@@ -11,6 +13,10 @@ import "../components/marketing/marketing.css";
 import "../components/marketing/blog.css";
 
 export default function BlogScreen({
+  posts,
+  loading,
+  loadError,
+  onRetry,
   currentSlug,
   onBackHome,
   onBackToBlog,
@@ -18,6 +24,10 @@ export default function BlogScreen({
   onNavigate,
   onNavigateSection,
 }: {
+  posts: BlogPost[];
+  loading: boolean;
+  loadError: string | null;
+  onRetry: () => void;
   currentSlug: string | null;
   onBackHome: () => void;
   onBackToBlog: () => void;
@@ -27,9 +37,9 @@ export default function BlogScreen({
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const { locale, copy } = useSiteI18n();
-  const posts = getBlogPosts(locale);
-  const selectedPost = getBlogPost(locale, currentSlug) ?? getBlogPost("en", currentSlug);
-  const featurePost = posts[0] ?? getBlogPosts("en")[0];
+  const selectedPost = posts.find((post) => post.slug === currentSlug);
+  const featurePost = posts[0];
+  const headings = selectedPost ? blogHeadings(blogDocument(selectedPost)) : [];
   const relatedPosts = posts.filter((post) => post.slug !== selectedPost?.slug).slice(0, 3);
   const dateFormatter = useMemo(
     () =>
@@ -55,6 +65,18 @@ export default function BlogScreen({
       <span>
         {post.readMinutes} {copy.blog.minutesRead}
       </span>
+      {post.authorName ? (
+        <>
+          <span aria-hidden="true">·</span>
+          <span>{post.authorName}</span>
+        </>
+      ) : null}
+      {post.category ? (
+        <>
+          <span aria-hidden="true">·</span>
+          <span>{post.category}</span>
+        </>
+      ) : null}
     </div>
   );
   const postLink = (post: BlogPost) => (
@@ -79,6 +101,14 @@ export default function BlogScreen({
               0{i + 1}
             </span>
           </div>
+          {post.coverImagePath && post.imageUrls?.[post.coverImagePath] ? (
+            <img
+              className="pc-blog-card-cover"
+              src={post.imageUrls[post.coverImagePath]}
+              alt={post.coverImageAlt ?? ""}
+              loading="lazy"
+            />
+          ) : null}
           {metadata(post)}
           <h3>
             <WebLink href={`/blog/${post.slug}`} onPress={() => onOpenPost(post.slug)}>
@@ -112,38 +142,75 @@ export default function BlogScreen({
               <span>{selectedPost ? copy.blog.backToBlog : copy.blog.back}</span>
             </WebLink>
           </div>
-          {selectedPost ? (
+          {loading || loadError || (currentSlug && !selectedPost) || !featurePost ? (
+            <div className="pc-container pc-blog-header" role={loadError ? "alert" : "status"}>
+              <div>
+                <h1>
+                  {loading
+                    ? locale === "fr"
+                      ? "Chargement des articles…"
+                      : "Loading articles…"
+                    : loadError
+                      ? locale === "fr"
+                        ? "Articles indisponibles"
+                        : "Articles unavailable"
+                      : currentSlug
+                        ? locale === "fr"
+                          ? "Article introuvable"
+                          : "Article not found"
+                        : locale === "fr"
+                          ? "Les articles arrivent bientôt"
+                          : "Articles coming soon"}
+                </h1>
+                {loadError ? (
+                  <button type="button" onClick={onRetry}>
+                    {locale === "fr" ? "Réessayer" : "Try again"}
+                  </button>
+                ) : null}
+                {currentSlug && !loading && !loadError ? (
+                  <WebLink href="/blog" onPress={onBackToBlog}>
+                    {copy.blog.backToBlog}
+                  </WebLink>
+                ) : null}
+              </div>
+            </div>
+          ) : selectedPost ? (
             <>
               <header className="pc-container pc-blog-article-header">
                 <p className="pc-eyebrow">POCKETCART JOURNAL</p>
                 {metadata(selectedPost)}
                 <h1>{selectedPost.title}</h1>
                 <p className="pc-blog-intro">{selectedPost.description}</p>
+                {selectedPost.coverImagePath &&
+                selectedPost.imageUrls?.[selectedPost.coverImagePath] ? (
+                  <img
+                    className="pc-blog-cover"
+                    src={selectedPost.imageUrls[selectedPost.coverImagePath]}
+                    alt={selectedPost.coverImageAlt ?? ""}
+                  />
+                ) : null}
               </header>
               <div className="pc-blog-reading">
-                <div className="pc-container pc-blog-reading-grid">
-                  <aside className="pc-blog-sidebar">
-                    <span className="pc-eyebrow">
-                      {locale === "fr" ? "DANS CET ARTICLE" : "IN THIS ARTICLE"}
-                    </span>
-                    <nav aria-label={locale === "fr" ? "Sommaire" : "Table of contents"}>
-                      {selectedPost.sections.map((section, i) => (
-                        <a key={section.heading} href={`#article-section-${i}`}>
-                          <span>0{i + 1}</span>
-                          {section.heading}
-                        </a>
-                      ))}
-                    </nav>
-                  </aside>
-                  <article className="pc-blog-prose">
-                    {selectedPost.sections.map((section, i) => (
-                      <section id={`article-section-${i}`} key={section.heading}>
-                        <h2>{section.heading}</h2>
-                        {section.paragraphs.map((paragraph) => (
-                          <p key={paragraph}>{paragraph}</p>
+                <div
+                  className={`pc-container pc-blog-reading-grid${headings.length ? "" : " pc-blog-no-toc"}`}
+                >
+                  {headings.length ? (
+                    <aside className="pc-blog-sidebar">
+                      <span className="pc-eyebrow">
+                        {locale === "fr" ? "DANS CET ARTICLE" : "IN THIS ARTICLE"}
+                      </span>
+                      <nav aria-label={locale === "fr" ? "Sommaire" : "Table of contents"}>
+                        {headings.map((heading, i) => (
+                          <a key={heading.id} href={`#${heading.id}`}>
+                            <span>0{i + 1}</span>
+                            {heading.text}
+                          </a>
                         ))}
-                      </section>
-                    ))}
+                      </nav>
+                    </aside>
+                  ) : null}
+                  <article className="pc-blog-prose">
+                    <BlogArticleBody post={selectedPost} />
                     <div className="pc-blog-article-end">
                       <span>PocketCart Journal</span>
                       <WebLink href="/blog" onPress={onBackToBlog}>
@@ -184,7 +251,15 @@ export default function BlogScreen({
                 aria-labelledby="pc-blog-feature-title"
               >
                 <div className="pc-blog-feature-photo">
-                  <GroceryPhoto />
+                  {featurePost.coverImagePath &&
+                  featurePost.imageUrls?.[featurePost.coverImagePath] ? (
+                    <img
+                      src={featurePost.imageUrls[featurePost.coverImagePath]}
+                      alt={featurePost.coverImageAlt ?? ""}
+                    />
+                  ) : (
+                    <GroceryPhoto />
+                  )}
                   <span>
                     {locale === "fr"
                       ? "UN PEU DE PRÉPARATION CHANGE TOUT."

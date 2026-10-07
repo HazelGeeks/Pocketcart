@@ -1,4 +1,5 @@
 import React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type {
   AdminAuditLog,
   AdminDirectoryUser,
@@ -41,6 +42,7 @@ import {
 import type { AdminWorkspaceState } from "./useAdminWorkspaceState";
 
 export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
+  const queryClient = useQueryClient();
   const { setNotice, refreshing, setRefreshing } = state.status;
   const adminUserQuery = useAdminUserQuery();
   const authUser = adminUserQuery.data ?? null;
@@ -137,6 +139,8 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
 
   const loadAll = React.useCallback(
     async (keepNotice = false) => {
+      if (activeMenu === "blog")
+        await queryClient.invalidateQueries({ queryKey: ["admin", "blog"] });
       const requests: Array<Promise<{ error: unknown }>> = [];
       if (overviewOrProducts) requests.push(productsQuery.refetch(), productAliasesQuery.refetch());
       if (needsStoresAndPrices) requests.push(storesQuery.refetch(), pricesQuery.refetch());
@@ -152,6 +156,7 @@ export default function useAdminWorkspaceQueries(state: AdminWorkspaceState) {
     },
     [
       activeMenu,
+      queryClient,
       auditLogsQuery,
       needsStoresAndPrices,
       overviewOrProducts,

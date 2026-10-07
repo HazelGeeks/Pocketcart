@@ -38,6 +38,7 @@ export default function useAdminWorkspaceData() {
     { key: "stores" as const, label: "Branches", badge: dashboard.displayStores.length },
     { key: "flyer" as const, label: "Flyer" },
     { key: "notifications" as const, label: "Notifications" },
+    { key: "blog" as const, label: "Blog" },
   ];
   const panelTitle =
     adminUi.activeMenu === "overview"
@@ -48,7 +49,11 @@ export default function useAdminWorkspaceData() {
           ? "Products"
           : adminUi.activeMenu === "stores"
             ? "Retailer Branches"
-            : adminUi.activeMenu === "notifications" ? "Notifications" : "Flyer";
+            : adminUi.activeMenu === "blog"
+              ? "Blog"
+              : adminUi.activeMenu === "notifications"
+                ? "Notifications"
+                : "Flyer";
 
   return { isLg, state, backend, dashboard, sectionMenu, panelTitle };
 }

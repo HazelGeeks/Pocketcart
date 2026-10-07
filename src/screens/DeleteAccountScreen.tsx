@@ -1,14 +1,6 @@
 import { webViewStyle } from "../shared/design/webViewStyle";
 import React from "react";
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSiteI18n } from "../i18n/siteI18n";
 import useLayout from "../hooks/useLayout";
 import { submitAccountDeletionRequest } from "../services/userProfile";
@@ -16,12 +8,8 @@ import { appPalette as P } from "../shared/design/palette";
 
 const DELETION_URL = "https://pocketcart.app/delete-account";
 
-export default function DeleteAccountScreen({
-  onBack,
-}: {
-  onBack: () => void;
-}) {
-  const { copy } = useSiteI18n();
+export default function DeleteAccountScreen({ onBack }: { onBack: () => void }) {
+  const { copy, locale } = useSiteI18n();
   const { pad, isLg } = useLayout();
   const page = copy.mvp.deletePage;
   const [email, setEmail] = React.useState("");
@@ -29,32 +17,63 @@ export default function DeleteAccountScreen({
   const [details, setDetails] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
+  const submitLock = React.useRef(false);
+  const form =
+    locale === "fr"
+      ? {
+          title: "Envoyer une demande de suppression",
+          body: "Si vous ne pouvez pas vous connecter à l’application, indiquez l’adresse e-mail de votre compte pour demander sa suppression.",
+          email: "Adresse e-mail du compte",
+          details: "Précisions facultatives",
+          unknown: "Autre",
+          submitting: "Envoi en cours…",
+          invalid: "Indiquez l’adresse e-mail utilisée pour votre compte PocketCart.",
+          success: "Demande reçue. Nous examinerons votre demande de suppression.",
+          network: "Impossible d’envoyer la demande. Vérifiez votre connexion et réessayez.",
+        }
+      : {
+          title: "Submit deletion request",
+          body: "If you cannot sign in to the app, submit your account email here so the deletion request can be reviewed.",
+          email: "Account email",
+          details: "Optional details",
+          unknown: "Unknown",
+          submitting: "Submitting…",
+          invalid: "Enter the account email address used for PocketCart.",
+          success: "Deletion request received. We will review the account deletion request.",
+          network: "Unable to submit your request. Check your connection and try again.",
+        };
 
   const handleSubmit = React.useCallback(async () => {
+    if (submitLock.current) return;
     const normalizedEmail = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setMessage("Enter the account email address used for PocketCart.");
+      setMessage(form.invalid);
       return;
     }
 
+    submitLock.current = true;
     setSubmitting(true);
     setMessage(null);
-    const result = await submitAccountDeletionRequest({
-      email: normalizedEmail,
-      platform,
-      details,
-    });
-    setSubmitting(false);
-
-    if (result.error) {
-      setMessage(result.error);
-      return;
+    try {
+      const result = await submitAccountDeletionRequest({
+        email: normalizedEmail,
+        platform,
+        details,
+      });
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      setEmail("");
+      setDetails("");
+      setMessage(form.success);
+    } catch {
+      setMessage(form.network);
+    } finally {
+      submitLock.current = false;
+      setSubmitting(false);
     }
-
-    setEmail("");
-    setDetails("");
-    setMessage("Deletion request received. We will review the account deletion request.");
-  }, [details, email, platform]);
+  }, [details, email, platform, form.invalid, form.success, form.network]);
 
   return (
     <View style={st.root}>
@@ -68,8 +87,7 @@ export default function DeleteAccountScreen({
           style={[
             st.topBar,
             { paddingHorizontal: pad },
-            Platform.OS === "web" &&
-              (webViewStyle({ position: "sticky", top: 0, zIndex: 50 })),
+            Platform.OS === "web" && webViewStyle({ position: "sticky", top: 0, zIndex: 50 }),
           ]}
         >
           <Pressable onPress={onBack} style={st.backBtn}>
@@ -78,14 +96,11 @@ export default function DeleteAccountScreen({
           </Pressable>
         </View>
 
-        <View
-          style={[
-            st.container,
-            { paddingHorizontal: pad, maxWidth: isLg ? 880 : 720 },
-          ]}
-        >
+        <View style={[st.container, { paddingHorizontal: pad, maxWidth: isLg ? 880 : 720 }]}>
           <Text style={st.eyebrow}>LEGAL</Text>
-          <Text style={st.title}>{page.title}</Text>
+          <Text accessibilityRole="header" aria-level={1} style={st.title}>
+            {page.title}
+          </Text>
           <Text style={st.intro}>{page.intro}</Text>
 
           <View style={st.card}>
@@ -101,15 +116,15 @@ export default function DeleteAccountScreen({
           </View>
 
           <View style={st.card}>
-            <Text style={st.cardTitle}>Submit deletion request</Text>
-            <Text style={st.cardBody}>
-              If you cannot sign in to the app, submit your account email here
-              so the deletion request can be reviewed.
+            <Text accessibilityRole="header" aria-level={2} style={st.cardTitle}>
+              {form.title}
             </Text>
+            <Text style={st.cardBody}>{form.body}</Text>
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="Account email"
+              placeholder={form.email}
+              accessibilityLabel={form.email}
               placeholderTextColor={P.textSoft}
               autoCapitalize="none"
               autoCorrect={false}
@@ -122,24 +137,16 @@ export default function DeleteAccountScreen({
                   key={item}
                   accessibilityRole="button"
                   onPress={() => setPlatform(item)}
-                  style={[
-                    st.platformBtn,
-                    platform === item && st.platformBtnActive,
-                  ]}
+                  style={[st.platformBtn, platform === item && st.platformBtnActive]}
                 >
-                  <Text
-                    style={[
-                      st.platformText,
-                      platform === item && st.platformTextActive,
-                    ]}
-                  >
+                  <Text style={[st.platformText, platform === item && st.platformTextActive]}>
                     {item === "ios"
                       ? "iOS"
                       : item === "android"
                         ? "Android"
                         : item === "web"
                           ? "Web"
-                          : "Unknown"}
+                          : form.unknown}
                   </Text>
                 </Pressable>
               ))}
@@ -147,7 +154,8 @@ export default function DeleteAccountScreen({
             <TextInput
               value={details}
               onChangeText={setDetails}
-              placeholder="Optional details"
+              placeholder={form.details}
+              accessibilityLabel={form.details}
               placeholderTextColor={P.textSoft}
               multiline
               style={[st.input, st.textArea]}
@@ -158,11 +166,13 @@ export default function DeleteAccountScreen({
               disabled={submitting}
               style={[st.submitBtn, submitting && st.submitBtnDisabled]}
             >
-              <Text style={st.submitText}>
-                {submitting ? "Submitting..." : "Submit deletion request"}
-              </Text>
+              <Text style={st.submitText}>{submitting ? form.submitting : form.title}</Text>
             </Pressable>
-            {message ? <Text style={st.formMessage}>{message}</Text> : null}
+            {message ? (
+              <Text accessibilityRole="alert" style={st.formMessage}>
+                {message}
+              </Text>
+            ) : null}
           </View>
 
           <View style={st.card}>
@@ -184,9 +194,7 @@ const st = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: P.bg,
-    ...(Platform.OS === "web"
-      ? (webViewStyle({ minHeight: "100vh", width: "100%" }))
-      : {}),
+    ...(Platform.OS === "web" ? webViewStyle({ minHeight: "100vh", width: "100%" }) : {}),
   },
   scroll: { flex: 1 },
   scrollContent: { flexGrow: 1, paddingBottom: 80 },
@@ -195,7 +203,7 @@ const st = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: P.line,
     paddingVertical: 14,
-    ...(Platform.OS === "web" ? (webViewStyle({ backdropFilter: "blur(14px)" })) : {}),
+    ...(Platform.OS === "web" ? webViewStyle({ backdropFilter: "blur(14px)" }) : {}),
   },
   backBtn: {
     flexDirection: "row",

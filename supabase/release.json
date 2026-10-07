@@ -34,7 +34,9 @@
     "20260916010000_receipts.sql",
     "20260924010000_free_product_alerts.sql",
     "20261003010000_storage_access_and_rls_performance.sql",
-    "20261003020000_validate_catalog_constraints.sql"
+    "20261003020000_validate_catalog_constraints.sql",
+    "20261007010000_blog_posts.sql",
+    "20261007020000_blog_rich_editor.sql"
   ],
   "functions": [
     "admin-flyer-notification",

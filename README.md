@@ -86,6 +86,22 @@ Web admin is available at `/admin`. Database writes require membership in
 Product imports use reviewed identity matching and route ambiguous matches for
 review. Flyer extraction uses `back-office-flyer` and server-side authorization.
 
+Admin → **Blog** provides a rich text editor with typography, links, lists, tables,
+inline image upload/paste, cover images, categories, authors, previews, and pinned articles.
+It manages English and French drafts, immediate publication, scheduled publication,
+and unpublishing. Published articles load from Supabase without rebuilding the website;
+drafts and writes are restricted to existing `admin_users` members. Article URLs and
+languages stay fixed after the first save, and concurrent edits are checked before
+overwriting a saved revision. The `20261007010000_blog_posts.sql` migration creates
+the table and preserves the existing six articles in both languages;
+`20261007020000_blog_rich_editor.sql` adds rich content, scheduling, and private image storage.
+Review and apply both migrations in order through the backend release guide before
+deploying the new web build. Images accept JPG, PNG, and WebP up to 5 MB. Draft and
+future scheduled images require admin access; public reads use the database publication
+time. Publication inputs use the browser's local time zone.
+Until that table is installed, the public blog retains its existing bundled articles
+and the admin editor reports the missing setup. Contact support at `hello@pocketcart.app`.
+
 `Sale Alert Sync` runs every six hours and can be triggered manually after price
 imports. Deployment and real-device push delivery need separate verification.
 Do not replay `database/schema.sql` against production as a routine setup step;

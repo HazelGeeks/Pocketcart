@@ -2,6 +2,24 @@
 export function featureChecks(migrations) {
   const versions = new Set(migrations.map((item) => item.version));
   const checks = [];
+  if (versions.has("20261007020000")) checks.push(`
+DO $pc_verify$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM pg_class WHERE oid='public.published_blog_posts'::regclass AND reloptions @> ARRAY['security_invoker=true'])
+    OR NOT EXISTS(SELECT 1 FROM storage.buckets WHERE id='blog-images' AND NOT public AND file_size_limit=5242880)
+    OR NOT EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='blog_images_published_read')
+  THEN RAISE EXCEPTION 'Rich blog access verification failed'; END IF;
+END $pc_verify$;`);
+  if (versions.has("20261007010000")) checks.push(`
+DO $pc_verify$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM pg_class WHERE oid='public.blog_posts'::regclass AND relrowsecurity)
+    OR has_table_privilege('anon','public.blog_posts','insert,update,delete')
+    OR has_table_privilege('authenticated','public.blog_posts','delete')
+    OR NOT has_table_privilege('anon','public.blog_posts','select')
+    OR NOT has_table_privilege('authenticated','public.blog_posts','insert,update')
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='blog_posts_validate' AND NOT tgisinternal)
+    OR NOT EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='blog_posts' AND policyname='blog_posts_public_read' AND cmd='SELECT')
+  THEN RAISE EXCEPTION 'Blog access verification failed'; END IF;
+END $pc_verify$;`);
   if (versions.has("20260914010000") || versions.has("20260914020000")) checks.push(`
 DO $pc_verify$ BEGIN
   IF has_table_privilege('authenticated','public.family_invites','select')

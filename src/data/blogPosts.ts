@@ -1,4 +1,5 @@
 import type { Locale } from "../i18n/types";
+import type { BlogDocument } from "../utils/blogContent";
 
 type BlogSection = {
   heading: string;
@@ -13,6 +14,15 @@ export type BlogPost = {
   publishedAt: string;
   readMinutes: number;
   sections: BlogSection[];
+  content?: BlogDocument;
+  category?: string;
+  authorName?: string;
+  coverImagePath?: string;
+  coverImageAlt?: string;
+  imageUrls?: Record<string, string>;
+  publishAt?: string | null;
+  isPinned?: boolean;
+  updatedAt?: string;
 };
 
 const BLOG_POSTS: Record<Locale, BlogPost[]> = {

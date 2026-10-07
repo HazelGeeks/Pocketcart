@@ -1,6 +1,6 @@
 # 기능별 코드 탐색 안내
 
-코드 구조 확인일: 2026-10-03. 기능을 수정할 때 어디서 읽기 시작할지 정리한 문서입니다.
+코드 구조 확인일: 2026-10-07. 기능을 수정할 때 어디서 읽기 시작할지 정리한 문서입니다.
 실행·배포 방법은 [프로젝트 README](../README.md)와 각 설정 가이드에서 확인합니다.
 
 ## 먼저 읽을 파일
@@ -30,6 +30,7 @@
 | Food Scan (temporarily paused) | [FoodScanPanel.tsx](../src/components/nativeApp/FoodScanPanel.tsx) | [foodScan.ts](../src/services/foodScan.ts) |
 | 할인·만료 알림 | [useNativeSaleAlerts.ts](../src/hooks/useNativeSaleAlerts.ts), [useFreezerReminders.ts](../src/hooks/useFreezerReminders.ts) | [saleAlerts.ts](../src/services/saleAlerts.ts), [pushNotifications.ts](../src/services/pushNotifications.ts), [freezerNotifications.ts](../src/services/freezerNotifications.ts) |
 | 관리자 | [useAdminWorkspaceCommands.ts](../src/hooks/useAdminWorkspaceCommands.ts) | [adminBackoffice](../src/services/adminBackoffice/index.ts), [adminStore.ts](../src/state/adminStore.ts) |
+| 블로그 작성·게시 | [AdminBlogPanel.tsx](../src/components/admin/AdminBlogPanel.tsx), [BlogRichTextEditor.tsx](../src/components/admin/BlogRichTextEditor.tsx), [BlogScreen.tsx](../src/screens/BlogScreen.tsx) | [useAdminBlogEditor.ts](../src/hooks/useAdminBlogEditor.ts), [usePublishedBlogPosts.ts](../src/hooks/usePublishedBlogPosts.ts), [blog.ts](../src/services/blog.ts), [blogImages.ts](../src/services/blogImages.ts), [BlogArticleBody.tsx](../src/components/blog/BlogArticleBody.tsx), [blog_posts migration](../supabase/migrations/20261007010000_blog_posts.sql), [rich editor migration](../supabase/migrations/20261007020000_blog_rich_editor.sql) |
 | Flyer 가져오기 | [useAdminFlyerImport.ts](../src/hooks/useAdminFlyerImport.ts) | [flyerAiImport.ts](../src/services/flyerAiImport.ts), [flyerBatchImport.ts](../src/utils/flyerBatchImport.ts) |
 
 ## 폴더별 책임

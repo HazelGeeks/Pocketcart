@@ -405,6 +405,8 @@ export async function submitAccountDeletionRequest(params: {
 
   const response = await fetch(`${supabaseUrl}/functions/v1/delete-account-request`, {
     method: "POST",
+    signal: typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(20_000) : undefined,
     headers: {
       apikey: supabaseAnonKey,
       "Content-Type": "application/json",

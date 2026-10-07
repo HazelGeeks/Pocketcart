@@ -37,7 +37,7 @@ export function AdminHeader({
         <Text accessibilityRole="header" aria-level={1} style={st.pageTitle}>
           Admin Dashboard
         </Text>
-        <Text style={st.pageSub}>Manage product catalog and active price sets.</Text>
+        <Text style={st.pageSub}>Manage your catalog, prices, and blog articles.</Text>
       </View>
 
       {hasAdminAccess ? (
@@ -78,9 +78,7 @@ export function AdminMobileMenu({
             onPress={() => onSelectMenu(item.key)}
             style={[st.mobileMenuBtn, active && st.mobileMenuBtnActive]}
           >
-            <Text style={[st.mobileMenuText, active && st.mobileMenuTextActive]}>
-              {item.label}
-            </Text>
+            <Text style={[st.mobileMenuText, active && st.mobileMenuTextActive]}>{item.label}</Text>
             {typeof item.badge === "number" ? (
               <View style={[st.mobileMenuBadge, active && st.menuBadgeActive]}>
                 <Text style={[st.mobileMenuBadgeText, active && st.menuBadgeTextActive]}>
