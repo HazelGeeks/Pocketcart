@@ -12,6 +12,7 @@ node_modules/
 
 # Build outputs
 dist/
+.web-server/
 web-build/
 android/.gradle/
 android/build/

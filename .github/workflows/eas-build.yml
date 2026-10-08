@@ -55,6 +55,11 @@ jobs:
 
       - name: Run release checks
         run: npm run release:native:check && npm run audit:ci
+        env:
+          # Compile-only web fixtures; the native build uses the EAS environment below.
+          EXPO_NO_DOTENV: "1"
+          EXPO_PUBLIC_SUPABASE_URL: https://preview.example.invalid
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_placeholder
 
       - name: Validate EAS production environment
         if: ${{ inputs.profile == 'production' || inputs.profile == 'preview' || inputs.profile == 'preview-simulator' }}

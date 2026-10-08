@@ -63,6 +63,11 @@ jobs:
 
       - name: Run release checks
         run: npm run release:native:check && npm run audit:ci && npm run release:store-assets:live-check
+        env:
+          # Compile-only web fixtures; never applied to the reviewed native artifact.
+          EXPO_NO_DOTENV: "1"
+          EXPO_PUBLIC_SUPABASE_URL: https://preview.example.invalid
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_ci_placeholder
 
       - name: Validate EAS production environment
         run: |
