@@ -5,10 +5,13 @@ const path = require("node:path");
 const vm = require("node:vm");
 const ts = require("typescript");
 
-async function extract({ pdf = false, ocr = "Milk $3.99", visionFails = false, admin = true } = {}) {
+async function extract({ pdf = false, ocr = "Milk $3.99", visionFails = false, admin = true,
+  aiText, usage, openAi = true, vision = true, model = "gpt-6-luna" } = {}) {
   let handler;
   let aiRequest;
   const env = { SUPABASE_URL: "https://test.local", SUPABASE_ANON_KEY: "test", GOOGLE_VISION_API_KEY: "test", OPENAI_API_KEY: "test" };
+  if (!openAi) delete env.OPENAI_API_KEY;
+  if (!vision) delete env.GOOGLE_VISION_API_KEY;
   const globals = {
     Request, Response, File, FormData, Uint8Array, btoa, atob,
     Deno: { env: { get: (key) => env[key] }, serve: (fn) => { handler = fn; } },
@@ -21,7 +24,7 @@ async function extract({ pdf = false, ocr = "Milk $3.99", visionFails = false, a
       }
       assert.equal(url, "https://api.openai.com/v1/responses");
       aiRequest = JSON.parse(options.body);
-      return Response.json({ output_text: JSON.stringify({ rows: [{ englishName: "Milk", koreanName: "우유", price: "3.99", unit: "1 L" }] }) });
+      return Response.json({ model, usage, output_text: aiText ?? JSON.stringify({ rows: [{ englishName: "Milk", koreanName: "우유", price: "3.99", unit: "1 L" }] }) });
     },
   };
   function load(file) {
@@ -70,4 +73,41 @@ test("unauthorized requests cannot reach an extraction provider", async () => {
   const { response, aiRequest } = await extract({ admin: false });
   assert.equal(response.status, 403);
   assert.equal(aiRequest, undefined);
+});
+
+const tokenUsage = { input_tokens: 1000, output_tokens: 200,
+  input_tokens_details: { cached_tokens: 400, cache_write_tokens: 200 },
+  output_tokens_details: { reasoning_tokens: 50 } };
+
+for (const options of [{}, { visionFails: true }, { vision: false }]) {
+  test(`AI usage is returned across extraction paths ${JSON.stringify(options)}`, async () => {
+    const { response } = await extract({ ...options, usage: tokenUsage });
+    const result = await response.json();
+    assert.equal(result.usage.totalTokens, 1200);
+    assert.equal(result.usage.reasoningTokens, 50);
+    assert.ok(Math.abs(result.usage.estimatedCostUsd - 0.000169) < 1e-12);
+  });
+}
+
+test("paid usage survives an empty result or malformed AI JSON", async () => {
+  for (const aiText of [JSON.stringify({ rows: [] }), "invalid json"]) {
+    const { response } = await extract({ aiText, usage: tokenUsage });
+    assert.equal(response.status, aiText === "invalid json" ? 502 : 200);
+    assert.equal((await response.json()).usage.totalTokens, 1200);
+  }
+});
+
+test("OCR-only response explicitly reports no OpenAI usage", async () => {
+  const { response, aiRequest } = await extract({ openAi: false });
+  assert.equal(aiRequest, undefined);
+  assert.equal((await response.json()).usage, null);
+});
+
+test("missing usage stays unavailable and unpriced models retain token counts", async () => {
+  const { response } = await extract();
+  assert.equal((await response.json()).usage, undefined);
+  const other = await extract({ usage: tokenUsage, model: "custom-model" });
+  const result = await other.response.json();
+  assert.equal(result.usage.totalTokens, 1200);
+  assert.equal(result.usage.estimatedCostUsd, null);
 });

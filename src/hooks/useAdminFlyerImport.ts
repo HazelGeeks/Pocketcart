@@ -17,6 +17,7 @@ import {
   parseFlyerTextToRows,
 } from "../utils/adminScreenHelpers";
 import { downloadCsvFile } from "../utils/adminCsvFiles";
+import { formatFlyerUsageSummary, type FlyerAiUsage } from "../utils/flyerUsage";
 
 type UseAdminFlyerImportParams = {
   flyerRows: FlyerRow[];
@@ -164,26 +165,33 @@ export default function useAdminFlyerImport({
   const processFlyerFile = React.useCallback(async (file: File) => {
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
     let warning = "";
+    let usage: FlyerAiUsage | null | undefined = null;
     if (hasFlyerAiEndpoint) {
       reportProgress("AI extracting text");
       const result = await extractFlyerRowsWithAi(file);
       if (result.rows.length > 0) return result;
+      usage = result.usage;
       warning = result.warning ?? "";
       reportProgress("AI found no rows. Running OCR fallback");
     }
-    let text = "";
-    if (isPdf) {
-      text = await extractPdfText(file);
-      if (parseFlyerTextToRows(text).length === 0) {
-        text = await recognizeFlyerSources(await renderPdfPagesForOcr(file));
+    try {
+      let text = "";
+      if (isPdf) {
+        text = await extractPdfText(file);
+        if (parseFlyerTextToRows(text).length === 0) {
+          text = await recognizeFlyerSources(await renderPdfPagesForOcr(file));
+        }
+      } else {
+        text = await recognizeFlyerSources([file]);
       }
-    } else {
-      text = await recognizeFlyerSources([file]);
+      return {
+        rows: parseFlyerTextToRows(text).map((row) => ({ ...row, mainCategory: flyerCategory(row.mainCategory) })),
+        warning: [warning, "OCR fallback used; review all fields."].filter(Boolean).join(" "),
+        usage,
+      };
+    } catch (error) {
+      throw Object.assign(error instanceof Error ? error : new Error("OCR failed."), { usage });
     }
-    return {
-      rows: parseFlyerTextToRows(text).map((row) => ({ ...row, mainCategory: flyerCategory(row.mainCategory) })),
-      warning: [warning, "OCR fallback used; review all fields."].filter(Boolean).join(" "),
-    };
   }, [extractPdfText, recognizeFlyerSources, renderPdfPagesForOcr, reportProgress]);
 
   const processFlyerFiles = React.useCallback(async (files: File[]) => {
@@ -203,7 +211,7 @@ export default function useAdminFlyerImport({
         },
         onRows: (rows) => setFlyerRows((current) => [...current, ...rows]),
       });
-      setNotice(`Added ${result.rowCount} text rows from ${result.successCount}/${files.length} files. Existing rows kept. Review before exporting.${result.messages.length ? ` ${result.messages.join(" | ")}` : ""}`);
+      setNotice(`Added ${result.rowCount} text rows from ${result.successCount}/${files.length} files. ${formatFlyerUsageSummary(result.usage)} Existing rows kept. Review before exporting.${result.messages.length ? ` ${result.messages.join(" | ")}` : ""}`);
     } finally {
       batchRunning.current = false;
       fileLabel.current = "";

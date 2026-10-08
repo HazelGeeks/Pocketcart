@@ -1,12 +1,13 @@
 import type { FlyerRow } from "../state/adminStore";
 import { flyerProductIssues } from "./flyerProductReview";
+import { summarizeFlyerUsage, flyerUsageFromError, type FlyerAiUsage } from "./flyerUsage";
 
 export const MAX_FLYER_FILES = 30;
 export const FLYER_FILE_LIMIT_MESSAGE = `Select up to ${MAX_FLYER_FILES} images or PDFs at a time.`;
 
 export async function extractFlyerBatch<T extends { name: string }>(
   files: T[],
-  extract: (file: T) => Promise<{ rows: FlyerRow[]; warning?: string }>,
+  extract: (file: T) => Promise<{ rows: FlyerRow[]; warning?: string; usage?: FlyerAiUsage | null }>,
   callbacks: {
     onStart: (file: T, index: number) => void;
     onRows: (rows: FlyerRow[]) => void;
@@ -16,10 +17,13 @@ export async function extractFlyerBatch<T extends { name: string }>(
   let rowCount = 0;
   let successCount = 0;
   const messages: string[] = [];
+  const usages: Array<FlyerAiUsage | null | undefined> = [];
   for (const [index, file] of files.entries()) {
     callbacks.onStart(file, index);
+    let fileUsage: FlyerAiUsage | null | undefined;
     try {
       const result = await extract(file);
+      fileUsage = result.usage;
       if (result.warning) messages.push(`${file.name}: ${result.warning}`);
       if (result.rows.length === 0) {
         messages.push(`${file.name}: No product rows found.`);
@@ -34,8 +38,11 @@ export async function extractFlyerBatch<T extends { name: string }>(
       rowCount += rows.length;
       successCount += 1;
     } catch (error) {
+      if (fileUsage === undefined) fileUsage = flyerUsageFromError(error);
       messages.push(`${file.name}: ${error instanceof Error ? error.message : "Extraction failed."}`);
+    } finally {
+      usages.push(fileUsage);
     }
   }
-  return { rowCount, successCount, messages };
+  return { rowCount, successCount, messages, usage: summarizeFlyerUsage(usages) };
 }

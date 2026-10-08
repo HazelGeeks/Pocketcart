@@ -1,4 +1,5 @@
 import { flyerExtractionPrompt as prompt } from "./prompt.ts";
+import { flyerAiUsage, type FlyerAiUsage, type OpenAiUsage } from "./usage.ts";
 
 type FlyerRow = {
   pageIndex?: number;
@@ -18,6 +19,9 @@ type FlyerRow = {
 };
 
 type OpenAiResponse = {
+  model?: string;
+  service_tier?: string;
+  usage?: OpenAiUsage;
   output_text?: string;
   output?: Array<{
     content?: Array<{
@@ -389,7 +393,8 @@ async function extractTextWithGoogleVision(
 async function extractRowsWithOpenAi(
   openAiApiKey: string,
   content: Array<Record<string, unknown>>,
-): Promise<FlyerRow[]> {
+): Promise<{ rows: FlyerRow[]; usage?: FlyerAiUsage }> {
+  const model = Deno.env.get("FLYER_OPENAI_MODEL")?.trim() || "gpt-6-luna";
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -397,7 +402,7 @@ async function extractRowsWithOpenAi(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: Deno.env.get("FLYER_OPENAI_MODEL")?.trim() || "gpt-6-luna",
+      model,
       input: [
         {
           role: "user",
@@ -416,15 +421,20 @@ async function extractRowsWithOpenAi(
   });
 
   const payload = await response.json().catch(() => ({})) as OpenAiResponse;
+  const usage = flyerAiUsage(payload.usage, payload.model || model, payload.service_tier);
   if (!response.ok) {
-    throw new Error(payload.error?.message || `OpenAI request failed with ${response.status}.`);
+    throw Object.assign(new Error(payload.error?.message || `OpenAI request failed with ${response.status}.`), { usage });
   }
 
   const text = outputText(payload);
-  if (!text) return [];
+  if (!text) return { rows: [], usage };
 
-  const parsed = JSON.parse(stripMarkdownFence(text));
-  return normalizeRows(parsed);
+  try {
+    const parsed = JSON.parse(stripMarkdownFence(text));
+    return { rows: normalizeRows(parsed), usage };
+  } catch (error) {
+    throw Object.assign(error instanceof Error ? error : new Error("Invalid AI response."), { usage });
+  }
 }
 
 Deno.serve(async (request: Request) => {
@@ -483,15 +493,15 @@ Deno.serve(async (request: Request) => {
       }
 
       if (openAiApiKey && !googleVisionError) {
-        const rows = await extractRowsWithOpenAi(openAiApiKey, [
+        const result = await extractRowsWithOpenAi(openAiApiKey, [
           { type: "input_text", text: `${prompt}\n\nSupplementary OCR text (may be incomplete or out of reading order):\n${ocrText}` },
           fileContent,
         ]);
-        return jsonResponse({ rows });
+        return jsonResponse(result);
       }
 
       if (openAiApiKey && googleVisionError) {
-        const rows = await extractRowsWithOpenAi(openAiApiKey, [
+        const result = await extractRowsWithOpenAi(openAiApiKey, [
           {
             type: "input_text",
             text: `${prompt}\n\nGoogle Vision OCR was unavailable, so extract directly from the uploaded file.`,
@@ -499,7 +509,7 @@ Deno.serve(async (request: Request) => {
           fileContent,
         ]);
         return jsonResponse({
-          rows,
+          ...result,
           warning: `Google Vision OCR failed; used OpenAI fallback. ${googleVisionError.message}`,
         });
       }
@@ -512,6 +522,7 @@ Deno.serve(async (request: Request) => {
 
       return jsonResponse({
         rows: parseFlyerTextRows(ocrText),
+        usage: null,
         warning: "OCR-only extraction: names, sizes and prices require manual review. Configure OPENAI_API_KEY for Product template mapping.",
       });
     }
@@ -520,14 +531,17 @@ Deno.serve(async (request: Request) => {
       return jsonResponse({ rows: [] });
     }
 
-    const rows = await extractRowsWithOpenAi(openAiApiKey, [
+    const result = await extractRowsWithOpenAi(openAiApiKey, [
       { type: "input_text", text: prompt },
       fileContent,
     ]);
-    return jsonResponse({ rows });
+    return jsonResponse(result);
   } catch (error) {
     return jsonResponse(
-      { error: error instanceof Error ? error.message : "Flyer extraction failed." },
+      {
+        error: error instanceof Error ? error.message : "Flyer extraction failed.",
+        ...(error && typeof error === "object" && "usage" in error ? { usage: error.usage } : {}),
+      },
       502,
     );
   }

@@ -1,21 +1,25 @@
 import type { FlyerRow } from "../state/adminStore";
 import { normalizeFlyerAiRows } from "../utils/flyerAiRows";
+import { normalizeFlyerUsage, type FlyerAiUsage } from "../utils/flyerUsage";
 import { supabase, supabaseAnonKey } from "./supabaseClient";
 
 type FlyerAiResponse = {
   rows?: Array<Partial<FlyerRow> & Record<string, unknown>>;
   data?: {
     rows?: Array<Partial<FlyerRow> & Record<string, unknown>>;
+    usage?: unknown;
   };
   error?: string;
   message?: string;
   code?: string;
   warning?: string;
+  usage?: unknown;
 };
 
 type FlyerAiResult = {
   rows: FlyerRow[];
   warning?: string;
+  usage?: FlyerAiUsage | null;
 };
 
 const FLYER_AI_ENDPOINT = (process.env.EXPO_PUBLIC_FLYER_AI_ENDPOINT ?? "").trim();
@@ -33,7 +37,7 @@ function endpointLabel(): string {
 
 export async function extractFlyerRowsWithAi(file: File): Promise<FlyerAiResult> {
   if (!hasFlyerAiEndpoint) {
-    return { rows: [] };
+    return { rows: [], usage: null };
   }
   if (!/^https?:\/\//i.test(FLYER_AI_ENDPOINT)) {
     throw new Error("Flyer AI endpoint is not a valid HTTP URL.");
@@ -75,14 +79,15 @@ export async function extractFlyerRowsWithAi(file: File): Promise<FlyerAiResult>
         "Flyer AI function requires a signed-in Supabase session. Please sign in again or disable JWT verification for the function.",
       );
     }
-    throw new Error(
+    throw Object.assign(new Error(
       payload.error || payload.message || payload.code || `AI flyer import failed with ${response.status}.`,
-    );
+    ), { usage: normalizeFlyerUsage(payload.usage ?? payload.data?.usage) });
   }
 
   const rows = payload.rows ?? payload.data?.rows ?? [];
   return {
     rows: normalizeFlyerAiRows(rows),
     warning: payload.warning,
+    usage: normalizeFlyerUsage(payload.usage === undefined ? payload.data?.usage : payload.usage),
   };
 }

@@ -91,3 +91,17 @@ an existing secret overrides the code default. The web admin accepts up to 30
 images/PDFs per batch and processes them sequentially.
 The shared `OPENAI_MODEL` setting no longer selects the Flyer model, so existing
 Food Scan settings are unaffected. Deploy the updated function to apply this change.
+
+The response includes `usage` for OpenAI calls: model, input/output/total tokens,
+cached input, cache writes, reasoning tokens, and `estimatedCostUsd`. The web admin
+shows the batch totals alongside its completion notice, including reported usage
+for empty results or extraction errors. OCR-only responses use `usage: null`; absent
+usage (including older deployments) is shown as unavailable or partial, never as
+a confirmed zero charge.
+
+USD estimates use [GPT-6 Luna pricing](https://developers.openai.com/api/docs/models/gpt-6-luna)
+checked 2026-10-08, accounting for cache reads/writes, the per-request long-context
+threshold, and the returned service tier. Reasoning tokens are already included in
+output tokens. Unknown models/tiers retain token counts but show cost unavailable.
+Google Vision OCR charges, taxes, and account-specific adjustments are excluded.
+Deploy the updated function and web build together to enable the usage display.

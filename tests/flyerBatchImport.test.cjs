@@ -60,7 +60,27 @@ test("cancelled file selection does no work", async () => {
   const unexpected = () => assert.fail("Must not run");
   assert.deepEqual(await extractFlyerBatch([], unexpected, { onStart: unexpected, onRows: unexpected }), {
     rowCount: 0, successCount: 0, messages: [],
+    usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, models: [],
+      unknownFiles: 0, reportedFiles: 0, estimatedCostUsd: 0 },
   });
+});
+
+test("batch usage includes empty and failed files and identifies missing reports", async () => {
+  const usage = { model: "gpt-6-luna", inputTokens: 1000, outputTokens: 200, totalTokens: 1200,
+    cachedInputTokens: 400, cacheWriteInputTokens: 200, reasoningTokens: 50, estimatedCostUsd: 0.000169 };
+  const result = await extractFlyerBatch(
+    ["good", "empty", "failed", "old-server", "ocr"].map((name) => ({ name })),
+    async (file) => {
+      if (file.name === "failed") throw Object.assign(new Error("Invalid output"), { usage });
+      if (file.name === "old-server") return { rows: [] };
+      if (file.name === "ocr") return { rows: [], usage: null };
+      return { rows: file.name === "good" ? [createFlyerRow(validProduct)] : [], usage };
+    }, { onStart: () => {}, onRows: () => {} },
+  );
+  assert.equal(result.usage.totalTokens, 3600);
+  assert.equal(result.usage.reportedFiles, 4);
+  assert.equal(result.usage.unknownFiles, 1);
+  assert.ok(Math.abs(result.usage.estimatedCostUsd - 0.000507) < 1e-12);
 });
 
 test("a 30-file batch processes every file in order without truncating rows", async () => {

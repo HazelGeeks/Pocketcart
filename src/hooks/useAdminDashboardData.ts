@@ -249,12 +249,12 @@ export default function useAdminDashboardData({
   }, [onSaleStoreIdsByProduct, prices, storeBrandById, storeNameById]);
 
   const productBrandFilterOptions = React.useMemo(() => {
-    const brands: string[] = [];
+    const brands = displayStores.map((store) => store.brand?.trim() || "Other");
     productPriceStats.forEach((stats) => {
       brands.push(...stats.storeBrands);
     });
     return uniqueValues(brands).sort((a, b) => a.localeCompare(b));
-  }, [productPriceStats]);
+  }, [displayStores, productPriceStats]);
 
   const storePriceStats = React.useMemo(() => {
     const stats = new Map<string, StorePriceStats>();
