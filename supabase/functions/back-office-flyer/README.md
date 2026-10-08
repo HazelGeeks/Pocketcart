@@ -10,7 +10,7 @@ Set these secrets in Supabase:
 supabase secrets set GOOGLE_VISION_API_KEY=<google-vision-api-key>
 supabase secrets set GOOGLE_VISION_PDF_PAGES=5
 supabase secrets set OPENAI_API_KEY=<openai-api-key>
-supabase secrets set FLYER_OPENAI_MODEL=gpt-5-mini
+supabase secrets set FLYER_OPENAI_MODEL=gpt-6-luna
 supabase secrets set FLYER_ADMIN_EMAILS=admin@example.com
 ```
 
@@ -85,6 +85,9 @@ an English-only product can pass Product CSV review without filling Korean name.
 The response schema restricts categories to English values. The client also maps known
 legacy Korean categories to English and flags unknown ones for review.
 
-Flyer defaults to `gpt-5-mini`. Set `FLYER_OPENAI_MODEL` to override it.
+Flyer defaults to `gpt-6-luna`. Set `FLYER_OPENAI_MODEL` to override it.
+When upgrading an existing deployment, set `FLYER_OPENAI_MODEL=gpt-6-luna` as well;
+an existing secret overrides the code default. The web admin accepts up to 30
+images/PDFs per batch and processes them sequentially.
 The shared `OPENAI_MODEL` setting no longer selects the Flyer model, so existing
 Food Scan settings are unaffected. Deploy the updated function to apply this change.

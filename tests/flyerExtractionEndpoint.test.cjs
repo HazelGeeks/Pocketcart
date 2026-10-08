@@ -41,7 +41,7 @@ for (const pdf of [false, true]) {
   test(`successful OCR still sends the original ${pdf ? "PDF" : "image"} to AI`, async () => {
     const { response, aiRequest } = await extract({ pdf });
     assert.equal(response.status, 200);
-    assert.equal(aiRequest.model, "gpt-5-mini");
+    assert.equal(aiRequest.model, "gpt-6-luna");
     const properties = aiRequest.text.format.schema.properties.rows.items.properties;
     assert.equal(properties.imageBox, undefined);
     assert.ok(properties.mainCategory.enum.includes("Produce"));

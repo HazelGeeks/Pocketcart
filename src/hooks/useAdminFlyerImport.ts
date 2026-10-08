@@ -1,4 +1,4 @@
-import { extractFlyerBatch } from "../utils/flyerBatchImport";
+import { extractFlyerBatch, MAX_FLYER_FILES, FLYER_FILE_LIMIT_MESSAGE } from "../utils/flyerBatchImport";
 import { flyerCategory } from "../utils/flyerCategory";
 import { flyerProductIssues } from "../utils/flyerProductReview";
 import React from "react";
@@ -188,6 +188,10 @@ export default function useAdminFlyerImport({
 
   const processFlyerFiles = React.useCallback(async (files: File[]) => {
     if (batchRunning.current || files.length === 0) return;
+    if (files.length > MAX_FLYER_FILES) {
+      setNotice(FLYER_FILE_LIMIT_MESSAGE);
+      return;
+    }
     batchRunning.current = true;
     setFlyerProcessing(true);
     setNotice(null);

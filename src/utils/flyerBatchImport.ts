@@ -1,6 +1,9 @@
 import type { FlyerRow } from "../state/adminStore";
 import { flyerProductIssues } from "./flyerProductReview";
 
+export const MAX_FLYER_FILES = 30;
+export const FLYER_FILE_LIMIT_MESSAGE = `Select up to ${MAX_FLYER_FILES} images or PDFs at a time.`;
+
 export async function extractFlyerBatch<T extends { name: string }>(
   files: T[],
   extract: (file: T) => Promise<{ rows: FlyerRow[]; warning?: string }>,
@@ -9,6 +12,7 @@ export async function extractFlyerBatch<T extends { name: string }>(
     onRows: (rows: FlyerRow[]) => void;
   },
 ) {
+  if (files.length > MAX_FLYER_FILES) throw new Error(FLYER_FILE_LIMIT_MESSAGE);
   let rowCount = 0;
   let successCount = 0;
   const messages: string[] = [];

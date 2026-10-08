@@ -397,7 +397,7 @@ async function extractRowsWithOpenAi(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: Deno.env.get("FLYER_OPENAI_MODEL")?.trim() || "gpt-5-mini",
+      model: Deno.env.get("FLYER_OPENAI_MODEL")?.trim() || "gpt-6-luna",
       input: [
         {
           role: "user",

@@ -62,3 +62,30 @@ test("cancelled file selection does no work", async () => {
     rowCount: 0, successCount: 0, messages: [],
   });
 });
+
+test("a 30-file batch processes every file in order without truncating rows", async () => {
+  const files = Array.from({ length: 30 }, (_, index) => ({ name: `flyer-${index}.pdf` }));
+  const started = [];
+  const added = [];
+  const result = await extractFlyerBatch(files, async (file) => ({
+    rows: [createFlyerRow({ ...validProduct, id: file.name })],
+  }), {
+    onStart: (file) => started.push(file.name),
+    onRows: (rows) => added.push(...rows),
+  });
+  assert.deepEqual(started, files.map((file) => file.name));
+  assert.deepEqual(added.map((row) => row.id), started);
+  assert.equal(result.successCount, 30);
+  assert.equal(result.rowCount, 30);
+  assert.deepEqual(result.messages, []);
+});
+
+test("over-limit batches fail before extracting or adding any rows", async () => {
+  const unexpected = () => assert.fail("Must not run");
+  await assert.rejects(
+    extractFlyerBatch(Array.from({ length: 31 }, () => ({ name: "flyer.pdf" })), unexpected, {
+      onStart: unexpected, onRows: unexpected,
+    }),
+    /Select up to 30 images or PDFs/,
+  );
+});

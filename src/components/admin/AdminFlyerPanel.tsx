@@ -1,6 +1,7 @@
 import type { AdminStyles } from "../../screens/adminScreenStyles";
 import { flyerCategory } from "../../utils/flyerCategory";
 import { flyerProductIssues } from "../../utils/flyerProductReview";
+import { MAX_FLYER_FILES } from "../../utils/flyerBatchImport";
 import {
   Linking,
   Platform,
@@ -118,7 +119,7 @@ export default function AdminFlyerPanel({
       </div>
 
       <Text style={st.dataMuted}>
-        Select multiple images or PDFs. Files are processed in order and added to the current rows. Text-only extraction. Categories are English; Korean names are optional and copied only when printed. Product export uses the Product template. Review flagged rows, then correct or deselect them.
+        Select up to {MAX_FLYER_FILES} images or PDFs at a time. Files are processed in order and added to the current rows. Text-only extraction. Categories are English; Korean names are optional and copied only when printed. Product export uses the Product template. Review flagged rows, then correct or deselect them.
         {" "}A blank branch applies the price to all active stores of that retailer. Confirm this scope before export.
         {" "}Retailer, branch and sale dates may be blank for export; complete the required sale details before importing prices. Memo and offer conditions are kept in Export CSV only.
       </Text>
