@@ -5,6 +5,8 @@ export type StoreBrandLogoKey =
   | "marketRibbon"
   | "tAndT"
   | "saveOnFoods"
+  | "safeway"
+  | "realCanadianSuperstore"
   | "walmart";
 
 export function getStoreBrandLogoKey(store: {
@@ -22,6 +24,10 @@ export function getStoreBrandLogoKey(store: {
   }
   if (/(^|\s)price\s*smart(\s|$)/.test(identity)) return "priceSmart";
   if (/(^|\s)save\s*on\s*foods(\s|$)/.test(identity)) return "saveOnFoods";
+  if (/(^|\s)safe\s*way(\s|$)/.test(identity)) return "safeway";
+  if (/(^|\s)real\s*canadian\s*super\s*store(\s|$)|^super\s*store(\s|$)/.test(identity)) {
+    return "realCanadianSuperstore";
+  }
   if (/(^|\s)wal\s*mart(\s|$)/.test(identity)) return "walmart";
   if (/(^|\s)(?:t\s+t|tnt)(?:\s+supermarket)?(\s|$)/.test(identity)) {
     return "tAndT";
@@ -42,6 +48,8 @@ const STORE_LOGO_BACKGROUNDS: Partial<Record<StoreBrandLogoKey, string>> = {
   marketRibbon: "#13594E",
   tAndT: "#007953",
   saveOnFoods: "#78BE20",
+  safeway: "#FFFFFF",
+  realCanadianSuperstore: "#005AA8",
   walmart: "#0153E3",
 };
 

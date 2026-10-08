@@ -15,6 +15,8 @@ const STORE_LOGOS = {
   tAndT: require("../../../assets/store-logos/t-and-t.png"),
   saveOnFoods: require("../../../assets/store-logos/save-on-foods.png"),
   walmart: require("../../../assets/store-logos/walmart.png"),
+  safeway: require("../../../assets/store-logos/safeway.png"),
+  realCanadianSuperstore: require("../../../assets/store-logos/real-canadian-superstore.png"),
 };
 
 export function getStoreDisplayName(store: MarketStore) {

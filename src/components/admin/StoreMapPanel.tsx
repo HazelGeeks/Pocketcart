@@ -31,6 +31,8 @@ const STORE_LOGO_ASSETS: Record<StoreBrandLogoKey, StoreLogoAsset> = {
   tAndT: require("../../../assets/store-logos/t-and-t.png"),
   saveOnFoods: require("../../../assets/store-logos/save-on-foods.png"),
   walmart: require("../../../assets/store-logos/walmart.png"),
+  safeway: require("../../../assets/store-logos/safeway.png"),
+  realCanadianSuperstore: require("../../../assets/store-logos/real-canadian-superstore.png"),
 };
 
 function getStoreLogoUrl(store: AdminStore): string | null {
