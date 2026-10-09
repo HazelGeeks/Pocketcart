@@ -10,7 +10,7 @@ const lib = import("../scripts/supabase-release-lib.mjs");
 test("release inventory covers all SQL and configured handlers", async () => {
   const { loadRelease } = await lib;
   const release = await loadRelease(root);
-  assert.equal(release.migrations.length, 36);
+  assert.equal(release.migrations.length, 37);
   assert.ok(release.migrations.some(migration => migration.version === "20261007010000"));
   assert.equal(release.functions.length, 9);
   assert.ok(release.functions.includes("receipt-scan"));
