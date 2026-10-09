@@ -13,6 +13,7 @@ import { homePhotoStyles } from "./homePhotoStyles";
 import { onboardingStyles } from "./onboardingStyles";
 import { productDetailStyles } from "./productDetailStyles";
 import { productHistoryStyles } from "./productHistoryStyles";
+import { productPriceTrendStyles } from "./productPriceTrendStyles";
 import { saleAlertsStyles } from "./saleAlertsStyles";
 import { shoppingListStyles } from "./shoppingListStyles";
 import { storeMapResultStyles } from "./storeMapResultStyles";
@@ -24,6 +25,7 @@ export const st = {
   ...accountSettingsStyles,
   ...productDetailStyles,
   ...productHistoryStyles,
+  ...productPriceTrendStyles,
   ...saleAlertsStyles,
   ...appChromeStyles,
   ...catalogStyles,

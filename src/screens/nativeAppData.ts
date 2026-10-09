@@ -2,7 +2,15 @@ import type { Region } from "react-native-maps";
 import type { MarketPeriodStorePrice, MarketPricePoint } from "../services/marketData";
 import { BUSINESS_TIME_ZONE } from "../utils/businessDateTime";
 
-export type NativeTabId = "home" | "shopping" | "freezer" | "receipts" | "map" | "scan" | "alerts" | "more";
+export type NativeTabId =
+  | "home"
+  | "shopping"
+  | "freezer"
+  | "receipts"
+  | "map"
+  | "scan"
+  | "alerts"
+  | "more";
 export type HomeRoute = "catalog" | "detail";
 
 type PriceChartPoint = {
@@ -28,6 +36,8 @@ export type PriceChart = {
   max: number;
   start: number;
   end: number;
+  plot: { left: number; right: number; top: number; bottom: number };
+  ticks: Array<{ value: number; y: number }>;
 };
 
 export type PreviousPriceRow = {
@@ -69,13 +79,18 @@ export function buildPriceChart(
     .slice(-7);
   const values = source.map((point) => point.price);
   const width = Math.max(240, Math.min(360, viewportWidth - horizontalPadding * 2 - 28));
-  const height = 160;
-  const padding = 14;
+  const height = 200;
+  const plot = { left: 52, right: width - 14, top: 18, bottom: height - 30 };
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const range = max - min || 1;
-  const usableW = width - padding * 2;
-  const usableH = height - padding * 2;
+  const domainPadding = Math.max((max - min) * 0.15, 0.25);
+  const domainMin = Math.max(0, min - domainPadding);
+  const domainMax = max + domainPadding;
+  const priceY = (value: number) =>
+    max === min
+      ? (plot.top + plot.bottom) / 2
+      : plot.top + ((domainMax - value) / (domainMax - domainMin)) * (plot.bottom - plot.top);
+  const usableW = plot.right - plot.left;
   const times = source.map(saleSessionChartTime);
   const firstTime = times[0];
   const lastTime = times[times.length - 1];
@@ -84,11 +99,11 @@ export function buildPriceChart(
   const points = source.map((point, index) => {
     const x =
       source.length === 1
-        ? width / 2
+        ? (plot.left + plot.right) / 2
         : timeRange > 0 && Number.isFinite(times[index])
-          ? padding + ((times[index] - firstTime) / timeRange) * usableW
-          : padding + (index / (source.length - 1)) * usableW;
-    const y = padding + ((max - point.price) / range) * usableH;
+          ? plot.left + ((times[index] - firstTime) / timeRange) * usableW
+          : plot.left + (index / (source.length - 1)) * usableW;
+    const y = priceY(point.price);
     return {
       id: point.id,
       x,
@@ -113,7 +128,42 @@ export function buildPriceChart(
     max,
     start: values[0],
     end: values[values.length - 1],
+    plot,
+    ticks: (max === min ? [min] : [domainMax, (domainMin + domainMax) / 2, domainMin]).map(
+      (value) => ({
+        value,
+        y: priceY(value),
+      }),
+    ),
   };
+}
+
+/** Fit the existing time scale to the measured component, including narrow screens. */
+export function fitPriceChart(chart: PriceChart, width: number): PriceChart {
+  const fittedWidth = Math.max(120, width);
+  const plot = { ...chart.plot, right: fittedWidth - 14 };
+  const points = chart.points.map((point) => ({
+    ...point,
+    x:
+      plot.left +
+      ((point.x - chart.plot.left) / (chart.plot.right - chart.plot.left)) *
+        (plot.right - plot.left),
+  }));
+  return {
+    ...chart,
+    width: fittedWidth,
+    plot,
+    points,
+    polyline: points.map((point) => `${point.x},${point.y}`).join(" "),
+  };
+}
+
+export function nearestPriceChartPoint(chart: PriceChart, x: number): number {
+  let nearest = 0;
+  chart.points.forEach((point, index) => {
+    if (Math.abs(point.x - x) < Math.abs(chart.points[nearest].x - x)) nearest = index;
+  });
+  return nearest;
 }
 
 export function buildPreviousPriceRows(chart: PriceChart | null): PreviousPriceRow[] {
