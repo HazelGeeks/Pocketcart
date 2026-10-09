@@ -1,0 +1,25 @@
+name: TestFlight Status
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Validate Expo credential
+        run: test -n "$EXPO_TOKEN"
+      - run: npm ci
+      - name: Read Apple processing and TestFlight availability
+        run: node scripts/eas-cli.mjs submit:status --platform ios --profile production --non-interactive --json
