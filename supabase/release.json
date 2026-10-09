@@ -38,7 +38,8 @@
     "20261007010000_blog_posts.sql",
     "20261007020000_blog_rich_editor.sql",
     "20261009010000_fill_verified_product_images.sql",
-    "20261009020000_fill_additional_sale_product_images.sql"
+    "20261009020000_fill_additional_sale_product_images.sql",
+    "20261009030000_fill_reviewed_sale_product_images.sql"
   ],
   "functions": [
     "admin-flyer-notification",
