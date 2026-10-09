@@ -104,31 +104,92 @@ async function loadProducts(params?: ProductListParams): Promise<ServiceResult<M
 
   const client = supabase;
   const search = normalizeProductSearch(params?.search);
-  const productIds = [...new Set((params?.productIds ?? []).map((id) => id.trim()).filter(Boolean))];
+  const productIds = [
+    ...new Set((params?.productIds ?? []).map((id) => id.trim()).filter(Boolean)),
+  ];
   if (params?.productIds && productIds.length === 0) return { data: [], error: null };
-  const productsQuery = await collectPagedRows<ProductRow, ProductQueryError>(async (from, to) => {
-    let query = client.from("products").select(PRODUCT_SELECT);
-    const categoryValues = productCategoryQueryValues(params?.category ?? "");
-    if (categoryValues.length === 1) {
-      query = query.eq("category", categoryValues[0]);
-    } else if (categoryValues.length > 1) {
-      query = query.in("category", categoryValues);
+  const includePriceSummaries = params?.includePriceSummaries ?? true;
+  const onSaleOnly = params?.onSaleOnly ?? true;
+  const summariesRequest = includePriceSummaries
+    ? Promise.all([
+        listProductPriceSummaries(),
+        params?.preferredStoreIds?.length
+          ? listProductPriceSummaries(params.preferredStoreIds)
+          : Promise.resolve({ data: new Map(), error: null }),
+      ])
+    : Promise.resolve([
+        { data: new Map(), error: null },
+        { data: new Map(), error: null },
+      ]);
+
+  async function fetchProductRows(ids: string[]) {
+    return collectPagedRows<ProductRow, ProductQueryError>(async (from, to) => {
+      let query = client.from("products").select(PRODUCT_SELECT);
+      const categoryValues = productCategoryQueryValues(params?.category ?? "");
+      if (categoryValues.length === 1) {
+        query = query.eq("category", categoryValues[0]);
+      } else if (categoryValues.length > 1) {
+        query = query.in("category", categoryValues);
+      }
+      if (ids.length > 0) query = query.in("id", ids);
+      if (search) {
+        query = query.or(
+          `korean_name.ilike.%${search}%,english_name.ilike.%${search}%,category.ilike.%${search}%`,
+        );
+      }
+      const response = await query
+        .order("english_name", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(from, to);
+      return {
+        data: (response.data ?? []) as unknown as ProductRow[],
+        error: response.error,
+      };
+    });
+  }
+
+  // The sale summary already identifies the visible catalog. Avoid transferring
+  // every expired product (and its image URL) before showing the home screen.
+  let productsQuery: { data: ProductRow[]; error: ProductQueryError | null };
+  if (onSaleOnly && includePriceSummaries) {
+    const [summaries, preferredSummaries] = await summariesRequest;
+    const ids = productIds.length
+      ? productIds.filter((id) => summaries.data.has(id))
+      : [...summaries.data.keys()];
+    if (!ids.length) return { data: [], error: summaries.error ?? preferredSummaries.error };
+    const rows: ProductRow[] = [];
+    // Keep GET URLs short and limit concurrency even as the sale catalog grows.
+    const idBatchSize = 100;
+    const concurrency = 3;
+    for (let offset = 0; offset < ids.length; offset += idBatchSize * concurrency) {
+      const requests = [];
+      for (
+        let start = offset;
+        start < Math.min(offset + idBatchSize * concurrency, ids.length);
+        start += idBatchSize
+      ) {
+        requests.push(fetchProductRows(ids.slice(start, start + idBatchSize)));
+      }
+      const results = await Promise.all(requests);
+      const failed = results.find((result) => result.error);
+      if (failed)
+        return { data: [], error: failed.error?.message ?? "Products couldn't be loaded." };
+      rows.push(...results.flatMap((result) => result.data));
     }
-    if (productIds.length > 0) query = query.in("id", productIds);
-    if (search) {
-      query = query.or(
-        `korean_name.ilike.%${search}%,english_name.ilike.%${search}%,category.ilike.%${search}%`,
+    rows.sort((left, right) => {
+      if (left.english_name === null && right.english_name !== null) return 1;
+      if (left.english_name !== null && right.english_name === null) return -1;
+      return (
+        (left.english_name ?? "").localeCompare(right.english_name ?? "") ||
+        left.id.localeCompare(right.id)
       );
-    }
-    const response = await query
-      .order("english_name", { ascending: true, nullsFirst: false })
-      .order("id", { ascending: true })
-      .range(from, to);
-    return {
-      data: (response.data ?? []) as unknown as ProductRow[],
-      error: response.error,
-    };
-  });
+    });
+    productsQuery = { data: rows, error: null };
+  } else {
+    // Catalog/search views still include non-sale products; load prices alongside
+    // the product query instead of adding another serial network round trip.
+    [productsQuery] = await Promise.all([fetchProductRows(productIds), summariesRequest]);
+  }
 
   if (productsQuery.error) {
     return {
@@ -137,20 +198,8 @@ async function loadProducts(params?: ProductListParams): Promise<ServiceResult<M
     };
   }
 
-  const includePriceSummaries = params?.includePriceSummaries ?? true;
-  const [priceSummaries, preferredPriceSummaries] = includePriceSummaries
-    ? await Promise.all([
-      listProductPriceSummaries(),
-      params?.preferredStoreIds?.length
-        ? listProductPriceSummaries(params.preferredStoreIds)
-        : Promise.resolve({ data: new Map(), error: null }),
-    ])
-    : [
-      { data: new Map(), error: null },
-      { data: new Map(), error: null },
-    ];
+  const [priceSummaries, preferredPriceSummaries] = await summariesRequest;
 
-  const onSaleOnly = params?.onSaleOnly ?? true;
   const products: MarketProduct[] = productsQuery.data
     .map((row) => {
       const summary = priceSummaries.data.get(row.id);
