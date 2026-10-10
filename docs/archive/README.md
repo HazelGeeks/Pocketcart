@@ -7,6 +7,7 @@ when adding or consolidating records.
 
 | Record | Evidence retained |
 | --- | --- |
+| [2026-10-09 cost controls and build 25](2026-10-09-cost-controls-build25-release.md) | Verified source/CI, backend migration and Flyer deployment, live web hashes, exact TestFlight build/group and saved tester instructions |
 | [2026-10-03 Supabase review](2026-10-03-supabase-review.md) | Live RLS/storage fix, paused Food Scan, backend source comparison and disposable-account verification |
 | [2026-09-24 source review](2026-09-24-source-review.md) | Consolidated code cleanup, catalog races, lint and scoped-state fixes |
 | [2026-09-24 paid-alert plan](2026-09-24-paid-alert-plan.md) | Superseded plan and retained subscription restoration context |
