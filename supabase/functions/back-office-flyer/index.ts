@@ -1,5 +1,6 @@
 import { flyerExtractionPrompt as prompt } from "./prompt.ts";
 import { flyerAiUsage, type FlyerAiUsage, type OpenAiUsage } from "./usage.ts";
+import { configuredLimit, reserveExtraction, finishExtraction } from "./costControl.ts";
 
 type FlyerRow = {
   pageIndex?: number;
@@ -19,6 +20,7 @@ type FlyerRow = {
 };
 
 type OpenAiResponse = {
+  status?: string;
   model?: string;
   service_tier?: string;
   usage?: OpenAiUsage;
@@ -123,6 +125,7 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: {
       ...corsHeaders,
       "Content-Type": "application/json",
+      "Cache-Control": "no-store",
     },
   });
 }
@@ -157,11 +160,11 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   }
 }
 
-async function authorizedAdmin(request: Request): Promise<boolean> {
+async function authorizedAdmin(request: Request): Promise<string | null> {
   const authorization = request.headers.get("authorization")?.trim() ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL")?.trim() ?? "";
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")?.trim() ?? "";
-  if (!authorization || !supabaseUrl || !anonKey) return false;
+  if (!authorization || !supabaseUrl || !anonKey) return null;
 
   const adminResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/is_admin`, {
     method: "POST",
@@ -171,25 +174,27 @@ async function authorizedAdmin(request: Request): Promise<boolean> {
       "content-type": "application/json",
     },
     body: "{}",
+    signal: AbortSignal.timeout(10000),
   }).catch(() => null);
-  if (!adminResponse?.ok) return false;
+  if (!adminResponse?.ok) return null;
 
   const isAdmin = await adminResponse.json().catch(() => false);
-  if (isAdmin !== true) return false;
+  if (isAdmin !== true) return null;
+  // is_admin verifies the JWT before its identity is used for the paid quota.
+  const payload = decodeJwtPayload(authorization.replace(/^Bearer\s+/i, "").trim());
+  const userId = typeof payload.sub === "string" && /^[a-f0-9-]{36}$/i.test(payload.sub) ? payload.sub : null;
+  if (!userId) return null;
 
   const allowed = (Deno.env.get("FLYER_ADMIN_EMAILS") ?? "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  if (allowed.length === 0) return true;
-
-  const token = authorization.replace(/^Bearer\s+/i, "").trim();
-  const payload = decodeJwtPayload(token);
+  if (allowed.length === 0) return userId;
   const email =
     typeof payload.email === "string"
       ? payload.email.trim().toLowerCase()
       : "";
-  return Boolean(email && allowed.includes(email));
+  return email && allowed.includes(email) ? userId : null;
 }
 
 function normalizeRows(value: unknown): FlyerRow[] {
@@ -320,6 +325,7 @@ async function readGoogleVisionJson<T>(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(90000),
     },
   );
   const payload = (await response.json().catch(() => ({}))) as T & {
@@ -401,8 +407,11 @@ async function extractRowsWithOpenAi(
       Authorization: `Bearer ${openAiApiKey}`,
       "Content-Type": "application/json",
     },
+    signal: AbortSignal.timeout(90000),
     body: JSON.stringify({
       model,
+      store: false,
+      max_output_tokens: configuredLimit("FLYER_MAX_OUTPUT_TOKENS",32000,64000),
       input: [
         {
           role: "user",
@@ -425,6 +434,9 @@ async function extractRowsWithOpenAi(
   if (!response.ok) {
     throw Object.assign(new Error(payload.error?.message || `OpenAI request failed with ${response.status}.`), { usage });
   }
+  if (payload.status !== "completed") {
+    throw Object.assign(new Error("Flyer analysis was incomplete. Split large PDFs into smaller files and try again. Partial rows were not imported."), { usage });
+  }
 
   const text = outputText(payload);
   if (!text) return { rows: [], usage };
@@ -444,7 +456,8 @@ Deno.serve(async (request: Request) => {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
   }
-  if (!(await authorizedAdmin(request))) {
+  const userId = await authorizedAdmin(request);
+  if (!userId) {
     return jsonResponse({ error: "Not authorized to extract flyer data." }, 403);
   }
 
@@ -462,25 +475,45 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: "Expected multipart/form-data." }, 400);
   }
 
-  const formData = await request.formData();
+  const formData = await request.formData().catch(() => null);
+  if (!formData) return jsonResponse({ error: "Invalid file upload." }, 400);
   const file = (formData as unknown as { get(name: string): FormDataEntryValue | null }).get("file");
   if (!(file instanceof File)) {
     return jsonResponse({ error: "Missing file upload." }, 400);
   }
 
   const maxBytes = 12 * 1024 * 1024;
-  if (file.size > maxBytes) {
+  if (file.size === 0 || file.size > maxBytes) {
     return jsonResponse({ error: "File must be 12MB or smaller." }, 413);
   }
 
-  const { base64, dataUrl } = await fileToPayload(file);
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-
-
-
+  if (!isPdf && !["image/jpeg","image/png","image/webp","image/gif"].includes(file.type))
+    return jsonResponse({ error: "Upload an image or PDF flyer." },400);
+  let cacheKey = "";
+  let claimId = "";
   try {
+    const { key, reservation } = await reserveExtraction(userId, file, {
+      version: 1, prompt, schema, model: Deno.env.get("FLYER_OPENAI_MODEL")?.trim() || "gpt-6-luna",
+      ai: Boolean(openAiApiKey), vision: Boolean(googleVisionApiKey),
+      pdfPages: Deno.env.get("GOOGLE_VISION_PDF_PAGES") ?? "", isPdf, mimeType: file.type,
+      outputLimit: configuredLimit("FLYER_MAX_OUTPUT_TOKENS",32000,64000),
+    });
+    if (reservation.state === "cached") return jsonResponse({
+      ...reservation.result, usage: null, cacheHit: true,
+      warning: [reservation.result.warning, "Reused saved extraction; no new AI or OCR request."].filter(Boolean).join(" "),
+    });
+    if (reservation.state === "busy") return jsonResponse({ error: "This flyer is already being processed. Retry after it finishes.", usage: null }, 409);
+    if (reservation.state === "limited") return jsonResponse({ error: "Daily Flyer analysis limit reached. Saved results remain available.", usage: null }, 429);
+    cacheKey = key;
+    claimId = reservation.claimId;
+    const complete = async (result: { rows: FlyerRow[]; usage?: FlyerAiUsage | null; warning?: string }) => {
+      await finishExtraction(cacheKey, claimId, result);
+      return jsonResponse(result);
+    };
+    const { base64, dataUrl } = await fileToPayload(file);
     const fileContent = isPdf
-      ? { type: "input_file", filename: file.name || "flyer.pdf", file_data: dataUrl }
+      ? { type: "input_file", filename: "flyer.pdf", file_data: dataUrl }
       : { type: "input_image", image_url: dataUrl };
 
     if (googleVisionApiKey) {
@@ -497,7 +530,7 @@ Deno.serve(async (request: Request) => {
           { type: "input_text", text: `${prompt}\n\nSupplementary OCR text (may be incomplete or out of reading order):\n${ocrText}` },
           fileContent,
         ]);
-        return jsonResponse(result);
+        return await complete(result);
       }
 
       if (openAiApiKey && googleVisionError) {
@@ -508,7 +541,7 @@ Deno.serve(async (request: Request) => {
           },
           fileContent,
         ]);
-        return jsonResponse({
+        return await complete({
           ...result,
           warning: `Google Vision OCR failed; used OpenAI fallback. ${googleVisionError.message}`,
         });
@@ -520,7 +553,7 @@ Deno.serve(async (request: Request) => {
         );
       }
 
-      return jsonResponse({
+      return await complete({
         rows: parseFlyerTextRows(ocrText),
         usage: null,
         warning: "OCR-only extraction: names, sizes and prices require manual review. Configure OPENAI_API_KEY for Product template mapping.",
@@ -528,15 +561,17 @@ Deno.serve(async (request: Request) => {
     }
 
     if (!openAiApiKey) {
-      return jsonResponse({ rows: [] });
+      return await complete({ rows: [] });
     }
 
     const result = await extractRowsWithOpenAi(openAiApiKey, [
       { type: "input_text", text: prompt },
       fileContent,
     ]);
-    return jsonResponse(result);
+    return await complete(result);
   } catch (error) {
+    // Keep charged attempts in the daily count even when a provider fails.
+    if (cacheKey && claimId) await finishExtraction(cacheKey,claimId,null).catch(() => undefined);
     return jsonResponse(
       {
         error: error instanceof Error ? error.message : "Flyer extraction failed.",

@@ -6,6 +6,20 @@ const batch = require('../.tmp-tests/utils/flyerBatchImport.js');
 const usageTools = require('../.tmp-tests/utils/flyerUsage.js');
 const { createFlyerRow } = require('../.tmp-tests/state/adminStore.js');
 const row = createFlyerRow({ englishName: 'Milk', mainCategory: 'Dairy', price: '3.99', unit: '1 L' });
+
+test('quota errors retain their status and explicit zero new OpenAI usage', async () => {
+  const service = load('src/services/flyerAiImport.ts', {
+    '../utils/flyerAiRows': {normalizeFlyerAiRows: rows => rows},
+    '../utils/flyerUsage': usageTools,
+    './supabaseClient': {supabase:null,supabaseAnonKey:'test'},
+  }, {
+    process: {env: {EXPO_PUBLIC_FLYER_AI_ENDPOINT:'https://test.local/extract'}},
+    fetch: async () => Response.json({error:'Daily limit reached',usage:null},{status:429}),
+  });
+  await assert.rejects(service.extractFlyerRowsWithAi(new File(['flyer'],'flyer.png')), error => {
+    assert.equal(error.status,429); assert.equal(error.usage,null); return true;
+  });
+});
 const usage = { model: 'gpt-6-luna', inputTokens: 1000, outputTokens: 200, totalTokens: 1200,
   cachedInputTokens: 400, cacheWriteInputTokens: 200, reasoningTokens: 50, estimatedCostUsd: 0.000169 };
 function load(source, dependencies, globals = {}) {

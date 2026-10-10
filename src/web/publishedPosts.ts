@@ -3,10 +3,63 @@ import type { BlogPost } from "../data/blogPosts";
 import { fromRow, type BlogRow } from "../utils/blogRows";
 import { localizedBlogPosts } from "../utils/blogEditor";
 import { blogDocument, blogImagePaths, BLOG_IMAGE_BUCKET, safeBlogUrl } from "../utils/blogContent";
+import { requestCache } from "../utils/requestCache";
 
 export type PublicBackend = { url: string; key: string };
 const META_SELECT =
   "id,slug,locale,status,title,description,excerpt,published_on,read_minutes,updated_at,category,author_name,cover_image_path,cover_image_alt,publish_at,is_pinned";
+const cachedRows = requestCache<BlogRow[]>(30_000);
+const cachedImages = requestCache<Record<string, string>>(30_000);
+const pendingRevisions = new Map<string, Promise<string>>();
+
+async function publicRevision(config: PublicBackend): Promise<string> {
+  if (!config.url || !config.key) throw new Error("Public blog backend missing");
+  const key = JSON.stringify(config);
+  const pending = pendingRevisions.get(key);
+  if (pending) return pending;
+  // Never TTL-cache this check: edits, unpublishing and scheduled visibility
+  // must change the key before any cached article or signed URL is reused.
+  const request = (async () => {
+    const revisions: Array<{ id: string; updated_at: string }> = [];
+    for (let page = 0; page < 40; page++) {
+      const url = new URL("/rest/v1/published_blog_posts", config.url);
+      url.searchParams.set("select", "id,updated_at");
+      url.searchParams.set("order", "id.asc");
+      const data = await readJson(
+        await fetch(url, {
+          headers: {
+            apikey: config.key,
+            Authorization: `Bearer ${config.key}`,
+            Range: `${page * 250}-${page * 250 + 249}`,
+          },
+          signal: AbortSignal.timeout(8000),
+          cache: "no-store",
+        }),
+      );
+      if (
+        !Array.isArray(data) ||
+        data.some((row) => typeof row?.id !== "string" || typeof row?.updated_at !== "string")
+      )
+        throw new Error("Invalid public blog revision");
+      revisions.push(...data.map((row) => ({ id: row.id, updated_at: row.updated_at })));
+      if (data.length < 250) return JSON.stringify(revisions);
+    }
+    throw new Error("Public blog pagination limit reached");
+  })().finally(() => pendingRevisions.delete(key));
+  pendingRevisions.set(key, request);
+  return request;
+}
+
+function revisionRows(
+  config: PublicBackend,
+  revision: string,
+  locale: Locale | null,
+  slug?: string | null,
+) {
+  return cachedRows(JSON.stringify([config, revision, locale, slug ?? null]), () =>
+    rows(config, locale, slug),
+  );
+}
 
 // Bound backend responses before parsing, including chunked responses without Content-Length.
 async function readJson(response: Response, limit = 4 * 1024 * 1024): Promise<unknown> {
@@ -84,13 +137,14 @@ async function rows(
 }
 
 export async function publishedMetadata(config: PublicBackend): Promise<BlogRow[]> {
-  return rows(config, null);
+  return revisionRows(config, await publicRevision(config), null);
 }
 
 export async function publicBlogPage(config: PublicBackend, locale: Locale, slug: string | null) {
+  const revision = await publicRevision(config);
   const [metadata, article] = await Promise.all([
-    rows(config, locale),
-    slug ? rows(config, null, slug) : Promise.resolve([]),
+    revisionRows(config, revision, locale),
+    slug ? revisionRows(config, revision, null, slug) : Promise.resolve([]),
   ]);
   // Only the published view is read. A request's cookies/authentication are never forwarded.
   const merged = metadata.map(
@@ -104,7 +158,7 @@ export async function publicBlogPage(config: PublicBackend, locale: Locale, slug
         (p): p is BlogPost => !!p,
       )
     : posts;
-  await signImages(config, displayed);
+  await signImages(config, revision, displayed);
   return {
     posts,
     alternates: [...new Set(available)],
@@ -114,11 +168,21 @@ export async function publicBlogPage(config: PublicBackend, locale: Locale, slug
   };
 }
 
-async function signImages(config: PublicBackend, posts: BlogPost[]) {
+async function signImages(config: PublicBackend, revision: string, posts: BlogPost[]) {
   const paths = [
     ...new Set(posts.flatMap((post) => blogImagePaths(blogDocument(post), post.coverImagePath))),
   ];
   if (!paths.length) return;
+  const imageUrls = await cachedImages(JSON.stringify([config, revision, paths.sort()]), () =>
+    signedImageUrls(config, paths),
+  );
+  for (const post of posts) post.imageUrls = imageUrls;
+}
+
+async function signedImageUrls(
+  config: PublicBackend,
+  paths: string[],
+): Promise<Record<string, string>> {
   // Public storage policies sign only assets referenced by currently public articles.
   const response = await fetch(
     new URL(`/storage/v1/object/sign/${BLOG_IMAGE_BUCKET}`, config.url),
@@ -147,5 +211,5 @@ async function signImages(config: PublicBackend, posts: BlogPost[]) {
     const url = safeBlogUrl(new URL(relative, config.url).href, true);
     if (url) imageUrls[image.path] = url;
   }
-  for (const post of posts) post.imageUrls = imageUrls;
+  return imageUrls;
 }

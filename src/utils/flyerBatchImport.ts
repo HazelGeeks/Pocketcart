@@ -40,6 +40,11 @@ export async function extractFlyerBatch<T extends { name: string }>(
     } catch (error) {
       if (fileUsage === undefined) fileUsage = flyerUsageFromError(error);
       messages.push(`${file.name}: ${error instanceof Error ? error.message : "Extraction failed."}`);
+      if (error && typeof error === "object" && "status" in error && error.status === 429) {
+        const remaining = files.length - index - 1;
+        if (remaining) messages.push(`${remaining} file(s) skipped after reaching the analysis limit.`);
+        break;
+      }
     } finally {
       usages.push(fileUsage);
     }

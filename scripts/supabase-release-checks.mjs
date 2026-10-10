@@ -2,6 +2,16 @@
 export function featureChecks(migrations) {
   const versions = new Set(migrations.map((item) => item.version));
   const checks = [];
+  if (versions.has("20261010010000")) checks.push(`
+DO $pc_verify$ BEGIN
+  IF NOT EXISTS(SELECT 1 FROM pg_class WHERE oid='public.flyer_extraction_jobs'::regclass AND relrowsecurity)
+    OR has_table_privilege('anon','public.flyer_extraction_jobs','select')
+    OR has_table_privilege('authenticated','public.flyer_extraction_usage','select')
+    OR has_function_privilege('authenticated','public.claim_flyer_extraction(uuid,text,integer,integer)','execute')
+    OR has_function_privilege('anon','public.finish_flyer_extraction(text,uuid,jsonb)','execute')
+    OR NOT has_function_privilege('service_role','public.claim_flyer_extraction(uuid,text,integer,integer)','execute')
+  THEN RAISE EXCEPTION 'Flyer cost-control access verification failed'; END IF;
+END $pc_verify$;`);
   if (versions.has("20261007020000")) checks.push(`
 DO $pc_verify$ BEGIN
   IF NOT EXISTS(SELECT 1 FROM pg_class WHERE oid='public.published_blog_posts'::regclass AND reloptions @> ARRAY['security_invoker=true'])

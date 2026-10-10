@@ -81,7 +81,7 @@ export async function extractFlyerRowsWithAi(file: File): Promise<FlyerAiResult>
     }
     throw Object.assign(new Error(
       payload.error || payload.message || payload.code || `AI flyer import failed with ${response.status}.`,
-    ), { usage: normalizeFlyerUsage(payload.usage ?? payload.data?.usage) });
+    ), { status: response.status, usage: normalizeFlyerUsage(payload.usage === undefined ? payload.data?.usage : payload.usage) });
   }
 
   const rows = payload.rows ?? payload.data?.rows ?? [];

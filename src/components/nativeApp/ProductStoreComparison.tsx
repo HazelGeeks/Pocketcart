@@ -38,7 +38,17 @@ export function ProductStoreComparison({ rows, loading }: ProductStoreComparison
                   {row.comparison_label}
                 </Text>
                 {row.price_delta_percent !== null ? (
-                  <Text style={st.storeCompareTrendText} numberOfLines={1}>
+                  <Text
+                    style={[
+                      st.storeCompareTrendText,
+                      row.price_delta_percent > 0
+                        ? st.historyDiffUp
+                        : row.price_delta_percent < 0
+                          ? st.historyDiffDown
+                          : undefined,
+                    ]}
+                    numberOfLines={1}
+                  >
                     {row.price_delta_percent > 0
                       ? "Up "
                       : row.price_delta_percent < 0

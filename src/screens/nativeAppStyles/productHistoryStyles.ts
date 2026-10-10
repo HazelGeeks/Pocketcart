@@ -89,9 +89,9 @@ export const productHistoryStyles = StyleSheet.create({
   storeComparePriceBlock: { alignItems: "flex-end", gap: 3 },
   storeCompareLowest: { color: C.primaryDeep, fontSize: 12, fontFamily: F.extraBold },
   storeCompareMetaRow: { borderTopWidth: 1, borderTopColor: C.line, paddingTop: 8, gap: 3 },
-  storeCompareTrendText: { color: C.primaryDeep, fontSize: 12, fontFamily: F.extraBold },
+  storeCompareTrendText: { color: C.textMuted, fontSize: 12, fontFamily: F.extraBold },
   historyLabel: { color: C.textMuted, fontSize: 12, fontFamily: F.bold },
   historyPrice: { color: C.text, fontSize: 13, fontFamily: F.bold },
   historyDiffUp: { color: semanticPalette.priceIncrease },
-  historyDiffDown: { color: C.primaryDeep },
+  historyDiffDown: { color: semanticPalette.priceDecrease },
 });

@@ -6,6 +6,18 @@ const { normalizeFlyerAiRows } = require("../.tmp-tests/utils/flyerAiRows.js");
 
 const validProduct = { englishName: "Milk", mainCategory: "Dairy", price: "3.99", unit: "1 L" };
 
+test("quota exhaustion stops the batch before requesting remaining files", async () => {
+  let calls = 0;
+  const result = await extractFlyerBatch(["one","two","three"].map(name => ({name})), async () => {
+    calls++;
+    throw Object.assign(new Error("Daily limit reached"), {status:429,usage:null});
+  }, { onStart() {}, onRows() {} });
+  assert.equal(calls,1);
+  assert.equal(result.rowCount,0);
+  assert.match(result.messages.join(" "),/2 file\(s\) skipped/);
+  assert.equal(result.usage.totalTokens,0);
+});
+
 test("mixed files run sequentially, preserve successful rows and identify failures and empty files", async () => {
   const files = ["one.pdf", "broken.png", "empty.pdf", "last.jpg"].map((name) => ({ name }));
   const rows = [{ id: "existing", memo: "Keep my edits" }];

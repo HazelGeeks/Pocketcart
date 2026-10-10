@@ -105,3 +105,39 @@ threshold, and the returned service tier. Reasoning tokens are already included 
 output tokens. Unknown models/tiers retain token counts but show cost unavailable.
 Google Vision OCR charges, taxes, and account-specific adjustments are excluded.
 Deploy the updated function and web build together to enable the usage display.
+
+### Duplicate extraction and usage limits
+
+Apply `20261010010000_flyer_extraction_cache.sql` through the backend release guide
+before deploying the updated function. Missing controls fail before calling a paid
+provider. Only the server role can reserve or finish extraction; ordinary users
+cannot read saved results, counters or claim RPCs. The function still verifies the
+signed-in admin and optional email allowlist on every request, including cache hits.
+
+Successful results are reusable for seven days. The key includes the file hash,
+prompt, response schema, model, OCR settings, output limit and extraction version.
+Increment the version in the handler if normalization semantics change. PDF names
+are canonicalized for extraction; the client retains the actual source filename.
+Concurrent duplicates receive 409 while the first request owns its ten-minute
+reservation. Failed/expired claims can be retried manually; no paid automatic retry
+is performed. Failure attempts remain counted because a provider may have charged.
+Expired results and counters older than 30 days are pruned during reservations.
+
+| Setting | Default | Scope |
+| --- | --- | --- |
+| `FLYER_DAILY_USER_LIMIT` | 120 | New extraction attempts per admin per UTC day |
+| `FLYER_DAILY_GLOBAL_LIMIT` | 300 | New extraction attempts across the project per UTC day |
+| `FLYER_MAX_OUTPUT_TOKENS` | 32000 | OpenAI reasoning/output ceiling per file; maximum 64000 |
+
+Limits are checked atomically in PostgreSQL. Cache hits remain available after
+quota exhaustion and return `usage: null` plus a reuse notice; old usage is not
+counted as current spending. A quota error stops the remaining batch requests and
+keeps rows already extracted. Provider calls time out after 90 seconds. Incomplete
+OpenAI responses are rejected without importing partial rows; split large files
+before retrying. These are request/output limits, not a guaranteed USD spending cap:
+input tokens, Google OCR and provider pricing remain separate costs.
+Google OCR remains enabled when configured to preserve extraction quality.
+
+Run the isolated DB check with `PGLITE_MODULE=/path/to/pglite/dist/index.js node
+tests/integration/flyer-cost-control.mjs`. Production migration application,
+function deployment and live quota/cache verification are separate release steps.

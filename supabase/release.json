@@ -40,7 +40,8 @@
     "20261009010000_fill_verified_product_images.sql",
     "20261009020000_fill_additional_sale_product_images.sql",
     "20261009030000_fill_reviewed_sale_product_images.sql",
-    "20261009040000_fill_extracted_sale_product_images.sql"
+    "20261009040000_fill_extracted_sale_product_images.sql",
+    "20261010010000_flyer_extraction_cache.sql"
   ],
   "functions": [
     "admin-flyer-notification",

@@ -36,5 +36,6 @@ export const appPalette = {
 
 export const semanticPalette = {
   success: "#16a34a",
+  priceDecrease: "#2563EB",
   priceIncrease: "#A83939",
 } as const;

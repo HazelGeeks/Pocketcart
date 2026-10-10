@@ -105,7 +105,7 @@ export const catalogStyles = StyleSheet.create({
     fontWeight: "800",
     fontFamily: F.extraBold,
   },
-  homeDeltaDown: { color: C.primaryDeep },
+  homeDeltaDown: { color: semanticPalette.priceDecrease },
   homeDeltaFlat: { color: C.textMuted },
   homeDeltaUp: { color: semanticPalette.priceIncrease },
   homeProductPriceCol: {

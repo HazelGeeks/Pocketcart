@@ -1,7 +1,7 @@
 # Web rendering
 
 This guide explains the public website build, routing, SEO and verification.
-Code reviewed: 2026-10-07. Local verification does not establish production deployment,
+Code reviewed: 2026-10-09. Local verification does not establish production deployment,
 search indexing, real-device performance or screen-reader certification.
 
 ## Current behavior
@@ -66,7 +66,14 @@ The Worker only reads `published_blog_posts`, using the public anonymous key. It
 forwards request authentication or cookies to Supabase, and never falls back to bundled
 articles during outages. Draft/future publication visibility is controlled by the existing
 database view and RLS policies. Unpublishing therefore affects the next request without
-redeployment. Blog HTML and sitemap use `no-store`; there is no stale article cache.
+redeployment. Blog HTML and sitemap use `no-store`. The server reuses metadata,
+article bodies and signed image URLs for up to 30 seconds in a bounded cache.
+Before every request it reads only public article IDs and revision timestamps from
+the published view, without caching that check. A publication, edit, unpublish or
+scheduled visibility change produces a different cache key immediately. If the
+revision check fails, the response is 503; previously cached content is not served.
+Concurrent reads share their pending request. This reduces full payload reads and
+repeated image signing while retaining a small DB visibility check per request.
 Static HTML uses revalidation, and fingerprinted script/CSS assets use immutable caching.
 
 Backend requests have timeouts and bounded response parsing. Metadata uses pages of 250

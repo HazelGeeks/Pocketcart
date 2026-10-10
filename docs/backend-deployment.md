@@ -1,7 +1,7 @@
 # Supabase 배포 절차
 
 기존 Pocketcart 운영 프로젝트의 DB 변경과 함수 배포를 관리합니다.
-코드 확인일: 2026-10-07. 통합 배포 절차와 운영 상태는 별개입니다. 이전 운영 검증·후속 변경은
+코드 확인일: 2026-10-09. 통합 배포 절차와 운영 상태는 별개입니다. 이전 운영 검증·후속 변경은
 [2026-10-03 운영 검토](archive/2026-10-03-supabase-review.md)에 기록합니다. 새 Supabase 프로젝트를 만드는 bootstrap 절차는 아닙니다.
 
 ## 하나의 배포 경로
@@ -119,6 +119,24 @@ SQL 카탈로그와 권한·스키마 캐시를 확인해 미설치와 구분합
 ```bash
 POCKETCART_PGLITE_MODULE=/absolute/path/to/pglite/dist/index.js node tests/integration/blog.mjs
 ```
+
+## Flyer 비용 제어 DB 적용
+
+`20261010010000_flyer_extraction_cache.sql`은 서버 전용 분석 결과 캐시·일일 카운터와
+예약/완료 RPC를 추가합니다. 상품·가격·기존 사용자 데이터를 수정하지 않습니다.
+운영 이력과 신규 SQL을 확인한 뒤 이 버전만 적용하고, `back-office-flyer` 함수를
+배포합니다. 함수가 먼저 배포되면 제어 테이블/RPC가 없어서 유료 분석을 차단합니다.
+관리자별 120회, 프로젝트 전체 300회의 UTC 일일 기본 제한과 설정 변경 방법은
+[함수 안내](../supabase/functions/back-office-flyer/README.md)를 따릅니다.
+
+```bash
+npm run backend:release -- plan --remote --migrations=20261010010000
+npm run backend:release -- release --migrations=20261010010000 --functions=back-office-flyer
+```
+
+먼저 격리 DB에서 접근 권한·중복 예약·실패 횟수 유지·quota·만료를 검증합니다.
+배포 후에는 동일 파일 재사용이 새 OpenAI/Google 요청을 하지 않는지 별도 확인합니다.
+호출 제한은 정확한 달러 예산 상한을 보장하지 않습니다.
 
 ## 실패·재실행·검증
 

@@ -6,25 +6,32 @@ const vm = require("node:vm");
 const ts = require("typescript");
 
 async function extract({ pdf = false, ocr = "Milk $3.99", visionFails = false, admin = true,
-  aiText, usage, openAi = true, vision = true, model = "gpt-6-luna" } = {}) {
+  aiText, usage, openAi = true, vision = true, model = "gpt-6-luna",
+  reservation = { state: "claimed", claimId: "claim" }, status = "completed", controlFails = false } = {}) {
   let handler;
   let aiRequest;
-  const env = { SUPABASE_URL: "https://test.local", SUPABASE_ANON_KEY: "test", GOOGLE_VISION_API_KEY: "test", OPENAI_API_KEY: "test" };
+  let providerCalls = 0;
+  const env = { SUPABASE_URL: "https://test.local", SUPABASE_ANON_KEY: "test", SUPABASE_SERVICE_ROLE_KEY: "server-only", GOOGLE_VISION_API_KEY: "test", OPENAI_API_KEY: "test" };
   if (!openAi) delete env.OPENAI_API_KEY;
   if (!vision) delete env.GOOGLE_VISION_API_KEY;
   const globals = {
-    Request, Response, File, FormData, Uint8Array, btoa, atob,
+    Request, Response, File, FormData, Uint8Array, btoa, atob, crypto: require('node:crypto').webcrypto, TextEncoder, AbortSignal,
     Deno: { env: { get: (key) => env[key] }, serve: (fn) => { handler = fn; } },
     fetch: async (url, options) => {
       if (url.endsWith("/rpc/is_admin")) return Response.json(admin);
+      if (url.endsWith("/rpc/claim_flyer_extraction")) return controlFails
+        ? new Response("unavailable", { status: 503 }) : Response.json(reservation);
+      if (url.endsWith("/rpc/finish_flyer_extraction")) return Response.json(true);
       if (url.includes("vision.googleapis.com")) {
+        providerCalls++;
         if (visionFails) return Response.json({ error: { message: "Unavailable" } }, { status: 503 });
         const page = { fullTextAnnotation: { text: ocr } };
         return Response.json({ responses: pdf ? [{ responses: [page] }] : [page] });
       }
       assert.equal(url, "https://api.openai.com/v1/responses");
+      providerCalls++;
       aiRequest = JSON.parse(options.body);
-      return Response.json({ model, usage, output_text: aiText ?? JSON.stringify({ rows: [{ englishName: "Milk", koreanName: "우유", price: "3.99", unit: "1 L" }] }) });
+      return Response.json({ status, model, usage, output_text: aiText ?? JSON.stringify({ rows: [{ englishName: "Milk", koreanName: "우유", price: "3.99", unit: "1 L" }] }) });
     },
   };
   function load(file) {
@@ -36,8 +43,9 @@ async function extract({ pdf = false, ocr = "Milk $3.99", visionFails = false, a
   load(path.resolve(__dirname, "../supabase/functions/back-office-flyer/index.ts"));
   const form = new FormData();
   form.append("file", new File(["fixture content"], pdf ? "flyer.pdf" : "flyer.png", { type: pdf ? "application/pdf" : "image/png" }));
-  const response = await handler(new Request("https://test.local/extract", { method: "POST", headers: { authorization: "Bearer test" }, body: form }));
-  return { response, aiRequest };
+  const token = `header.${Buffer.from(JSON.stringify({sub:'00000000-0000-0000-0000-000000000001'})).toString('base64url')}.signature`;
+  const response = await handler(new Request("https://test.local/extract", { method: "POST", headers: { authorization: `Bearer ${token}` }, body: form }));
+  return { response, aiRequest, providerCalls };
 }
 
 for (const pdf of [false, true]) {
@@ -61,6 +69,42 @@ test("empty OCR still uses the uploaded source for extraction", async () => {
   const { response, aiRequest } = await extract({ ocr: "" });
   assert.equal(response.status, 200);
   assert.equal(aiRequest.input[0].content[1].type, "input_image");
+});
+
+test('cache hits reuse rows without provider calls or counting old token usage', async () => {
+  const result = { rows: [{ englishName: 'Milk' }], usage: { totalTokens: 999 } };
+  const { response, aiRequest, providerCalls } = await extract({ reservation: { state: 'cached', result } });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(aiRequest, undefined);
+  assert.equal(providerCalls, 0);
+  assert.equal(body.rows[0].englishName, 'Milk');
+  assert.equal(body.usage, null);
+  assert.equal(body.cacheHit, true);
+});
+
+test('busy, quota and unavailable cost controls never invoke paid AI', async () => {
+  for (const [options, expected] of [
+    [{ reservation: { state: 'busy' } },409],
+    [{ reservation: { state: 'limited' } },429],
+    [{ controlFails: true },502],
+  ]) {
+    const { response, aiRequest, providerCalls } = await extract(options);
+    assert.equal(response.status, expected);
+    assert.equal(aiRequest, undefined);
+    assert.equal(providerCalls,0);
+  }
+});
+
+test('bounded OpenAI output rejects incomplete results and retains charged usage', async () => {
+  const { response, aiRequest } = await extract({ status: 'incomplete', usage: { input_tokens: 100, output_tokens: 50 } });
+  assert.equal(aiRequest.max_output_tokens, 32000);
+  assert.equal(aiRequest.store, false);
+  assert.equal(response.status, 502);
+  const body = await response.json();
+  assert.equal(body.rows, undefined);
+  assert.equal(body.usage.totalTokens, 150);
+  assert.match(body.error, /incomplete/);
 });
 
 test("failed OCR falls back to source extraction and reports the fallback", async () => {

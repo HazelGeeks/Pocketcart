@@ -68,6 +68,7 @@ function setup(data, failure = false) {
       "../utils/blogRows": rows,
       "../utils/blogEditor": editor,
       "../utils/blogContent": content,
+      "../utils/requestCache": sourceModule("src/utils/requestCache.ts", {}, { Date, Map }),
     },
     {
       URL,
@@ -79,6 +80,7 @@ function setup(data, failure = false) {
         if (failure) return new Response("unavailable", { status: 503 });
         let result = data;
         const parsed = new URL(url);
+        if (parsed.pathname.includes('/storage/')) return Response.json(JSON.parse(options.body).paths.map(path => ({path,signedURL:`/object/sign/blog-images/${path}?token=public-test`} )));
         if (parsed.searchParams.has("slug"))
           result = result.filter((r) => `eq.${r.slug}` === parsed.searchParams.get("slug"));
         if (parsed.searchParams.get("locale") === "eq.en")
@@ -120,8 +122,38 @@ function setup(data, failure = false) {
   };
   const fetchPage = (url, options) =>
     worker.fetch(new Request(`https://pocketcart.app${url}`, options), env);
-  return { calls, assets, fetchPage, backend };
+  return { calls, assets, fetchPage, backend, setData: (next) => { data = next; }, setFailure: (next) => { failure = next; } };
 }
+
+test('repeated article and sitemap reads reuse payloads but always check current publication state', async () => {
+  const fixture = setup([row()]);
+  await (await fixture.fetchPage('/blog/shopping-plan')).text();
+  const fullReads = () => fixture.calls.filter(c => new URL(c.url).searchParams.get('select') !== 'id,updated_at').length;
+  const before = fullReads();
+  await (await fixture.fetchPage('/blog/shopping-plan')).text();
+  assert.equal(fullReads(),before);
+  fixture.setData([row('en',{updated_at:'2026-10-07T12:01:00Z',title:'Changed immediately'})]);
+  assert.match(await (await fixture.fetchPage('/blog/shopping-plan')).text(),/Changed immediately/);
+  fixture.setData([]);
+  assert.equal((await fixture.fetchPage('/blog/shopping-plan')).status,404);
+  assert.doesNotMatch(await (await fixture.fetchPage('/sitemap.xml')).text(),/shopping-plan/);
+  fixture.setData([row()]);
+  assert.equal((await fixture.fetchPage('/blog/shopping-plan')).status,200);
+  fixture.setFailure(true);
+  assert.equal((await fixture.fetchPage('/blog/shopping-plan')).status,503);
+});
+
+test('signed image URLs are reused only while their article revision remains public', async () => {
+  const image = '00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000002.webp';
+  const fixture = setup([row('en',{cover_image_path:image})]);
+  await (await fixture.fetchPage('/blog/shopping-plan')).text();
+  await (await fixture.fetchPage('/blog/shopping-plan')).text();
+  assert.equal(fixture.calls.filter(c => c.url.includes('/storage/')).length,1);
+  fixture.setData([]);
+  const hidden = await fixture.fetchPage('/blog/shopping-plan');
+  assert.equal(hidden.status,404);
+  assert.doesNotMatch(await hidden.text(),/token=public-test/);
+});
 
 test("server-rendered article contains body, localized SEO and escaped valid JSON-LD on the initial response", async () => {
   const { calls, fetchPage } = setup([row(), row("fr")]);
