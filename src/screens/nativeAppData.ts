@@ -5,6 +5,7 @@ import { BUSINESS_TIME_ZONE } from "../utils/businessDateTime";
 export type NativeTabId =
   | "home"
   | "shopping"
+  | "feed"
   | "freezer"
   | "receipts"
   | "map"
@@ -50,6 +51,7 @@ export type PreviousPriceRow = {
 export const TABS: Array<{ id: NativeTabId; label: string }> = [
   { id: "home", label: "Home" },
   { id: "shopping", label: "Cart" },
+  { id: "feed", label: "Feed" },
   { id: "freezer", label: "Freezer" },
   { id: "more", label: "Account" },
 ];

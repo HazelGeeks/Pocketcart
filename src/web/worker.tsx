@@ -1,6 +1,7 @@
 import { renderToReadableStream } from "react-dom/server.browser";
 import BlogDocument, { ErrorDocument, type PublicDocument } from "./BlogDocument";
 import { publicBlogPage, publishedMetadata, type PublicBackend } from "./publishedPosts";
+import { sharedFeedPost } from "./sharedFeedPost";
 import { sitemap } from "./sitemap";
 
 // Replaced at build time with the same public URL/anonymous key as the web app.
@@ -55,6 +56,23 @@ export default {
           status: 503,
           headers: { "Retry-After": "60", "Cache-Control": "no-store" },
         });
+      }
+    }
+    if (path.startsWith("/feed/")) {
+      try {
+        const post = await sharedFeedPost(__PUBLIC_BACKEND__, path.slice(6));
+        if (post) return html(post, 200, request.method);
+        return html(
+          <ErrorDocument status={404} locale={locale} cssPath={__PUBLIC_CSS_PATH__} />,
+          404,
+          request.method,
+        );
+      } catch {
+        return html(
+          <ErrorDocument status={503} locale={locale} cssPath={__PUBLIC_CSS_PATH__} />,
+          503,
+          request.method,
+        );
       }
     }
     if (path === "/blog" || path.startsWith("/blog/")) {

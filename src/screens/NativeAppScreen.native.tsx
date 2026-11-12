@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { NativeFeedTab } from "../components/nativeApp/feed/NativeFeedTab";
 import { NativeFreezerTab } from "../components/nativeApp/NativeFreezerTab";
 import { NativeReceiptsTab } from "../components/nativeApp/receipts/NativeReceiptsTab";
 import { FoodScanPanel } from "../components/nativeApp/FoodScanPanel";
@@ -217,6 +218,14 @@ function NativeAppContent() {
           permissions={permissions}
           topInset={0}
         />
+      ) : shell.activeTab === "feed" ? (
+        <NativeFeedTab
+          userId={account.profile?.id ?? null}
+          pad={pad}
+          bottomInset={insets.bottom}
+          authOpen={account.accountRoute === "auth"}
+          onSignIn={account.openSignIn}
+        />
       ) : (
         <ScrollView key={scrollKey} ref={detailScrollRef} contentOffset={{ x: 0, y: initialOffset }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
           style={st.scroll}
@@ -283,7 +292,7 @@ function NativeAppContent() {
           onSelectTab={navigation.selectTab}
         />
       ) : null}
-      {shell.activeTab === "more" && account.accountRoute === "auth" ? <NativeAuthSheet account={account} /> : null}
+      {(shell.activeTab === "more" || shell.activeTab === "feed") && account.accountRoute === "auth" ? <NativeAuthSheet account={account} /> : null}
       <NativeAppOnboarding
         visible={onboarding.visible}
         step={onboarding.step}

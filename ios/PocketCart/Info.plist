@@ -49,6 +49,8 @@
     </dict>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>PocketCart uses your location only when you choose to find nearby stores and deals.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>PocketCart uses the photo you choose to attach to your feed post.</string>
     <key>NSCameraUsageDescription</key>
     <string>PocketCart uses your camera when you choose to photograph a receipt. You can enter receipts manually without camera access.</string>
     <key>RCTNewArchEnabled</key>

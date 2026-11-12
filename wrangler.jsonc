@@ -23,6 +23,7 @@
       "/index.html",
       "/blog",
       "/blog/*",
+      "/feed/*",
       "/sitemap.xml",
       "/admin",
       "/support",

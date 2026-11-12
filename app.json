@@ -28,6 +28,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "PocketCart uses your camera when you choose to photograph a receipt. You can enter receipts manually without camera access.",
+        "NSPhotoLibraryUsageDescription": "PocketCart uses the photo you choose to attach to your feed post.",
         "NSLocationWhenInUseUsageDescription": "PocketCart uses your location only when you choose to find nearby stores and deals.",
         "UIApplicationSceneManifest": {
           "UIApplicationSupportsMultipleScenes": false,
@@ -79,6 +80,14 @@
           "cameraPermission": "PocketCart uses your camera when you choose to photograph a receipt. You can enter receipts manually without camera access.",
           "recordAudioAndroid": false,
           "barcodeScannerEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PocketCart uses the photo you choose to attach to your feed post.",
+          "cameraPermission": "PocketCart uses your camera when you choose to photograph a receipt. You can enter receipts manually without camera access.",
+          "microphonePermission": false
         }
       ],
       "expo-font",

@@ -30,3 +30,11 @@ verify_jwt = false
 [functions.receipt-scan]
 # Caller JWT is verified with Auth before the scan quota or image API is used.
 verify_jwt = false
+
+[functions.feed-photo]
+# Serves only images attached to published anonymous posts, without disclosing storage paths.
+verify_jwt = false
+
+[functions.delete-feed-post]
+# The handler verifies the caller's access token through Auth.
+verify_jwt = false

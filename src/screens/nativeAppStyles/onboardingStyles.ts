@@ -33,13 +33,13 @@ export const onboardingStyles = StyleSheet.create({
     lineHeight: 20,
     fontFamily: F.regular,
   },
-  onboardingBtn: {
-    minHeight: 42,
-    marginTop: 4,
+  onboardingActions: { flexDirection: "row", gap: 8, marginTop: 4 },
+  onboardingBtn: { flex: 1, minHeight: 44, paddingVertical: 8 },
+  onboardingSkip: {
+    alignSelf: "center",
+    minHeight: 44,
+    paddingHorizontal: 16,
+    justifyContent: "center",
   },
-  inlineToggleBtn: {
-    minHeight: 40,
-    marginTop: 4,
-    marginBottom: 4,
-  },
+  onboardingSkipText: { color: C.textMuted, fontSize: 13, fontFamily: F.regular },
 });

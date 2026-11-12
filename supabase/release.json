@@ -41,7 +41,11 @@
     "20261009020000_fill_additional_sale_product_images.sql",
     "20261009030000_fill_reviewed_sale_product_images.sql",
     "20261009040000_fill_extracted_sale_product_images.sql",
-    "20261010010000_flyer_extraction_cache.sql"
+    "20261010010000_flyer_extraction_cache.sql",
+    "20261111010000_community_feed.sql",
+    "20261111020000_freeform_feed.sql",
+    "20261111030000_feed_caption_limit.sql",
+    "20261111040000_feed_social.sql"
   ],
   "functions": [
     "admin-flyer-notification",
@@ -49,6 +53,8 @@
     "billing-status",
     "delete-account",
     "delete-account-request",
+    "delete-feed-post",
+    "feed-photo",
     "receipt-scan",
     "send-sale-alert-push",
     "sync-sale-alerts",

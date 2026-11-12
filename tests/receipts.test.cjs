@@ -137,7 +137,7 @@ test("Scan and Receipts have Account back destinations", () => {
   const { TABS } = require("../.tmp-tests/screens/nativeAppData.js");
   assert.equal(hasNativeBackDestination("scan", "catalog", "settings"), true);
   assert.equal(hasNativeBackDestination("receipts", "catalog", "settings"), true);
-  assert.deepEqual(TABS.map(tab => tab.id), ["home", "shopping", "freezer", "more"]);
+  assert.deepEqual(TABS.map(tab => tab.id), ["home", "shopping", "feed", "freezer", "more"]);
 });
 
 test("receipt display keys retain duplicate lines and survive unrelated reordering", () => {

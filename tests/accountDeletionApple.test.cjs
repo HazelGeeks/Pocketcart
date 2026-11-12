@@ -22,7 +22,7 @@ function harness({ authenticated = true, apple = true, revokeFails = false, dele
   };
   new Function("require", "exports", "Deno", code)(
     (name) => name.includes("supabase-js") ? { createClient: () => client } : {
-      removeAccountReceiptPhotos: async () => { if (cleanupFails) throw new Error("Storage unavailable"); },
+      removeAccountPhotos: async () => { if (cleanupFails) throw new Error("Storage unavailable"); },
       revokeAppleAuthorization: async (_config, authorizationCode, subject) => {
         events.push(["revoke", authorizationCode, subject]);
         if (revokeFails) throw new Error("Provider unavailable");

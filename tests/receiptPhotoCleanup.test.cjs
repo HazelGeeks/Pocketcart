@@ -9,7 +9,7 @@ const code = ts.transpileModule(
 function cleanup(fetch) {
   const exports = {};
   new Function("exports", "fetch", code)(exports, fetch);
-  return exports.removeAccountReceiptPhotos("https://db.test", "secret", "owner");
+  return exports.removeAccountPhotos("https://db.test", "secret", "owner");
 }
 test("account deletion removes every photo batch through storage before user deletion", async () => {
   let lists = 0;

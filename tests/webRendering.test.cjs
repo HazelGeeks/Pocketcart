@@ -96,6 +96,14 @@ function setup(data, failure = false) {
       "react-dom/server.browser": { renderToReadableStream },
       "./BlogDocument": document,
       "./publishedPosts": backend,
+      "./sharedFeedPost": sourceModule("src/web/sharedFeedPost.tsx", { react: React, "./seo": seo }, {
+        URL, AbortSignal,
+        fetch: async (url) => {
+          if (failure) return new Response("unavailable", { status: 503 });
+          const id = new URL(url).searchParams.get("id");
+          return Response.json(data.filter(post => "eq." + post.id === id));
+        },
+      }),
       "./sitemap": sitemap,
     },
     {
@@ -233,4 +241,16 @@ test("static localized pages, private SPA routes, HEAD, missing assets and unkno
   assert.equal((await fixture.fetchPage("/blog", { method: "POST" })).status, 405);
   const redirected = await fixture.fetchPage("/rendered/fr/home.html");
   assert.equal(redirected.headers.get("Location"), "https://pocketcart.app/?lang=fr");
+});
+
+test("a shared anonymous post renders without an account and its link disappears after deletion", async () => {
+  const id = "5a0911e5-1177-4263-84f4-ef6a94cad8d1";
+  const fixture = setup([{ id, author_label: "Anonymous", caption: "Today's find", anonymous_photo: true }]);
+  const page = await fixture.fetchPage("/feed/" + id);
+  assert.equal(page.status, 200);
+  const markup = await page.text();
+  assert.match(markup, /Anonymous on PocketCart/);
+  assert.ok(markup.includes("/functions/v1/feed-photo?id=" + id));
+  fixture.setData([]);
+  assert.equal((await fixture.fetchPage("/feed/" + id)).status, 404);
 });

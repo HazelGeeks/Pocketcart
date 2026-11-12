@@ -224,6 +224,8 @@ function TabIcon({ tabId, active }: { tabId: NativeTabId; active: boolean }) {
           <Circle cx="18" cy="21" r="1" fill={color} />
         </Svg>
       );
+    case "feed":
+      return <AppIcon name="list" color={color} size={iconSize} strokeWidth={strokeWidth} />;
     case "freezer":
       return <AppIcon name="fridge" color={color} size={iconSize} strokeWidth={strokeWidth} />;
     case "receipts":
